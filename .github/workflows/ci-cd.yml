@@ -355,17 +355,28 @@ jobs:
             
             cd "$APP_PATH"
             
-            # Check if app is running in PM2
-            if pm2 list | grep -q "ouiimi"; then
-              echo "App found in PM2, restarting..."
-              pm2 restart ouiimi || (pm2 delete ouiimi && pm2 start ecosystem.config.js)
-            else
-              echo "App not found in PM2, starting fresh..."
-              pm2 start ecosystem.config.js
+            # Check if app is running in PM2 and restart/start accordingly
+            echo "Checking PM2 status..."
+            PM2_STATUS=$(pm2 list | grep -E "ouiimi|ecosystem" || echo "")
+            
+            if [ -n "$PM2_STATUS" ]; then
+              echo "App found in PM2, stopping and removing..."
+              pm2 stop ouiimi || true
+              pm2 delete ouiimi || true
+              # Also try to stop/delete by ecosystem config name
+              pm2 stop ecosystem.config.js || true
+              pm2 delete ecosystem.config.js || true
             fi
+            
+            echo "Starting application with PM2..."
+            pm2 start ecosystem.config.js
             
             # Save PM2 process list
             pm2 save || true
+            
+            # Show PM2 status
+            echo "PM2 status:"
+            pm2 list
             
             # Reload Nginx
             echo "Reloading Nginx..."
