@@ -15,12 +15,20 @@ export function middleware(request: NextRequest) {
   );
 
   // HTTPS enforcement in production
+  // Only redirect if we're directly accessed (not behind a proxy)
+  // Cloudflare and Nginx handle HTTPS, so we trust X-Forwarded-Proto
+  const forwardedProto = request.headers.get("x-forwarded-proto");
+  const isBehindProxy = request.headers.get("x-forwarded-for") || forwardedProto;
+  
+  // Only enforce HTTPS if not behind a proxy (direct access)
   if (
     process.env.NODE_ENV === "production" &&
-    request.headers.get("x-forwarded-proto") !== "https"
+    !isBehindProxy &&
+    request.nextUrl.protocol !== "https:"
   ) {
+    const host = request.headers.get("host") || request.nextUrl.host;
     return NextResponse.redirect(
-      `https://${request.headers.get("host")}${request.nextUrl.pathname}`,
+      `https://${host}${request.nextUrl.pathname}`,
       301
     );
   }
