@@ -11,7 +11,8 @@ import { signIn } from "next-auth/react";
 
 export default function SigninPage() {
   const router = useRouter();
-  const [csrfToken, setCsrfToken] = useState<string>("");
+  // CSRF token temporarily disabled
+  // const [csrfToken, setCsrfToken] = useState<string>("");
   const [error, setError] = useState<string>("");
   const [success, setSuccess] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
@@ -24,36 +25,31 @@ export default function SigninPage() {
     resolver: zodResolver(signinSchema),
   });
 
-  useEffect(() => {
-    // Fetch CSRF token
-    fetch("/api/auth/csrf")
-      .then((res) => {
-        if (!res.ok) {
-          throw new Error(`CSRF fetch failed: ${res.status}`);
-        }
-        return res.json();
-      })
-      .then((data) => {
-        if (data.csrfToken) {
-          setCsrfToken(data.csrfToken);
-          console.log("CSRF token loaded successfully");
-        } else {
-          console.error("CSRF token not in response:", data);
-        }
-      })
-      .catch((err) => {
-        console.error("Failed to fetch CSRF token:", err);
-        setError("Failed to load security token. Please refresh the page.");
-      });
-  }, []);
+  // CSRF token fetching temporarily disabled
+  // useEffect(() => {
+  //   // Fetch CSRF token
+  //   fetch("/api/auth/csrf")
+  //     .then((res) => {
+  //       if (!res.ok) {
+  //         throw new Error(`CSRF fetch failed: ${res.status}`);
+  //       }
+  //       return res.json();
+  //     })
+  //     .then((data) => {
+  //       if (data.csrfToken) {
+  //         setCsrfToken(data.csrfToken);
+  //         console.log("CSRF token loaded successfully");
+  //       } else {
+  //         console.error("CSRF token not in response:", data);
+  //       }
+  //     })
+  //     .catch((err) => {
+  //       console.error("Failed to fetch CSRF token:", err);
+  //       setError("Failed to load security token. Please refresh the page.");
+  //     });
+  // }, []);
 
   const onSubmit = async (data: SigninInput) => {
-    // Ensure CSRF token is available
-    if (!csrfToken) {
-      setError("CSRF token not loaded. Please refresh the page and try again.");
-      return;
-    }
-
     setIsLoading(true);
     setError("");
     setSuccess("");
@@ -63,7 +59,8 @@ export default function SigninPage() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "x-csrf-token": csrfToken,
+          // CSRF token temporarily disabled
+          // "x-csrf-token": csrfToken,
         },
         body: JSON.stringify(data),
       });
