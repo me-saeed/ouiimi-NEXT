@@ -368,8 +368,25 @@ jobs:
               pm2 delete ecosystem.config.js || true
             fi
             
+            # Verify .env.production exists and has correct MongoDB URI
+            echo "Verifying .env.production..."
+            if [ -f "$APP_PATH/.env.production" ]; then
+              echo "✅ .env.production exists"
+              # Check MongoDB URI format
+              MONGODB_URI_CHECK=$(grep "^MONGODB_URI=" "$APP_PATH/.env.production" | cut -d'=' -f2-)
+              if echo "$MONGODB_URI_CHECK" | grep -q "/ouiimi?"; then
+                echo "✅ MongoDB URI format looks correct"
+              else
+                echo "⚠️  Warning: MongoDB URI format might be incorrect"
+                echo "Current: $(echo "$MONGODB_URI_CHECK" | cut -c1-80)..."
+              fi
+            else
+              echo "❌ .env.production not found!"
+            fi
+            
             echo "Starting application with PM2..."
-            pm2 start ecosystem.config.js
+            # Use --update-env to ensure environment variables are updated
+            pm2 start ecosystem.config.js --update-env
             
             # Save PM2 process list
             pm2 save || true
@@ -377,6 +394,10 @@ jobs:
             # Show PM2 status
             echo "PM2 status:"
             pm2 list
+            
+            # Show environment variables being used
+            echo "Checking environment variables..."
+            pm2 env 0 | grep -E "MONGODB_URI|NODE_ENV" || echo "Note: Use 'pm2 env <id>' to see full env"
             
             # Reload Nginx
             echo "Reloading Nginx..."

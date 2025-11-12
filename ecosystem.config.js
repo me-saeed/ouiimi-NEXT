@@ -6,6 +6,7 @@ module.exports = {
     cwd: '/root/ouiimi',
     instances: 2,
     exec_mode: 'cluster',
+    env_file: '/root/ouiimi/.env.production', // Explicitly load .env.production
     env: {
       NODE_ENV: 'production',
       PORT: 3000
