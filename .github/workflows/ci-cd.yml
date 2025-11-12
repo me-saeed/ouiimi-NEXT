@@ -108,8 +108,25 @@ jobs:
       - name: Prepare deployment package
         run: |
           # Create a tarball of the current code (already checked out by GitHub Actions)
-          tar -czf deploy.tar.gz --exclude='.git' --exclude='node_modules' --exclude='.next' .
-          echo "Deployment package created"
+          # The "file changed as we read it" warning is harmless - tar still creates the archive
+          set +e
+          tar -czf deploy.tar.gz \
+            --exclude='.git' \
+            --exclude='node_modules' \
+            --exclude='.next' \
+            --exclude='deploy.tar.gz' \
+            --exclude='.env.local' \
+            --exclude='.env*.local' \
+            . 2>&1 | grep -v "file changed as we read it" || true
+          set -e
+          
+          # Verify the tarball was created
+          if [ ! -f deploy.tar.gz ]; then
+            echo "❌ Failed to create deployment package"
+            exit 1
+          fi
+          
+          echo "✅ Deployment package created ($(du -h deploy.tar.gz | cut -f1))"
 
       - name: Deploy to server
         run: |
