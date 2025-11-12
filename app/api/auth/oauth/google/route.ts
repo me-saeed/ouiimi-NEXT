@@ -71,7 +71,7 @@ async function googleOAuthHandler(req: NextRequest) {
     await user.save();
 
     const userData = {
-      id: user._id,
+      id: String(user._id),
       fname: user.fname,
       lname: user.lname,
       email: user.email,

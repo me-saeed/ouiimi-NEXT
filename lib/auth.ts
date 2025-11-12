@@ -3,7 +3,7 @@ import GoogleProvider from "next-auth/providers/google";
 import FacebookProvider from "next-auth/providers/facebook";
 import CredentialsProvider from "next-auth/providers/credentials";
 import dbConnect from "@/lib/db";
-import User from "@/lib/models/User";
+import User, { IUser } from "@/lib/models/User";
 import bcrypt from "bcryptjs";
 
 export const authOptions: NextAuthOptions = {
@@ -29,14 +29,14 @@ export const authOptions: NextAuthOptions = {
 
         await dbConnect();
 
-        const user = await User.findOne({
+        const user: IUser | null = await User.findOne({
           $or: [
             { email: credentials.username.toLowerCase() },
             { username: credentials.username.toLowerCase() },
           ],
         });
 
-        if (!user || !user.password) {
+        if (!user || !user.password || !user._id) {
           return null;
         }
 
@@ -50,7 +50,7 @@ export const authOptions: NextAuthOptions = {
         }
 
         return {
-          id: user._id.toString(),
+          id: String(user._id),
           email: user.email,
           name: `${user.fname} ${user.lname}`,
         };
