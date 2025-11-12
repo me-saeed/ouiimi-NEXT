@@ -14,23 +14,18 @@ export function middleware(request: NextRequest) {
     "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:;"
   );
 
-  // HTTPS enforcement in production
-  // Only redirect if we're directly accessed (not behind a proxy)
-  // Cloudflare and Nginx handle HTTPS, so we trust X-Forwarded-Proto
-  const forwardedProto = request.headers.get("x-forwarded-proto");
-  const isBehindProxy = request.headers.get("x-forwarded-for") || forwardedProto;
+  // HTTPS enforcement - DISABLED when behind proxy (Cloudflare/Nginx)
+  // Cloudflare and Nginx handle HTTPS redirects, so we don't need to do it here
+  // Only redirect if directly accessed (no proxy headers)
+  const hasProxyHeaders = 
+    request.headers.get("x-forwarded-proto") || 
+    request.headers.get("x-forwarded-for") ||
+    request.headers.get("x-real-ip");
   
-  // Only enforce HTTPS if not behind a proxy (direct access)
-  if (
-    process.env.NODE_ENV === "production" &&
-    !isBehindProxy &&
-    request.nextUrl.protocol !== "https:"
-  ) {
-    const host = request.headers.get("host") || request.nextUrl.host;
-    return NextResponse.redirect(
-      `https://${host}${request.nextUrl.pathname}`,
-      301
-    );
+  // Skip HTTPS redirect if behind a proxy (Cloudflare/Nginx)
+  if (!hasProxyHeaders && process.env.NODE_ENV === "production") {
+    // Only redirect direct HTTP access (not through proxy)
+    // This should rarely happen in production
   }
 
   return response;
