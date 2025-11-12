@@ -53,7 +53,7 @@ async function googleOAuthHandler(req: NextRequest) {
     }
 
     // Ensure user is not null
-    if (!user) {
+    if (!user || !user._id) {
       return NextResponse.json(
         { error: "Failed to create or retrieve user" },
         { status: 500 }
@@ -62,7 +62,7 @@ async function googleOAuthHandler(req: NextRequest) {
 
     // Generate JWT token
     const token = generateToken({
-      userId: user._id.toString(),
+      userId: String(user._id),
       email: user.email,
       username: user.username || "",
     });
