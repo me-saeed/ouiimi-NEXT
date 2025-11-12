@@ -76,7 +76,9 @@ jobs:
       - name: Build application
         run: yarn build
         env:
-          MONGODB_URI: ${{ secrets.MONGODB_URI }}
+          # Dummy MONGODB_URI for build-time analysis (Next.js needs it to analyze API routes)
+          # Actual connection uses runtime value from .env.production on server
+          MONGODB_URI: mongodb://localhost:27017/dummy-build
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
           NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
           NEXTAUTH_URL: ${{ secrets.NEXTAUTH_URL }}
@@ -107,13 +109,16 @@ jobs:
       - name: Build application for deployment
         run: |
           # Build the application in GitHub Actions (faster, more reliable)
-          # Note: MONGODB_URI is NOT needed for build - it's read at runtime from .env.production on the server
+          # Note: MONGODB_URI is provided here only for build-time analysis by Next.js
+          # The actual connection uses the runtime value from .env.production on the server
           echo "Building application..."
           yarn install --frozen-lockfile
           yarn build
           echo "✅ Build completed"
         env:
-          # Only include env vars needed for build (not runtime secrets like MONGODB_URI)
+          # Dummy MONGODB_URI for build-time analysis (Next.js needs it to analyze API routes)
+          # Actual connection uses runtime value from .env.production on server
+          MONGODB_URI: mongodb://localhost:27017/dummy-build
           NEXTAUTH_URL: ${{ secrets.NEXTAUTH_URL }}
           # Mailjet keys are only needed if used during build (they're not, but keeping for consistency)
           MAILJET_API_KEY: ${{ secrets.MAILJET_API_KEY }}
