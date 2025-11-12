@@ -10,7 +10,12 @@ import mongoose from "mongoose";
 async function resetPasswordHandler(req: NextRequest) {
   try {
     const body = await req.json();
+    
+    // Validate the request body
+    // Note: confirmPassword is validated on frontend, but we only need password for the API
     const validatedData = resetPasswordSchema.parse(body);
+    
+    console.log("Reset password request received for:", validatedData.email);
 
     await dbConnect();
 
