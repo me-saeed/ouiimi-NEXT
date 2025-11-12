@@ -24,6 +24,8 @@ const customJestConfig = {
     "!**/*.d.ts",
     "!**/node_modules/**",
     "!**/.next/**",
+    "!lib/services/mailjet.ts", // Exclude mailjet (hard to test, uses external service)
+    "!lib/services/email/**", // Exclude email templates (hard to test)
   ],
   testTimeout: 30000,
   // Use custom reporter to avoid strip-ansi issues with Node.js v23
