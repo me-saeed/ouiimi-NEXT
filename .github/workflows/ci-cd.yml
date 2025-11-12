@@ -281,17 +281,17 @@ jobs:
             # Create or update .env.production
             if [ ! -f "$APP_PATH/.env.production" ]; then
               echo "Creating .env.production from GitHub Secrets..."
-              cat > "$APP_PATH/.env.production" << ENVEOF
-NODE_ENV=production
-MONGODB_URI=${MONGODB_URI_FINAL}
-JWT_SECRET=${JWT_SECRET_FINAL}
-NEXTAUTH_SECRET=${NEXTAUTH_SECRET_FINAL}
-NEXTAUTH_URL=${NEXTAUTH_URL_FINAL}
-MAILJET_API_KEY=${MAILJET_API_KEY_FINAL}
-MAILJET_SECRET_KEY=${MAILJET_SECRET_KEY_FINAL}
-MAILJET_FROM_EMAIL=${MAILJET_FROM_EMAIL_FINAL}
-MAILJET_FROM_NAME=${MAILJET_FROM_NAME_FINAL}
-ENVEOF
+              # Use printf to avoid nested heredoc issues in YAML
+              printf '%s\n' \
+                "NODE_ENV=production" \
+                "MONGODB_URI=${MONGODB_URI_FINAL}" \
+                "JWT_SECRET=${JWT_SECRET_FINAL}" \
+                "NEXTAUTH_SECRET=${NEXTAUTH_SECRET_FINAL}" \
+                "NEXTAUTH_URL=${NEXTAUTH_URL_FINAL}" \
+                "MAILJET_API_KEY=${MAILJET_API_KEY_FINAL}" \
+                "MAILJET_SECRET_KEY=${MAILJET_SECRET_KEY_FINAL}" \
+                "MAILJET_FROM_EMAIL=${MAILJET_FROM_EMAIL_FINAL}" \
+                "MAILJET_FROM_NAME=${MAILJET_FROM_NAME_FINAL}" > "$APP_PATH/.env.production"
               echo "✅ Created .env.production from GitHub Secrets"
             else
               echo "Updating existing .env.production..."
