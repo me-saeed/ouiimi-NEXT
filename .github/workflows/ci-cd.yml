@@ -107,15 +107,15 @@ jobs:
       - name: Build application for deployment
         run: |
           # Build the application in GitHub Actions (faster, more reliable)
+          # Note: MONGODB_URI is NOT needed for build - it's read at runtime from .env.production on the server
           echo "Building application..."
           yarn install --frozen-lockfile
           yarn build
           echo "✅ Build completed"
         env:
-          MONGODB_URI: ${{ secrets.MONGODB_URI }}
-          JWT_SECRET: ${{ secrets.JWT_SECRET }}
-          NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
+          # Only include env vars needed for build (not runtime secrets like MONGODB_URI)
           NEXTAUTH_URL: ${{ secrets.NEXTAUTH_URL }}
+          # Mailjet keys are only needed if used during build (they're not, but keeping for consistency)
           MAILJET_API_KEY: ${{ secrets.MAILJET_API_KEY }}
           MAILJET_SECRET_KEY: ${{ secrets.MAILJET_SECRET_KEY }}
           MAILJET_FROM_EMAIL: ${{ secrets.MAILJET_FROM_EMAIL }}
@@ -155,10 +155,13 @@ jobs:
           scp -o ServerAliveInterval=60 -o ServerAliveCountMax=3 deploy.tar.gz ${{ secrets.DO_USER }}@${{ secrets.DO_HOST }}:/tmp/deploy.tar.gz
           
           # Extract and deploy on server
-          # Pass APP_PATH as environment variable through SSH
+          # Pass APP_PATH and secrets as environment variables through SSH
           # Use ServerAliveInterval to prevent connection timeout during long builds
           APP_PATH="${{ secrets.DO_APP_PATH }}"
-          ssh -o ServerAliveInterval=60 -o ServerAliveCountMax=3 ${{ secrets.DO_USER }}@${{ secrets.DO_HOST }} "APP_PATH='$APP_PATH' bash" << 'DEPLOYSCRIPT'
+          MONGODB_URI_VAL="${{ secrets.MONGODB_URI }}"
+          JWT_SECRET_VAL="${{ secrets.JWT_SECRET }}"
+          NEXTAUTH_SECRET_VAL="${{ secrets.NEXTAUTH_SECRET }}"
+          ssh -o ServerAliveInterval=60 -o ServerAliveCountMax=3 ${{ secrets.DO_USER }}@${{ secrets.DO_HOST }} "APP_PATH='$APP_PATH' MONGODB_URI_VAL='$MONGODB_URI_VAL' JWT_SECRET_VAL='$JWT_SECRET_VAL' NEXTAUTH_SECRET_VAL='$NEXTAUTH_SECRET_VAL' bash" << 'DEPLOYSCRIPT'
             set -e
             
             # Debug: Show APP_PATH value
@@ -248,32 +251,52 @@ jobs:
               nvm use 20 || nvm use default || true
             fi
             
-            # Check if .env.production exists, create it if missing
+            # Update .env.production with values from GitHub Secrets
+            echo "Updating .env.production from GitHub Secrets..."
+            
+            # Use GitHub Secrets if provided, otherwise use defaults
+            MONGODB_URI_FINAL="${MONGODB_URI_VAL:-mongodb+srv://doadmin:780LgfUa92B45Am3@db-mongodb-syd1-51575-b8378040.mongo.ondigitalocean.com/ouiimi?tls=true&authSource=admin&replicaSet=db-mongodb-syd1-51575}"
+            JWT_SECRET_FINAL="${JWT_SECRET_VAL:-change-this-to-a-secure-random-string-generate-with-openssl-rand-base64-32}"
+            NEXTAUTH_SECRET_FINAL="${NEXTAUTH_SECRET_VAL:-change-this-to-a-secure-random-string-generate-with-openssl-rand-base64-32}"
+            
+            # Create or update .env.production
             if [ ! -f "$APP_PATH/.env.production" ]; then
-              echo "⚠️  .env.production not found. Creating template..."
-              printf '%s\n' \
-                '# Production Environment Variables' \
-                '# IMPORTANT: Update these values with your actual production credentials' \
-                '' \
-                'NODE_ENV=production' \
-                'MONGODB_URI=mongodb+srv://doadmin:780LgfUa92B45Am3@db-mongodb-syd1-51575-b8378040.mongo.ondigitalocean.com/admin?tls=true&authSource=admin&replicaSet=db-mongodb-syd1-51575/ouiimi' \
-                'JWT_SECRET=change-this-to-a-secure-random-string-generate-with-openssl-rand-base64-32' \
-                'NEXTAUTH_SECRET=change-this-to-a-secure-random-string-generate-with-openssl-rand-base64-32' \
-                'NEXTAUTH_URL=https://ouiimi.com.au' \
-                'MAILJET_API_KEY=6c5afba9421a25308809ce27ee20a7df' \
-                'MAILJET_SECRET_KEY=46413525c090257962796ac7c3e2ef46' \
-                'MAILJET_FROM_EMAIL=information@ouiimi.com' \
-                'MAILJET_FROM_NAME=Ouiimi' > "$APP_PATH/.env.production"
-              echo "✅ Created .env.production template"
-              echo "⚠️  IMPORTANT: Please update JWT_SECRET and NEXTAUTH_SECRET in .env.production!"
-              echo "   Generate secrets with: openssl rand -base64 32"
+              echo "Creating .env.production from GitHub Secrets..."
+              cat > "$APP_PATH/.env.production" << ENVEOF
+NODE_ENV=production
+MONGODB_URI=${MONGODB_URI_FINAL}
+JWT_SECRET=${JWT_SECRET_FINAL}
+NEXTAUTH_SECRET=${NEXTAUTH_SECRET_FINAL}
+NEXTAUTH_URL=${{ secrets.NEXTAUTH_URL }}
+MAILJET_API_KEY=${{ secrets.MAILJET_API_KEY }}
+MAILJET_SECRET_KEY=${{ secrets.MAILJET_SECRET_KEY }}
+MAILJET_FROM_EMAIL=${{ secrets.MAILJET_FROM_EMAIL }}
+MAILJET_FROM_NAME=${{ secrets.MAILJET_FROM_NAME }}
+ENVEOF
+              echo "✅ Created .env.production from GitHub Secrets"
             else
-              echo "✅ .env.production already exists"
-              # Ensure MONGODB_URI is set (update if using default placeholder)
-              if grep -q "mongodb://localhost" "$APP_PATH/.env.production" 2>/dev/null; then
-                echo "⚠️  Updating MONGODB_URI in .env.production..."
-                sed -i 's|MONGODB_URI=.*|MONGODB_URI=mongodb+srv://doadmin:780LgfUa92B45Am3@db-mongodb-syd1-51575-b8378040.mongo.ondigitalocean.com/admin?tls=true\&authSource=admin\&replicaSet=db-mongodb-syd1-51575/ouiimi|' "$APP_PATH/.env.production"
+              echo "Updating existing .env.production..."
+              # Update MONGODB_URI if GitHub secret is provided
+              if [ -n "${MONGODB_URI_VAL}" ]; then
+                if grep -q "^MONGODB_URI=" "$APP_PATH/.env.production" 2>/dev/null; then
+                  # Escape special characters for sed
+                  MONGODB_URI_ESCAPED=$(echo "$MONGODB_URI_VAL" | sed 's/[[\.*^$()+?{|]/\\&/g')
+                  sed -i "s|^MONGODB_URI=.*|MONGODB_URI=${MONGODB_URI_ESCAPED}|" "$APP_PATH/.env.production"
+                else
+                  echo "MONGODB_URI=${MONGODB_URI_VAL}" >> "$APP_PATH/.env.production"
+                fi
+                echo "✅ Updated MONGODB_URI from GitHub Secret"
               fi
+              # Update other secrets if provided
+              if [ -n "${JWT_SECRET_VAL}" ]; then
+                JWT_SECRET_ESCAPED=$(echo "$JWT_SECRET_VAL" | sed 's/[[\.*^$()+?{|]/\\&/g')
+                sed -i "s|^JWT_SECRET=.*|JWT_SECRET=${JWT_SECRET_ESCAPED}|" "$APP_PATH/.env.production" 2>/dev/null || echo "JWT_SECRET=${JWT_SECRET_VAL}" >> "$APP_PATH/.env.production"
+              fi
+              if [ -n "${NEXTAUTH_SECRET_VAL}" ]; then
+                NEXTAUTH_SECRET_ESCAPED=$(echo "$NEXTAUTH_SECRET_VAL" | sed 's/[[\.*^$()+?{|]/\\&/g')
+                sed -i "s|^NEXTAUTH_SECRET=.*|NEXTAUTH_SECRET=${NEXTAUTH_SECRET_ESCAPED}|" "$APP_PATH/.env.production" 2>/dev/null || echo "NEXTAUTH_SECRET=${NEXTAUTH_SECRET_VAL}" >> "$APP_PATH/.env.production"
+              fi
+              echo "✅ Updated .env.production"
             fi
             
             # Install only production dependencies (build already done in GitHub Actions)
@@ -306,13 +329,19 @@ jobs:
               nvm use 20 || nvm use default || true
             fi
             
+            cd "$APP_PATH"
+            
+            # Check if app is running in PM2
             if pm2 list | grep -q "ouiimi"; then
-              pm2 restart ouiimi
+              echo "App found in PM2, restarting..."
+              pm2 restart ouiimi || (pm2 delete ouiimi && pm2 start ecosystem.config.js)
             else
-              cd "$APP_PATH"
+              echo "App not found in PM2, starting fresh..."
               pm2 start ecosystem.config.js
-              pm2 save
             fi
+            
+            # Save PM2 process list
+            pm2 save || true
             
             # Reload Nginx
             echo "Reloading Nginx..."

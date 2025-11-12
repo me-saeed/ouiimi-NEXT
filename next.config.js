@@ -1,19 +1,12 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  // Don't bake MONGODB_URI into build - read at runtime from .env.production
+  // Other secrets can stay here for client-side access if needed
   env: {
-    MONGODB_URI: process.env.MONGODB_URI,
-    JWT_SECRET: process.env.JWT_SECRET,
+    // MONGODB_URI removed - will be read from process.env at runtime (server-side only)
     NEXTAUTH_URL: process.env.NEXTAUTH_URL,
-    NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET,
-    GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
-    GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
-    FACEBOOK_CLIENT_ID: process.env.FACEBOOK_CLIENT_ID,
-    FACEBOOK_CLIENT_SECRET: process.env.FACEBOOK_CLIENT_SECRET,
-    MAILJET_API_KEY: process.env.MAILJET_API_KEY,
-    MAILJET_SECRET_KEY: process.env.MAILJET_SECRET_KEY,
-    MAILJET_FROM_EMAIL: process.env.MAILJET_FROM_EMAIL,
-    MAILJET_FROM_NAME: process.env.MAILJET_FROM_NAME,
+    // Keep other env vars that might be needed client-side
   },
   webpack: (config, { isServer }) => {
     if (isServer) {
