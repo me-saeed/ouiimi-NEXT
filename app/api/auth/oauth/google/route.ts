@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/db";
-import User from "@/lib/models/User";
+import User, { IUser } from "@/lib/models/User";
 import { generateToken } from "@/lib/jwt";
 import { withRateLimit } from "@/lib/security/rate-limit";
 
@@ -19,7 +19,7 @@ async function googleOAuthHandler(req: NextRequest) {
     await dbConnect();
 
     // Check if user exists with this Google ID
-    let user = await User.findOne({
+    let user: IUser | null = await User.findOne({
       $or: [
         { oauthId: googleId, oauthProvider: "google" },
         { email: email.toLowerCase() },
@@ -50,6 +50,14 @@ async function googleOAuthHandler(req: NextRequest) {
         verify: "yes",
         counterId,
       });
+    }
+
+    // Ensure user is not null
+    if (!user) {
+      return NextResponse.json(
+        { error: "Failed to create or retrieve user" },
+        { status: 500 }
+      );
     }
 
     // Generate JWT token
