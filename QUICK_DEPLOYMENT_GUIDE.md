@@ -66,12 +66,10 @@ apt install -y nodejs
 npm install -g pm2 yarn
 apt install -y git nginx
 
-# Create app directory
-
-cd /root/ouiimi
-
-# Clone your repository
-git clone https://github.com/me-saeed/ouiimi-NEXT.git .
+# Create app directory and clone repository
+cd /root
+git clone https://github.com/me-saeed/ouiimi-NEXT.git ouiimi
+cd ouiimi
 
 # Install dependencies
 yarn install --frozen-lockfile
@@ -85,9 +83,9 @@ nano .env.production
 ```env
 NODE_ENV=production
 MONGODB_URI=mongodb+srv://doadmin:780LgfUa92B45Am3@db-mongodb-syd1-51575-b8378040.mongo.ondigitalocean.com/admin?tls=true&authSource=admin&replicaSet=db-mongodb-syd1-51575/ouiimi
-JWT_SECRET=PASTE_GENERATED_SECRET_HERE
+JWT_SECRET=your-super-secret-jwt-key-change-this-in-production-min-32-characters
 NEXTAUTH_URL=https://ouiimi.com.au
-NEXTAUTH_SECRET=PASTE_GENERATED_SECRET_HERE
+NEXTAUTH_SECRET=your-super-secret-jwt-key-change-this-in-production-min-32-characters
 MAILJET_API_KEY=6c5afba9421a25308809ce27ee20a7df
 MAILJET_SECRET_KEY=46413525c090257962796ac7c3e2ef46
 MAILJET_FROM_EMAIL=information@ouiimi.com
