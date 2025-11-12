@@ -168,12 +168,17 @@ jobs:
             tar -xzf /tmp/deploy.tar.gz
             rm /tmp/deploy.tar.gz
             
-            # Initialize git repository for future updates
+            # Configure git to allow this directory (fix ownership warning)
+            git config --global --add safe.directory "$APP_PATH" || true
+            
+            # Initialize git repository for future updates (optional - not required for tarball deployment)
             if [ ! -d ".git" ]; then
-              echo "Initializing git repository..."
-              git init
+              echo "Initializing git repository (optional)..."
+              git init || true
               git remote add origin https://github.com/me-saeed/ouiimi-NEXT.git || true
-              git add .
+              git config user.email "deploy@ouiimi.com" || true
+              git config user.name "Deployment Bot" || true
+              git add . || true
               git commit -m "Initial deployment" || true
             fi
             
