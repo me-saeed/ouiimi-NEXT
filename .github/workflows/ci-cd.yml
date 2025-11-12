@@ -116,7 +116,8 @@ jobs:
             # Install dependencies
             yarn install --frozen-lockfile
             
-            # Build application
+            # Build application (uses .env.production on server)
+            # Note: Environment variables are read from .env.production file on server
             yarn build
             
             # Restart application (using PM2)
