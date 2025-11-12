@@ -27,12 +27,33 @@ export default function SigninPage() {
   useEffect(() => {
     // Fetch CSRF token
     fetch("/api/auth/csrf")
-      .then((res) => res.json())
-      .then((data) => setCsrfToken(data.csrfToken))
-      .catch((err) => console.error("Failed to fetch CSRF token:", err));
+      .then((res) => {
+        if (!res.ok) {
+          throw new Error(`CSRF fetch failed: ${res.status}`);
+        }
+        return res.json();
+      })
+      .then((data) => {
+        if (data.csrfToken) {
+          setCsrfToken(data.csrfToken);
+          console.log("CSRF token loaded successfully");
+        } else {
+          console.error("CSRF token not in response:", data);
+        }
+      })
+      .catch((err) => {
+        console.error("Failed to fetch CSRF token:", err);
+        setError("Failed to load security token. Please refresh the page.");
+      });
   }, []);
 
   const onSubmit = async (data: SigninInput) => {
+    // Ensure CSRF token is available
+    if (!csrfToken) {
+      setError("CSRF token not loaded. Please refresh the page and try again.");
+      return;
+    }
+
     setIsLoading(true);
     setError("");
     setSuccess("");

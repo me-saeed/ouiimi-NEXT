@@ -1,7 +1,9 @@
 import { randomBytes, createHmac } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 
-const CSRF_SECRET = process.env.CSRF_SECRET || process.env.JWT_SECRET || "csrf-secret-key";
+// Use JWT_SECRET for CSRF to ensure consistency
+// If JWT_SECRET is not set, use a fallback (should not happen in production)
+const CSRF_SECRET = process.env.JWT_SECRET || process.env.CSRF_SECRET || "csrf-secret-key";
 
 export function generateCSRFToken(): string {
   const token = randomBytes(32).toString("hex");
@@ -13,11 +15,19 @@ export function generateCSRFToken(): string {
 
 export function validateCSRFToken(token: string): boolean {
   if (!token || !token.includes(".")) {
+    console.error("CSRF token validation: Token missing or invalid format");
     return false;
   }
 
   const [tokenPart, signature] = token.split(".");
   if (!tokenPart || !signature) {
+    console.error("CSRF token validation: Token parts missing");
+    return false;
+  }
+
+  // Check if CSRF_SECRET is set
+  if (!CSRF_SECRET || CSRF_SECRET === "csrf-secret-key") {
+    console.error("CSRF token validation: CSRF_SECRET not properly configured");
     return false;
   }
 
@@ -25,7 +35,14 @@ export function validateCSRFToken(token: string): boolean {
   hmac.update(tokenPart);
   const expectedSignature = hmac.digest("hex");
 
-  return signature === expectedSignature;
+  const isValid = signature === expectedSignature;
+  if (!isValid) {
+    console.error("CSRF token validation: Signature mismatch");
+    console.error("Token part length:", tokenPart.length);
+    console.error("CSRF_SECRET length:", CSRF_SECRET.length);
+  }
+
+  return isValid;
 }
 
 export function getCSRFTokenFromRequest(req: NextRequest): string | null {
