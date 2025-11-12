@@ -42,7 +42,7 @@ export function getForgetPasswordEmailTemplate(
             Remember when you shop with us, you are supporting and keeping small business doors open.
           </p>
           <p style='margin-top:0in;margin-right:0in;margin-bottom:8.0pt;margin-left:0in;line-height:107%;font-size:15px;font-family:"Calibri",sans-serif;text-align:center;'>
-            <a href="${process.env.NEXTAUTH_URL || "http://localhost:3000"}">${process.env.NEXTAUTH_URL || "http://localhost:3000"}</a>
+            <a href="${process.env.NEXTAUTH_URL || (process.env.NODE_ENV === "production" ? "https://ouiimi.com.au" : "http://localhost:3000")}">${process.env.NEXTAUTH_URL || (process.env.NODE_ENV === "production" ? "https://ouiimi.com.au" : "http://localhost:3000")}</a>
           </p>
         </div>
         ${footer}
