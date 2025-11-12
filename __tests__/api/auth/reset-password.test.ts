@@ -2,7 +2,7 @@ import { POST } from "@/app/api/auth/reset-password/route";
 import { NextRequest } from "next/server";
 import dbConnect from "@/lib/db";
 import User from "@/lib/models/User";
-import ForgetPass from "@/lib/models/ForgetPass";
+import ForgetPass, { IForgetPass } from "@/lib/models/ForgetPass";
 import bcrypt from "bcryptjs";
 
 describe("/api/auth/reset-password", () => {
@@ -112,7 +112,7 @@ describe("/api/auth/reset-password", () => {
 
     const requestBody = {
       email: "reset2@test.com",
-      token: forgetPassRecord._id.toString(),
+      token: String(forgetPassRecord._id),
       password: "newpassword123",
       confirmPassword: "differentpassword",
     };
@@ -180,7 +180,7 @@ describe("/api/auth/reset-password", () => {
 
     const requestBody = {
       email: "reset4@test.com",
-      token: forgetPassRecord._id.toString(),
+      token: String(forgetPassRecord._id),
       password: "short",
       confirmPassword: "short",
     };
