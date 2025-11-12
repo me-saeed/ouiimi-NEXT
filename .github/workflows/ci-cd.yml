@@ -108,24 +108,62 @@ jobs:
       - name: Deploy to server
         run: |
           ssh ${{ secrets.DO_USER }}@${{ secrets.DO_HOST }} << 'EOF'
-            cd ${{ secrets.DO_APP_PATH }}
+            set -e
             
-            # Pull latest code
-            git fetch origin
-            git reset --hard origin/main || git reset --hard origin/master
+            APP_PATH="${{ secrets.DO_APP_PATH }}"
+            
+            # Create directory if it doesn't exist
+            if [ ! -d "$APP_PATH" ]; then
+              echo "Creating application directory: $APP_PATH"
+              mkdir -p "$APP_PATH"
+            fi
+            
+            cd "$APP_PATH"
+            
+            # Check if it's a git repository
+            if [ ! -d ".git" ]; then
+              echo "Not a git repository. Cloning..."
+              # Remove directory contents if exists but not a git repo
+              if [ "$(ls -A $APP_PATH)" ]; then
+                echo "Directory exists but is not a git repo. Backing up and cloning..."
+                cd /root
+                mv "$APP_PATH" "${APP_PATH}.backup.$(date +%s)"
+                mkdir -p "$APP_PATH"
+              fi
+              git clone https://github.com/me-saeed/ouiimi-NEXT.git "$APP_PATH"
+              cd "$APP_PATH"
+            else
+              echo "Pulling latest code..."
+              git fetch origin
+              git reset --hard origin/main || git reset --hard origin/master
+            fi
             
             # Install dependencies
+            echo "Installing dependencies..."
             yarn install --frozen-lockfile
             
             # Build application (uses .env.production on server)
-            # Note: Environment variables are read from .env.production file on server
+            echo "Building application..."
             yarn build
             
+            # Create logs directory if it doesn't exist
+            mkdir -p "$APP_PATH/logs"
+            
             # Restart application (using PM2)
-            pm2 restart ouiimi || pm2 start ecosystem.config.js
+            echo "Restarting application..."
+            if pm2 list | grep -q "ouiimi"; then
+              pm2 restart ouiimi
+            else
+              cd "$APP_PATH"
+              pm2 start ecosystem.config.js
+              pm2 save
+            fi
             
             # Reload Nginx
+            echo "Reloading Nginx..."
             nginx -t && systemctl reload nginx
+            
+            echo "✅ Deployment completed successfully!"
           EOF
 
       - name: Health check
