@@ -229,20 +229,19 @@ jobs:
             # Check if .env.production exists, create it if missing
             if [ ! -f "$APP_PATH/.env.production" ]; then
               echo "⚠️  .env.production not found. Creating template..."
-              cat > "$APP_PATH/.env.production" << 'ENVFILE'
-# Production Environment Variables
-# IMPORTANT: Update these values with your actual production credentials
-
-NODE_ENV=production
-MONGODB_URI=mongodb+srv://doadmin:780LgfUa92B45Am3@db-mongodb-syd1-51575-b8378040.mongo.ondigitalocean.com/admin?tls=true&authSource=admin&replicaSet=db-mongodb-syd1-51575/ouiimi
-JWT_SECRET=change-this-to-a-secure-random-string-generate-with-openssl-rand-base64-32
-NEXTAUTH_SECRET=change-this-to-a-secure-random-string-generate-with-openssl-rand-base64-32
-NEXTAUTH_URL=https://ouiimi.com.au
-MAILJET_API_KEY=6c5afba9421a25308809ce27ee20a7df
-MAILJET_SECRET_KEY=46413525c090257962796ac7c3e2ef46
-MAILJET_FROM_EMAIL=information@ouiimi.com
-MAILJET_FROM_NAME=Ouiimi
-ENVFILE
+              printf '%s\n' \
+                '# Production Environment Variables' \
+                '# IMPORTANT: Update these values with your actual production credentials' \
+                '' \
+                'NODE_ENV=production' \
+                'MONGODB_URI=mongodb+srv://doadmin:780LgfUa92B45Am3@db-mongodb-syd1-51575-b8378040.mongo.ondigitalocean.com/admin?tls=true&authSource=admin&replicaSet=db-mongodb-syd1-51575/ouiimi' \
+                'JWT_SECRET=change-this-to-a-secure-random-string-generate-with-openssl-rand-base64-32' \
+                'NEXTAUTH_SECRET=change-this-to-a-secure-random-string-generate-with-openssl-rand-base64-32' \
+                'NEXTAUTH_URL=https://ouiimi.com.au' \
+                'MAILJET_API_KEY=6c5afba9421a25308809ce27ee20a7df' \
+                'MAILJET_SECRET_KEY=46413525c090257962796ac7c3e2ef46' \
+                'MAILJET_FROM_EMAIL=information@ouiimi.com' \
+                'MAILJET_FROM_NAME=Ouiimi' > "$APP_PATH/.env.production"
               echo "✅ Created .env.production template"
               echo "⚠️  IMPORTANT: Please update JWT_SECRET and NEXTAUTH_SECRET in .env.production!"
               echo "   Generate secrets with: openssl rand -base64 32"
