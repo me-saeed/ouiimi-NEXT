@@ -132,7 +132,6 @@ export default function SigninPage() {
                 </label>
                 <input
                   type="password"
-                  name="password"
                   id="password"
                   className={`input-styl px-2 py-2 h-10 ${
                     errors.password ? "border-red-600" : ""
