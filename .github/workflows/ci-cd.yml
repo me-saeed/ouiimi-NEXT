@@ -134,9 +134,19 @@ jobs:
           scp deploy.tar.gz ${{ secrets.DO_USER }}@${{ secrets.DO_HOST }}:/tmp/deploy.tar.gz
           
           # Extract and deploy on server
-          ssh ${{ secrets.DO_USER }}@${{ secrets.DO_HOST }} bash -s << DEPLOYSCRIPT
+          # Pass APP_PATH as environment variable through SSH
+          APP_PATH="${{ secrets.DO_APP_PATH }}"
+          ssh ${{ secrets.DO_USER }}@${{ secrets.DO_HOST }} "APP_PATH='$APP_PATH' bash" << 'DEPLOYSCRIPT'
             set -e
-            APP_PATH="${{ secrets.DO_APP_PATH }}"
+            
+            # Debug: Show APP_PATH value
+            echo "APP_PATH is set to: [$APP_PATH]"
+            
+            # Validate APP_PATH is not empty
+            if [ -z "$APP_PATH" ]; then
+              echo "❌ Error: APP_PATH is empty. Please check DO_APP_PATH secret."
+              exit 1
+            fi
             
             # Create directory if it doesn't exist
             if [ ! -d "$APP_PATH" ]; then
