@@ -11,7 +11,7 @@
 ssh-keygen -t ed25519 -C "github-actions" -f ~/.ssh/github-actions-ouiimi
 
 # Copy public key to VPS
-ssh-copy-id -i ~/.ssh/github-actions-ouiimi.pub root@YOUR_VPS_IP
+ssh-copy-id -i ~/.ssh/github-actions-ouiimi.pub root@170.64.150.64
 
 # Get private key content (copy this entire output)
 cat ~/.ssh/github-actions-ouiimi
@@ -67,11 +67,11 @@ npm install -g pm2 yarn
 apt install -y git nginx
 
 # Create app directory
-mkdir -p /root/ouiimi
+
 cd /root/ouiimi
 
 # Clone your repository
-git clone https://github.com/YOUR_USERNAME/ouiimi-NEXT.git .
+git clone https://github.com/me-saeed/ouiimi-NEXT.git .
 
 # Install dependencies
 yarn install --frozen-lockfile
@@ -93,6 +93,14 @@ MAILJET_SECRET_KEY=46413525c090257962796ac7c3e2ef46
 MAILJET_FROM_EMAIL=information@ouiimi.com
 MAILJET_FROM_NAME=Ouiimi
 ```
+
+**⚠️ Important Note:**
+- **GitHub Secrets** are used during CI/CD build and deployment process
+- **`.env.production`** on the server is used when the application runs
+- **You need BOTH** because:
+  - GitHub Actions uses secrets to build and deploy
+  - The server uses `.env.production` when the app runs
+  - Use the **SAME values** in both places for consistency
 
 **Generate secrets:**
 
