@@ -104,18 +104,40 @@ jobs:
         run: |
           ssh-keyscan -H ${{ secrets.DO_HOST }} >> ~/.ssh/known_hosts
 
+      - name: Build application for deployment
+        run: |
+          # Build the application in GitHub Actions (faster, more reliable)
+          echo "Building application..."
+          yarn install --frozen-lockfile
+          yarn build
+          echo "✅ Build completed"
+        env:
+          MONGODB_URI: ${{ secrets.MONGODB_URI }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
+          NEXTAUTH_URL: ${{ secrets.NEXTAUTH_URL }}
+          MAILJET_API_KEY: ${{ secrets.MAILJET_API_KEY }}
+          MAILJET_SECRET_KEY: ${{ secrets.MAILJET_SECRET_KEY }}
+          MAILJET_FROM_EMAIL: ${{ secrets.MAILJET_FROM_EMAIL }}
+          MAILJET_FROM_NAME: ${{ secrets.MAILJET_FROM_NAME }}
+
       - name: Prepare deployment package
         run: |
-          # Create a tarball of the current code (already checked out by GitHub Actions)
+          # Create a tarball with built files (exclude source files we don't need)
           # The "file changed as we read it" warning is harmless - tar still creates the archive
           set +e
           tar -czf deploy.tar.gz \
             --exclude='.git' \
             --exclude='node_modules' \
-            --exclude='.next' \
             --exclude='deploy.tar.gz' \
             --exclude='.env.local' \
             --exclude='.env*.local' \
+            --exclude='__tests__' \
+            --exclude='*.test.ts' \
+            --exclude='*.test.tsx' \
+            --exclude='jest.config.js' \
+            --exclude='jest.setup.js' \
+            --exclude='jest-reporter.js' \
             . 2>&1 | grep -v "file changed as we read it" || true
           set -e
           
@@ -254,23 +276,22 @@ jobs:
               fi
             fi
             
-            # Install dependencies
-            echo "Installing dependencies..."
+            # Install only production dependencies (build already done in GitHub Actions)
+            echo "Installing production dependencies..."
             echo "Using Node.js: $(node -v)"
             echo "Using Yarn: $(yarn -v || echo 'not installed')"
-            yarn install --frozen-lockfile
+            yarn install --frozen-lockfile --production=false
             
-            # Build application (uses .env.production on server)
-            echo "Building application..."
-            # Load .env.production for build
-            set -a
-            [ -f "$APP_PATH/.env.production" ] && source "$APP_PATH/.env.production"
-            set +a
-            # Increase Node.js memory limit for build if needed
-            NODE_OPTIONS="--max-old-space-size=2048" yarn build || {
-              echo "Build failed, trying without memory limit..."
+            # Build is already done in GitHub Actions, but verify .next exists
+            if [ ! -d "$APP_PATH/.next" ]; then
+              echo "⚠️  Warning: .next directory not found. Building on server..."
+              set -a
+              [ -f "$APP_PATH/.env.production" ] && source "$APP_PATH/.env.production"
+              set +a
               yarn build
-            }
+            else
+              echo "✅ Build files found (.next directory exists)"
+            fi
             
             # Create logs directory if it doesn't exist
             mkdir -p "$APP_PATH/logs"
