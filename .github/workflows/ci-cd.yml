@@ -168,6 +168,43 @@ jobs:
             tar -xzf /tmp/deploy.tar.gz
             rm /tmp/deploy.tar.gz
             
+            # Check and update Node.js version if needed
+            echo "Checking Node.js version..."
+            NODE_VERSION=$(node -v | cut -d'v' -f2 | cut -d'.' -f1,2)
+            REQUIRED_VERSION="18.17"
+            
+            if [ "$(printf '%s\n' "$REQUIRED_VERSION" "$NODE_VERSION" | sort -V | head -n1)" != "$REQUIRED_VERSION" ]; then
+              echo "⚠️  Node.js version $NODE_VERSION is too old. Required: >= $REQUIRED_VERSION"
+              echo "Installing Node.js 20.x using nvm..."
+              
+              # Install nvm if not present
+              if [ ! -d "$HOME/.nvm" ]; then
+                curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash || true
+                export NVM_DIR="$HOME/.nvm"
+                [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+              else
+                export NVM_DIR="$HOME/.nvm"
+                [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+              fi
+              
+              # Install and use Node.js 20
+              nvm install 20 || true
+              nvm use 20 || true
+              nvm alias default 20 || true
+              
+              # Verify installation
+              NEW_NODE_VERSION=$(node -v)
+              echo "✅ Node.js updated to: $NEW_NODE_VERSION"
+            else
+              echo "✅ Node.js version $NODE_VERSION is compatible"
+            fi
+            
+            # Verify yarn is available
+            if ! command -v yarn &> /dev/null; then
+              echo "Installing yarn..."
+              npm install -g yarn || true
+            fi
+            
             # Configure git to allow this directory (fix ownership warning)
             git config --global --add safe.directory "$APP_PATH" || true
             
@@ -182,8 +219,17 @@ jobs:
               git commit -m "Initial deployment" || true
             fi
             
+            # Ensure we're using the correct Node.js version for build
+            if [ -s "$HOME/.nvm/nvm.sh" ]; then
+              export NVM_DIR="$HOME/.nvm"
+              [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+              nvm use 20 || nvm use default || true
+            fi
+            
             # Install dependencies
             echo "Installing dependencies..."
+            echo "Using Node.js: $(node -v)"
+            echo "Using Yarn: $(yarn -v || echo 'not installed')"
             yarn install --frozen-lockfile
             
             # Build application (uses .env.production on server)
@@ -195,6 +241,14 @@ jobs:
             
             # Restart application (using PM2)
             echo "Restarting application..."
+            
+            # Ensure PM2 uses the correct Node.js version
+            if [ -s "$HOME/.nvm/nvm.sh" ]; then
+              export NVM_DIR="$HOME/.nvm"
+              [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+              nvm use 20 || nvm use default || true
+            fi
+            
             if pm2 list | grep -q "ouiimi"; then
               pm2 restart ouiimi
             else
