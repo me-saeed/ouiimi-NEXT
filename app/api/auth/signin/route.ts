@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/db";
-import User from "@/lib/models/User";
+import User, { IUser } from "@/lib/models/User";
 import bcrypt from "bcryptjs";
 import { signinSchema } from "@/lib/validation";
 import { generateToken } from "@/lib/jwt";
@@ -24,14 +24,14 @@ async function signinHandler(req: NextRequest) {
     await dbConnect();
 
     // Find user by email or username
-    const user = await User.findOne({
+    const user: IUser | null = await User.findOne({
       $or: [
         { email: validatedData.username.toLowerCase() },
         { username: validatedData.username.toLowerCase() },
       ],
     });
 
-    if (!user) {
+    if (!user || !user._id) {
       return NextResponse.json(
         { error: "Invalid credentials" },
         { status: 401 }
@@ -76,7 +76,7 @@ async function signinHandler(req: NextRequest) {
 
     // Generate JWT token
     const token = generateToken({
-      userId: user._id.toString(),
+      userId: String(user._id),
       email: user.email,
       username: user.username || "",
     });
@@ -87,7 +87,7 @@ async function signinHandler(req: NextRequest) {
 
     // Return user data (excluding password)
     const userData = {
-      id: user._id,
+      id: String(user._id),
       fname: user.fname,
       lname: user.lname,
       email: user.email,

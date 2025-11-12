@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/db";
-import User from "@/lib/models/User";
+import User, { IUser } from "@/lib/models/User";
 import bcrypt from "bcryptjs";
 import { signupSchema } from "@/lib/validation";
 import { generateToken } from "@/lib/jwt";
@@ -47,7 +47,7 @@ async function signupHandler(req: NextRequest) {
     const counterId = lastRecord ? lastRecord.counterId + 1 : 1;
 
     // Create user
-    const user = await User.create({
+    const user: IUser = await User.create({
       fname: validatedData.fname,
       lname: validatedData.lname,
       email: validatedData.email.toLowerCase(),
@@ -59,9 +59,17 @@ async function signupHandler(req: NextRequest) {
       verify: "yes", // Auto-verify for now, can add email verification later
     });
 
+    // Ensure user has _id
+    if (!user || !user._id) {
+      return NextResponse.json(
+        { error: "Failed to create user" },
+        { status: 500 }
+      );
+    }
+
     // Generate JWT token
     const token = generateToken({
-      userId: user._id.toString(),
+      userId: String(user._id),
       email: user.email,
       username: user.username || "",
     });
@@ -80,7 +88,7 @@ async function signupHandler(req: NextRequest) {
 
     // Return user data (excluding password)
     const userData = {
-      id: user._id,
+      id: String(user._id),
       fname: user.fname,
       lname: user.lname,
       email: user.email,
