@@ -226,6 +226,35 @@ jobs:
               nvm use 20 || nvm use default || true
             fi
             
+            # Check if .env.production exists, create it if missing
+            if [ ! -f "$APP_PATH/.env.production" ]; then
+              echo "⚠️  .env.production not found. Creating template..."
+              cat > "$APP_PATH/.env.production" << 'ENVFILE'
+# Production Environment Variables
+# IMPORTANT: Update these values with your actual production credentials
+
+NODE_ENV=production
+MONGODB_URI=mongodb+srv://doadmin:780LgfUa92B45Am3@db-mongodb-syd1-51575-b8378040.mongo.ondigitalocean.com/admin?tls=true&authSource=admin&replicaSet=db-mongodb-syd1-51575/ouiimi
+JWT_SECRET=change-this-to-a-secure-random-string-generate-with-openssl-rand-base64-32
+NEXTAUTH_SECRET=change-this-to-a-secure-random-string-generate-with-openssl-rand-base64-32
+NEXTAUTH_URL=https://ouiimi.com.au
+MAILJET_API_KEY=6c5afba9421a25308809ce27ee20a7df
+MAILJET_SECRET_KEY=46413525c090257962796ac7c3e2ef46
+MAILJET_FROM_EMAIL=information@ouiimi.com
+MAILJET_FROM_NAME=Ouiimi
+ENVFILE
+              echo "✅ Created .env.production template"
+              echo "⚠️  IMPORTANT: Please update JWT_SECRET and NEXTAUTH_SECRET in .env.production!"
+              echo "   Generate secrets with: openssl rand -base64 32"
+            else
+              echo "✅ .env.production already exists"
+              # Ensure MONGODB_URI is set (update if using default placeholder)
+              if grep -q "mongodb://localhost" "$APP_PATH/.env.production" 2>/dev/null; then
+                echo "⚠️  Updating MONGODB_URI in .env.production..."
+                sed -i 's|MONGODB_URI=.*|MONGODB_URI=mongodb+srv://doadmin:780LgfUa92B45Am3@db-mongodb-syd1-51575-b8378040.mongo.ondigitalocean.com/admin?tls=true\&authSource=admin\&replicaSet=db-mongodb-syd1-51575/ouiimi|' "$APP_PATH/.env.production"
+              fi
+            fi
+            
             # Install dependencies
             echo "Installing dependencies..."
             echo "Using Node.js: $(node -v)"
@@ -234,6 +263,10 @@ jobs:
             
             # Build application (uses .env.production on server)
             echo "Building application..."
+            # Load .env.production for build
+            set -a
+            [ -f "$APP_PATH/.env.production" ] && source "$APP_PATH/.env.production"
+            set +a
             yarn build
             
             # Create logs directory if it doesn't exist
