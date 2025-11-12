@@ -106,7 +106,6 @@ export default function SignupPage() {
                 </label>
                 <input
                   type="text"
-                  name="fname"
                   id="fname"
                   className={`input-styl px-2 py-2 h-10 ${
                     errors.fname ? "border-red-600" : ""
@@ -132,7 +131,6 @@ export default function SignupPage() {
                 </label>
                 <input
                   type="text"
-                  name="lname"
                   id="lname"
                   className={`input-styl px-2 py-2 h-10 ${
                     errors.lname ? "border-red-600" : ""
@@ -158,7 +156,6 @@ export default function SignupPage() {
                 </label>
                 <input
                   type="text"
-                  name="username"
                   id="username"
                   className={`input-styl px-2 py-2 h-10 ${
                     errors.username ? "border-red-600" : ""
@@ -185,7 +182,6 @@ export default function SignupPage() {
                 <input
                   type="email"
                   id="email"
-                  name="email"
                   className={`input-styl px-2 py-2 h-10 ${
                     errors.email ? "border-red-600" : ""
                   }`}
@@ -210,7 +206,6 @@ export default function SignupPage() {
                 </label>
                 <input
                   type="text"
-                  name="address"
                   id="address"
                   className="input-styl px-2 py-2 h-10"
                   placeholder="Address"
@@ -229,7 +224,6 @@ export default function SignupPage() {
                 </label>
                 <input
                   type="text"
-                  name="contactNo"
                   id="contactNo"
                   className="input-styl px-2 py-2 h-10"
                   placeholder="Phone Number"
@@ -248,7 +242,6 @@ export default function SignupPage() {
                 </label>
                 <input
                   type="password"
-                  name="password"
                   id="password"
                   className={`input-styl px-2 py-2 h-10 ${
                     errors.password ? "border-red-600" : ""
