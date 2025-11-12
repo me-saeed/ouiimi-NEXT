@@ -99,7 +99,6 @@ jobs:
         uses: webfactory/ssh-agent@v0.9.0
         with:
           ssh-private-key: ${{ secrets.DO_SSH_PRIVATE_KEY }}
-          strip-trailing-whitespace: true
 
       - name: Add server to known hosts
         run: |
@@ -131,12 +130,13 @@ jobs:
       - name: Deploy to server
         run: |
           # Copy files to server
-          scp deploy.tar.gz ${{ secrets.DO_USER }}@${{ secrets.DO_HOST }}:/tmp/deploy.tar.gz
+          scp -o ServerAliveInterval=60 -o ServerAliveCountMax=3 deploy.tar.gz ${{ secrets.DO_USER }}@${{ secrets.DO_HOST }}:/tmp/deploy.tar.gz
           
           # Extract and deploy on server
           # Pass APP_PATH as environment variable through SSH
+          # Use ServerAliveInterval to prevent connection timeout during long builds
           APP_PATH="${{ secrets.DO_APP_PATH }}"
-          ssh ${{ secrets.DO_USER }}@${{ secrets.DO_HOST }} "APP_PATH='$APP_PATH' bash" << 'DEPLOYSCRIPT'
+          ssh -o ServerAliveInterval=60 -o ServerAliveCountMax=3 ${{ secrets.DO_USER }}@${{ secrets.DO_HOST }} "APP_PATH='$APP_PATH' bash" << 'DEPLOYSCRIPT'
             set -e
             
             # Debug: Show APP_PATH value
@@ -266,7 +266,11 @@ jobs:
             set -a
             [ -f "$APP_PATH/.env.production" ] && source "$APP_PATH/.env.production"
             set +a
-            yarn build
+            # Increase Node.js memory limit for build if needed
+            NODE_OPTIONS="--max-old-space-size=2048" yarn build || {
+              echo "Build failed, trying without memory limit..."
+              yarn build
+            }
             
             # Create logs directory if it doesn't exist
             mkdir -p "$APP_PATH/logs"
