@@ -157,16 +157,25 @@ jobs:
           # Extract and deploy on server
           # Pass APP_PATH and secrets as environment variables through SSH
           # Use ServerAliveInterval to prevent connection timeout during long builds
-          APP_PATH="${{ secrets.DO_APP_PATH }}"
-          MONGODB_URI_VAL="${{ secrets.MONGODB_URI }}"
-          JWT_SECRET_VAL="${{ secrets.JWT_SECRET }}"
-          NEXTAUTH_SECRET_VAL="${{ secrets.NEXTAUTH_SECRET }}"
-          NEXTAUTH_URL_VAL="${{ secrets.NEXTAUTH_URL }}"
-          MAILJET_API_KEY_VAL="${{ secrets.MAILJET_API_KEY }}"
-          MAILJET_SECRET_KEY_VAL="${{ secrets.MAILJET_SECRET_KEY }}"
-          MAILJET_FROM_EMAIL_VAL="${{ secrets.MAILJET_FROM_EMAIL }}"
-          MAILJET_FROM_NAME_VAL="${{ secrets.MAILJET_FROM_NAME }}"
-          ssh -o ServerAliveInterval=60 -o ServerAliveCountMax=3 ${{ secrets.DO_USER }}@${{ secrets.DO_HOST }} "APP_PATH='$APP_PATH' MONGODB_URI_VAL='$MONGODB_URI_VAL' JWT_SECRET_VAL='$JWT_SECRET_VAL' NEXTAUTH_SECRET_VAL='$NEXTAUTH_SECRET_VAL' NEXTAUTH_URL_VAL='$NEXTAUTH_URL_VAL' MAILJET_API_KEY_VAL='$MAILJET_API_KEY_VAL' MAILJET_SECRET_KEY_VAL='$MAILJET_SECRET_KEY_VAL' MAILJET_FROM_EMAIL_VAL='$MAILJET_FROM_EMAIL_VAL' MAILJET_FROM_NAME_VAL='$MAILJET_FROM_NAME_VAL' bash" << 'DEPLOYSCRIPT'
+          # Write secrets to a temporary file and pass them securely
+          # Use unquoted heredoc to allow GitHub Actions variable expansion
+          cat > /tmp/deploy_env.sh << ENVEOF
+          export APP_PATH="${{ secrets.DO_APP_PATH }}"
+          export MONGODB_URI_VAL="${{ secrets.MONGODB_URI }}"
+          export JWT_SECRET_VAL="${{ secrets.JWT_SECRET }}"
+          export NEXTAUTH_SECRET_VAL="${{ secrets.NEXTAUTH_SECRET }}"
+          export NEXTAUTH_URL_VAL="${{ secrets.NEXTAUTH_URL }}"
+          export MAILJET_API_KEY_VAL="${{ secrets.MAILJET_API_KEY }}"
+          export MAILJET_SECRET_KEY_VAL="${{ secrets.MAILJET_SECRET_KEY }}"
+          export MAILJET_FROM_EMAIL_VAL="${{ secrets.MAILJET_FROM_EMAIL }}"
+          export MAILJET_FROM_NAME_VAL="${{ secrets.MAILJET_FROM_NAME }}"
+          ENVEOF
+          
+          # Copy env file to server
+          scp -o ServerAliveInterval=60 -o ServerAliveCountMax=3 /tmp/deploy_env.sh ${{ secrets.DO_USER }}@${{ secrets.DO_HOST }}:/tmp/deploy_env.sh
+          
+          # Run deployment script on server
+          ssh -o ServerAliveInterval=60 -o ServerAliveCountMax=3 ${{ secrets.DO_USER }}@${{ secrets.DO_HOST }} "source /tmp/deploy_env.sh && bash" << 'DEPLOYSCRIPT'
             set -e
             
             # Debug: Show APP_PATH value
@@ -358,7 +367,13 @@ ENVEOF
             nginx -t && systemctl reload nginx
             
             echo "✅ Deployment completed successfully!"
+            
+            # Clean up env file
+            rm -f /tmp/deploy_env.sh
           DEPLOYSCRIPT
+          
+          # Clean up local env file
+          rm -f /tmp/deploy_env.sh
 
       - name: Health check
         run: |
