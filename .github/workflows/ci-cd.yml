@@ -161,7 +161,12 @@ jobs:
           MONGODB_URI_VAL="${{ secrets.MONGODB_URI }}"
           JWT_SECRET_VAL="${{ secrets.JWT_SECRET }}"
           NEXTAUTH_SECRET_VAL="${{ secrets.NEXTAUTH_SECRET }}"
-          ssh -o ServerAliveInterval=60 -o ServerAliveCountMax=3 ${{ secrets.DO_USER }}@${{ secrets.DO_HOST }} "APP_PATH='$APP_PATH' MONGODB_URI_VAL='$MONGODB_URI_VAL' JWT_SECRET_VAL='$JWT_SECRET_VAL' NEXTAUTH_SECRET_VAL='$NEXTAUTH_SECRET_VAL' bash" << 'DEPLOYSCRIPT'
+          NEXTAUTH_URL_VAL="${{ secrets.NEXTAUTH_URL }}"
+          MAILJET_API_KEY_VAL="${{ secrets.MAILJET_API_KEY }}"
+          MAILJET_SECRET_KEY_VAL="${{ secrets.MAILJET_SECRET_KEY }}"
+          MAILJET_FROM_EMAIL_VAL="${{ secrets.MAILJET_FROM_EMAIL }}"
+          MAILJET_FROM_NAME_VAL="${{ secrets.MAILJET_FROM_NAME }}"
+          ssh -o ServerAliveInterval=60 -o ServerAliveCountMax=3 ${{ secrets.DO_USER }}@${{ secrets.DO_HOST }} "APP_PATH='$APP_PATH' MONGODB_URI_VAL='$MONGODB_URI_VAL' JWT_SECRET_VAL='$JWT_SECRET_VAL' NEXTAUTH_SECRET_VAL='$NEXTAUTH_SECRET_VAL' NEXTAUTH_URL_VAL='$NEXTAUTH_URL_VAL' MAILJET_API_KEY_VAL='$MAILJET_API_KEY_VAL' MAILJET_SECRET_KEY_VAL='$MAILJET_SECRET_KEY_VAL' MAILJET_FROM_EMAIL_VAL='$MAILJET_FROM_EMAIL_VAL' MAILJET_FROM_NAME_VAL='$MAILJET_FROM_NAME_VAL' bash" << 'DEPLOYSCRIPT'
             set -e
             
             # Debug: Show APP_PATH value
@@ -258,6 +263,11 @@ jobs:
             MONGODB_URI_FINAL="${MONGODB_URI_VAL:-mongodb+srv://doadmin:780LgfUa92B45Am3@db-mongodb-syd1-51575-b8378040.mongo.ondigitalocean.com/ouiimi?tls=true&authSource=admin&replicaSet=db-mongodb-syd1-51575}"
             JWT_SECRET_FINAL="${JWT_SECRET_VAL:-change-this-to-a-secure-random-string-generate-with-openssl-rand-base64-32}"
             NEXTAUTH_SECRET_FINAL="${NEXTAUTH_SECRET_VAL:-change-this-to-a-secure-random-string-generate-with-openssl-rand-base64-32}"
+            NEXTAUTH_URL_FINAL="${NEXTAUTH_URL_VAL:-https://ouiimi.com.au}"
+            MAILJET_API_KEY_FINAL="${MAILJET_API_KEY_VAL:-6c5afba9421a25308809ce27ee20a7df}"
+            MAILJET_SECRET_KEY_FINAL="${MAILJET_SECRET_KEY_VAL:-46413525c090257962796ac7c3e2ef46}"
+            MAILJET_FROM_EMAIL_FINAL="${MAILJET_FROM_EMAIL_VAL:-information@ouiimi.com}"
+            MAILJET_FROM_NAME_FINAL="${MAILJET_FROM_NAME_VAL:-Ouiimi}"
             
             # Create or update .env.production
             if [ ! -f "$APP_PATH/.env.production" ]; then
@@ -267,11 +277,11 @@ NODE_ENV=production
 MONGODB_URI=${MONGODB_URI_FINAL}
 JWT_SECRET=${JWT_SECRET_FINAL}
 NEXTAUTH_SECRET=${NEXTAUTH_SECRET_FINAL}
-NEXTAUTH_URL=${{ secrets.NEXTAUTH_URL }}
-MAILJET_API_KEY=${{ secrets.MAILJET_API_KEY }}
-MAILJET_SECRET_KEY=${{ secrets.MAILJET_SECRET_KEY }}
-MAILJET_FROM_EMAIL=${{ secrets.MAILJET_FROM_EMAIL }}
-MAILJET_FROM_NAME=${{ secrets.MAILJET_FROM_NAME }}
+NEXTAUTH_URL=${NEXTAUTH_URL_FINAL}
+MAILJET_API_KEY=${MAILJET_API_KEY_FINAL}
+MAILJET_SECRET_KEY=${MAILJET_SECRET_KEY_FINAL}
+MAILJET_FROM_EMAIL=${MAILJET_FROM_EMAIL_FINAL}
+MAILJET_FROM_NAME=${MAILJET_FROM_NAME_FINAL}
 ENVEOF
               echo "✅ Created .env.production from GitHub Secrets"
             else
