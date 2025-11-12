@@ -4,7 +4,7 @@ import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { resetPasswordSchema, type ResetPasswordInput } from "@/lib/validation";
+import { resetPasswordFormSchema, resetPasswordSchema, type ResetPasswordFormInput, type ResetPasswordInput } from "@/lib/validation";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
 function ResetPasswordForm() {
@@ -33,11 +33,13 @@ function ResetPasswordForm() {
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm<ResetPasswordInput>({
-    resolver: zodResolver(resetPasswordSchema),
+    getValues,
+  } = useForm<ResetPasswordFormInput>({
+    resolver: zodResolver(resetPasswordFormSchema),
+    mode: "onChange", // Validate on change to show errors immediately
   });
 
-  const onSubmit = async (data: ResetPasswordInput) => {
+  const onSubmit = async (data: ResetPasswordFormInput) => {
     if (!email || !token) {
       setError("Invalid reset link. Please request a new password reset.");
       return;
@@ -48,6 +50,8 @@ function ResetPasswordForm() {
     setSuccess("");
 
     try {
+      console.log("Submitting reset password form...");
+      
       const response = await fetch("/api/auth/reset-password", {
         method: "POST",
         headers: {
@@ -57,25 +61,34 @@ function ResetPasswordForm() {
           email,
           token,
           password: data.password,
+          confirmPassword: data.confirmPassword,
         }),
       });
 
+      console.log("Response status:", response.status);
+
       const result = await response.json();
+      console.log("Response result:", result);
 
       if (!response.ok) {
-        setError(result.error || "Failed to reset password. Please try again.");
+        const errorMsg = result.error || result.message || "Failed to reset password. Please try again.";
+        console.error("Reset password error:", errorMsg);
+        setError(errorMsg);
         setIsLoading(false);
         return;
       }
 
+      console.log("Password reset successful!");
       setSuccess("Password has been updated successfully! Redirecting to sign in...");
+      setIsLoading(false);
 
       // Redirect to signin after 2 seconds
       setTimeout(() => {
         router.push("/signin");
       }, 2000);
     } catch (err: any) {
-      setError("Something went wrong. Please try again.");
+      console.error("Reset password catch error:", err);
+      setError(err.message || "Something went wrong. Please try again.");
       setIsLoading(false);
     }
   };
@@ -102,7 +115,24 @@ function ResetPasswordForm() {
   return (
     <div className="min-h-screen bg-color-bg p-4">
       <div className="max-w-md mx-auto">
-        <form className="w-full relative mt-20" onSubmit={handleSubmit(onSubmit)}>
+        <form 
+          className="w-full relative mt-20" 
+          onSubmit={handleSubmit(
+            (data) => {
+              console.log("Form validation passed, calling onSubmit with data:", { 
+                password: "***", 
+                confirmPassword: "***",
+                hasEmail: !!email,
+                hasToken: !!token
+              });
+              onSubmit(data);
+            },
+            (errors) => {
+              console.error("Form validation errors:", errors);
+              setError("Please fix the form errors before submitting.");
+            }
+          )}
+        >
           <div className="space-y-3">
             <div>
               <div className="text-xl antialiased font-bold items-center mb-4">
@@ -180,7 +210,19 @@ function ResetPasswordForm() {
                   <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
                 </div>
               ) : (
-                <button className="btn-styl" type="submit">
+                <button 
+                  className="btn-styl w-full" 
+                  type="submit"
+                  onClick={(e) => {
+                    console.log("Button clicked");
+                    const values = getValues();
+                    console.log("Form values:", { 
+                      password: values.password ? "***" : "empty",
+                      confirmPassword: values.confirmPassword ? "***" : "empty"
+                    });
+                    console.log("Form errors:", errors);
+                  }}
+                >
                   Reset Password
                 </button>
               )}

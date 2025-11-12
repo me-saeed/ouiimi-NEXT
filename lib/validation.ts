@@ -19,6 +19,18 @@ export const forgotPasswordSchema = z.object({
   email: z.string().email("Invalid email address"),
 });
 
+// Schema for form validation (only password fields)
+export const resetPasswordFormSchema = z
+  .object({
+    password: z.string().min(8, "Password must be at least 8 characters"),
+    confirmPassword: z.string(),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords don't match",
+    path: ["confirmPassword"],
+  });
+
+// Schema for API validation (includes email and token)
 export const resetPasswordSchema = z
   .object({
     email: z.string().email("Invalid email address"),
@@ -34,5 +46,6 @@ export const resetPasswordSchema = z
 export type SignupInput = z.infer<typeof signupSchema>;
 export type SigninInput = z.infer<typeof signinSchema>;
 export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>;
+export type ResetPasswordFormInput = z.infer<typeof resetPasswordFormSchema>;
 export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
 
