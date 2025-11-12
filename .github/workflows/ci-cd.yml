@@ -105,6 +105,17 @@ jobs:
         run: |
           ssh-keyscan -H ${{ secrets.DO_HOST }} >> ~/.ssh/known_hosts
 
+      - name: Setup GitHub access
+        run: |
+          # Add GitHub to known hosts
+          ssh-keyscan -H github.com >> ~/.ssh/known_hosts 2>/dev/null || true
+          # Setup GitHub SSH key if provided
+          if [ -n "${{ secrets.GITHUB_SSH_KEY }}" ]; then
+            echo "${{ secrets.GITHUB_SSH_KEY }}" > ~/.ssh/github_key
+            chmod 600 ~/.ssh/github_key
+            ssh-add ~/.ssh/github_key 2>/dev/null || true
+          fi
+
       - name: Deploy to server
         run: |
           ssh ${{ secrets.DO_USER }}@${{ secrets.DO_HOST }} << 'EOF'
@@ -124,16 +135,53 @@ jobs:
             if [ ! -d ".git" ]; then
               echo "Not a git repository. Cloning..."
               # Remove directory contents if exists but not a git repo
-              if [ "$(ls -A $APP_PATH)" ]; then
+              if [ "$(ls -A $APP_PATH 2>/dev/null)" ]; then
                 echo "Directory exists but is not a git repo. Backing up and cloning..."
                 cd /root
                 mv "$APP_PATH" "${APP_PATH}.backup.$(date +%s)"
                 mkdir -p "$APP_PATH"
               fi
-              git clone https://github.com/me-saeed/ouiimi-NEXT.git "$APP_PATH"
+              
+              # Try different methods to clone repository
+              GIT_SSH_URL="git@github.com:me-saeed/ouiimi-NEXT.git"
+              GIT_HTTPS_URL="https://github.com/me-saeed/ouiimi-NEXT.git"
+              
+              # Method 1: Try HTTPS with GitHub token (if available)
+              if [ -n "${{ secrets.GITHUB_TOKEN }}" ]; then
+                echo "Using GitHub token to clone repository..."
+                git clone "https://${{ secrets.GITHUB_TOKEN }}@github.com/me-saeed/ouiimi-NEXT.git" "$APP_PATH" && CLONE_SUCCESS=true || CLONE_SUCCESS=false
+              fi
+              
+              # Method 2: Try SSH (if token method failed or not available)
+              if [ "$CLONE_SUCCESS" != "true" ]; then
+                echo "Trying SSH to clone repository..."
+                # Test SSH connection first
+                if ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 -T git@github.com 2>&1 | grep -q "successfully authenticated\|Hi.*You've successfully"; then
+                  git clone "$GIT_SSH_URL" "$APP_PATH" && CLONE_SUCCESS=true || CLONE_SUCCESS=false
+                fi
+              fi
+              
+              # Method 3: Try public HTTPS (if repository is public)
+              if [ "$CLONE_SUCCESS" != "true" ]; then
+                echo "Trying public HTTPS to clone repository..."
+                git clone "$GIT_HTTPS_URL" "$APP_PATH" && CLONE_SUCCESS=true || CLONE_SUCCESS=false
+              fi
+              
+              if [ "$CLONE_SUCCESS" != "true" ]; then
+                echo "❌ Failed to clone repository. Please check:"
+                echo "   1. Repository is accessible (public or has deploy key)"
+                echo "   2. GITHUB_TOKEN secret is set (for private repos)"
+                echo "   3. GITHUB_SSH_KEY secret is set (for SSH access)"
+                exit 1
+              fi
               cd "$APP_PATH"
             else
               echo "Pulling latest code..."
+              # Set up git remote if needed
+              if ! git remote get-url origin &>/dev/null; then
+                git remote add origin git@github.com:me-saeed/ouiimi-NEXT.git || \
+                git remote add origin https://github.com/me-saeed/ouiimi-NEXT.git
+              fi
               git fetch origin
               git reset --hard origin/main || git reset --hard origin/master
             fi
