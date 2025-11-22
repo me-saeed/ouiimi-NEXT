@@ -1,0 +1,29 @@
+﻿PRIVACY POLICY - OUIIMI Last updated: 2025
+ouiimi is operated by ouiiwe Pty Ltd (ABN 37 688 775 840).
+This policy explains how we collect and protect personal information.
+1. INFORMATION WE COLLECT
+- Name, email, password.
+- Booking details.
+- Payment processing via Stripe (no full card storage).
+- Business details for Business owners.
+2. NO COOKIES
+ouiimi does not use cookies or tracking pixels.
+3. HOW INFORMATION IS USED
+To create accounts, process bookings, notify Businesses, and maintain platform safety.
+4. SHARING INFORMATION
+Shared only with:
+- Businesses (confirmed bookings)
+- Stripe (payments)
+- Legal authorities when requiredWe never sell personal data.
+5. DATA STORAGE & SECURITY
+Encrypted systems, secure servers, PCI-compliant payment processing.
+6. INTERNATIONAL USERS
+Data may be stored in Australia or secure cloud regions.
+7. USER RIGHTS
+Users may request data access, correction, or deletion.
+8. CHILDREN
+Not intended for individuals under 18.
+9. POLICY UPDATES
+Continued use means acceptance of future updates.
+10. CONTACT
+information@ouiimi.com 0466 006 171

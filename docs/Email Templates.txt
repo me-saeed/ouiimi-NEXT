@@ -1,0 +1,237 @@
+﻿ouiimi - Email Templates (Complete Set)
+1. Account Verification Email
+Subject: Verify Your ouiimi Account
+Hi [First Name],
+Welcome to ouiimi - we're so glad you've joined!
+To complete your sign-up and activate your account, please verify your email by clicking the button below:
+Link:
+Once verified, you'll be able to discover, book, and manage your favourite beauty, wellness, and everyday services - all in one place.
+Warm regards,  
+The ouiimi Team  
+information@ouiimi.com  
+ouiimi.com.
+Welcome / Signup Confirmation
+Subject: Welcome to ouiimi - where booking beauty & wellness just got simple 
+Hi [First Name],
+Welcome to ouiimi - an easier way to discover, book, and manage everyday services.
+From salons and nails to massage and dog grooming  - we're building a place that helps you spend less time searching and more time enjoying.
+You can log in anytime to manage bookings, track appointments, or explore new services in your area.
+visit: ouiimi.com to get started.
+
+Warmly,
+The ouiimi Team
+
+
+
+
+
+
+Business Welcome & Approval Emails
+Business Signup Welcome Email
+Subject: Welcome to ouiimi - your business journey starts here 💼
+
+Hi [Business Name],
+
+Welcome to ouiimi We're thrilled to have you join our growing community Your account is currently being reviewed by our team to ensure everything looks great before going live.  
+Once approved, your business will appear on ouiimi and customers will be able to discover and book your services directly.
+
+Thank you for joining ouiimi - we can't wait to help you grow your business!  
+
+The ouiimi Team
+
+Business Approval Confirmation Email
+Subject: Your business has been approved on ouiimi 🎉
+Hi [Business Name],
+
+Great news - your business profile has been approved and is now live on ouiimi
+
+Customers can now discover and book your services directly through our platform.  
+You can manage your bookings, update your availability, and view customer details anytime from your dashboard.
+
+Welcome to the ouiimi community - where great services meet simple booking.  
+
+The ouiimi Team
+
+
+
+
+
+
+
+2. Booking Confirmation (Shopper)
+Subject: Your Booking is Confirmed - [Service Name]
+Hi [Shopper's First Name],
+
+Your booking is confirmed! 🎉
+
+Here are the details:  
+• Business: [Business Name]  
+• Service:    [Service Name]  
+• Date & Time: [Date/Time]  
+•10% Deposit Paid: [AUD $Amount]
+  outstanding Balance: $ to be paid directly to (business name) at appointment. 
+
+You'll receive a reminder before your appointment. If you need to make changes, log in to your ouiimi account.
+
+We look forward to seeing you soon!
+
+Warm regards,  
+The ouiimi Team  
+information@ouiimi.com  
+ouiimi.com
+
+
+
+
+
+
+
+
+
+
+
+3. Booking Confirmation (Small Business)
+Subject: New Booking
+Hi [Business Name],
+You've received a new booking on ouiimi! 🎉
+
+Booking details:  
+• Customer:        [Shopper Name]  
+• Service:             [Service Name]  
+• Date & Time:  [Date/Time]  
+• Deposit Paid:  [AUD $Amount]
+ outstanding Balance: $ to be paid directly to you at appointment
+
+You can view all your bookings and manage your schedule anytime through your ouiimi business dashboard.
+
+Warm regards,  
+The ouiimi Team  
+information@ouiimi.com  
+[Website Link]
+
+4. Appointment Reminder (Shopper)
+Subject: Upcoming Appointment Reminder - [Service Name]
+Hi [Shopper's First Name],
+
+This is a friendly reminder that your upcoming appointment is coming up soon.
+
+Booking details:  
+• Business: [Business Name]  
+• Service: [Service Name]  
+• Date & Time: [Date/Time]
+
+Please arrive a few minutes early and contact your provider directly if you need to make changes.
+
+We hope you enjoy your service!
+
+Warm regards,  
+The ouiimi Team  
+information@ouiimi.com  
+ouiimi.com
+
+5. Booking Completed (Shopper)
+Subject: Thanks for Visiting - We Hope You Enjoyed Your Service!
+Hi [Shopper's First Name],
+
+Thank you for booking through ouiimi! We hope you enjoyed your recent appointment with [Business Name].
+
+Your feedback helps small businesses grow - feel free to leave a review or rebook anytime via your ouiimi account.
+
+We appreciate your support for local businesses 💛
+
+Warm regards,  
+The ouiimi Team  
+information@ouiimi.com  
+[Website Link]
+
+Cancellation Notification (when the shopper cancels)
+Subject: Booking cancelled - [Service Name]
+Hi [First Name],
+
+Your booking for [Service Name] with [Business Name] on [Date] has been cancelled.
+
+
+Warm regards,  
+The ouiimi Team  
+information@ouiimi.com  
+[Website Link]
+
+
+
+
+
+
+
+
+6. Cancellation (Shopper)
+Subject: Your Booking Has Been Cancelled
+Hi [Shopper's First Name],
+
+We wanted to let you know that your recent booking with [Business Name] for [Service Name] on [Date] has been cancelled by the business.
+
+We understand this can be disappointing, and we're sorry for the inconvenience. Your deposit will be fully refunded to your original payment method within 3-5 business days.
+
+If you'd like to rebook or explore other nearby providers, you can browse available services on ouiimi.com.
+
+Thank you for using ouiimi - we hope to help you find your next appointment soon.
+
+Warm regards,  
+The ouiimi Team  
+information@ouiimi.com  
+[Website Link]
+
+7. Cancellation Confirmation (Small Business)
+Subject: Booking Cancellation Confirmed
+Hi [Business Name],
+
+This is to confirm that the booking for [Shopper Name] on [Date] for [Service Name] has been successfully cancelled.
+
+We've notified the customer and processed the refund for their deposit. No further action is required from your side.
+
+You can view all current and past bookings by logging into your ouiimi business dashboard.
+
+Warm regards,  
+The ouiimi Team  
+information@ouiimi.com  
+[Website Link]
+
+8. Payment Receipt (Small Business)
+Subject: Payment Receipt - [Service Name] Booking Completed
+Hi [Business Name],
+
+Great news - your booking with [Shopper Name] for [Service Name] on [Date] has been marked as completed.
+
+We've processed your payout for 50% of the customer's deposit. The funds have been transferred to your nominated bank account ending in [XXXX] and should appear within 1-2 business days.
+
+Booking Summary:  
+• Service: [Service Name]  
+• Shopper: [Shopper Name]  
+• Booking Date: [Date]  
+• Deposit Amount: [AUD $Amount]  
+• Payout Amount: [AUD $HalfDeposit]  
+• Payment ID: [#PaymentReference]
+
+Thank you for providing an excellent experience through ouiimi. Your professionalism helps build trust across our community.
+
+Warm regards,  
+The ouiimi Team  
+payments@ouiimi.com  
+[Website Link]
+
+9. Refund Confirmation (Shopper)
+Subject: Refund Processed - [Service Name]
+Hi [Shopper's First Name],
+
+Your refund for [Service Name] with [Business Name] on [Date] has been processed successfully.
+
+The refunded amount of [AUD $Amount] will return to your original payment method within 3-5 business days.
+
+We're sorry for any inconvenience caused and hope to help you rebook at another time that suits you.
+
+Warm regards,  
+The ouiimi Team  
+information@ouiimi.com  
+[Website Link]
+
+
+
