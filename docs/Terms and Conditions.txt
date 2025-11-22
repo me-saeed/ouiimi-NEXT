@@ -1,0 +1,33 @@
+﻿TERMS & CONDITIONS OUIIMI Last updated: 2025
+ouiimi is operated by ouiiwe Pty Ltd (ABN 37 688 775 840). By using ouiimi, you agree to these Terms.
+1. ABOUT OUIIMI
+ouiimi is a marketplace connecting customers with independent service providers ("Businesses").
+Businesses are fully responsible for delivering services. ouiimi facilitates bookings and payments only.
+2. ELIGIBILITY
+Users must be 18+. Businesses must comply with legal, licensing, and regulatory requirements.
+3. ACCOUNT CREATION
+Users and Businesses must provide accurate information and keep login details secure.
+4. MARKETPLACE RELATIONSHIP
+ouiimi does not provide services and is not responsible for service quality, safety, legality, or outcomes.
+5. BOOKINGS & PAYMENTS
+Users pay a 10% deposit + $1.99 service fee. Remaining balance is paid directly to the Business. Payments processed via Stripe.
+6. CANCELLATIONS & REFUNDS
+User cancellation: Business receives 50% of deposit. Service fee non-refundable.
+Business cancellation: User receives full 10% deposit refund (service fee non-refundable).
+7. BUSINESS RESPONSIBILITIES
+Businesses must deliver services safely, professionally, and legally.
+8. USER RESPONSIBILITIES
+Users must attend appointments on time and behave respectfully.
+9. PROHIBITED CONDUCT
+No fraud, misuse, harassment, or bypassing ouiimi to avoid fees.
+10. SUSPENSION
+Accounts may be suspended or removed for breach of Terms.
+11. LIABILITY
+ouiimi is not liable for service delivery, disputes, damages, loss, or injury caused by Businesses.
+12. INTERNATIONAL BUSINESS OWNERS
+Must comply with local laws and ouiimi requirements.
+13. PRIVACY
+See Privacy Policy.
+14. CONTACT
+information@ouiimi.com
+0466 006 171

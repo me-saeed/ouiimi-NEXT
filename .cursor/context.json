@@ -1,0 +1,174 @@
+{
+  "arch": {
+    "stack": [
+      "Next.js 14 (App Router)",
+      "TypeScript",
+      "MongoDB + Mongoose",
+      "NextAuth (JWT strategy)",
+      "Mailjet (email service)",
+      "Tailwind CSS",
+      "Shadcn UI",
+      "React Hook Form + Zod",
+      "bcryptjs (password hashing)"
+    ],
+    "decisions": [
+      {
+        "what": "JWT-based session strategy with NextAuth",
+        "why": "Stateless authentication, better scalability",
+        "when": "2024-01-01"
+      },
+      {
+        "what": "Modular email template system",
+        "why": "Easy maintenance and extension for multiple email types",
+        "when": "2024-01-01"
+      },
+      {
+        "what": "CSRF protection temporarily disabled",
+        "why": "Token validation issues, needs re-enabling",
+        "when": "2024-01-01"
+      },
+      {
+        "what": "OAuth auto-verification",
+        "why": "OAuth providers already verify email",
+        "when": "2024-01-01"
+      }
+    ]
+  },
+  "features": {
+    "authentication": {
+      "files": [
+        "app/api/auth/signup/route.ts",
+        "app/api/auth/signin/route.ts",
+        "app/api/auth/[...nextauth]/route.ts",
+        "lib/auth.ts",
+        "app/signin/page.tsx",
+        "app/signup/page.tsx"
+      ],
+      "deps": ["next-auth", "bcryptjs", "jsonwebtoken"],
+      "state": "active",
+      "notes": "Credentials + Google/Facebook OAuth, JWT sessions"
+    },
+    "password_reset": {
+      "files": [
+        "app/api/auth/forgot-password/route.ts",
+        "app/api/auth/reset-password/route.ts",
+        "app/forgetpass/page.tsx",
+        "app/reset-password/page.tsx",
+        "lib/models/ForgetPass.ts"
+      ],
+      "deps": ["mailjet"],
+      "state": "active",
+      "notes": "15-minute token expiry, email-based reset"
+    },
+    "email_service": {
+      "files": [
+        "lib/services/mailjet.ts",
+        "lib/services/email/templates/index.ts",
+        "lib/services/email/templates/welcome.ts",
+        "lib/services/email/templates/forget-password.ts"
+      ],
+      "deps": ["node-mailjet"],
+      "state": "active",
+      "notes": "Modular template system, Mailjet integration"
+    },
+    "user_management": {
+      "files": [
+        "lib/models/User.ts",
+        "lib/db.ts"
+      ],
+      "deps": ["mongoose"],
+      "state": "active",
+      "notes": "MongoDB user model with OAuth support, counterId for sequential IDs"
+    },
+    "security": {
+      "files": [
+        "lib/security/rate-limit.ts",
+        "lib/security/csrf.ts",
+        "middleware.ts"
+      ],
+      "deps": ["express-rate-limit", "csurf", "helmet"],
+      "state": "partial",
+      "notes": "Rate limiting active, CSRF disabled, security headers in middleware"
+    },
+    "booking_system": {
+      "files": [],
+      "deps": [],
+      "state": "planned",
+      "notes": "Core booking feature - 10% deposit, 50% to business, remainder at appointment"
+    },
+    "service_categories": {
+      "files": [],
+      "deps": [],
+      "state": "planned",
+      "notes": "Hair, Nails, Beauty & Brows, Massage & Wellness, Skin & Facials, Dog Grooming with sub-services"
+    },
+    "business_portal": {
+      "files": [],
+      "deps": [],
+      "state": "planned",
+      "notes": "Business signup, approval workflow, service listing, booking management"
+    }
+  },
+  "debt": [
+    "CSRF protection disabled - needs re-enabling after token validation fix",
+    "Email verification template not implemented (verify_email type)",
+    "Booking confirmation, reminder, cancellation email templates not implemented",
+    "Booking system core functionality not yet built",
+    "Business approval workflow not implemented",
+    "Payment integration (Stripe) not implemented",
+    "Service listing and management not implemented"
+  ],
+  "env": {
+    "MONGODB_URI": "MongoDB connection string",
+    "NEXTAUTH_URL": "Base URL for NextAuth callbacks",
+    "NEXTAUTH_SECRET": "Secret for JWT signing",
+    "JWT_SECRET": "JWT token secret",
+    "JWT_EXPIRES_IN": "JWT expiration (default: 7d)",
+    "GOOGLE_CLIENT_ID": "Google OAuth client ID",
+    "GOOGLE_CLIENT_SECRET": "Google OAuth secret",
+    "FACEBOOK_CLIENT_ID": "Facebook OAuth app ID",
+    "FACEBOOK_CLIENT_SECRET": "Facebook OAuth secret",
+    "MAILJET_API_KEY": "Mailjet API key",
+    "MAILJET_SECRET_KEY": "Mailjet secret key",
+    "MAILJET_FROM_EMAIL": "Sender email (default: information@ouiimi.com)",
+    "MAILJET_FROM_NAME": "Sender name (default: Ouiimi)",
+    "RATE_LIMIT_WINDOW_MS": "Rate limit window in ms (default: 900000)",
+    "RATE_LIMIT_MAX_REQUESTS": "Max requests per window (default: 100)"
+  },
+  "business_model": {
+    "deposit": "10% of service price",
+    "business_payout": "50% of deposit (5% of total)",
+    "customer_payment": "90% remainder paid directly to business at appointment",
+    "refund_policy": "Full deposit refund on cancellation (3-5 business days)"
+  },
+  "service_categories": {
+    "hair_services": ["Haircuts", "Colouring", "Blow-Dry & Styling", "Treatments"],
+    "nails": ["Manicure", "Pedicure", "Gel/Shellac", "Acrylic", "Nail Art"],
+    "beauty_brows": ["Eyebrow Services", "Lash Services", "Waxing", "Makeup"],
+    "massage_wellness": ["Relaxation", "Remedial", "Hot Stone", "Pregnancy", "Reflexology"],
+    "skin_facials": ["Classic", "Deep Cleanse", "Hydrating", "Anti-Ageing", "Microdermabrasion"],
+    "dog_grooming": ["Bathing", "Haircuts & Styling", "Coat & Skin Care", "Nails & Paws", "Ears, Eyes & Teeth"]
+  },
+  "email_templates_needed": [
+    "Account Verification",
+    "Welcome/Signup Confirmation",
+    "Business Welcome",
+    "Business Approval",
+    "Booking Confirmation (Shopper)",
+    "Booking Confirmation (Business)",
+    "Appointment Reminder (Shopper)",
+    "Booking Completed (Shopper)",
+    "Cancellation (Shopper)",
+    "Cancellation (Business)",
+    "Payment Receipt (Business)",
+    "Refund Confirmation (Shopper)"
+  ],
+  "brand": {
+    "name": "ouiimi",
+    "domains": ["ouiimi.com", "ouiimi.com.au"],
+    "email": "information@ouiimi.com",
+    "company": "ouiiwe Pty Ltd (ABN 37 688 775 840)",
+    "mission": "Simple, fair, transparent booking platform for everyday services"
+  }
+}
+
