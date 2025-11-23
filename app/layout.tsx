@@ -6,8 +6,15 @@ import { Providers } from "@/lib/providers";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Ouiimi - Sign Up & Sign In",
-  description: "Secure authentication for Ouiimi",
+  title: "ouiimi - Simple Booking for Everyday Services",
+  description: "Discover, book, and manage all your everyday services - from haircuts to dog grooming. Simple, fast, and stress-free booking platform.",
+  keywords: "booking, services, haircuts, beauty, massage, dog grooming, appointments",
+  authors: [{ name: "ouiimi" }],
+  openGraph: {
+    title: "ouiimi - Simple Booking for Everyday Services",
+    description: "Discover, book, and manage all your everyday services in one place.",
+    type: "website",
+  },
 };
 
 export default function RootLayout({

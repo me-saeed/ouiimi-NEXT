@@ -3,16 +3,15 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import PageLayout from "@/components/layout/PageLayout";
 
 export default function HomePage() {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
-    // Check if user is logged in
     const token = localStorage.getItem("token");
     const userData = localStorage.getItem("user");
-
     if (token && userData) {
       try {
         setUser(JSON.parse(userData));
@@ -30,132 +29,154 @@ export default function HomePage() {
   };
 
   return (
-    <div className="min-h-screen bg-color-bg">
-      {/* Header */}
-      <header className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center">
-              <h1 className="text-2xl font-bold text-color-primary">Ouiimi</h1>
-            </div>
-            <nav className="flex items-center space-x-4">
-              {user ? (
-                <>
-                  <span className="text-sm text-gray-700">
-                    Welcome, {user.fname} {user.lname}
-                  </span>
-                  <button
-                    onClick={handleLogout}
-                    className="btn-styl"
+    <PageLayout user={user}>
+      <div className="bg-color-bg">
+        {/* Hero Section */}
+        <section className="relative overflow-hidden bg-gradient-to-b from-white to-color-bg py-20 sm:py-32">
+          <div className="container">
+            <div className="mx-auto max-w-3xl text-center">
+              <h1 className="text-5xl font-bold tracking-tight text-color-black sm:text-6xl lg:text-7xl">
+                Welcome to{" "}
+                <span className="text-color-primary">ouiimi</span>
+              </h1>
+              <p className="mt-6 text-lg leading-8 text-color-gray sm:text-xl">
+                Simple, fast, and stress-free booking for all your everyday services.
+                From haircuts to dog grooming, discover and book with ease.
+              </p>
+              <div className="mt-10 flex items-center justify-center gap-x-6">
+                {user ? (
+                  <Link
+                    href="/"
+                    className="btn-styl btn-primary text-base px-6 py-3"
                   >
-                    Logout
-                  </button>
-                </>
-              ) : (
-                <>
-                  <Link href="/signin" className="btn-styl">
-                    Sign In
+                    Go to Dashboard
                   </Link>
-                  <Link href="/signup" className="btn-styl">
-                    Sign Up
-                  </Link>
-                </>
-              )}
-            </nav>
+                ) : (
+                  <>
+                    <Link
+                      href="/signup"
+                      className="btn-styl btn-primary text-base px-6 py-3"
+                    >
+                      Get Started
+                    </Link>
+                    <Link
+                      href="/signin"
+                      className="btn-styl btn-outline text-base px-6 py-3"
+                    >
+                      Sign In
+                    </Link>
+                  </>
+                )}
+              </div>
+            </div>
           </div>
-        </div>
-      </header>
+        </section>
 
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="text-center">
-          <h2 className="text-4xl font-bold text-color-black mb-4">
-            Welcome to Ouiimi
-          </h2>
-          <p className="text-lg text-color-gray mb-8">
-            Your secure authentication system is ready!
-          </p>
+        {/* Features Section */}
+        <section className="py-20 sm:py-24">
+          <div className="container">
+            <div className="mx-auto max-w-2xl text-center mb-16">
+              <h2 className="text-3xl font-bold tracking-tight text-color-black sm:text-4xl">
+                Why Choose ouiimi?
+              </h2>
+              <p className="mt-4 text-lg text-color-gray">
+                Everything you need to book your everyday services in one place
+              </p>
+            </div>
+            <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="bg-white rounded-xl shadow-md p-8 hover:shadow-lg transition-shadow duration-300">
+                <div className="text-4xl mb-4">🔐</div>
+                <h3 className="text-xl font-semibold mb-3 text-color-black">
+                  Secure & Safe
+                </h3>
+                <p className="text-color-gray leading-relaxed">
+                  Your data is protected with industry-standard security. Book with confidence.
+                </p>
+              </div>
 
-          {user ? (
-            <div className="bg-white rounded-lg shadow-md p-8 max-w-2xl mx-auto">
-              <h3 className="text-2xl font-semibold mb-4 text-color-primary">
-                User Dashboard
-              </h3>
-              <div className="text-left space-y-2">
-                <p>
-                  <strong>Name:</strong> {user.fname} {user.lname}
+              <div className="bg-white rounded-xl shadow-md p-8 hover:shadow-lg transition-shadow duration-300">
+                <div className="text-4xl mb-4">⚡</div>
+                <h3 className="text-xl font-semibold mb-3 text-color-black">
+                  Fast & Simple
+                </h3>
+                <p className="text-color-gray leading-relaxed">
+                  Book appointments in minutes. No more juggling multiple apps or endless messages.
                 </p>
-                <p>
-                  <strong>Email:</strong> {user.email}
+              </div>
+
+              <div className="bg-white rounded-xl shadow-md p-8 hover:shadow-lg transition-shadow duration-300">
+                <div className="text-4xl mb-4">💳</div>
+                <h3 className="text-xl font-semibold mb-3 text-color-black">
+                  Fair Pricing
+                </h3>
+                <p className="text-color-gray leading-relaxed">
+                  Transparent pricing with a simple 10% deposit. Pay the rest directly to the business.
                 </p>
-                <p>
-                  <strong>Username:</strong> {user.username || "N/A"}
+              </div>
+
+              <div className="bg-white rounded-xl shadow-md p-8 hover:shadow-lg transition-shadow duration-300">
+                <div className="text-4xl mb-4">📍</div>
+                <h3 className="text-xl font-semibold mb-3 text-color-black">
+                  Local Businesses
+                </h3>
+                <p className="text-color-gray leading-relaxed">
+                  Discover verified, high-quality service providers in your area.
+                </p>
+              </div>
+
+              <div className="bg-white rounded-xl shadow-md p-8 hover:shadow-lg transition-shadow duration-300">
+                <div className="text-4xl mb-4">📱</div>
+                <h3 className="text-xl font-semibold mb-3 text-color-black">
+                  Easy Management
+                </h3>
+                <p className="text-color-gray leading-relaxed">
+                  Track and manage all your bookings from one convenient dashboard.
+                </p>
+              </div>
+
+              <div className="bg-white rounded-xl shadow-md p-8 hover:shadow-lg transition-shadow duration-300">
+                <div className="text-4xl mb-4">✨</div>
+                <h3 className="text-xl font-semibold mb-3 text-color-black">
+                  All Services
+                </h3>
+                <p className="text-color-gray leading-relaxed">
+                  Hair, nails, beauty, massage, dog grooming, and more - all in one place.
                 </p>
               </div>
             </div>
-          ) : (
-            <div className="bg-white rounded-lg shadow-md p-8 max-w-2xl mx-auto">
-              <h3 className="text-2xl font-semibold mb-4 text-color-primary">
-                Get Started
-              </h3>
-              <p className="text-color-gray mb-6">
-                Sign up or sign in to access your account and explore all the
-                features.
-              </p>
-              <div className="flex justify-center space-x-4">
-                <Link href="/signup" className="btn-styl">
-                  Create Account
-                </Link>
-                <Link href="/signin" className="btn-styl">
-                  Sign In
-                </Link>
+          </div>
+        </section>
+
+        {/* CTA Section */}
+        {!user && (
+          <section className="bg-color-primary py-16 sm:py-20">
+            <div className="container">
+              <div className="mx-auto max-w-2xl text-center">
+                <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
+                  Ready to get started?
+                </h2>
+                <p className="mt-4 text-lg leading-8 text-white/90">
+                  Join ouiimi today and experience the simplest way to book your everyday services.
+                </p>
+                <div className="mt-10 flex items-center justify-center gap-x-6">
+                  <Link
+                    href="/signup"
+                    className="inline-flex items-center justify-center rounded-md bg-white px-6 py-3 text-base font-semibold text-color-primary shadow-sm hover:bg-gray-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white transition-colors"
+                  >
+                    Create Account
+                  </Link>
+                  <Link
+                    href="/about"
+                    className="text-base font-semibold leading-6 text-white hover:text-white/80 transition-colors"
+                  >
+                    Learn more <span aria-hidden="true">→</span>
+                  </Link>
+                </div>
               </div>
             </div>
-          )}
-
-          {/* Features Section */}
-          <div className="mt-16 grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="bg-white rounded-lg shadow-md p-6">
-              <div className="text-3xl mb-4">🔐</div>
-              <h3 className="text-xl font-semibold mb-2 text-color-primary">
-                Secure Authentication
-              </h3>
-              <p className="text-color-gray">
-                JWT-based authentication with bcrypt password hashing
-              </p>
-            </div>
-
-            <div className="bg-white rounded-lg shadow-md p-6">
-              <div className="text-3xl mb-4">🔑</div>
-              <h3 className="text-xl font-semibold mb-2 text-color-primary">
-                Password Reset
-              </h3>
-              <p className="text-color-gray">
-                Secure password reset functionality with email verification
-              </p>
-            </div>
-
-            <div className="bg-white rounded-lg shadow-md p-6">
-              <div className="text-3xl mb-4">🌐</div>
-              <h3 className="text-xl font-semibold mb-2 text-color-primary">
-                OAuth Integration
-              </h3>
-              <p className="text-color-gray">
-                Sign in with Google or Facebook for quick access
-              </p>
-            </div>
-          </div>
-        </div>
-      </main>
-
-      {/* Footer */}
-      <footer className="bg-white border-t mt-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="text-center text-color-gray">
-            <p>&copy; 2024 Ouiimi. All rights reserved.</p>
-          </div>
-        </div>
-      </footer>
-    </div>
+          </section>
+        )}
+      </div>
+    </PageLayout>
   );
 }

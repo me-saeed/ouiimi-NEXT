@@ -71,23 +71,49 @@ code {
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-semibold tracking-tight;
+  }
+  
+  h1 {
+    @apply text-4xl lg:text-5xl;
+  }
+  
+  h2 {
+    @apply text-3xl lg:text-4xl;
+  }
+  
+  h3 {
+    @apply text-2xl lg:text-3xl;
+  }
+  
+  .container {
+    @apply mx-auto max-w-7xl px-4 sm:px-6 lg:px-8;
   }
 }
 
 @layer utilities {
-  /* MERN App Button Styles - Exact Match */
+  /* Modern Button Styles */
   .btn-styl {
-    @apply block shadow-styl bg-white uppercase btncolor font-bold text-xs px-4 py-2 rounded outline-none focus:outline-none mr-2 mb-1 ease-linear transition-all duration-150;
+    @apply inline-flex items-center justify-center rounded-md text-sm font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50;
+    @apply bg-color-secondary text-white hover:bg-color-secondary/90 shadow-sm hover:shadow-md;
+    @apply px-4 py-2;
   }
 
-  .btn-styl:hover {
-    opacity: 0.9;
+  .btn-primary {
+    @apply bg-color-primary text-white hover:bg-color-primary/90;
   }
 
-  /* MERN App Input Styles - Exact Match */
+  .btn-outline {
+    @apply border border-color-primary text-color-primary bg-transparent hover:bg-color-primary hover:text-white;
+  }
+
+  /* Modern Input Styles */
   .input-styl {
-    @apply placeholder-gray-600 text-gray-600 bg-white rounded-md text-sm shadow focus:outline-none focus:ring w-full ease-linear transition-all duration-150 border border-gray-300;
+    @apply w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-color-primary focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 transition-all duration-200;
   }
 
   /* MERN App Center Utility */
@@ -95,28 +121,58 @@ code {
     @apply flex content-center items-center justify-center;
   }
 
-  /* MERN App Color Utilities - Exact Match */
+  /* Modern Color Utilities */
   .btncolor {
-    color: #ff8439; /* color-btn / color-secondary */
+    color: #ff8439;
   }
 
   .orgcolor {
-    color: #77dd77; /* color-primary */
+    color: #77dd77;
   }
 
-  .bg-primary {
-    background-color: #77dd77; /* color-primary */
+  .bg-color-primary {
+    background-color: #77dd77;
   }
 
-  .orgback {
-    background-color: #77dd77; /* color-primary */
+  .bg-color-secondary {
+    background-color: #ff8439;
   }
 
-  /* MERN App Shadow Styles - Exact Match */
+  .text-color-primary {
+    color: #77dd77;
+  }
+
+  .text-color-secondary {
+    color: #ff8439;
+  }
+
+  .text-color-black {
+    color: #2c2d28;
+  }
+
+  .text-color-gray {
+    color: #858585;
+  }
+
+  .bg-color-bg {
+    background-color: #f8f8f8;
+  }
+
+  .border-color-primary {
+    border-color: #77dd77;
+  }
+
+  /* Modern Shadow Styles */
   .shadow-styl {
-    -webkit-box-shadow: 3px 3px 4px 0px rgba(0, 0, 0, 0.75);
-    -moz-box-shadow: 3px 3px 4px 0px rgba(0, 0, 0, 0.75);
-    box-shadow: 3px 3px 4px 0px rgba(0, 0, 0, 0.75);
+    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+  }
+
+  .shadow-md {
+    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  }
+
+  .shadow-lg {
+    box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
   }
 
   .btn-shadow {
@@ -142,24 +198,24 @@ code {
   }
 }
 
-/* MERN App Scrollbar Styles - Exact Match */
+/* Modern Scrollbar Styles */
 ::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
+  width: 8px;
+  height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  box-shadow: inset 0 0 5px grey;
-  border-radius: 10px;
+  background: #f1f1f1;
+  border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #ffffff;
-  border-radius: 10px;
+  background: #c1c1c1;
+  border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #ffffff;
+  background: #a8a8a8;
 }
 
 /* Hide file input */
