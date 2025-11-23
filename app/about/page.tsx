@@ -1,5 +1,3 @@
-"use client";
-
 import Link from "next/link";
 
 export default function AboutPage() {
@@ -36,7 +34,7 @@ export default function AboutPage() {
 
             <section className="mt-10">
               <h2 className="text-2xl font-bold text-color-primary mb-4">For Customers</h2>
-              <p className="text-lg mb-4">Life is busy - booking shouldn't be.</p>
+              <p className="text-lg mb-4">Life is busy - booking shouldn&apos;t be.</p>
               <p className="mb-4">ouiimi gives you:</p>
               <ul className="list-disc list-inside space-y-2 ml-4">
                 <li>A single home for all your everyday services</li>
@@ -64,7 +62,7 @@ export default function AboutPage() {
                 <li>Easy service listings, availability management, and payouts</li>
                 <li>A clean, professional presence without paying for complicated software</li>
               </ul>
-              <p className="mt-4">We're here to help you grow, not overwhelm you.</p>
+              <p className="mt-4">We&apos;re here to help you grow, not overwhelm you.</p>
             </section>
 
             <section className="mt-10">
@@ -72,7 +70,7 @@ export default function AboutPage() {
               <p className="text-lg mb-4">
                 To bring the everyday services industry into the relatable modern world - with tools that are simple, fair, and built for people.
               </p>
-              <p className="mb-4">We're building a community where:</p>
+              <p className="mb-4">We&apos;re building a community where:</p>
               <ul className="list-disc list-inside space-y-2 ml-4">
                 <li>customers feel confident</li>
                 <li>businesses feel supported</li>
@@ -82,7 +80,7 @@ export default function AboutPage() {
                 ouiimi is more than a booking platform.
               </p>
               <p className="text-lg font-semibold">
-                It's a smarter way to manage your everyday life.
+                It&apos;s a smarter way to manage your everyday life.
               </p>
             </section>
 
@@ -95,15 +93,15 @@ export default function AboutPage() {
                 <li className="text-lg font-semibold">Fairness.</li>
               </ul>
               <p className="mt-4">
-                These aren't slogans - they're the foundations ouiimi is built on.
+                These aren&apos;t slogans - they&apos;re the foundations ouiimi is built on.
               </p>
             </section>
 
             <section className="mt-10">
               <h2 className="text-2xl font-bold text-color-primary mb-4">The Meaning Behind the Name</h2>
               <p className="text-lg leading-relaxed">
-                Inspired by the spirit of "yes" - oui - and the personal connection of "me," ouiimi represents a future where booking is not only simple, but tailored for you.
-                It's a name that feels welcoming, positive, and modern - just like the platform itself.
+                Inspired by the spirit of &quot;yes&quot; - oui - and the personal connection of &quot;me,&quot; ouiimi represents a future where booking is not only simple, but tailored for you.
+                It&apos;s a name that feels welcoming, positive, and modern - just like the platform itself.
               </p>
             </section>
 

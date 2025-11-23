@@ -1,5 +1,3 @@
-"use client";
-
 import Link from "next/link";
 
 export default function TermsPage() {
@@ -32,7 +30,7 @@ export default function TermsPage() {
 
             <section className="mt-8">
               <h2 className="text-2xl font-bold text-color-primary mb-4">1. ABOUT OUIIMI</h2>
-              <p>ouiimi is a marketplace connecting customers with independent service providers ("Businesses").</p>
+              <p>ouiimi is a marketplace connecting customers with independent service providers (&quot;Businesses&quot;).</p>
               <p className="mt-2">Businesses are fully responsible for delivering services. ouiimi facilitates bookings and payments only.</p>
             </section>
 
