@@ -1,0 +1,255 @@
+OUIIMI - CRUD OPERATIONS PRIORITY & MONGODB MODELS
+==================================================
+
+PHASE 1: FOUNDATION (Build First)
+----------------------------------
+
+1. BUSINESS MODEL & CRUD
+   Priority: HIGHEST
+   Why: Businesses need to exist before they can list services
+   
+   MongoDB Model: Business
+   Fields:
+   - _id (ObjectId)
+   - userId (ref to User)
+   - businessName (String, required)
+   - email (String, required)
+   - phone (String)
+   - address (String, required)
+   - logo (String - image URL)
+   - story (String - business description)
+   - status (String: "pending" | "approved" | "rejected")
+   - bankDetails: {
+       name (String)
+       bsb (String)
+       accountNumber (String)
+       contactNumber (String)
+     }
+   - createdAt, updatedAt (timestamps)
+   
+   CRUD Operations:
+   - CREATE: Business signup/registration (after user account)
+   - READ: Get business profile, list all businesses, search businesses
+   - UPDATE: Edit business details, update bank details, upload logo
+   - DELETE: Soft delete (status change) or hard delete
+
+2. SERVICE MODEL & CRUD
+   Priority: HIGHEST
+   Why: Core of the platform - services need to be listed before bookings
+   
+   MongoDB Model: Service
+   Fields:
+   - _id (ObjectId)
+   - businessId (ref to Business, required)
+   - category (String, required) - "Hair Services", "Nails", etc.
+   - subCategory (String) - "Haircuts", "Colouring", etc. (if applicable)
+   - serviceName (String, required) - from pre-programmed list
+   - duration (String, required) - "2hr", "30mins", etc.
+   - baseCost (Number, required)
+   - description (String)
+   - address (String, required) - where service takes place
+   - addOns: [{
+       name (String) - from pre-programmed list
+       cost (Number)
+     }]
+   - timeSlots: [{
+       date (Date, required)
+       startTime (String, required) - "10:00am"
+       endTime (String, required) - "12:00pm"
+       cost (Number) - can vary per slot
+       staffIds: [ObjectId] - refs to Staff
+       isBooked (Boolean, default: false)
+       bookingId (ObjectId) - ref to Booking if booked
+     }]
+   - status (String: "listed" | "booked" | "completed" | "cancelled")
+   - createdAt, updatedAt (timestamps)
+   
+   CRUD Operations:
+   - CREATE: Business lists new service
+   - READ: Get service details, list services by category, search services
+   - UPDATE: Edit service details, add/remove time slots, update availability
+   - DELETE: Remove service listing (soft delete if has bookings)
+
+3. STAFF MODEL & CRUD
+   Priority: HIGH
+   Why: Needed for service listings and booking assignments
+   
+   MongoDB Model: Staff
+   Fields:
+   - _id (ObjectId)
+   - businessId (ref to Business, required)
+   - name (String, required)
+   - photo (String - image URL)
+   - qualifications (String)
+   - about (String)
+   - isActive (Boolean, default: true)
+   - createdAt, updatedAt (timestamps)
+   
+   CRUD Operations:
+   - CREATE: Business adds staff member
+   - READ: Get staff details, list all staff for business
+   - UPDATE: Edit staff info, update photo
+   - DELETE: Remove staff (soft delete - set isActive: false)
+
+PHASE 2: CORE FUNCTIONALITY (Build Next)
+-----------------------------------------
+
+4. BOOKING MODEL & CRUD
+   Priority: HIGH
+   Why: Core booking functionality
+   
+   MongoDB Model: Booking
+   Fields:
+   - _id (ObjectId) - Booking ID
+   - shopperId (ref to User, required)
+   - businessId (ref to Business, required)
+   - serviceId (ref to Service, required)
+   - staffId (ref to Staff)
+   - date (Date, required)
+   - startTime (String, required)
+   - endTime (String, required)
+   - duration (String, required)
+   - serviceName (String, required)
+   - baseCost (Number, required)
+   - addOns: [{
+       name (String)
+       cost (Number)
+     }]
+   - totalCost (Number, required)
+   - depositAmount (Number, required) - 10% of total
+   - serviceFee (Number, default: 1.99)
+   - amountPaidToday (Number, required) - deposit + fee
+   - remainingBalance (Number, required) - 90% of total
+   - status (String: "upcoming" | "pending" | "finished" | "cancelled")
+   - cancellationReason (String)
+   - cancelledBy (String: "shopper" | "business")
+   - paymentStatus (String: "pending" | "completed" | "refunded")
+   - stripePaymentId (String)
+   - businessPayoutStatus (String: "pending" | "completed")
+   - businessPayoutAmount (Number) - 50% of deposit
+   - createdAt, updatedAt (timestamps)
+   
+   CRUD Operations:
+   - CREATE: Shopper creates booking (after payment)
+   - READ: Get booking details, list bookings by user/business, filter by status/date
+   - UPDATE: Update status (pending → finished), mark complete, cancel booking
+   - DELETE: Soft delete (status: cancelled)
+
+PHASE 3: SUPPORTING MODELS (Build After Core)
+----------------------------------------------
+
+5. SERVICE CATEGORY MODEL (Pre-programmed)
+   Priority: MEDIUM
+   Why: Categories and add-ons are pre-programmed, but might need admin CRUD
+   
+   MongoDB Model: ServiceCategory
+   Fields:
+   - _id (ObjectId)
+   - categoryName (String, required, unique) - "Hair Services"
+   - hasSubCategories (Boolean, default: false)
+   - subCategories: [{
+       name (String)
+       services: [String] - pre-programmed service names
+     }]
+   - services: [String] - if no sub-categories
+   - addOns: [{
+       name (String)
+       applicableTo: [String] - which services can use this add-on
+     }]
+   - isActive (Boolean, default: true)
+   - createdAt, updatedAt (timestamps)
+   
+   CRUD Operations:
+   - CREATE: Admin adds new category (rare)
+   - READ: Get all categories, get category with services/add-ons
+   - UPDATE: Admin updates category structure
+   - DELETE: Soft delete (set isActive: false)
+
+6. BOOKING CART MODEL (Session-based)
+   Priority: MEDIUM
+   Why: Temporary cart before checkout
+   
+   MongoDB Model: BookingCart (or use session/localStorage)
+   Fields:
+   - _id (ObjectId)
+   - userId (ref to User)
+   - businessId (ref to Business, required)
+   - items: [{
+       serviceId (ref to Service)
+       date (Date)
+       timeSlot (Object)
+       staffId (ref to Staff)
+       addOns: [Object]
+       cost (Number)
+     }]
+   - totalCost (Number)
+   - depositAmount (Number)
+   - expiresAt (Date) - for cleanup
+   - createdAt, updatedAt (timestamps)
+   
+   CRUD Operations:
+   - CREATE: Add service to cart
+   - READ: Get cart items
+   - UPDATE: Update cart items, add/remove services
+   - DELETE: Clear cart after checkout or expiration
+
+RECOMMENDED BUILD ORDER
+------------------------
+Week 1:
+1. Business Model + CRUD API
+2. Staff Model + CRUD API
+3. Service Model + CRUD API (basic, without time slots first)
+
+Week 2:
+4. Service time slots management
+5. Booking Model + CRUD API
+6. Booking status management
+
+Week 3:
+7. Service Category seeding (pre-programmed data)
+8. Cart functionality
+9. Payment integration
+
+API ENDPOINTS NEEDED (Priority Order)
+-------------------------------------
+
+BUSINESS APIs:
+- POST /api/business/create - Create business account
+- GET /api/business/:id - Get business profile
+- PUT /api/business/:id - Update business details
+- GET /api/business/search - Search businesses
+- POST /api/business/:id/bank-details - Add/update bank details
+- POST /api/business/:id/logo - Upload logo
+
+STAFF APIs:
+- POST /api/staff - Add staff member
+- GET /api/staff/business/:businessId - Get all staff for business
+- GET /api/staff/:id - Get staff details
+- PUT /api/staff/:id - Update staff
+- DELETE /api/staff/:id - Remove staff
+
+SERVICE APIs:
+- POST /api/services - List new service
+- GET /api/services - Get all services (with filters)
+- GET /api/services/:id - Get service details
+- GET /api/services/business/:businessId - Get business services
+- GET /api/services/category/:category - Get services by category
+- PUT /api/services/:id - Update service
+- PUT /api/services/:id/time-slots - Add/update time slots
+- DELETE /api/services/:id - Remove service
+
+BOOKING APIs:
+- POST /api/bookings - Create booking (after payment)
+- GET /api/bookings/user/:userId - Get user bookings
+- GET /api/bookings/business/:businessId - Get business bookings
+- GET /api/bookings/:id - Get booking details
+- PUT /api/bookings/:id/status - Update booking status
+- PUT /api/bookings/:id/complete - Mark as complete
+- PUT /api/bookings/:id/cancel - Cancel booking
+
+UTILITY APIs:
+- GET /api/categories - Get all service categories
+- GET /api/categories/:category/add-ons - Get add-ons for category
+- GET /api/services/availability - Check time slot availability
+- POST /api/bookings/checkout - Process payment and create booking
+

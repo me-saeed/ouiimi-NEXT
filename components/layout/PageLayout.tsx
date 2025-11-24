@@ -12,7 +12,7 @@ interface PageLayoutProps {
 
 export default function PageLayout({ children, user }: PageLayoutProps) {
   return (
-    <div className="flex min-h-screen flex-col">
+    <div className="flex min-h-screen flex-col bg-white">
       <Header user={user} />
       <main className="flex-1">{children}</main>
       <Footer />

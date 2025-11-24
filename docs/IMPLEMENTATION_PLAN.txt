@@ -1,0 +1,183 @@
+OUIIMI - IMPLEMENTATION PLAN (CRUD Operations Priority)
+=======================================================
+
+BUILD ORDER (What to Create First)
+-----------------------------------
+
+PHASE 1: FOUNDATION MODELS (Start Here)
+========================================
+
+1. BUSINESS MODEL (Highest Priority)
+   Why: Businesses must exist before services can be listed
+   
+   File: lib/models/Business.ts
+   API Routes: app/api/business/
+   
+   Core Operations:
+   - Business registration (after user account)
+   - Business approval workflow
+   - Business profile management
+   - Bank details management
+
+2. STAFF MODEL (High Priority)
+   Why: Services need staff assignments for bookings
+   
+   File: lib/models/Staff.ts
+   API Routes: app/api/staff/
+   
+   Core Operations:
+   - Add staff to business
+   - Manage staff details
+   - Staff availability tracking
+
+3. SERVICE MODEL (Highest Priority)
+   Why: Core of the platform - everything revolves around services
+   
+   File: lib/models/Service.ts
+   API Routes: app/api/services/
+   
+   Core Operations:
+   - List services
+   - Manage time slots
+   - Update availability
+   - Service search and filtering
+
+PHASE 2: BOOKING SYSTEM (Build After Foundation)
+================================================
+
+4. BOOKING MODEL (High Priority)
+   Why: Core booking functionality
+   
+   File: lib/models/Booking.ts
+   API Routes: app/api/bookings/
+   
+   Core Operations:
+   - Create booking (after payment)
+   - Manage booking status
+   - Cancellation logic
+   - Booking history
+
+PHASE 3: SUPPORTING FEATURES (Build After Core)
+================================================
+
+5. SERVICE CATEGORY (Pre-programmed Data)
+   File: lib/models/ServiceCategory.ts or lib/data/categories.ts
+   - Can be static data or MongoDB model for admin management
+
+6. CART (Session-based)
+   - Can use localStorage or MongoDB for persistence
+   - Temporary until checkout
+
+DETAILED MODEL STRUCTURES
+==========================
+
+BUSINESS MODEL
+--------------
+Required Fields:
+- userId (ref to User)
+- businessName
+- email, phone, address
+- logo (image URL)
+- story (description)
+- status (pending/approved/rejected)
+- bankDetails (BSB, account number, etc.)
+
+STAFF MODEL
+-----------
+Required Fields:
+- businessId (ref to Business)
+- name
+- photo (image URL)
+- qualifications
+- about
+- isActive
+
+SERVICE MODEL
+-------------
+Required Fields:
+- businessId (ref to Business)
+- category, subCategory (if applicable)
+- serviceName (from pre-programmed list)
+- duration, baseCost
+- description, address
+- addOns (array with name and cost)
+- timeSlots (array with date, times, staff, cost)
+- status
+
+BOOKING MODEL
+-------------
+Required Fields:
+- shopperId, businessId, serviceId, staffId
+- date, startTime, endTime, duration
+- serviceName
+- cost breakdown (base, addOns, total)
+- payment info (deposit, fee, amounts)
+- status (upcoming/pending/finished/cancelled)
+- paymentStatus, businessPayoutStatus
+
+API ENDPOINTS TO CREATE (Priority Order)
+========================================
+
+1. Business APIs (Week 1)
+   POST   /api/business/create
+   GET    /api/business/:id
+   PUT    /api/business/:id
+   GET    /api/business/search
+   POST   /api/business/:id/bank-details
+
+2. Staff APIs (Week 1)
+   POST   /api/staff
+   GET    /api/staff/business/:businessId
+   GET    /api/staff/:id
+   PUT    /api/staff/:id
+   DELETE /api/staff/:id
+
+3. Service APIs (Week 1-2)
+   POST   /api/services
+   GET    /api/services
+   GET    /api/services/:id
+   GET    /api/services/category/:category
+   PUT    /api/services/:id
+   PUT    /api/services/:id/time-slots
+   DELETE /api/services/:id
+
+4. Booking APIs (Week 2)
+   POST   /api/bookings
+   GET    /api/bookings/user/:userId
+   GET    /api/bookings/business/:businessId
+   GET    /api/bookings/:id
+   PUT    /api/bookings/:id/status
+   PUT    /api/bookings/:id/complete
+   PUT    /api/bookings/:id/cancel
+
+5. Utility APIs (Week 2-3)
+   GET    /api/categories
+   GET    /api/categories/:category/add-ons
+   GET    /api/services/availability
+   POST   /api/bookings/checkout
+
+UI PAGES TO CREATE (Based on ouiiwe Pattern)
+=============================================
+
+1. Business Dashboard
+   - Similar to ouiiwe business profile
+   - Tabs: Bookings, List, Staff, Details
+   - Follower/Following counts (if needed)
+   - Search functionality
+
+2. Service Listing Page
+   - Form to create service
+   - Category/sub-category selection
+   - Date/time slot management
+   - Add-ons selection
+
+3. Service Discovery Page
+   - Home page with categories
+   - Service cards in carousel
+   - Search and filter
+
+4. Booking Management
+   - Shopper bookings page
+   - Business bookings page
+   - Booking details view
+

@@ -1,0 +1,74 @@
+OUIIMI - UI PATTERNS FROM OUIIWE (Previous Project)
+===================================================
+
+HEADER DESIGN
+-------------
+- Black background (#000000 or dark)
+- White text for brand name and navigation
+- Left: Brand logo/name (clickable, links to home)
+- Center: Navigation links (Small Business, Shopper, About)
+- Right: User profile icon + Shopping cart icon
+- Sticky header (appears on all pages)
+
+NAVIGATION PATTERN
+-----------------
+- Horizontal navigation in header
+- Three main sections: Small Business, Shopper, About
+- Icons for user actions (profile, cart)
+- Clean, minimalist design
+
+SEARCH FUNCTIONALITY
+--------------------
+- Prominent search bar
+- Two input fields: "Search" and "Location"
+- Search button (orange/brown background, white text)
+- Magnifying glass icon
+
+CONTENT DISPLAY
+--------------
+- White background for main content
+- Category headings (bold, black text)
+- Horizontal carousel/slider for items
+- Product/Service cards side-by-side
+- 4 items visible at once
+- Dots indicator below cards (carousel navigation)
+- Thin horizontal line between sections
+
+CARD DESIGN
+-----------
+- Image at top
+- Title below image
+- Price below title
+- Rounded corners
+- Shadow/hover effects
+- Clickable to view details
+
+BUSINESS PROFILE PAGE
+--------------------
+- Large plus icon (for adding/uploading)
+- Follower/Following counts (00 format)
+- Search bar: "Search business name / username"
+- Tab navigation: Details, Display, Orders
+- Active tab underlined
+- Information icon (i) next to Display tab
+
+FOOTER DESIGN
+-------------
+- Centered text
+- Tagline: "Bringing authenticity back to shopping"
+- Contact email
+- ABN number
+- Social media icon (Instagram style)
+- Links: Privacy Policy, Terms & conditions, How It Works
+
+DESIGN PRINCIPLES
+-----------------
+- Clean, minimalist aesthetic
+- Black header, white content
+- Orange/brown accent color for buttons
+- White text on dark backgrounds
+- Gray text for secondary information
+- Rounded corners on buttons and cards
+- Horizontal layouts for lists/carousels
+- Clear visual hierarchy
+
