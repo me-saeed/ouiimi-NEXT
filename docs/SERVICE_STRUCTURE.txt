@@ -1,0 +1,243 @@
+OUIIMI - SERVICE CATEGORIES & STRUCTURE
+========================================
+
+MAIN CATEGORIES
+---------------
+1. Hair Services (has sub-categories)
+2. Nails
+3. Beauty & Brows
+4. Massage & Wellness
+5. Skin & Facials
+6. Dog Grooming (has sub-categories)
+
+HAIR SERVICES (Category with Sub-Categories)
+--------------------------------------------
+Sub-Categories:
+1. Haircuts
+   Services:
+   - Women's Cut - Short (above shoulders)
+   - Women's Cut - Medium (shoulder to mid-back)
+   - Women's Cut - Long (below mid-back / thick)
+   - Restyle Cut (major change)
+   - Men's Cut
+   - Children's Cut
+   - Fringe / Bang Trim
+   - Clipper Cut / Fade
+   
+   Add-Ons:
+   - Scalp Massage
+   - Hydration/Repair Mask
+   - Toner
+   - Olaplex/Bonding Treatment
+   - Extra Blow-Dry
+
+2. Styling & Finishing
+   Services:
+   - Blow-Dry - Short Hair
+   - Blow-Dry - Medium Hair
+   - Blow-Dry - Long/Thick Hair
+   - Straighten / Flat Iron Finish
+   - Curls / Waves
+   - Updo / Occasion Style
+   - Braids (Simple / Detailed)
+   
+   Add-Ons:
+   - Hot Tool Styling
+   - Braiding
+   - Occasion Finish
+
+3. Colour & Highlights
+   Services:
+   - Root Touch-Up / Regrowth Colour
+   - All-Over Colour - Short
+   - All-Over Colour - Medium
+   - All-Over Colour - Long/Thick
+   - Foils / Highlights - 1/4 Head
+   - Foils / Highlights - 1/2 Head
+   - Foils / Highlights - Full Head
+   - Balayage / Ombre
+   - Toner / Gloss Refresh
+   - Colour Correction (by consultation)
+   - Scalp Bleach & Tone
+   
+   Add-Ons:
+   - Extra Colour Bowl
+   - Root Shadow/Blend
+   - Gloss Refresh
+   - Colour Lock Treatment
+
+4. Chemical & Texture Services
+   Services:
+   - Keratin / Brazilian Smoothing
+   - Permanent Straightening / Relaxer
+   - Perm (Short / Long Hair)
+   - Bond Treatment (Olaplex / K18 / Similar)
+
+5. Extensions
+   Services:
+   - Tape-In Extensions (Apply / Remove / Reapply)
+   - Clip-In Extension Styling
+   - Micro-Bead / Weft Application
+   - Extension Removal Only
+
+6. Treatments (In-Salon Care)
+   Services:
+   - Deep Conditioning Treatment
+   - Scalp Detox / Scalp Treatment
+   - Moisture / Protein Mask
+   - Bond Repair Treatment (stand-alone)
+
+7. Bridal & Event Packages
+   Services:
+   - Bridal Hair Trial
+   - Bridal Hair (Wedding Day)
+   - Bridesmaids / Bridal Party Hair
+   - Event Glam Styling (formal, photoshoot, etc.)
+   - On-Site Styling (Travel Fee applies)
+
+NAILS (Category - No Sub-Categories)
+-------------------------------------
+Services:
+- Manicure - Classic
+- Manicure - Gel/Shellac
+- Manicure - Deluxe (spa, exfoliation, massage)
+- Pedicure - Classic
+- Pedicure - Gel/Shellac
+- Pedicure - Deluxe (spa, exfoliation, massage)
+- Acrylic Extensions - Full Set
+- Acrylic Infill / Refill
+- SNS / Dip Powder - Full Set
+
+Add-Ons:
+- Nail Art
+- French Tip
+- Gel Polish Upgrade
+- Paraffin Wax
+- Cuticle Treatment
+
+BEAUTY & BROWS (Category - No Sub-Categories)
+---------------------------------------------
+Services:
+- Eyebrow Shape / Wax / Thread
+- Eyebrow Tint
+- Lash Tint
+- Lash Lift & Tint Combo
+- Brow Lamination
+- Brow Henna / Hybrid Tint
+- Facial Waxing (lip, chin, sides)
+- Full Face Waxing
+- Underarm / Arm Wax
+- Leg Wax - Half / Full
+- Bikini / Brazilian Wax
+- Makeup Application
+- Bridal Makeup
+
+Add-Ons:
+- Brow Tint
+- Lash Tint
+- Quick Facial
+- Lip/Chin wax
+
+MASSAGE & WELLNESS (Category - No Sub-Categories)
+--------------------------------------------------
+Services:
+- Relaxation / Swedish Massage (30 / 60 / 90 mins)
+- Remedial / Deep Tissue Massage (30 / 60 / 90 mins)
+- Hot Stone Massage
+- Aromatherapy Massage
+- Pregnancy Massage
+- Reflexology (Feet)
+- Indian Head / Scalp Massage
+- Spa Package
+
+Add-Ons:
+- Hot Stones
+- Aromatherapy Oils
+- Extra 15 mins
+- Cupping
+
+SKIN & FACIALS (Category - No Sub-Categories)
+----------------------------------------------
+Services:
+- Express Facial (30 mins)
+- Classic / Deep Cleanse Facial (60 mins)
+- Hydrating Facial
+- Anti-Ageing Facial
+- Acne / Problem Skin Facial
+- Microdermabrasion
+- LED Light Therapy
+- Chemical Peel
+
+Add-Ons:
+- Collagen / Firming Mask
+- Extraction
+
+DOG GROOMING (Category with Sub-Categories)
+-------------------------------------------
+Sub-Categories:
+1. Bathing & Cleaning
+   Services:
+   - Basic Wash
+   - Wash & Dry
+   - Flea/Tick Wash
+   - De-shedding Wash
+
+2. Haircuts & Styling
+   Services:
+   - Full Groom (wash, cut, style)
+   - Breed-Specific Groom
+   - Puppy Groom
+   - Partial Groom (Face, Feet, Sanitary Trim)
+
+3. Coat & Skin Care
+   Services:
+   - De-shedding Treatment
+   - Coat Conditioning
+   - Medicated Bath
+
+4. Nails & Paws
+   Services:
+   - Nail Trim
+   - Nail Grind
+   - Paw Pad Trim
+   - Paw Balm Treatment
+
+5. Ears, Eyes & Teeth
+   Services:
+   - Ear Cleaning
+   - Tear Stain Clean
+   - Teeth Brushing
+
+Add-Ons (for all Dog Grooming):
+- Anal Gland Expression
+- Extra Time for Large/Double-Coated Dogs
+- Flea/Tick Treatment
+- Bow/Bandana + Cologne Finish
+
+SERVICE DATA STRUCTURE
+----------------------
+Each Service Listing Contains:
+- Category (required)
+- Sub-Category (if applicable)
+- Service Name (from pre-programmed list)
+- Duration (in hours/minutes)
+- Base Cost (set by business)
+- Description (provided by business)
+- Address (where service takes place)
+- Multiple Dates (business can add)
+- Multiple Time Slots per Date
+  - Start Time
+  - End Time
+  - Cost (can vary per slot)
+  - Staff Assignment (multiple staff per slot)
+- Add-Ons (selected from pre-programmed list, custom pricing)
+- Business Logo
+- Business Name
+
+DISPLAY PRIORITY
+----------------
+- Services shown by next closest available date/time
+- Home page: First 6 cards per category
+- Business profile: All services, filterable by date/category
+- Search results: Filtered by location, date, category
+

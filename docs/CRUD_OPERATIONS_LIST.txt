@@ -1,0 +1,387 @@
+OUIIMI - COMPLETE CRUD OPERATIONS LIST
+======================================
+
+BUSINESS CRUD OPERATIONS
+------------------------
+
+1. CREATE Business
+   Endpoint: POST /api/business/create
+   Request Body:
+   {
+     "userId": "string (ObjectId)",
+     "businessName": "string (min 2 chars)",
+     "email": "string (valid email)",
+     "phone": "string (optional)",
+     "address": "string (min 5 chars)",
+     "story": "string (optional)"
+   }
+   Response: 201 Created
+   {
+     "message": "Business account created successfully. Pending approval.",
+     "business": {
+       "id": "ObjectId",
+       "businessName": "string",
+       "email": "string",
+       "status": "pending"
+     }
+   }
+   Status: Starts as "pending", needs approval
+
+2. READ Business (Single)
+   Endpoint: GET /api/business/[id]
+   Response: 200 OK
+   {
+     "business": {
+       "id": "ObjectId",
+       "userId": "ObjectId (populated with user details)",
+       "businessName": "string",
+       "email": "string",
+       "phone": "string",
+       "address": "string",
+       "logo": "string (URL)",
+       "story": "string",
+       "status": "pending|approved|rejected",
+       "bankDetails": {
+         "name": "string",
+         "bsb": "string",
+         "accountNumber": "string",
+         "contactNumber": "string"
+       },
+       "createdAt": "Date",
+       "updatedAt": "Date"
+     }
+   }
+
+3. UPDATE Business
+   Endpoint: PUT /api/business/[id]
+   Request Body (all optional):
+   {
+     "businessName": "string",
+     "email": "string",
+     "phone": "string",
+     "address": "string",
+     "logo": "string",
+     "story": "string",
+     "status": "pending|approved|rejected"
+   }
+   Response: 200 OK
+   {
+     "message": "Business updated successfully",
+     "business": { ... }
+   }
+
+4. SEARCH Businesses
+   Endpoint: GET /api/business/search
+   Query Parameters:
+   - q: string (search query)
+   - status: string (default: "approved")
+   - limit: number (default: 20)
+   - page: number (default: 1)
+   Example: /api/business/search?q=salon&status=approved&page=1&limit=10
+   Response: 200 OK
+   {
+     "businesses": [ ... ],
+     "pagination": {
+       "total": 100,
+       "page": 1,
+       "limit": 20,
+       "pages": 5
+     }
+   }
+
+5. UPDATE Bank Details
+   Endpoint: POST/PUT /api/business/[id]/bank-details
+   Request Body:
+   {
+     "name": "string (required)",
+     "bsb": "string (min 6 chars, required)",
+     "accountNumber": "string (min 6 chars, required)",
+     "contactNumber": "string (optional)"
+   }
+   Response: 200 OK
+   {
+     "message": "Bank details updated successfully",
+     "bankDetails": { ... }
+   }
+
+
+STAFF CRUD OPERATIONS
+---------------------
+
+1. CREATE Staff
+   Endpoint: POST /api/staff
+   Request Body:
+   {
+     "businessId": "string (ObjectId, required)",
+     "name": "string (min 2 chars, required)",
+     "photo": "string (URL, optional)",
+     "qualifications": "string (optional)",
+     "about": "string (optional)"
+   }
+   Response: 201 Created
+   {
+     "message": "Staff member added successfully",
+     "staff": {
+       "id": "ObjectId",
+       "name": "string",
+       "photo": "string",
+       "isActive": true
+     }
+   }
+   Note: Business must be "approved" to add staff
+
+2. READ Staff List
+   Endpoint: GET /api/staff?businessId=xxx
+   Query Parameters:
+   - businessId: string (required)
+   - isActive: boolean (optional, filter by active status)
+   Example: /api/staff?businessId=507f1f77bcf86cd799439011&isActive=true
+   Response: 200 OK
+   {
+     "staff": [
+       {
+         "id": "ObjectId",
+         "name": "string",
+         "photo": "string",
+         "qualifications": "string",
+         "about": "string",
+         "isActive": true,
+         "createdAt": "Date"
+       }
+     ]
+   }
+
+3. READ Staff (Single)
+   Endpoint: GET /api/staff/[id]
+   Response: 200 OK
+   {
+     "staff": {
+       "id": "ObjectId",
+       "businessId": "ObjectId (populated with businessName)",
+       "name": "string",
+       "photo": "string",
+       "qualifications": "string",
+       "about": "string",
+       "isActive": true,
+       "createdAt": "Date",
+       "updatedAt": "Date"
+     }
+   }
+
+4. UPDATE Staff
+   Endpoint: PUT /api/staff/[id]
+   Request Body (all optional):
+   {
+     "name": "string",
+     "photo": "string",
+     "qualifications": "string",
+     "about": "string",
+     "isActive": boolean
+   }
+   Response: 200 OK
+   {
+     "message": "Staff member updated successfully",
+     "staff": { ... }
+   }
+
+5. DELETE Staff (Soft Delete)
+   Endpoint: DELETE /api/staff/[id]
+   Response: 200 OK
+   {
+     "message": "Staff member deactivated successfully"
+   }
+   Note: Sets isActive to false, doesn't delete from database
+
+
+SERVICE CRUD OPERATIONS
+-----------------------
+
+1. CREATE Service
+   Endpoint: POST /api/services
+   Request Body:
+   {
+     "businessId": "string (ObjectId, required)",
+     "category": "string (required)",
+     "subCategory": "string (optional)",
+     "serviceName": "string (required)",
+     "duration": "string (required, e.g., '2hr', '30mins')",
+     "baseCost": number (required, min 0),
+     "description": "string (optional)",
+     "address": "string (min 5 chars, required)",
+     "addOns": [
+       {
+         "name": "string",
+         "cost": number
+       }
+     ] (optional),
+     "timeSlots": [
+       {
+         "date": "string (ISO date) or Date",
+         "startTime": "string (required, e.g., '10:00am')",
+         "endTime": "string (required, e.g., '12:00pm')",
+         "cost": number (optional, defaults to baseCost),
+         "staffIds": ["string (ObjectId)"] (optional)
+       }
+     ] (optional)
+   }
+   Response: 201 Created
+   {
+     "message": "Service listed successfully",
+     "service": {
+       "id": "ObjectId",
+       "businessId": "ObjectId",
+       "category": "string",
+       "serviceName": "string",
+       "baseCost": number,
+       "status": "listed"
+     }
+   }
+   Note: Business must be "approved" to list services
+
+2. READ Services List
+   Endpoint: GET /api/services
+   Query Parameters:
+   - category: string (filter by category)
+   - subCategory: string (filter by sub-category)
+   - businessId: string (filter by business)
+   - status: string (default: "listed")
+   - limit: number (default: 20)
+   - page: number (default: 1)
+   Example: /api/services?category=Hair Services&status=listed&page=1&limit=10
+   Response: 200 OK
+   {
+     "services": [
+       {
+         "id": "ObjectId",
+         "businessId": "ObjectId (populated)",
+         "category": "string",
+         "subCategory": "string",
+         "serviceName": "string",
+         "duration": "string",
+         "baseCost": number,
+         "description": "string",
+         "address": "string",
+         "addOns": [ ... ],
+         "timeSlots": [ ... ] (only available slots),
+         "status": "string",
+         "createdAt": "Date"
+       }
+     ],
+     "pagination": {
+       "total": 100,
+       "page": 1,
+       "limit": 20,
+       "pages": 5
+     }
+   }
+   Note: Automatically filters out booked and past time slots
+
+3. READ Service (Single)
+   Endpoint: GET /api/services/[id]
+   Response: 200 OK
+   {
+     "service": {
+       "id": "ObjectId",
+       "businessId": "ObjectId (populated with business details)",
+       "category": "string",
+       "subCategory": "string",
+       "serviceName": "string",
+       "duration": "string",
+       "baseCost": number,
+       "description": "string",
+       "address": "string",
+       "addOns": [ ... ],
+       "timeSlots": [ ... ] (only available slots with staff populated),
+       "status": "string",
+       "createdAt": "Date"
+     }
+   }
+
+4. UPDATE Service
+   Endpoint: PUT /api/services/[id]
+   Request Body (all optional):
+   {
+     "category": "string",
+     "subCategory": "string",
+     "serviceName": "string",
+     "duration": "string",
+     "baseCost": number,
+     "description": "string",
+     "address": "string",
+     "addOns": [ ... ],
+     "status": "listed|booked|completed|cancelled"
+   }
+   Response: 200 OK
+   {
+     "message": "Service updated successfully",
+     "service": { ... }
+   }
+
+5. DELETE Service (Soft Delete)
+   Endpoint: DELETE /api/services/[id]
+   Response: 200 OK
+   {
+     "message": "Service removed successfully"
+   }
+   Note: Sets status to "cancelled", prevents deletion if has active bookings
+
+6. ADD Time Slots to Service
+   Endpoint: POST/PUT /api/services/[id]/time-slots
+   Request Body:
+   {
+     "timeSlots": [
+       {
+         "date": "string (ISO date) or Date",
+         "startTime": "string (required)",
+         "endTime": "string (required)",
+         "cost": number (optional),
+         "staffIds": ["string (ObjectId)"] (optional)
+       }
+     ]
+   }
+   Response: 200 OK
+   {
+     "message": "Time slots added successfully",
+     "timeSlots": [ ... ]
+   }
+   Note: Appends to existing time slots, doesn't replace
+
+
+SUMMARY OF ALL ENDPOINTS
+=========================
+
+BUSINESS:
+- POST   /api/business/create
+- GET    /api/business/[id]
+- PUT    /api/business/[id]
+- GET    /api/business/search
+- POST   /api/business/[id]/bank-details
+- PUT    /api/business/[id]/bank-details
+
+STAFF:
+- POST   /api/staff
+- GET    /api/staff?businessId=xxx
+- GET    /api/staff/[id]
+- PUT    /api/staff/[id]
+- DELETE /api/staff/[id]
+
+SERVICE:
+- POST   /api/services
+- GET    /api/services
+- GET    /api/services/[id]
+- PUT    /api/services/[id]
+- DELETE /api/services/[id]
+- POST   /api/services/[id]/time-slots
+- PUT    /api/services/[id]/time-slots
+
+TOTAL: 19 API Endpoints
+
+VALIDATION & SECURITY
+=====================
+- All endpoints have Zod validation
+- All endpoints have rate limiting
+- Business approval workflow enforced
+- Soft deletes for staff and services
+- Automatic filtering of unavailable time slots
+- Pagination support for list endpoints
+

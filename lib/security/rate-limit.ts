@@ -106,3 +106,43 @@ export function withRateLimit(
   };
 }
 
+export function withRateLimitDynamic<T extends { params: { [key: string]: string } }>(
+  handler: (req: NextRequest, context: T) => Promise<NextResponse>
+) {
+  return async (req: NextRequest, context: T) => {
+    try {
+      const limit = rateLimit(req);
+
+      if (!limit.success) {
+        return NextResponse.json(
+          {
+            error: "Too many requests. Please try again later.",
+          },
+          {
+            status: 429,
+            headers: {
+              "X-RateLimit-Limit": limit.limit.toString(),
+              "X-RateLimit-Remaining": limit.remaining.toString(),
+              "X-RateLimit-Reset": limit.reset.toString(),
+              "Retry-After": Math.ceil((limit.reset - Date.now()) / 1000).toString(),
+            },
+          }
+        );
+      }
+
+      const response = await handler(req, context);
+      response.headers.set("X-RateLimit-Limit", limit.limit.toString());
+      response.headers.set("X-RateLimit-Remaining", limit.remaining.toString());
+      response.headers.set("X-RateLimit-Reset", limit.reset.toString());
+
+      return response;
+    } catch (error: any) {
+      console.error("Rate limit wrapper error:", error);
+      return NextResponse.json(
+        { error: "Internal server error", details: error.message },
+        { status: 500 }
+      );
+    }
+  };
+}
+

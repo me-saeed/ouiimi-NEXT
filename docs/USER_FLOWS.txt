@@ -1,0 +1,184 @@
+OUIIMI - USER FLOWS & INTERACTIONS
+===================================
+
+SHOPPER FLOW
+------------
+1. Discovery
+   - Visit home page
+   - Browse services by category
+   - See first 6 cards per category
+   - Click "More" to see all services
+   - OR use "Book" button to search by location/date
+
+2. Service Selection
+   - Click on service card
+   - View service details page
+   - See: Business info, service name, duration, cost, next available date/time
+
+3. Booking Process
+   - Select date (from available dates)
+   - Service pre-filled (if from card)
+   - Select staff member (dropdown, busy staff marked)
+   - Select time slot (from available slots)
+   - View address (business location)
+   - View description (business-provided)
+   - View base cost
+   - Select add-ons (optional, from dropdown)
+   - See total cost (base + add-ons)
+   - Click "Book Now" → Added to cart
+
+4. Cart & Checkout
+   - View cart with booking details
+   - Can add more services from same business
+   - See cost breakdown:
+     * Service cost
+     * Add-ons cost
+     * Total service cost
+     * 10% deposit
+     * $1.99 ouiimi fee
+     * Total today
+   - Fill payment form (Stripe)
+   - Complete payment
+   - Receive confirmation email
+   - Booking appears in "Upcoming"
+
+5. Booking Management
+   - View "Bookings" tab
+   - See upcoming bookings (sorted by date/time)
+   - Click on booking card to see details
+   - Can cancel booking (loses deposit + fee)
+   - Can contact business/admin
+   - Can rebook (redirects to business profile)
+   - View finished bookings
+   - View cancelled bookings
+
+6. Business Profile View
+   - Click on business name
+   - View business profile
+   - See: Story, Services, Staff
+   - Filter services by date (calendar)
+   - Click on service to book
+
+BUSINESS FLOW
+-------------
+1. Account Creation
+   - Create shopper account first
+   - Request to become business
+   - Wait for admin approval
+   - Receive approval email
+   - Business account activated
+
+2. Business Setup
+   - Upload logo
+   - Add business details (name, email, phone, address)
+   - Add bank details (BSB, account number)
+   - Add staff members (name, photo, qualifications)
+   - Add business story/description
+
+3. Service Listing
+   - Go to "List" tab
+   - Select category (dropdown)
+   - If sub-categories exist: select sub-category
+   - Select service (from pre-programmed list)
+   - Add date (calendar picker)
+   - For each date:
+     * Add time slots (start/end time)
+     * Set cost per time slot
+     * Assign staff members
+   - Add multiple dates if needed
+   - Select add-ons (from pre-programmed list)
+   - Set add-on pricing
+   - Add description
+   - Set address (service location)
+   - List service
+   - Service appears in "List" tab (listed but not booked)
+
+4. Booking Management
+   - View "Bookings" tab
+   - See upcoming bookings
+   - Filter by date (calendar - next 7 days)
+   - Filter by category/sub-category
+   - Click on booking to see details
+   - Can cancel booking (customer gets full deposit refund)
+   - Can contact customer
+   - After service: Mark as "Complete"
+   - Booking moves to "Pending"
+   - Enter bank details for payout
+   - Submit → Booking moves to "Finished"
+   - Receive payment (50% of deposit)
+
+5. Staff Management
+   - Go to "Staff" tab
+   - View all staff members
+   - Click on staff name to see details
+   - Add new staff member
+   - Edit staff information
+
+6. Service Management
+   - View "List" tab
+   - See all listed but not booked services
+   - Click on service to view/edit details
+   - Can delete service
+   - Can edit service details
+
+ADMIN FLOW
+----------
+1. Business Approval
+   - Review business requests
+   - Approve or reject
+   - If approved: Business account activated, email sent
+
+2. Payment Processing
+   - View admin panel
+   - See completed bookings
+   - See business bank details
+   - Process payouts (50% of deposit)
+   - Track payment status
+
+BOOKING LIFECYCLE
+-----------------
+1. Created
+   - Shopper completes payment
+   - Booking status: "Upcoming"
+   - Both parties receive confirmation email
+   - Time slot blocked
+
+2. Service Completed
+   - Booking time passes OR end of day
+   - Status: "Pending" (waiting for business to mark complete)
+   - Business marks as "Complete"
+   - Status: "Finished"
+   - Business enters bank details
+   - Payment processed (50% of deposit)
+
+3. Cancellation
+   - Shopper or Business cancels
+   - Status: "Finished" with "Cancelled" label
+   - Time slot becomes available
+   - Refund processed (if applicable)
+   - Both parties receive cancellation email
+
+SEARCH & FILTER FLOW
+--------------------
+1. Click "Book" button on home page
+2. Enter location (auto-suggest)
+3. Select date (calendar picker)
+4. Select category (dropdown)
+5. If category has sub-categories: Select sub-category
+6. Select service (dropdown)
+7. View filtered results
+8. Click on service to book
+
+CART FLOW
+---------
+1. Add service to cart
+2. Can add more services from same business
+3. Cannot add services from different business
+4. View cart with all services
+5. See total cost breakdown
+6. Proceed to checkout
+7. Fill payment details
+8. Complete payment
+9. All services booked simultaneously
+10. Cart cleared
+

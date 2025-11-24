@@ -1,0 +1,158 @@
+OUIIMI PROJECT - EXECUTIVE SUMMARY
+==================================
+
+WHAT CLIENT WANTS (Core Requirements)
+--------------------------------------
+
+PLATFORM OVERVIEW
+• Community-driven booking platform for everyday services
+• Services: Hair, Nails, Beauty, Massage, Skin/Facials, Dog Grooming
+• Two user types: Shoppers (customers) and Small Businesses
+• Simple, fair, transparent booking system
+
+PAYMENT MODEL
+• Customer pays: 10% deposit + $1.99 ouiimi fee upfront
+• Remaining 90% paid directly to business at appointment
+• Business receives: 50% of deposit (5% of total) after completion
+• ouiimi keeps: 50% of deposit (5% of total) + $1.99 fee
+
+SERVICE STRUCTURE
+• 6 main categories with pre-programmed services
+• Hair Services and Dog Grooming have sub-categories
+• Each service can have multiple add-ons (up-sell items)
+• Services can have multiple dates and time slots
+• Multiple staff can be assigned to same service/time slot
+
+BOOKING FLOW
+• Home page: Browse services by category (first 6 cards, then "More")
+• Service card: Shows business, service, duration, cost, next available date/time
+• Booking form: Select date, staff, time, add-ons
+• Cart: Can add multiple services from same business only
+• Checkout: Stripe payment, 2-minute block-out during checkout
+• Confirmation: Email to both shopper and business
+
+BOOKING MANAGEMENT
+• Statuses: Upcoming → Pending → Finished (or Cancelled)
+• Automatic transitions: Upcoming to Pending at end of day or after booking time
+• Business marks complete: Pending to Finished
+• Shopper can: View, cancel, rebook, contact
+• Business can: View, cancel, mark complete, manage
+
+BUSINESS FEATURES
+• Approval workflow: Shopper account → Request business → Admin approval
+• Service listing: Select category/sub-category, add dates/time slots, assign staff
+• Staff management: Add staff with photos and qualifications
+• Booking management: View upcoming, pending, finished bookings
+• Payment: Enter bank details to receive 50% of deposit after completion
+
+TECHNICAL REQUIREMENTS
+• Pre-programmed service categories and add-ons
+• Calendar component for date selection
+• Time slot management with automatic cleanup
+• Staff availability tracking and blocking
+• Double booking prevention
+• Email notification system (13 email types)
+• Stripe payment integration
+• Bank details collection for business payouts
+
+KEY FUNCTIONALITIES
+• Search by location and date
+• Filter by category/sub-category
+• Service discovery and browsing
+• Booking creation and management
+• Cart system (one business at a time)
+• Cancellation with refund logic
+• Rebooking functionality
+• Business profile pages
+• Staff assignment and availability
+• Automatic date/time slot cleanup
+
+CONFUSIONS THAT NEED CLARIFICATION
+-----------------------------------
+
+CRITICAL BUSINESS LOGIC
+1. Service fee ($1.99): Per checkout or per service?
+   - If 3 services from same business, is fee $1.99 once or $5.97?
+   - Current assumption: Once per checkout
+
+2. Business payout timing: When exactly does business receive 50% deposit?
+   - Immediately after marking complete?
+   - End of day batch?
+   - Weekly batch?
+   - Manual admin approval?
+
+3. Time slot block-out: Exact duration during checkout?
+   - "2 minutes or few seconds" - need exact time
+   - What if payment takes longer than block-out?
+
+4. Buffer time for add-ons: Exact duration?
+   - "30-40 mins" - is this 30, 35, or 40 minutes?
+   - Applied automatically or manually?
+
+5. Automatic cleanup: Exact timing?
+   - Past dates deleted daily at 00:00?
+   - Time slots delete "at start time" - exact minute?
+   - What if booking is in progress when slot should delete?
+
+SERVICE LISTING RULES
+6. Can businesses add custom services or only select from pre-programmed list?
+7. Add-on pricing: Custom per listing or fixed from pre-programmed list?
+8. Can same add-on have different prices for different services?
+9. Multiple dates: Maximum number? Can edit/delete after listing?
+10. Time slot cost: Can same service have different costs for different time slots?
+
+STAFF MANAGEMENT
+11. Multiple staff per slot: Maximum number or unlimited?
+12. Staff blocking: Available again after booking ends or after buffer time?
+13. Can businesses set staff availability schedules (holidays, time off)?
+14. Staff qualifications: Required fields? Character limits?
+
+CANCELLATION & REFUNDS
+15. Cancellation deadlines: Any time limits before appointment?
+16. Partial cancellations: If 3 services booked, can cancel just one?
+17. Refund timing: "3-5 business days" - which day starts count?
+18. Refund method: Original payment method only?
+
+BOOKING MANAGEMENT
+19. What if business doesn't mark booking as "complete"?
+   - Auto-complete after X days?
+   - Reminder emails?
+   - Admin intervention?
+
+20. Multiple bookings same time: If 2 staff available, can 2 bookings happen?
+   - Confirmed: Yes, but need exact logic
+
+SEARCH & DISPLAY
+21. Home page: "First 6 cards" - by what criteria? (newest? most popular? random?)
+22. Location search: Exact match or radius-based? Default radius?
+23. Date filtering: Show services available on that date only or all with availability?
+24. Service card: "Next closest date/time" - what if multiple slots available?
+
+EMAIL & NOTIFICATIONS
+25. Appointment reminders: When sent? (24 hours before? 2 hours before?)
+26. How many reminders?
+27. Can users opt out?
+
+TECHNICAL DETAILS
+28. "ouiiwe" reference: What is this? Previous project? Should we reference it?
+29. Admin panel: Who has access? What features needed?
+30. Booking ID format: Sequential? Any prefix/suffix?
+31. Calendar: Date picker library preference? Timezone handling?
+32. Payment: Stripe confirmed? Webhook handling?
+
+EDGE CASES
+33. What if business closes/leaves platform? What happens to existing bookings?
+34. Double payment prevention: Detection and refund policy?
+35. Time zone handling: Business local time or user's timezone?
+36. Service duration format: "2hr", "2Hrs", "2 hours" - standardization?
+
+DATA & SECURITY
+37. Business bank details: Storage and encryption requirements?
+38. Customer payment data: Confirm no card details stored (Stripe handles)?
+39. Booking data retention: How long to keep finished bookings?
+
+UI/UX DETAILS
+40. Business profile "Story" tab: What information? Character limits?
+41. Service description: Required? Character limit? Rich text support?
+42. Sub-category display: What about future categories that might have sub-categories?
+

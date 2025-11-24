@@ -2,77 +2,45 @@ import Link from "next/link";
 
 export default function Footer() {
   return (
-    <footer className="border-t bg-white mt-auto">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-          <div className="space-y-3">
-            <h3 className="text-lg font-semibold text-color-primary">ouiimi</h3>
-            <p className="text-sm text-color-gray">
-              Simple, fast, and stress-free booking for everyday services.
+    <footer className="border-t border-gray-200 bg-white mt-auto">
+      <div className="container mx-auto py-12 px-4 sm:px-6 lg:px-8">
+        <div className="text-center space-y-6">
+          <p className="text-[#3A3A3A] font-semibold text-lg">
+            Bringing authenticity back to shopping.
+          </p>
+          <div className="space-y-2">
+            <p className="text-sm text-[#3A3A3A]/70">
+              Contact: <a href="mailto:ouiimi@outlook.com" className="text-[#3A3A3A] hover:text-black transition-colors font-medium">ouiimi@outlook.com</a>
+            </p>
+            <p className="text-sm text-[#3A3A3A]/70">
+              ABN: <span className="text-[#3A3A3A] font-medium">35903724003</span>
             </p>
           </div>
-          <div className="space-y-3">
-            <h4 className="text-sm font-semibold text-color-black">Company</h4>
-            <ul className="space-y-2 text-sm">
-              <li>
-                <Link
-                  href="/about"
-                  className="text-color-gray hover:text-color-primary transition-colors"
-                >
-                  About Us
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/privacy"
-                  className="text-color-gray hover:text-color-primary transition-colors"
-                >
-                  Privacy Policy
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/terms"
-                  className="text-color-gray hover:text-color-primary transition-colors"
-                >
-                  Terms & Conditions
-                </Link>
-              </li>
-            </ul>
+          <div className="flex items-center justify-center space-x-8 pt-6 border-t border-gray-200">
+            <Link
+              href="/privacy"
+              className="text-sm text-[#3A3A3A]/70 hover:text-[#3A3A3A] transition-colors font-medium"
+            >
+              Privacy Policy
+            </Link>
+            <Link
+              href="/terms"
+              className="text-sm text-[#3A3A3A]/70 hover:text-[#3A3A3A] transition-colors font-medium"
+            >
+              Terms & conditions
+            </Link>
+            <Link
+              href="/how-it-works"
+              className="text-sm text-[#3A3A3A]/70 hover:text-[#3A3A3A] transition-colors font-medium"
+            >
+              How It Works
+            </Link>
           </div>
-          <div className="space-y-3">
-            <h4 className="text-sm font-semibold text-color-black">Support</h4>
-            <ul className="space-y-2 text-sm text-color-gray">
-              <li>
-                <a
-                  href="mailto:information@ouiimi.com"
-                  className="hover:text-color-primary transition-colors"
-                >
-                  information@ouiimi.com
-                </a>
-              </li>
-              <li>
-                <a
-                  href="tel:0466006171"
-                  className="hover:text-color-primary transition-colors"
-                >
-                  0466 006 171
-                </a>
-              </li>
-            </ul>
-          </div>
-          <div className="space-y-3">
-            <h4 className="text-sm font-semibold text-color-black">Connect</h4>
-            <p className="text-sm text-color-gray">
-              Follow us for updates and news
-            </p>
-          </div>
-        </div>
-        <div className="mt-8 pt-8 border-t text-center text-sm text-color-gray">
-          <p>&copy; {new Date().getFullYear()} ouiimi. All rights reserved.</p>
+          <p className="text-xs text-[#3A3A3A]/50 pt-4">
+            &copy; {new Date().getFullYear()} ouiimi. All rights reserved.
+          </p>
         </div>
       </div>
     </footer>
   );
 }
-

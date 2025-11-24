@@ -24,9 +24,10 @@ export function verifyToken(token: string): JWTPayload | null {
   }
 }
 
-export function getTokenFromRequest(req: Request): string | null {
-  const authHeader = req.headers.get("authorization");
-  if (authHeader && authHeader.startsWith("Bearer ")) {
+export function getTokenFromRequest(req: Request | { headers: Headers | { get: (key: string) => string | null } }): string | null {
+  const headers = 'headers' in req ? req.headers : (req as Request).headers;
+  const authHeader = headers.get ? headers.get("authorization") : (headers as any).get("authorization");
+  if (authHeader && typeof authHeader === 'string' && authHeader.startsWith("Bearer ")) {
     return authHeader.substring(7);
   }
   return null;

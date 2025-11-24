@@ -1,0 +1,146 @@
+OUIIMI - BUSINESS LOGIC & RULES
+================================
+
+PAYMENT CALCULATIONS
+--------------------
+Example: Service costs $300
+- Base Service: $300
+- Add-Ons: $50 (Scalp Massage $30 + Toner $20)
+- Total Cost: $350
+
+Customer Payment:
+- 10% Deposit: $35 (10% of $350)
+- ouiimi Fee: $1.99
+- Total Paid Today: $36.99
+- Remaining 90%: $315 (paid directly to business at appointment)
+
+Business Payout (after completion):
+- Receives: $17.50 (50% of $35 deposit = 5% of total)
+- ouiimi Keeps: $17.50 (50% of deposit) + $1.99 fee = $19.49
+
+CANCELLATION LOGIC
+------------------
+Shopper Cancels:
+- Business receives: 50% of deposit ($17.50)
+- ouiimi keeps: 50% of deposit ($17.50) + $1.99 fee = $19.49
+- Service fee ($1.99) non-refundable
+- Time slot becomes available again
+- Booking moves to "Finished" with "Cancelled" label
+- Both parties receive cancellation email
+
+Business Cancels:
+- Shopper receives: Full 10% deposit refund ($35)
+- Service fee ($1.99) non-refundable
+- Refund processed within 3-5 business days
+- Time slot becomes available again
+- Booking moves to "Finished" with "Cancelled" label
+- Both parties receive cancellation email
+
+BOOKING STATUS WORKFLOW
+------------------------
+1. Created → "Upcoming" (for both shopper and business)
+2. Booking time passes OR end of day (00:00) → "Pending" (business must mark complete)
+3. Business marks complete → "Finished" (both parties)
+4. If cancelled → "Finished" with "Cancelled" label (both parties)
+
+TIME SLOT AVAILABILITY
+-----------------------
+- Time slots show next closest available date/time
+- Past dates automatically deleted daily
+- Time slots delete at their start time if not booked
+- During checkout: 2-minute block-out prevents double booking
+- Staff members blocked if already booked during selected time
+- Extra 30-40 mins buffer between bookings for add-ons
+
+STAFF ASSIGNMENT RULES
+----------------------
+- Multiple staff can be assigned to same service/time slot
+- When shopper selects staff, system checks availability
+- If staff already booked during that time, marked as "Busy" in dropdown
+- Staff blocked until their current booking ends
+- Buffer time (30-40 mins) added for add-ons
+
+CART & CHECKOUT RULES
+---------------------
+- Shopper can add multiple services from SAME business
+- Can only checkout from ONE business at a time
+- 10% deposit calculated on TOTAL of all services from that business
+- $1.99 fee applies per checkout (not per service)
+- Example: 3 services from same business = $900 total
+  - Deposit: $90 (10% of $900)
+  - Fee: $1.99
+  - Total Today: $91.99
+
+SERVICE LISTING RULES
+---------------------
+- Business must select category first
+- If category has sub-categories: must select sub-category, then service
+- If no sub-categories: select service directly
+- Can add multiple dates for same service
+- Each date can have multiple time slots
+- Each time slot can have different cost
+- Each time slot can have multiple staff assigned
+- Add-ons can have custom pricing per listing
+- Address is where service takes place (business location)
+
+AUTOMATIC CLEANUP
+-----------------
+- Past dates: Deleted daily (not equal to or greater than current date)
+- Past time slots: Deleted at their start time
+- Prevents booking of unavailable times
+- Keeps platform current and accurate
+
+BOOKING BLOCK-OUT
+-----------------
+- When shopper selects time/date and clicks "Book Now"
+- System blocks that time slot for 2 minutes (or few seconds)
+- Prevents multiple people booking same slot simultaneously
+- Block released if checkout not completed
+- Block becomes permanent booking if payment successful
+
+REBOOKING LOGIC
+---------------
+- Shopper clicks "Rebook" on finished booking
+- Redirected to business profile page
+- Can go through normal booking process again
+- Uses same business, can select different service/date/time
+
+CONTACT INFORMATION
+-------------------
+- Admin: ouiimi Team, ouiimi@outlook.com, 0466006171
+- Business: Fetched from business profile
+- Both visible to shopper when viewing booking details
+
+BUSINESS APPROVAL WORKFLOW
+--------------------------
+1. User creates shopper account
+2. User requests to become business/seller
+3. Admin reviews request
+4. If approved: Business account activated
+5. Business receives approval email
+6. Business can now list services and manage bookings
+
+SERVICE DISPLAY LOGIC
+---------------------
+Home Page:
+- Each category shows first 6 service cards
+- "More" button to see all services in category
+- Hair Services: Sub-categories shown separately (Haircuts, Colouring, etc.)
+- Dog Grooming: Sub-categories shown separately
+- Other categories: Services shown in single row
+
+Service Card Information:
+- Business logo
+- Business name (clickable → business profile)
+- Service name
+- Duration
+- Cost
+- Next closest available date
+- Next closest available time
+
+Business Profile:
+- Shows all listed services
+- Can filter by date using calendar
+- For Hair Services/Dog Grooming: Can filter by sub-category
+- Services grouped by category/sub-category
+

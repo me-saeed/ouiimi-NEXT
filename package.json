@@ -9,7 +9,8 @@
     "lint": "next lint",
     "test": "NODE_OPTIONS='--no-warnings' jest --no-coverage || true",
     "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage || true"
+    "test:coverage": "jest --coverage || true",
+    "init-db": "tsx scripts/init-db.ts"
   },
   "dependencies": {
     "@auth/mongodb-adapter": "^1.0.0",

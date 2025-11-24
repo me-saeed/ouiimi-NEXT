@@ -1,0 +1,229 @@
+OUIIMI PROJECT - CORE REQUIREMENTS & FUNCTIONALITIES
+====================================================
+
+PROJECT OVERVIEW
+----------------
+ouiimi is a community-driven booking platform for everyday service-based businesses.
+Goal: Simple, fair, and transparent way to take bookings for hair, nails, beauty, wellness, and pet grooming services.
+
+BUSINESS MODEL
+--------------
+Payment Structure:
+- Customer pays: 10% deposit + $1.99 ouiimi service fee
+- Remaining 90% paid directly to business at appointment
+- Business receives: 50% of the 10% deposit (5% of total service cost) after completion
+- ouiimi keeps: 50% of deposit (5% of total) + $1.99 service fee
+
+Cancellation Policy:
+- User cancellation: Business receives 50% of deposit, service fee non-refundable
+- Business cancellation: User receives full 10% deposit refund (service fee non-refundable)
+- Refunds processed within 3-5 business days
+
+SERVICE CATEGORIES & STRUCTURE
+-------------------------------
+Main Categories:
+1. Hair Services (with sub-categories: Haircuts, Colouring, Blow-Dry & Styling, Treatments)
+2. Nails
+3. Beauty & Brows
+4. Massage & Wellness
+5. Skin & Facials
+6. Dog Grooming (with sub-categories: Bathing, Haircuts & Styling, Coat & Skin Care, Nails & Paws, Ears/Eyes/Teeth)
+
+Service Structure:
+- Each service can have pre-programmed sub-services
+- Each service can have multiple add-ons (up-sell items)
+- Services can have multiple date/time slots
+- Multiple staff members can be assigned to same service/time slot
+- Each service has: name, duration, cost, description, address
+
+USER TYPES
+----------
+1. Shoppers (Customers)
+   - Can browse services
+   - Can book appointments
+   - Can manage bookings (upcoming, finished, cancelled)
+   - Can rebook services
+   - Can cancel bookings
+
+2. Small Businesses
+   - Must first create shopper account
+   - Request to become seller/business
+   - Approval workflow required
+   - Can list services
+   - Can manage staff
+   - Can view/manage bookings
+   - Can complete bookings
+   - Can cancel bookings
+
+3. Admin
+   - Approves business requests
+   - Manages payouts to businesses
+   - Views all bookings
+
+BOOKING FLOW
+------------
+1. Home Page Discovery
+   - Shows services by category
+   - First 6 cards per category with "More" button
+   - Hair Services and Dog Grooming show sub-categories separately
+   - "Book" button for date/location-based search
+
+2. Service Selection
+   - Click on service card to view details
+   - Card shows: Business logo, name, service name, duration, cost, next available date/time
+
+3. Booking Form
+   - Select date (from available dates)
+   - Select service (pre-filled if from card)
+   - Select preferred staff member
+   - Select time slot
+   - View address (from business listing)
+   - View description (from business)
+   - View base cost
+   - Select add-ons (optional)
+   - See total cost (base + add-ons)
+   - Click "Book Now" to add to cart
+
+4. Cart & Checkout
+   - Can add multiple services from same business
+   - Can only checkout from one business at a time
+   - Shows: Service details, cost breakdown, 10% deposit, $1.99 fee, total today
+   - Payment via Stripe
+   - 2-minute block-out on selected time/date during checkout
+
+5. Booking Confirmation
+   - Email sent to shopper
+   - Email sent to business
+   - Booking appears in "Upcoming" for both
+
+BOOKING STATUSES
+----------------
+1. Upcoming: Future bookings, sorted by date/time (closest first)
+2. Pending: Completed bookings waiting for business to mark as complete
+3. Finished: Completed bookings
+4. Cancelled: Cancelled bookings (by shopper or business)
+
+AUTOMATIC TRANSITIONS
+---------------------
+- At end of day (00:00) or after booking time passes: Upcoming → Pending
+- Business marks as complete: Pending → Finished
+- Cancelled bookings go to Finished section with "Cancelled" label
+
+STAFF MANAGEMENT
+----------------
+- Businesses can list multiple staff members
+- Each staff has: name, photo, qualifications/about
+- Multiple staff can be assigned to same service/time slot
+- System blocks staff if already booked during selected time
+- Extra 30-40 mins buffer between bookings for add-ons
+- Staff availability shown in dropdown (busy staff marked)
+
+SERVICE LISTING (Business)
+---------------------------
+- Business selects category (dropdown)
+- If category has sub-categories: shows sub-category list, then service selection
+- If no sub-categories: direct service selection
+- Select service
+- Add date via calendar
+- For each date: add time slots, cost, assign staff
+- Can add multiple dates
+- Can add add-ons with custom pricing
+- Add description
+- Set address (where service takes place)
+- List service
+
+TIME SLOT MANAGEMENT
+--------------------
+- Calendar picker for date selection
+- For each date: can add multiple time slots
+- Each time slot: start time, end time, cost, staff assignment
+- Multiple staff can be assigned to same slot
+- System automatically deletes past dates/time slots
+- Time slots delete at their start time if not booked
+
+DOUBLE BOOKING PREVENTION
+-------------------------
+- Staff members blocked if already booked during selected time
+- 2-minute block-out during checkout process
+- Extra 30-40 mins buffer between bookings for add-ons
+- System prevents same time slot from being booked twice
+
+SHOPPER PROFILE FEATURES
+------------------------
+- Bookings Tab: Shows upcoming bookings sorted by date/time
+- Calendar view: Click date to see bookings for that day
+- Finished Bookings: Completed and cancelled bookings
+- Details Tab: Edit name, email, phone number
+- Contact: View admin and business contact info
+- Rebook: Redirects to business profile to book again
+- Cancel: Cancels booking (loses deposit + fee)
+
+BUSINESS PROFILE FEATURES
+-------------------------
+- Story Tab: Business story/description
+- Services Tab: All listed services, can filter by date via calendar
+- Staff Tab: List of staff members, click to see details
+- Bookings Tab: 
+  - Upcoming: Future bookings
+  - Pending: Completed, waiting for business to mark complete
+  - Finished: Completed bookings
+  - Can filter by date, category, sub-category
+- List Tab: All listed but not booked services
+- Details Tab: Edit business info, bank details
+
+BUSINESS PAYMENT PROCESS
+------------------------
+- After business marks booking as "complete"
+- Business enters bank details: Name, BSB, Account Number, Contact Number
+- ouiimi pays: 50% of 10% deposit (5% of total service cost)
+- Payment processed within 1-2 business days
+- Admin panel tracks: Booking ID, Shopper, Total 10%, Service charges (5%), Business 5%, Status, BSB, Account Number
+
+EMAIL NOTIFICATIONS
+-------------------
+1. Account Verification
+2. Welcome/Signup Confirmation
+3. Business Welcome (pending approval)
+4. Business Approval Confirmation
+5. Booking Confirmation (Shopper)
+6. Booking Confirmation (Business)
+7. Appointment Reminder (Shopper)
+8. Booking Completed (Shopper)
+9. Cancellation Notification (Shopper cancels)
+10. Cancellation (Business cancels - shopper receives)
+11. Cancellation Confirmation (Business)
+12. Payment Receipt (Business - after completion)
+13. Refund Confirmation (Shopper)
+
+HOME PAGE DESIGN
+---------------
+- Nav bar: Logo (links to home), Book button, Cart icon
+- Sidebar: About, Shopper, Small Business, How it works (appears on all pages)
+- Service categories displayed
+- First 6 service cards per category
+- "More" button to see all services in category
+- Hair Services and Dog Grooming: sub-categories shown separately
+
+SEARCH & FILTERING
+------------------
+- "Book" button: Location input (auto-suggest), Date picker (calendar)
+- Category dropdown
+- Sub-category dropdown (for Hair Services, Dog Grooming)
+- Service dropdown
+- Results filtered by location, date, category
+
+TECHNICAL REQUIREMENTS
+----------------------
+- Pre-programmed service categories and sub-categories
+- Pre-programmed add-ons per category
+- Calendar component for date selection
+- Time slot management system
+- Staff availability tracking
+- Double booking prevention
+- Automatic date/time slot cleanup
+- Email notification system
+- Payment processing (Stripe)
+- Bank details collection for business payouts
+- Booking status management
+- Cart system (one business at a time)
+
