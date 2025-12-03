@@ -3,6 +3,8 @@ import dbConnect from "@/lib/db";
 import Business from "@/lib/models/Business";
 import { withRateLimit } from "@/lib/security/rate-limit";
 
+export const dynamic = 'force-dynamic';
+
 async function searchBusinessHandler(req: NextRequest) {
   try {
     await dbConnect();

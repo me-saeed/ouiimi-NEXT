@@ -12,6 +12,18 @@ import {
   getForgetPasswordEmailTemplate,
   type ForgetPasswordEmailData,
 } from "./forget-password";
+import {
+  getBookingConfirmationEmailTemplate,
+  type BookingConfirmationEmailData,
+} from "./booking-confirmation";
+import {
+  getBookingCancellationEmailTemplate,
+  type BookingCancellationEmailData,
+} from "./booking-cancellation";
+import {
+  getBookingCompletionEmailTemplate,
+  type BookingCompletionEmailData,
+} from "./booking-completion";
 
 export type EmailTemplateType =
   | "welcome"
@@ -19,7 +31,10 @@ export type EmailTemplateType =
   | "verify_email"
   | "order_confirmation"
   | "order_shipped"
-  | "order_complete";
+  | "order_complete"
+  | "booking_confirmation"
+  | "booking_cancellation"
+  | "booking_completion";
 
 export interface EmailTemplateData {
   fname?: string;
@@ -52,6 +67,12 @@ const templateMap: Record<
     // TODO: Implement order complete template
     return Promise.resolve(`<p>Your order is complete!</p>`);
   },
+  booking_confirmation: (data) =>
+    getBookingConfirmationEmailTemplate(data as BookingConfirmationEmailData),
+  booking_cancellation: (data) =>
+    getBookingCancellationEmailTemplate(data as BookingCancellationEmailData),
+  booking_completion: (data) =>
+    getBookingCompletionEmailTemplate(data as BookingCompletionEmailData),
 };
 
 export async function getEmailTemplate(

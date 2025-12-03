@@ -5,28 +5,72 @@ import Business from "@/lib/models/Business";
 import { serviceCreateSchema } from "@/lib/validation";
 import mongoose from "mongoose";
 import { withRateLimit } from "@/lib/security/rate-limit";
+import { verifyToken } from "@/lib/jwt";
+
+export const dynamic = 'force-dynamic';
 
 async function createServiceHandler(req: NextRequest) {
   try {
+    console.log("=== CREATE SERVICE API CALLED ===");
+    
+    // Verify authentication
+    const authHeader = req.headers.get("authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      console.log("No authorization header");
+      return NextResponse.json(
+        { error: "Unauthorized" },
+        { status: 401 }
+      );
+    }
+
+    const token = authHeader.substring(7);
+    const decoded = verifyToken(token);
+    if (!decoded) {
+      console.log("Invalid token");
+      return NextResponse.json(
+        { error: "Invalid token" },
+        { status: 401 }
+      );
+    }
+
+    console.log("Token verified, userId:", decoded.userId);
+
     const body = await req.json();
+    console.log("Request body:", body);
+    
     const validatedData = serviceCreateSchema.parse(body);
+    console.log("Validated data:", validatedData);
 
     await dbConnect();
 
     const business = await Business.findById(validatedData.businessId);
     if (!business) {
+      console.log("Business not found:", validatedData.businessId);
       return NextResponse.json(
         { error: "Business not found" },
         { status: 404 }
       );
     }
 
-    if (business.status !== "approved") {
+    // Check if user owns this business
+    if (String(business.userId) !== String(decoded.userId)) {
+      console.log("User doesn't own business. User:", decoded.userId, "Business owner:", business.userId);
       return NextResponse.json(
-        { error: "Business must be approved to list services" },
+        { error: "Unauthorized - You can only add services to your own business" },
         { status: 403 }
       );
     }
+
+    // Allow services for pending or approved businesses (for testing)
+    if (business.status === "rejected") {
+      console.log("Business is rejected");
+      return NextResponse.json(
+        { error: "Cannot add services to a rejected business" },
+        { status: 403 }
+      );
+    }
+
+    console.log("Business found and authorized. Status:", business.status);
 
     const timeSlots = (validatedData.timeSlots || []).map((slot) => ({
       date: new Date(slot.date),
@@ -39,6 +83,8 @@ async function createServiceHandler(req: NextRequest) {
       isBooked: false,
     }));
 
+    console.log("Creating service...");
+    
     const service = await Service.create({
       businessId: validatedData.businessId,
       category: validatedData.category,
@@ -80,6 +126,13 @@ async function createServiceHandler(req: NextRequest) {
       { status: 201 }
     );
   } catch (error: any) {
+    console.error("Create service error:", error);
+    console.error("Error details:", {
+      message: error.message,
+      stack: error.stack,
+      name: error.name,
+    });
+    
     if (error.name === "ZodError") {
       return NextResponse.json(
         { error: "Validation error", details: error.errors },
@@ -87,9 +140,11 @@ async function createServiceHandler(req: NextRequest) {
       );
     }
 
-    console.error("Create service error:", error);
     return NextResponse.json(
-      { error: "Failed to list service" },
+      { 
+        error: "Failed to create service",
+        details: error.message || "Unknown error occurred"
+      },
       { status: 500 }
     );
   }

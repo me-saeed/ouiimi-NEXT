@@ -6,6 +6,8 @@ import { businessCreateSchema } from "@/lib/validation";
 import { withRateLimit } from "@/lib/security/rate-limit";
 import { verifyToken } from "@/lib/jwt";
 
+export const dynamic = 'force-dynamic';
+
 async function createBusinessHandler(req: NextRequest) {
   try {
     console.log("=== Business Create API Called ===");
@@ -183,7 +185,7 @@ async function createBusinessHandler(req: NextRequest) {
       businessName: validatedData.businessName.trim(),
       email: validatedData.email.toLowerCase().trim(),
       address: validatedData.address.trim(),
-      status: "pending",
+      status: "approved", // Auto-approve for testing. Change to "pending" for production with admin approval
     };
     
     // Add optional fields only if they exist

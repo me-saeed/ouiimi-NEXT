@@ -6,6 +6,8 @@ import { withRateLimit } from "@/lib/security/rate-limit";
 import { forgotPasswordSchema } from "@/lib/validation";
 import { sendPasswordResetEmail } from "@/lib/services/mailjet";
 
+export const dynamic = 'force-dynamic';
+
 async function forgotPasswordHandler(req: NextRequest) {
   try {
     const body = await req.json();

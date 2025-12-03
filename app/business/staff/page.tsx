@@ -114,9 +114,11 @@ export default function BusinessStaffPage() {
 
       if (response.ok) {
         // Reload staff after deletion
-        loadBusinessAndStaff();
+        console.log("Staff deleted successfully, reloading...");
+        await loadBusinessAndStaff();
       } else {
         const errorData = await response.json();
+        console.error("Failed to delete staff:", errorData);
         alert(errorData.error || "Failed to remove staff member");
       }
     } catch (error: any) {
@@ -126,39 +128,54 @@ export default function BusinessStaffPage() {
   };
 
   if (!user) {
-    return null;
+    return (
+      <PageLayout user={null}>
+        <div className="bg-white min-h-screen py-12">
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center justify-center py-20">
+              <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#EECFD1]"></div>
+            </div>
+          </div>
+        </div>
+      </PageLayout>
+    );
   }
 
   return (
     <PageLayout user={user}>
-      <div className="bg-white min-h-screen py-12">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center mb-8">
-            <h1 className="text-4xl font-bold text-[#3A3A3A]">Staff</h1>
+      <div className="bg-gradient-to-b from-background via-secondary/5 to-background min-h-screen py-12 md:py-16">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-10">
+            <div>
+              <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-2">Staff Members</h1>
+              <p className="text-muted-foreground">Manage your team members</p>
+            </div>
             <Link
               href="/business/staff/add"
-              className="bg-[#EECFD1] text-white px-6 py-3 rounded-md font-semibold hover:bg-[#EECFD1]/90 transition-colors"
+              className="btn-polished btn-polished-primary px-6 py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all whitespace-nowrap"
             >
               Add Staff
             </Link>
           </div>
 
           {isLoading ? (
-            <div className="flex items-center justify-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#EECFD1]"></div>
+            <div className="flex items-center justify-center py-20">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
             </div>
           ) : staff.length === 0 ? (
-            <div className="card-polished p-12 text-center max-w-md mx-auto">
+            <div className="bg-card rounded-2xl shadow-lg border border-border/50 p-12 text-center max-w-md mx-auto">
               <div className="mb-6">
-                <svg className="w-16 h-16 mx-auto text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.94-3.197a5.971 5.971 0 00-.94 3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-13.5 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" />
-                </svg>
+                <div className="w-20 h-20 rounded-full bg-muted flex items-center justify-center mx-auto">
+                  <svg className="w-10 h-10 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.94-3.197a5.971 5.971 0 00-.94 3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-13.5 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" />
+                  </svg>
+                </div>
               </div>
-              <p className="text-[#3A3A3A] font-semibold mb-2 text-lg">No staff members yet</p>
-              <p className="text-[#3A3A3A]/70 text-sm mb-6">Add your team members to get started</p>
+              <p className="text-foreground font-semibold mb-2 text-lg">No staff members yet</p>
+              <p className="text-muted-foreground text-sm mb-6">Add your team members to get started</p>
               <Link
                 href="/business/staff/add"
-                className="btn-polished btn-polished-primary inline-block"
+                className="btn-polished btn-polished-primary inline-block rounded-xl px-6 py-3 font-semibold shadow-lg hover:shadow-xl transition-all"
               >
                 Add Your First Staff Member
               </Link>
@@ -170,34 +187,69 @@ export default function BusinessStaffPage() {
                 return (
                   <div
                     key={memberId}
-                    className="card-polished p-6"
+                    className="bg-card rounded-2xl shadow-lg border border-border/50 p-6 hover:shadow-xl transition-all duration-300 flex flex-col"
                   >
-                    {member.photo && (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={member.photo}
-                        alt={member.name}
-                        className="w-20 h-20 rounded-full object-cover mx-auto mb-4"
-                      />
-                    )}
-                    <h3 className="text-xl font-bold text-[#3A3A3A] mb-2 text-center">
+                    {/* Photo Section */}
+                    <div className="flex justify-center mb-5">
+                      {member.photo ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={member.photo}
+                          alt={member.name}
+                          className="w-24 h-24 rounded-full object-cover border-4 border-border/50 shadow-md"
+                        />
+                      ) : (
+                        <div className="w-24 h-24 rounded-full bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center border-4 border-border/50 shadow-md">
+                          <span className="text-3xl font-bold text-foreground">
+                            {member.name?.charAt(0)?.toUpperCase() || "S"}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Name */}
+                    <h3 className="text-xl font-bold text-foreground mb-3 text-center">
                       {member.name}
                     </h3>
+
+                    {/* Qualifications */}
                     {member.qualifications && (
-                      <p className="text-sm text-[#3A3A3A]/70 mb-4 text-center">
-                        {member.qualifications}
+                      <div className="mb-4 text-center">
+                        <span className="inline-block px-3 py-1 bg-primary/10 text-primary rounded-full text-xs font-semibold">
+                          {member.qualifications}
+                        </span>
+                      </div>
+                    )}
+
+                    {/* About */}
+                    {member.about && (
+                      <p className="text-sm text-muted-foreground mb-6 text-center line-clamp-3 flex-1">
+                        {member.about}
                       </p>
                     )}
-                    <div className="flex space-x-3 mt-6">
+
+                    {/* Status Badge */}
+                    <div className="mb-6 text-center">
+                      <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${
+                        member.isActive 
+                          ? 'bg-green-100 text-green-800' 
+                          : 'bg-gray-100 text-gray-600'
+                      }`}>
+                        {member.isActive ? 'Active' : 'Inactive'}
+                      </span>
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex gap-3 pt-4 border-t border-border/50 mt-auto">
                       <Link
                         href={`/business/staff/${memberId}/edit`}
-                        className="flex-1 btn-polished btn-polished-primary text-center text-sm py-2.5"
+                        className="flex-1 btn-polished btn-polished-primary text-center text-sm py-2.5 rounded-xl font-semibold"
                       >
                         Edit
                       </Link>
                       <button
                         onClick={() => handleDelete(memberId)}
-                        className="flex-1 bg-red-500 text-white px-4 py-2.5 rounded-lg text-sm font-semibold hover:bg-red-600 transition-colors shadow-sm hover:shadow-md"
+                        className="flex-1 bg-red-500 text-white px-4 py-2.5 rounded-xl text-sm font-semibold hover:bg-red-600 transition-colors shadow-sm hover:shadow-md"
                       >
                         Remove
                       </button>

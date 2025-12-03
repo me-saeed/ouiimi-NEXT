@@ -8,6 +8,8 @@ import { withRateLimit } from "@/lib/security/rate-limit";
 // CSRF protection temporarily disabled
 // import { validateCSRFToken } from "@/lib/security/csrf";
 
+export const dynamic = 'force-dynamic';
+
 async function signinHandler(req: NextRequest) {
   try {
     // CSRF Protection disabled for now

@@ -6,6 +6,8 @@ import { z } from "zod";
 import mongoose from "mongoose";
 import { withRateLimitDynamic } from "@/lib/security/rate-limit";
 
+export const dynamic = 'force-dynamic';
+
 const timeSlotsUpdateSchema = z.object({
   timeSlots: z.array(timeSlotSchema),
 });

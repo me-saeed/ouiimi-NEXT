@@ -4,6 +4,39 @@ import Business from "@/lib/models/Business";
 import { bankDetailsSchema } from "@/lib/validation";
 import { withRateLimitDynamic } from "@/lib/security/rate-limit";
 
+export const dynamic = 'force-dynamic';
+
+async function getBankDetailsHandler(
+  req: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    await dbConnect();
+
+    const business = await Business.findById(params.id);
+
+    if (!business) {
+      return NextResponse.json(
+        { error: "Business not found" },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json(
+      {
+        bankDetails: business.bankDetails || null,
+      },
+      { status: 200 }
+    );
+  } catch (error: any) {
+    console.error("Get bank details error:", error);
+    return NextResponse.json(
+      { error: "Failed to fetch bank details" },
+      { status: 500 }
+    );
+  }
+}
+
 async function updateBankDetailsHandler(
   req: NextRequest,
   { params }: { params: { id: string } }
@@ -49,6 +82,7 @@ async function updateBankDetailsHandler(
   }
 }
 
+export const GET = withRateLimitDynamic(getBankDetailsHandler);
 export const POST = withRateLimitDynamic(updateBankDetailsHandler);
 export const PUT = withRateLimitDynamic(updateBankDetailsHandler);
 

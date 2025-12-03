@@ -34,71 +34,118 @@ function ServicesContent() {
   };
 
   return (
-    <div className="bg-white min-h-screen py-12">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="mb-10">
-          <div className="flex items-center justify-between mb-4">
-            <h1 className="text-4xl font-bold text-[#3A3A3A]">
-              {category ? category : "All Services"}
-            </h1>
-            {category && (
+    <div className="bg-gradient-to-b from-background via-secondary/5 to-background min-h-screen py-12 md:py-16">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl">
+        {/* Header */}
+        <div className="mb-12 text-center">
+          <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-4">
+            {category ? category : "All Services"}
+          </h1>
+          {category && (
+            <div className="flex items-center justify-center gap-4">
+              <p className="text-muted-foreground text-lg">
+                Browse all services in {category}
+              </p>
               <Link
                 href="/services"
-                className="text-sm text-[#3A3A3A]/70 hover:text-[#3A3A3A] transition-colors font-medium inline-flex items-center gap-1"
+                className="text-sm text-primary hover:text-primary/80 transition-colors font-medium inline-flex items-center gap-1"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                 </svg>
                 View all
               </Link>
-            )}
-          </div>
-          {category && (
-            <p className="text-[#3A3A3A]/70 text-sm">
-              Browse all services in {category}
-            </p>
+            </div>
           )}
         </div>
 
         {isLoading ? (
           <div className="flex items-center justify-center py-20">
-            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#EECFD1]"></div>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
           </div>
         ) : services.length === 0 ? (
-          <div className="card-polished p-12 text-center max-w-md mx-auto">
-            <p className="text-[#3A3A3A] font-semibold text-lg">No services found</p>
-            <p className="text-[#3A3A3A]/70 text-sm mt-2">Try adjusting your search or filters</p>
+          <div className="bg-card rounded-2xl shadow-lg border border-border/50 p-12 text-center max-w-md mx-auto">
+            <p className="text-foreground font-semibold text-lg mb-2">No services found</p>
+            <p className="text-muted-foreground text-sm">Try adjusting your search or filters</p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 sm:gap-5">
-            {services.map((service) => (
-              <Link
-                key={service.id}
-                href={`/services/${service.id}`}
-                className="group bg-white rounded-xl overflow-hidden hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1.5 border border-gray-100"
-              >
-                <div className="aspect-square bg-gradient-to-br from-gray-100 to-gray-200 relative overflow-hidden">
-                  <div className="w-full h-full bg-gradient-to-br from-gray-300 to-gray-400 flex items-center justify-center group-hover:scale-110 transition-transform duration-500">
-                    <span className="text-[#3A3A3A] text-sm font-medium">
-                      {service.serviceName}
-                    </span>
-                  </div>
-                </div>
-                <div className="p-4">
-                  <p className="text-sm text-[#3A3A3A] font-semibold truncate mb-2 leading-tight">
-                    {service.serviceName}
-                  </p>
-                  <p className="text-base font-bold text-[#3A3A3A]">
-                    ${service.baseCost}
-                  </p>
-                  {service.businessId && typeof service.businessId === 'object' && (
-                    <p className="text-xs text-[#3A3A3A]/60 mt-1 truncate">
-                      {service.businessId.businessName}
-                    </p>
-                  )}
-                </div>
-              </Link>
-            ))}
+          <div className="flex justify-center">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6 w-full max-w-7xl">
+              {services.map((service) => {
+                const business = typeof service.businessId === 'object' ? service.businessId : null;
+                return (
+                  <Link
+                    key={service.id}
+                    href={`/services/${service.id}`}
+                    className="group bg-card rounded-2xl overflow-hidden border border-border/50 shadow-sm hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 flex flex-col"
+                  >
+                    {/* Business Logo */}
+                    <div className="p-5 pb-4">
+                      <div className="flex items-center gap-3 mb-3">
+                        <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center overflow-hidden flex-shrink-0 border border-border/50 shadow-sm">
+                          {business?.logo ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                              src={business.logo}
+                              alt={business.businessName || "Business"}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <span className="text-base font-bold text-muted-foreground">
+                              {business?.businessName?.charAt(0) || "B"}
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-semibold text-muted-foreground truncate">
+                            {business?.businessName || "Business"}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Service Info */}
+                    <div className="px-5 pb-5 space-y-3 flex-1 flex flex-col">
+                      <h3 className="font-bold text-foreground line-clamp-2 text-base leading-tight group-hover:text-primary transition-colors min-h-[2.5rem]">
+                        {service.serviceName}
+                      </h3>
+                      
+                      <div className="space-y-2 text-xs text-muted-foreground flex-1">
+                        {service.duration && (
+                          <div className="flex items-center gap-2">
+                            <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <span className="font-medium">{service.duration}</span>
+                          </div>
+                        )}
+                        {service.address && (
+                          <div className="flex items-start gap-2">
+                            <svg className="w-4 h-4 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
+                            <span className="line-clamp-2">{service.address}</span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Price */}
+                      <div className="flex items-center justify-between pt-4 border-t border-border/50 mt-auto">
+                        <p className="font-bold text-2xl text-foreground">
+                          ${(service.baseCost || 0).toFixed(2)}
+                        </p>
+                        <div className="text-primary group-hover:translate-x-1 transition-transform">
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                          </svg>
+                        </div>
+                      </div>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
           </div>
         )}
       </div>

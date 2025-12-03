@@ -15,6 +15,7 @@ export default function EditStaffPage() {
   const staffId = params.id as string;
   const [user, setUser] = useState<any>(null);
   const [error, setError] = useState<string>("");
+  const [success, setSuccess] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingStaff, setIsLoadingStaff] = useState(true);
 
@@ -78,6 +79,7 @@ export default function EditStaffPage() {
   const onSubmit = async (data: StaffUpdateInput) => {
     setIsLoading(true);
     setError("");
+    setSuccess("");
 
     try {
       const token = localStorage.getItem("token");
@@ -98,7 +100,10 @@ export default function EditStaffPage() {
         return;
       }
 
-      router.push("/business/staff");
+      setSuccess("Staff member updated successfully! Redirecting...");
+      setTimeout(() => {
+        router.push("/business/staff");
+      }, 1000);
     } catch (err: any) {
       setError("Something went wrong. Please try again.");
       setIsLoading(false);
@@ -131,6 +136,12 @@ export default function EditStaffPage() {
             {error && (
               <Alert className="mb-6 bg-red-50 border-red-200">
                 <AlertDescription className="text-red-800">{error}</AlertDescription>
+              </Alert>
+            )}
+
+            {success && (
+              <Alert className="mb-6 border-green-200 bg-green-50">
+                <AlertDescription className="text-green-800">{success}</AlertDescription>
               </Alert>
             )}
 
