@@ -26,6 +26,7 @@ export interface IService extends Document {
   address: string;
   addOns: IAddOn[];
   timeSlots: ITimeSlot[];
+  defaultStaffIds: mongoose.Types.ObjectId[];
   status: "listed" | "booked" | "completed" | "cancelled";
   createdAt: Date;
   updatedAt: Date;
@@ -97,6 +98,10 @@ const serviceSchema = new Schema<IService>(
     },
     timeSlots: {
       type: [timeSlotSchema],
+      default: [],
+    },
+    defaultStaffIds: {
+      type: [{ type: Schema.Types.ObjectId, ref: "Staff" }],
       default: [],
     },
     status: {

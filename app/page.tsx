@@ -141,10 +141,14 @@ export default function HomePage() {
     <PageLayout user={user}>
       <div className="bg-white min-h-screen">
         {/* Book Button - Below Nav */}
-        <div className="bg-white py-4 border-b border-gray-200">
-          <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="bg-white py-5">
+          <div className="container mx-auto px-4 max-w-7xl">
             <div className="flex justify-center">
-              <Button variant="pink" size="lg" asChild>
+              <Button
+                variant="pink"
+                asChild
+                className="h-12 px-12 rounded-full font-semibold text-[16px] shadow-sm hover:shadow-md"
+              >
                 <Link href="/services">Book</Link>
               </Button>
             </div>
@@ -154,75 +158,77 @@ export default function HomePage() {
         {/* Discover Section */}
         <section className="py-8 md:py-12 bg-white">
           <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl">
-            <h1 className="text-3xl md:text-4xl font-bold text-[#3A3A3A] mb-8 md:mb-12 text-center">
+            <h1 className="text-[32px] font-bold text-[#3A3A3A] mb-[32px] text-center">
               Discover
             </h1>
 
             {/* Service Categories */}
-            {SERVICE_CATEGORIES.map((category, categoryIndex) => {
-              const categoryServices = services[category] || [];
+            <div className="space-y-0">
+              {SERVICE_CATEGORIES.map((category, categoryIndex) => {
+                const categoryServices = services[category] || [];
 
-              if (isLoading) {
-                return (
-                  <div key={category} className="space-y-6">
-                    <div className="flex items-center justify-between px-4 md:px-6">
-                      <h2 className="text-2xl md:text-3xl font-bold text-foreground">{category}</h2>
+                if (isLoading) {
+                  return (
+                    <div key={category} className="mb-10 md:mb-12">
+                      <div className="flex items-center justify-between mb-5 md:mb-6 px-4 md:px-0">
+                        <h2 className="text-2xl md:text-3xl font-bold text-[#3A3A3A]">{category}</h2>
+                      </div>
+                      <div className="flex gap-4 md:gap-5 overflow-x-auto px-4 md:px-0 scrollbar-hide">
+                        {Array.from({ length: 6 }).map((_, i) => (
+                          <div key={i} className="bg-gray-100 animate-pulse rounded-xl w-[280px] md:w-[300px] lg:w-[320px] h-[220px] flex-shrink-0" />
+                        ))}
+                      </div>
                     </div>
-                    <div className="flex gap-4 md:gap-6 overflow-x-auto px-4 md:px-6">
-                      {Array.from({ length: 6 }).map((_, i) => (
-                        <div key={i} className="bg-muted animate-pulse rounded-xl w-[280px] md:w-[320px] h-[200px] flex-shrink-0" />
+                  );
+                }
+
+                if (categoryServices.length === 0) {
+                  return null;
+                }
+
+                // Handle sub-categories for Hair Services and Dog Grooming
+                if (CATEGORIES_WITH_SUBCATEGORIES.includes(category)) {
+                  const grouped = groupServicesBySubCategory(categoryServices);
+                  return (
+                    <div
+                      key={category}
+                      className="space-y-0"
+                    >
+                      {Object.entries(grouped).map(([subCategory, subServices]) => (
+                        <ServiceCarousel
+                          key={subCategory}
+                          title={`${category} - ${subCategory}`}
+                          viewAllHref={`/services?category=${encodeURIComponent(category)}&subCategory=${encodeURIComponent(subCategory)}`}
+                        >
+                          {subServices.map((service) => (
+                            <ServiceCard
+                              key={service.id}
+                              {...formatServiceForCard(service)}
+                            />
+                          ))}
+                        </ServiceCarousel>
                       ))}
                     </div>
-                  </div>
-                );
-              }
+                  );
+                }
 
-              if (categoryServices.length === 0) {
-                return null;
-              }
-
-              // Handle sub-categories for Hair Services and Dog Grooming
-              if (CATEGORIES_WITH_SUBCATEGORIES.includes(category)) {
-                const grouped = groupServicesBySubCategory(categoryServices);
+                // Regular category display
                 return (
-                  <div
+                  <ServiceCarousel
                     key={category}
-                    className="space-y-12"
+                    title={category}
+                    viewAllHref={`/services?category=${encodeURIComponent(category)}`}
                   >
-                    {Object.entries(grouped).map(([subCategory, subServices]) => (
-                      <ServiceCarousel
-                        key={subCategory}
-                        title={`${category} - ${subCategory}`}
-                        viewAllHref={`/services?category=${encodeURIComponent(category)}&subCategory=${encodeURIComponent(subCategory)}`}
-                      >
-                        {subServices.map((service) => (
-                          <ServiceCard
-                            key={service.id}
-                            {...formatServiceForCard(service)}
-                          />
-                        ))}
-                      </ServiceCarousel>
+                    {categoryServices.map((service) => (
+                      <ServiceCard
+                        key={service.id}
+                        {...formatServiceForCard(service)}
+                      />
                     ))}
-                  </div>
+                  </ServiceCarousel>
                 );
-              }
-
-              // Regular category display
-              return (
-                <ServiceCarousel
-                  key={category}
-                  title={category}
-                  viewAllHref={`/services?category=${encodeURIComponent(category)}`}
-                >
-                  {categoryServices.map((service) => (
-                    <ServiceCard
-                      key={service.id}
-                      {...formatServiceForCard(service)}
-                    />
-                  ))}
-                </ServiceCarousel>
-              );
-            })}
+              })}
+            </div>
           </div>
         </section>
       </div>

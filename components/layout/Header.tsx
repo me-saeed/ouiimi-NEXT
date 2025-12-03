@@ -26,13 +26,13 @@ export default function Header({ user }: HeaderProps) {
 
   return (
     <>
-      <header className="sticky top-0 z-50 w-full bg-[#EECFD1] shadow-sm">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+      <header className="sticky top-0 z-50 w-full bg-[#EECFD1]">
+        <div className="container mx-auto px-4 max-w-7xl">
           <div className="flex h-16 items-center justify-between">
             {/* Left: Hamburger Menu (Mobile Only) */}
             <button
               onClick={() => setSidebarOpen(true)}
-              className="md:hidden text-[#3A3A3A] hover:bg-black/5 transition-all duration-200 p-2 rounded-lg"
+              className="md:hidden text-[#3A3A3A] hover:bg-white/10 transition-all duration-200 p-2 rounded-lg tap-target"
               aria-label="Open menu"
             >
               <svg
@@ -51,8 +51,8 @@ export default function Header({ user }: HeaderProps) {
             </button>
 
             {/* Center: Logo */}
-            <Link href="/" className="flex items-center group">
-              <h1 className="text-xl sm:text-2xl font-bold text-white tracking-tight group-hover:text-white/90 transition-colors duration-200">
+            <Link href="/" className="flex items-center group absolute left-1/2 -translate-x-1/2 md:static md:translate-x-0">
+              <h1 className="text-[20px] font-semibold text-white tracking-tight group-hover:text-white/90 transition-colors duration-200">
                 ouiimi
               </h1>
             </Link>
@@ -65,7 +65,7 @@ export default function Header({ user }: HeaderProps) {
                   <Link
                     key={link.href}
                     href={link.href}
-                    className={`text-sm font-medium transition-all duration-200 px-3 py-2 rounded-lg ${isActive
+                    className={`text-[14px] font-medium transition-all duration-200 px-3 py-2 rounded-lg ${isActive
                         ? "text-white bg-white/20"
                         : "text-[#3A3A3A] hover:text-white hover:bg-white/10"
                       }`}
@@ -79,7 +79,7 @@ export default function Header({ user }: HeaderProps) {
             {/* Right: Cart Icon */}
             <Link
               href="/cart"
-              className="text-[#3A3A3A] hover:bg-black/5 transition-all duration-200 p-2 rounded-lg relative"
+              className="text-[#3A3A3A] hover:bg-white/10 transition-all duration-200 p-2 rounded-lg relative tap-target"
               aria-label="Shopping cart"
             >
               <svg
@@ -104,16 +104,17 @@ export default function Header({ user }: HeaderProps) {
       {sidebarOpen && (
         <>
           <div
-            className="fixed inset-0 bg-black/50 z-50"
+            className="fixed inset-0 bg-black/50 z-50 transition-opacity"
             onClick={() => setSidebarOpen(false)}
           />
-          <div className="fixed left-0 top-0 h-full w-64 bg-white shadow-2xl z-50 transform transition-transform">
+          <div className="fixed left-0 top-0 h-full w-72 bg-white shadow-2xl z-50 transform transition-transform animate-in">
             <div className="p-6">
-              <div className="flex items-center justify-between mb-8">
-                <h2 className="text-xl font-bold text-[#3A3A3A]">Menu</h2>
+              <div className="flex items-center justify-between mb-10">
+                <h2 className="text-2xl font-bold text-[#3A3A3A]">Menu</h2>
                 <button
                   onClick={() => setSidebarOpen(false)}
-                  className="text-[#3A3A3A] hover:text-black"
+                  className="text-[#3A3A3A] hover:text-black p-2 hover:bg-gray-100 rounded-lg transition-all tap-target"
+                  aria-label="Close menu"
                 >
                   <svg
                     className="w-6 h-6"
@@ -138,9 +139,9 @@ export default function Header({ user }: HeaderProps) {
                       key={link.href}
                       href={link.href}
                       onClick={() => setSidebarOpen(false)}
-                      className={`block px-4 py-3 rounded-lg text-[#3A3A3A] font-medium transition-all duration-200 ${isActive
-                          ? "bg-[#EECFD1] text-[#3A3A3A] font-semibold"
-                          : "hover:bg-[#EECFD1]/50 hover:text-[#3A3A3A]"
+                      className={`block px-5 py-3.5 rounded-lg text-[#3A3A3A] font-medium transition-all duration-200 ${isActive
+                        ? "bg-[#EECFD1] text-[#3A3A3A] font-semibold"
+                        : "hover:bg-[#EECFD1]/30 hover:text-[#3A3A3A]"
                         }`}
                     >
                       {link.label}

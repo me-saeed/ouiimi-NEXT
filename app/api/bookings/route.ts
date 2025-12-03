@@ -32,7 +32,7 @@ const bookingCreateSchema = z.object({
 async function createBookingHandler(req: NextRequest) {
   try {
     console.log("=== CREATE BOOKING API CALLED ===");
-    
+
     const authHeader = req.headers.get("authorization");
     if (!authHeader?.startsWith("Bearer ")) {
       console.log("No authorization header");
@@ -56,7 +56,7 @@ async function createBookingHandler(req: NextRequest) {
 
     const body = await req.json();
     console.log("Request body:", JSON.stringify(body, null, 2));
-    
+
     const validatedData = bookingCreateSchema.parse(body);
     console.log("Validated data:", validatedData);
 
@@ -78,13 +78,13 @@ async function createBookingHandler(req: NextRequest) {
     // Check if staff is already booked at this time (across ALL services)
     if (validatedData.staffId) {
       const staffId = new mongoose.Types.ObjectId(validatedData.staffId);
-      
+
       // Create date range for the booking day
       const bookingDayStart = new Date(bookingDate);
       bookingDayStart.setHours(0, 0, 0, 0);
       const bookingDayEnd = new Date(bookingDate);
       bookingDayEnd.setHours(23, 59, 59, 999);
-      
+
       // Find all existing bookings for this staff member at the same date and overlapping time
       const conflictingBookings = await Booking.find({
         staffId: staffId,
@@ -128,7 +128,7 @@ async function createBookingHandler(req: NextRequest) {
       if (conflictingBookings.length > 0) {
         console.log("Staff conflict detected:", conflictingBookings.length, "conflicting bookings");
         return NextResponse.json(
-          { 
+          {
             error: "Staff member is already booked at this time. Please select a different time slot or staff member.",
             details: "The selected staff member has another booking during this time period."
           },
@@ -137,7 +137,8 @@ async function createBookingHandler(req: NextRequest) {
       }
     }
 
-    // Check if the time slot is already booked in the service
+    // 1. Recalculate Cost on Server (Security Fix)
+    // First, fetch the service to get base cost
     const service = await Service.findById(validatedData.serviceId);
     if (!service) {
       return NextResponse.json(
@@ -146,43 +147,71 @@ async function createBookingHandler(req: NextRequest) {
       );
     }
 
-    // Find the matching time slot index in the service
-    // Compare dates properly (ignore time, just compare year/month/day)
-    const bookingDateOnly = new Date(bookingDate);
-    bookingDateOnly.setHours(0, 0, 0, 0);
-    
-    let matchingTimeSlotIndex = -1;
-    for (let i = 0; i < service.timeSlots.length; i++) {
-      const slot = service.timeSlots[i];
-      const slotDate = new Date(slot.date);
-      slotDate.setHours(0, 0, 0, 0);
-      
-      const datesMatch = slotDate.getTime() === bookingDateOnly.getTime();
-      const timesMatch = slot.startTime === bookingStartTime && slot.endTime === bookingEndTime;
-      const staffMatch = !validatedData.staffId || slot.staffIds.some((id: any) => String(id) === validatedData.staffId);
-      
-      if (datesMatch && timesMatch && staffMatch) {
-        matchingTimeSlotIndex = i;
-        break;
-      }
+    // Ignore validatedData.totalCost from client
+    let calculatedTotalCost = service.baseCost;
+
+    // Check if time slot has specific cost
+    const targetSlot = service.timeSlots.find((slot: any) =>
+      new Date(slot.date).getTime() === new Date(bookingDate).setHours(0, 0, 0, 0) &&
+      slot.startTime === bookingStartTime &&
+      slot.endTime === bookingEndTime
+    );
+
+    if (targetSlot && targetSlot.cost) {
+      calculatedTotalCost = targetSlot.cost;
     }
 
-    if (matchingTimeSlotIndex === -1) {
-      return NextResponse.json(
-        { error: "Time slot not found or not available for this service" },
-        { status: 404 }
-      );
+    // Add Add-ons cost
+    if (validatedData.addOns && validatedData.addOns.length > 0) {
+      validatedData.addOns.forEach((addOn: any) => {
+        calculatedTotalCost += addOn.cost;
+      });
     }
 
-    const matchingTimeSlot = service.timeSlots[matchingTimeSlotIndex];
-    if (matchingTimeSlot.isBooked) {
+    console.log("Calculated Total Cost:", calculatedTotalCost);
+
+    // 2. Atomic Double Booking Check & Update (Race Condition Fix)
+    // We try to find the service AND update the specific slot in one atomic operation
+    // The query ensures the slot exists AND isBooked is false
+
+    // Note: We need to match the slot by date, startTime, endTime
+    // MongoDB array filters are perfect for this
+
+    const bookingId = new mongoose.Types.ObjectId();
+
+    const updatedService = await Service.findOneAndUpdate(
+      {
+        _id: new mongoose.Types.ObjectId(validatedData.serviceId),
+        timeSlots: {
+          $elemMatch: {
+            date: bookingDate,
+            startTime: bookingStartTime,
+            endTime: bookingEndTime,
+            isBooked: false // CRITICAL: Only update if currently free
+          }
+        }
+      },
+      {
+        $set: {
+          "timeSlots.$.isBooked": true,
+          "timeSlots.$.bookingId": bookingId
+        }
+      },
+      { new: true }
+    );
+
+    if (!updatedService) {
+      console.log("Atomic update failed - Slot likely already booked or not found");
       return NextResponse.json(
-        { error: "This time slot is already booked. Please select another time." },
+        { error: "This time slot is no longer available. Please select another time." },
         { status: 409 }
       );
     }
 
+    console.log("Atomic slot reservation successful");
+
     const bookingData: any = {
+      _id: bookingId,
       userId: new mongoose.Types.ObjectId(validatedData.userId),
       businessId: new mongoose.Types.ObjectId(validatedData.businessId),
       serviceId: new mongoose.Types.ObjectId(validatedData.serviceId),
@@ -191,11 +220,11 @@ async function createBookingHandler(req: NextRequest) {
         startTime: bookingStartTime,
         endTime: bookingEndTime,
       },
-      totalCost: validatedData.totalCost,
-      depositAmount: Math.round(validatedData.totalCost * 0.1 * 100) / 100,
-      remainingAmount: Math.round(validatedData.totalCost * 0.9 * 100) / 100,
+      totalCost: calculatedTotalCost, // Use server-calculated cost
+      depositAmount: Math.round(calculatedTotalCost * 0.1 * 100) / 100,
+      remainingAmount: Math.round(calculatedTotalCost * 0.9 * 100) / 100,
       status: "confirmed",
-      paymentStatus: "deposit_paid",
+      paymentStatus: "pending", // Fix: Default to pending, not paid
     };
 
     if (validatedData.staffId) {
@@ -216,13 +245,9 @@ async function createBookingHandler(req: NextRequest) {
     const booking = await Booking.create(bookingData);
     console.log("Booking created, ID:", String(booking._id));
 
-    // Mark the time slot as booked in the service
-    if (matchingTimeSlotIndex !== -1 && service.timeSlots[matchingTimeSlotIndex]) {
-      (service.timeSlots[matchingTimeSlotIndex] as any).isBooked = true;
-      (service.timeSlots[matchingTimeSlotIndex] as any).bookingId = booking._id;
-      await service.save();
-      console.log("Time slot marked as booked in service");
-    }
+    console.log("Booking created, ID:", String(booking._id));
+
+    // Time slot was already marked as booked in the atomic update step above
 
     const savedBooking = await Booking.findById(booking._id)
       .populate("userId", "fname lname email")
@@ -296,7 +321,7 @@ async function createBookingHandler(req: NextRequest) {
         const serviceName = typeof serviceIdData === 'object' ? serviceIdData.serviceName : "Service";
         const date = new Date(savedBooking.timeSlot.date).toLocaleDateString("en-GB");
         const time = `${savedBooking.timeSlot.startTime} - ${savedBooking.timeSlot.endTime}`;
-        
+
         await sendEmail(
           [userIdData.email],
           "Booking Confirmed - ouiimi",
@@ -347,7 +372,7 @@ async function createBookingHandler(req: NextRequest) {
       stack: error.stack,
       name: error.name,
     });
-    
+
     if (error.name === "ZodError") {
       console.error("Validation errors:", error.errors);
       return NextResponse.json(
@@ -355,9 +380,9 @@ async function createBookingHandler(req: NextRequest) {
         { status: 400 }
       );
     }
-    
+
     return NextResponse.json(
-      { 
+      {
         error: "Failed to create booking",
         details: error.message || "Unknown error occurred"
       },
@@ -368,22 +393,32 @@ async function createBookingHandler(req: NextRequest) {
 
 async function getBookingsHandler(req: NextRequest) {
   try {
+    console.log("=== GET BOOKINGS API CALLED ===");
+
     const authHeader = req.headers.get("authorization");
+    console.log("Auth header present:", !!authHeader);
+
     if (!authHeader?.startsWith("Bearer ")) {
+      console.log("Missing or invalid authorization header");
       return NextResponse.json(
-        { error: "Unauthorized" },
+        { error: "Unauthorized - No valid authorization header" },
         { status: 401 }
       );
     }
 
     const token = authHeader.substring(7);
+    console.log("Token extracted, length:", token.length);
+
     const decoded = verifyToken(token);
     if (!decoded) {
+      console.log("Token verification failed");
       return NextResponse.json(
-        { error: "Invalid token" },
+        { error: "Invalid or expired token" },
         { status: 401 }
       );
     }
+
+    console.log("Token verified successfully, userId:", decoded.userId);
 
     await dbConnect();
 
@@ -391,6 +426,8 @@ async function getBookingsHandler(req: NextRequest) {
     const businessId = searchParams.get("businessId");
     const userId = searchParams.get("userId");
     const status = searchParams.get("status");
+
+    console.log("Query params:", { businessId, userId, status });
 
     const filter: any = {};
     if (businessId) {
@@ -409,6 +446,8 @@ async function getBookingsHandler(req: NextRequest) {
       filter.status = status;
     }
 
+    console.log("Fetching bookings with filter:", filter);
+
     const bookings = await Booking.find(filter)
       .populate("userId", "fname lname email contactNo")
       .populate("businessId", "businessName logo address email phone")
@@ -416,6 +455,8 @@ async function getBookingsHandler(req: NextRequest) {
       .populate("staffId", "name photo")
       .sort({ "timeSlot.date": 1, "timeSlot.startTime": 1 })
       .lean();
+
+    console.log("Found bookings:", bookings.length);
 
     return NextResponse.json(
       {
@@ -468,8 +509,9 @@ async function getBookingsHandler(req: NextRequest) {
     );
   } catch (error: any) {
     console.error("Get bookings error:", error);
+    console.error("Error stack:", error.stack);
     return NextResponse.json(
-      { error: "Failed to fetch bookings" },
+      { error: "Failed to fetch bookings", details: error.message },
       { status: 500 }
     );
   }

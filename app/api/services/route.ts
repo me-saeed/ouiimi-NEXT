@@ -12,7 +12,7 @@ export const dynamic = 'force-dynamic';
 async function createServiceHandler(req: NextRequest) {
   try {
     console.log("=== CREATE SERVICE API CALLED ===");
-    
+
     // Verify authentication
     const authHeader = req.headers.get("authorization");
     if (!authHeader?.startsWith("Bearer ")) {
@@ -37,7 +37,7 @@ async function createServiceHandler(req: NextRequest) {
 
     const body = await req.json();
     console.log("Request body:", body);
-    
+
     const validatedData = serviceCreateSchema.parse(body);
     console.log("Validated data:", validatedData);
 
@@ -84,7 +84,7 @@ async function createServiceHandler(req: NextRequest) {
     }));
 
     console.log("Creating service...");
-    
+
     const service = await Service.create({
       businessId: validatedData.businessId,
       category: validatedData.category,
@@ -96,6 +96,7 @@ async function createServiceHandler(req: NextRequest) {
       address: validatedData.address,
       addOns: validatedData.addOns || [],
       timeSlots,
+      defaultStaffIds: validatedData.defaultStaffIds ? validatedData.defaultStaffIds.map((id: string) => new mongoose.Types.ObjectId(id)) : [],
       status: "listed",
     });
 
@@ -132,7 +133,7 @@ async function createServiceHandler(req: NextRequest) {
       stack: error.stack,
       name: error.name,
     });
-    
+
     if (error.name === "ZodError") {
       return NextResponse.json(
         { error: "Validation error", details: error.errors },
@@ -141,7 +142,7 @@ async function createServiceHandler(req: NextRequest) {
     }
 
     return NextResponse.json(
-      { 
+      {
         error: "Failed to create service",
         details: error.message || "Unknown error occurred"
       },

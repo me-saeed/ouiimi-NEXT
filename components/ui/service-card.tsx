@@ -29,12 +29,12 @@ export function ServiceCard({
     return (
         <Link
             href={`/services/${id}`}
-            className="group block bg-[#D9D9D9] rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 flex-shrink-0 w-full sm:w-[280px] md:w-[300px] lg:w-[320px]"
+            className="group block bg-white rounded-[12px] overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 flex-shrink-0 w-full sm:w-[280px] md:w-[300px] lg:w-[320px] border border-[#F5F5F5]"
         >
-            <div className="p-4 space-y-3 bg-white">
+            <div className="p-[20px] space-y-4">
                 {/* Business Logo and Name */}
                 <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-full bg-white border-2 border-[#D9D9D9] flex items-center justify-center overflow-hidden flex-shrink-0">
+                    <div className="w-14 h-14 rounded-full bg-white border-2 border-[#F5F5F5] flex items-center justify-center overflow-hidden flex-shrink-0 shadow-sm">
                         {image && image !== "/placeholder-logo.png" ? (
                             // eslint-disable-next-line @next/next/no-img-element
                             <img
@@ -43,43 +43,46 @@ export function ServiceCard({
                                 className="w-full h-full object-cover"
                             />
                         ) : (
-                            <span className="text-lg font-bold text-[#3A3A3A]">
+                            <span className="text-xl font-bold text-[#3A3A3A] bg-[#EECFD1] w-full h-full flex items-center justify-center">
                                 {businessName?.charAt(0) || "B"}
                             </span>
                         )}
                     </div>
                     <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-[#3A3A3A] truncate">
+                        <p className="text-[11px] font-semibold text-[#888888] uppercase tracking-wide truncate mb-0.5">
                             {businessName || "Business"}
                         </p>
-                        <h3 className="font-medium text-[#3A3A3A] line-clamp-1 text-sm leading-tight">
+                        <h3 className="font-semibold text-[#3A3A3A] line-clamp-2 text-base leading-tight">
                             {name}
                         </h3>
                     </div>
                 </div>
 
-                {/* Service Details - Format as per design */}
-                <div className="space-y-1 text-sm text-[#3A3A3A]">
+                {/* Divider */}
+                <div className="border-t border-[#E5E5E5] my-4"></div>
+
+                {/* Service Details - Clean & Structured */}
+                <div className="space-y-2.5 text-sm">
                     {duration && (
                         <div className="flex items-center justify-between">
-                            <span className="font-medium">Duration:</span>
-                            <span>{duration}</span>
+                            <span className="text-[#888888] font-medium">Duration</span>
+                            <span className="text-[#3A3A3A] font-semibold">{duration}</span>
                         </div>
                     )}
                     <div className="flex items-center justify-between">
-                        <span className="font-medium">Cost:</span>
-                        <span className="font-bold">${price.toFixed(2)}</span>
+                        <span className="text-[#888888] font-medium">Cost</span>
+                        <span className="text-[#3A3A3A] font-bold text-base">${price.toFixed(2)}</span>
                     </div>
                     {date && (
                         <div className="flex items-center justify-between">
-                            <span className="font-medium">Date:</span>
-                            <span>{date}</span>
+                            <span className="text-[#888888] font-medium">Date</span>
+                            <span className="text-[#3A3A3A] font-semibold">{date}</span>
                         </div>
                     )}
                     {time && (
                         <div className="flex items-center justify-between">
-                            <span className="font-medium">Time:</span>
-                            <span>{time}</span>
+                            <span className="text-[#888888] font-medium">Time</span>
+                            <span className="text-[#3A3A3A] font-semibold text-xs">{time}</span>
                         </div>
                     )}
                 </div>
