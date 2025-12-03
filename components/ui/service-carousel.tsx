@@ -39,10 +39,10 @@ export function ServiceCarousel({ children, title, viewAllHref }: ServiceCarouse
     if (!scrollContainerRef.current) return;
     const container = scrollContainerRef.current;
     const scrollAmount = container.clientWidth * 0.8;
-    const targetScroll = direction === "left" 
+    const targetScroll = direction === "left"
       ? container.scrollLeft - scrollAmount
       : container.scrollLeft + scrollAmount;
-    
+
     container.scrollTo({
       left: targetScroll,
       behavior: "smooth",
@@ -50,15 +50,15 @@ export function ServiceCarousel({ children, title, viewAllHref }: ServiceCarouse
   };
 
   return (
-    <div className="relative">
+    <div className="relative mb-[40px]">
       {/* Header */}
       {title && (
-        <div className="flex items-center justify-between mb-6 px-4 md:px-6">
-          <h2 className="text-2xl md:text-3xl font-bold text-foreground">{title}</h2>
+        <div className="flex items-center justify-between mb-[20px] px-4 md:px-0">
+          <h2 className="text-[24px] font-bold text-[#3A3A3A]">{title}</h2>
           {viewAllHref && (
             <a
               href={viewAllHref}
-              className="text-sm text-primary hover:text-primary/80 font-medium inline-flex items-center gap-1 transition-colors"
+              className="text-sm text-[#3A3A3A] hover:text-[#EECFD1] font-medium inline-flex items-center gap-1 transition-colors underline"
             >
               View all
             </a>
@@ -68,23 +68,23 @@ export function ServiceCarousel({ children, title, viewAllHref }: ServiceCarouse
 
       {/* Carousel Container */}
       <div className="relative">
-        {/* Left Arrow */}
+        {/* Left Arrow - Hidden on mobile */}
         {canScrollLeft && (
           <Button
             variant="outline"
             size="icon"
-            className="absolute left-2 top-1/2 -translate-y-1/2 z-10 h-10 w-10 rounded-full bg-background/80 backdrop-blur-sm border-border shadow-lg hover:bg-background"
+            className="hidden md:flex absolute left-0 top-1/2 -translate-y-1/2 -translate-x-1/2 z-10 h-10 w-10 rounded-full bg-white border-2 border-gray-200 shadow-lg hover:bg-gray-50 hover:border-[#EECFD1] transition-all"
             onClick={() => scroll("left")}
             aria-label="Scroll left"
           >
-            <ChevronLeft className="h-5 w-5" />
+            <ChevronLeft className="h-5 w-5 text-[#3A3A3A]" />
           </Button>
         )}
 
         {/* Scrollable Container */}
         <div
           ref={scrollContainerRef}
-          className="flex gap-4 md:gap-6 overflow-x-auto scrollbar-hide scroll-smooth px-4 md:px-6"
+          className="flex gap-[16px] overflow-x-auto scrollbar-hide scroll-smooth px-4 md:px-0"
           style={{
             scrollSnapType: "x mandatory",
             WebkitOverflowScrolling: "touch",
@@ -93,16 +93,16 @@ export function ServiceCarousel({ children, title, viewAllHref }: ServiceCarouse
           {children}
         </div>
 
-        {/* Right Arrow */}
+        {/* Right Arrow - Hidden on mobile */}
         {canScrollRight && (
           <Button
             variant="outline"
             size="icon"
-            className="absolute right-2 top-1/2 -translate-y-1/2 z-10 h-10 w-10 rounded-full bg-background/80 backdrop-blur-sm border-border shadow-lg hover:bg-background"
+            className="hidden md:flex absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 z-10 h-10 w-10 rounded-full bg-white border-2 border-gray-200 shadow-lg hover:bg-gray-50 hover:border-[#EECFD1] transition-all"
             onClick={() => scroll("right")}
             aria-label="Scroll right"
           >
-            <ChevronRight className="h-5 w-5" />
+            <ChevronRight className="h-5 w-5 text-[#3A3A3A]" />
           </Button>
         )}
       </div>

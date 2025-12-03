@@ -116,6 +116,55 @@
 
 @layer utilities {
 
+  /* Spacing Scale - Mobile-first standardized spacing */
+  .spacing-xs {
+    @apply p-2;
+  }
+
+  .spacing-sm {
+    @apply p-3;
+  }
+
+  .spacing-md {
+    @apply p-4;
+  }
+
+  .spacing-lg {
+    @apply p-6;
+  }
+
+  .spacing-xl {
+    @apply p-8;
+  }
+
+  /* Container Utilities */
+  .container-mobile {
+    @apply px-4 mx-auto;
+    max-width: 100%;
+  }
+
+  @media (min-width: 640px) {
+    .container-mobile {
+      @apply px-6;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .container-mobile {
+      @apply px-8;
+      max-width: 1280px;
+    }
+  }
+
+  /* Card Utilities */
+  .card-base {
+    @apply bg-white rounded-lg shadow-sm transition-shadow duration-300;
+  }
+
+  .card-hover {
+    @apply hover:shadow-md;
+  }
+
   /* Animation Utilities */
   .animate-in {
     animation: animate-in 0.5s ease-out forwards;
@@ -131,6 +180,11 @@
       opacity: 1;
       transform: translateY(0);
     }
+  }
+
+  /* Smooth transitions */
+  .transition-smooth {
+    @apply transition-all duration-300 ease-in-out;
   }
 
   /* Glassmorphism */
@@ -169,5 +223,27 @@
 
   .bg-accent-pink {
     background-color: #EECFD1;
+  }
+
+  /* Touch-friendly tap targets */
+  .tap-target {
+    @apply min-h-[44px] min-w-[44px];
+  }
+
+  /* Text utilities for mobile */
+  .text-mobile-sm {
+    @apply text-sm;
+  }
+
+  .text-mobile-base {
+    @apply text-base;
+  }
+
+  .text-mobile-lg {
+    @apply text-lg md:text-xl;
+  }
+
+  .text-mobile-xl {
+    @apply text-xl md:text-2xl;
   }
 }

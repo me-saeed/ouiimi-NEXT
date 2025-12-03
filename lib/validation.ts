@@ -115,8 +115,14 @@ export const serviceCreateSchema = z.object({
   duration: z.string().min(1, "Duration is required"),
   baseCost: z.number().min(0, "Base cost must be 0 or greater"),
   description: z.string().optional(),
-  address: z.string().min(5, "Address is required"),
-  addOns: z.array(addOnSchema).optional(),
+  address: z.string().min(5, "Address must be at least 5 characters"),
+  defaultStaffIds: z.array(z.string()).optional(),
+  addOns: z.array(
+    z.object({
+      name: z.string(),
+      cost: z.number().min(0),
+    })
+  ).optional(),
   timeSlots: z.array(timeSlotSchema).optional(),
 });
 

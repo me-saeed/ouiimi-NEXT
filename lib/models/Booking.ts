@@ -46,7 +46,6 @@ const bookingSchema = new Schema<IBooking>(
       type: Schema.Types.ObjectId,
       ref: "Service",
       required: true,
-      index: true,
     },
     staffId: {
       type: Schema.Types.ObjectId,
