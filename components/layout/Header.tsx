@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
+import { useState } from "react";
 
 interface HeaderProps {
   user?: {
@@ -14,92 +15,52 @@ interface HeaderProps {
 export default function Header({ user }: HeaderProps) {
   const router = useRouter();
   const pathname = usePathname();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  const navLinks = [
-    { href: "/business", label: "Small Business" },
+  const sidebarLinks = [
     { href: "/about", label: "About" },
+    { href: "/profile", label: "Shopper" },
+    { href: "/business", label: "Small Business" },
+    { href: "/how-it-works", label: "How it works" },
   ];
 
   return (
-    <header className="sticky top-0 z-50 w-full bg-[#EECFD1] text-black shadow-lg border-b border-[#EECFD1]/20">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex h-16 items-center justify-between">
-          {/* Left: Logo */}
-          <Link href="/" className="flex items-center group">
-            <h1 className="text-xl sm:text-2xl font-bold text-black tracking-tight group-hover:text-black/80 transition-colors duration-200">
-              ouiimi
-            </h1>
-          </Link>
-
-          {/* Center: Navigation Links */}
-          <nav className="hidden md:flex items-center space-x-1 lg:space-x-2">
-            {navLinks.map((link) => {
-              const isActive = pathname === link.href || pathname?.startsWith(link.href + "/");
-              return (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  className={`px-4 py-2 rounded-lg text-sm lg:text-base font-medium transition-all duration-200 ${
-                    isActive
-                      ? "text-black bg-black/10 font-semibold"
-                      : "text-black/80 hover:text-black hover:bg-black/5"
-                  }`}
-                >
-                  {link.label}
-                </Link>
-              );
-            })}
-          </nav>
-
-          {/* Right: Icons */}
-          <div className="flex items-center space-x-3">
-            {/* User Icon */}
-            {user ? (
-              <Link
-                href="/profile"
-                className="text-black/90 hover:text-black hover:bg-black/10 transition-all duration-200 p-2 rounded-lg"
-                aria-label="User profile"
+    <>
+      <header className="sticky top-0 z-50 w-full bg-[#EECFD1] shadow-sm">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex h-16 items-center justify-between">
+            {/* Left: Hamburger Menu */}
+            <button
+              onClick={() => setSidebarOpen(true)}
+              className="text-[#3A3A3A] hover:bg-black/5 transition-all duration-200 p-2 rounded-lg"
+              aria-label="Open menu"
+            >
+              <svg
+                className="w-6 h-6"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                strokeWidth={2}
               >
-                <svg
-                  className="w-6 h-6"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                  strokeWidth={1.5}
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"
-                  />
-                </svg>
-              </Link>
-            ) : (
-              <Link
-                href="/signin"
-                className="text-black/90 hover:text-black hover:bg-black/10 transition-all duration-200 p-2 rounded-lg"
-                aria-label="Sign in"
-              >
-                <svg
-                  className="w-6 h-6"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                  strokeWidth={1.5}
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"
-                  />
-                </svg>
-              </Link>
-            )}
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"
+                />
+              </svg>
+            </button>
 
-            {/* Cart Icon */}
+            {/* Center: Logo */}
+            <Link href="/" className="flex items-center group">
+              <h1 className="text-xl sm:text-2xl font-bold text-white tracking-tight group-hover:text-white/90 transition-colors duration-200">
+                ouiimi
+              </h1>
+            </Link>
+
+            {/* Right: Cart Icon */}
             <Link
               href="/cart"
-              className="text-black/90 hover:text-black hover:bg-black/10 transition-all duration-200 p-2 rounded-lg relative"
+              className="text-[#3A3A3A] hover:bg-black/5 transition-all duration-200 p-2 rounded-lg relative"
               aria-label="Shopping cart"
             >
               <svg
@@ -107,7 +68,7 @@ export default function Header({ user }: HeaderProps) {
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
-                strokeWidth={1.5}
+                strokeWidth={2}
               >
                 <path
                   strokeLinecap="round"
@@ -118,8 +79,62 @@ export default function Header({ user }: HeaderProps) {
             </Link>
           </div>
         </div>
-      </div>
-    </header>
+      </header>
+
+      {/* Sidebar */}
+      {sidebarOpen && (
+        <>
+          <div
+            className="fixed inset-0 bg-black/50 z-50"
+            onClick={() => setSidebarOpen(false)}
+          />
+          <div className="fixed left-0 top-0 h-full w-64 bg-white shadow-2xl z-50 transform transition-transform">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-8">
+                <h2 className="text-xl font-bold text-[#3A3A3A]">Menu</h2>
+                <button
+                  onClick={() => setSidebarOpen(false)}
+                  className="text-[#3A3A3A] hover:text-black"
+                >
+                  <svg
+                    className="w-6 h-6"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    strokeWidth={2}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                </button>
+              </div>
+              <nav className="space-y-2">
+                {sidebarLinks.map((link) => {
+                  const isActive = pathname === link.href || pathname?.startsWith(link.href + "/");
+                  return (
+                    <Link
+                      key={link.href}
+                      href={link.href}
+                      onClick={() => setSidebarOpen(false)}
+                      className={`block px-4 py-3 rounded-lg text-[#3A3A3A] font-medium transition-all duration-200 ${
+                        isActive
+                          ? "bg-[#EECFD1] text-[#3A3A3A] font-semibold"
+                          : "hover:bg-[#EECFD1]/50 hover:text-[#3A3A3A]"
+                      }`}
+                    >
+                      {link.label}
+                    </Link>
+                  );
+                })}
+              </nav>
+            </div>
+          </div>
+        </>
+      )}
+    </>
   );
 }
 

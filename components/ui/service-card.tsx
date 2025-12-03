@@ -29,13 +29,12 @@ export function ServiceCard({
     return (
         <Link
             href={`/services/${id}`}
-            className="group block bg-card rounded-xl overflow-hidden border border-border/50 shadow-sm hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 flex-shrink-0 w-[280px] md:w-[320px]"
-            style={{ scrollSnapAlign: "start" }}
+            className="group block bg-[#D9D9D9] rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 flex-shrink-0 w-[280px]"
         >
-            <div className="p-4 space-y-3">
+            <div className="p-4 space-y-3 bg-white">
                 {/* Business Logo and Name */}
                 <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center overflow-hidden flex-shrink-0">
+                    <div className="w-12 h-12 rounded-full bg-white border-2 border-[#D9D9D9] flex items-center justify-center overflow-hidden flex-shrink-0">
                         {image && image !== "/placeholder-logo.png" ? (
                             // eslint-disable-next-line @next/next/no-img-element
                             <img
@@ -44,49 +43,43 @@ export function ServiceCard({
                                 className="w-full h-full object-cover"
                             />
                         ) : (
-                            <span className="text-lg font-bold text-muted-foreground">
+                            <span className="text-lg font-bold text-[#3A3A3A]">
                                 {businessName?.charAt(0) || "B"}
                             </span>
                         )}
                     </div>
                     <div className="flex-1 min-w-0">
-                        <p className="text-xs font-medium text-muted-foreground truncate">
+                        <p className="text-sm font-semibold text-[#3A3A3A] truncate">
                             {businessName || "Business"}
                         </p>
-                        <h3 className="font-semibold text-foreground line-clamp-1 text-sm leading-tight group-hover:text-primary/80 transition-colors">
+                        <h3 className="font-medium text-[#3A3A3A] line-clamp-1 text-sm leading-tight">
                             {name}
                         </h3>
                     </div>
                 </div>
 
-                {/* Service Details */}
-                <div className="space-y-1.5 text-xs text-muted-foreground">
+                {/* Service Details - Format as per design */}
+                <div className="space-y-1 text-sm text-[#3A3A3A]">
                     {duration && (
-                        <div className="flex items-center gap-1">
+                        <div className="flex items-center justify-between">
                             <span className="font-medium">Duration:</span>
                             <span>{duration}</span>
                         </div>
                     )}
-                    {date && time && (
-                        <div className="flex items-center gap-1">
-                            <span className="font-medium">Next:</span>
-                            <span>{date} {time}</span>
+                    <div className="flex items-center justify-between">
+                        <span className="font-medium">Cost:</span>
+                        <span className="font-bold">${price.toFixed(2)}</span>
+                    </div>
+                    {date && (
+                        <div className="flex items-center justify-between">
+                            <span className="font-medium">Date:</span>
+                            <span>{date}</span>
                         </div>
                     )}
-                </div>
-
-                {/* Price */}
-                <div className="flex items-center justify-between pt-2 border-t border-border/50">
-                    <p className="font-bold text-lg text-foreground">
-                        ${price.toFixed(2)}
-                    </p>
-                    {location && (
-                        <div className="flex items-center text-xs text-muted-foreground">
-                            <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                            </svg>
-                            <span className="truncate max-w-[80px]">{location}</span>
+                    {time && (
+                        <div className="flex items-center justify-between">
+                            <span className="font-medium">Time:</span>
+                            <span>{time}</span>
                         </div>
                     )}
                 </div>
