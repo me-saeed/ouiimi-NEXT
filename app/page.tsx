@@ -148,51 +148,27 @@ export default function HomePage() {
 
   return (
     <PageLayout user={user}>
-      <div className="bg-gradient-to-b from-background via-secondary/5 to-background min-h-screen">
-        {/* Book Now Button */}
-        <div className="py-8 md:py-12 flex justify-center">
-          <Button
-            size="lg"
-            className="h-12 px-8 rounded-xl btn-polished-primary shadow-lg hover:shadow-xl font-semibold text-base"
-            asChild
-          >
-            <Link href="/services" className="inline-flex items-center gap-2">
-              <span>Book Now</span>
-              <ArrowRight className="w-5 h-5" />
-            </Link>
-          </Button>
-        </div>
-
-        {/* Search Section */}
-        <section className="bg-gradient-to-b from-background via-secondary/5 to-background border-b border-border/40 py-12 md:py-16 relative overflow-hidden">
-          <div className="container relative z-10">
-            <div className="max-w-3xl mx-auto">
-              <div className="bg-card rounded-2xl shadow-lg border border-border/50 p-4">
-                <div className="flex flex-col sm:flex-row gap-3">
-                  <div className="flex-1 relative">
-                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground">
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                      </svg>
-                    </div>
-                    <Input
-                      type="text"
-                      placeholder="Search services..."
-                      className="pl-12 h-12 bg-background border-border focus:ring-2 focus:ring-primary/20 text-base"
-                    />
-                  </div>
-                  <Button size="lg" className="h-12 px-8 rounded-xl btn-polished-primary font-semibold">
-                    Search
-                  </Button>
-                </div>
-              </div>
+      <div className="bg-white min-h-screen">
+        {/* Book Button - Below Nav */}
+        <div className="bg-white py-4 border-b border-gray-200">
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex justify-center">
+              <Link
+                href="/services"
+                className="bg-[#EECFD1] text-[#3A3A3A] px-8 py-2.5 rounded-lg font-semibold hover:bg-[#EECFD1]/90 transition-colors shadow-sm"
+              >
+                Book
+              </Link>
             </div>
           </div>
-        </section>
+        </div>
 
-        {/* Services Section */}
-        <section className="py-12 md:py-16 space-y-16 md:space-y-20 bg-background">
+        {/* Discover Section */}
+        <section className="py-8 md:py-12 bg-white">
           <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl">
+            <h1 className="text-3xl md:text-4xl font-bold text-[#3A3A3A] mb-8 md:mb-12 text-center">
+              Discover
+            </h1>
 
             {/* Service Categories */}
             {SERVICE_CATEGORIES.map((category, categoryIndex) => {

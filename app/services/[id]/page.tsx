@@ -122,158 +122,34 @@ function ServiceDetailContent() {
 
   return (
     <PageLayout user={user || null}>
-      <div className="bg-gradient-to-b from-background via-secondary/5 to-background min-h-screen py-12 md:py-16">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="max-w-6xl mx-auto">
-            {/* Back Button */}
-            <button
-              onClick={() => router.back()}
-              className="flex items-center text-muted-foreground hover:text-foreground mb-8 transition-colors group"
-            >
-              <svg className="w-5 h-5 mr-2 group-hover:-translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-              Back
-            </button>
-
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-              {/* Main Content */}
-              <div className="lg:col-span-2 space-y-8">
-                {/* Service Header Card */}
-                <div className="bg-card rounded-2xl shadow-xl border border-border/50 p-8">
-                  <div className="mb-6">
-                    <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-4">
-                      {service.serviceName}
-                    </h1>
-                    
-                    {service.category && (
-                      <div className="flex items-center gap-3 mb-6">
-                        <span className="px-4 py-1.5 bg-primary/10 text-primary rounded-full text-sm font-semibold">
-                          {service.category}
-                        </span>
-                        {service.subCategory && (
-                          <span className="px-4 py-1.5 bg-muted text-muted-foreground rounded-full text-sm">
-                            {service.subCategory}
-                          </span>
-                        )}
-                      </div>
-                    )}
-
-                    <div className="flex flex-wrap items-center gap-6 text-muted-foreground mb-6">
-                      {service.duration && (
-                        <div className="flex items-center gap-2">
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                          </svg>
-                          <span className="font-medium">{service.duration}</span>
-                        </div>
-                      )}
-                      {service.address && (
-                        <div className="flex items-center gap-2">
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                          </svg>
-                          <span className="font-medium">{service.address}</span>
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="text-4xl font-bold text-foreground">
-                      ${service.baseCost?.toFixed(2) || "0.00"}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Description */}
-                {service.description && (
-                  <div className="bg-card rounded-2xl shadow-lg border border-border/50 p-8">
-                    <h2 className="text-2xl font-bold text-foreground mb-4">Description</h2>
-                    <p className="text-muted-foreground leading-relaxed whitespace-pre-line">
-                      {service.description}
-                    </p>
-                  </div>
+      <div className="bg-white min-h-screen py-6 md:py-8">
+        <div className="container mx-auto px-4 sm:px-6 max-w-2xl">
+          {/* Booking Card - Mobile First Design */}
+          <div className="bg-white rounded-lg shadow-lg border border-gray-200 p-6 md:p-8">
+            {/* Business Header */}
+            {business && (
+              <div className="flex items-center gap-4 mb-6 pb-6 border-b border-gray-200">
+                {business.logo && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={business.logo}
+                    alt={business.businessName}
+                    className="w-16 h-16 rounded-full object-cover border-2 border-gray-200"
+                  />
                 )}
-
-                {/* Add-ons */}
-                {service.addOns && service.addOns.length > 0 && (
-                  <div className="bg-card rounded-2xl shadow-lg border border-border/50 p-8">
-                    <h2 className="text-2xl font-bold text-foreground mb-6">Add-ons</h2>
-                    <div className="space-y-3">
-                      {service.addOns.map((addOn: any, index: number) => (
-                        <div key={index} className="flex justify-between items-center py-3 px-4 bg-muted/50 rounded-xl border border-border/50">
-                          <span className="text-foreground font-medium">{addOn.name}</span>
-                          <span className="font-bold text-foreground">+${addOn.cost?.toFixed(2) || "0.00"}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Sidebar - Booking Card */}
-              <div className="lg:col-span-1">
-                <div className="bg-card rounded-2xl shadow-xl border border-border/50 p-6 sticky top-24">
-                  {/* Business Info */}
-                  {business && (
-                    <div className="mb-6 pb-6 border-b border-border/50">
-                      <h3 className="text-lg font-bold text-foreground mb-4">Business</h3>
-                      <div className="flex items-start gap-3">
-                        {business.logo && (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img
-                            src={business.logo}
-                            alt={business.businessName}
-                            className="w-14 h-14 rounded-xl object-cover border border-border/50"
-                          />
-                        )}
-                        <div className="flex-1">
-                          <Link
-                            href={`/business/${business._id || business.id}`}
-                            className="font-bold text-foreground hover:text-primary transition-colors block"
-                          >
-                            {business.businessName}
-                          </Link>
-                          {business.address && (
-                            <p className="text-sm text-muted-foreground mt-1.5">
-                              {business.address}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Pricing */}
-                  <div className="mb-6 pb-6 border-b border-border/50">
-                    <div className="flex justify-between items-baseline">
-                      <span className="text-muted-foreground font-medium">Base Price</span>
-                      <span className="text-3xl font-bold text-foreground">
-                        ${service.baseCost?.toFixed(2) || "0.00"}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Booking Form */}
-                  <BookingForm service={service} business={business} />
-
-                  {/* Status */}
-                  {service.status && (
-                    <div className="mt-6 text-center">
-                      <span className={`px-4 py-2 rounded-full text-sm font-semibold ${
-                        service.status === 'listed'
-                          ? 'bg-primary/10 text-primary'
-                          : service.status === 'booked'
-                          ? 'bg-yellow-100 text-yellow-800'
-                          : 'bg-muted text-muted-foreground'
-                      }`}>
-                        {service.status.toUpperCase()}
-                      </span>
-                    </div>
-                  )}
+                <div className="flex-1">
+                  <Link
+                    href={`/business/${business._id || business.id}`}
+                    className="text-lg font-bold text-[#3A3A3A] hover:text-[#EECFD1] transition-colors block"
+                  >
+                    {business.businessName}
+                  </Link>
                 </div>
               </div>
-            </div>
+            )}
+
+            {/* Booking Form */}
+            <BookingForm service={service} business={business} />
           </div>
         </div>
       </div>
@@ -291,6 +167,7 @@ function BookingForm({ service, business }: { service: any; business: any }) {
   const [description, setDescription] = useState<string>("");
   const [error, setError] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
+  const [staffBusyStatus, setStaffBusyStatus] = useState<Record<string, boolean>>({});
 
   // Fix date logic - properly filter and sort dates
   const today = new Date();
@@ -350,6 +227,70 @@ function BookingForm({ service, business }: { service: any; business: any }) {
       }))
     : [];
 
+  // Check staff busy status when date and time slot are selected
+  useEffect(() => {
+    const checkStaffAvailability = async () => {
+      if (!selectedDate || !selectedTimeSlot) {
+        setStaffBusyStatus({});
+        return;
+      }
+
+      try {
+        const token = localStorage.getItem("token");
+        if (!token) return;
+
+        const busyStatus: Record<string, boolean> = {};
+        
+        // Check each staff member's availability
+        await Promise.all(
+          availableStaff.map(async (staff: any) => {
+            try {
+              const response = await fetch(
+                `/api/bookings?staffId=${staff.id}&date=${selectedDate}&status=confirmed,pending`,
+                {
+                  headers: {
+                    Authorization: `Bearer ${token}`,
+                  },
+                }
+              );
+              
+              if (response.ok) {
+                const data = await response.json();
+                const bookings = data.bookings || [];
+                
+                // Check if staff is busy at this time
+                const isBusy = bookings.some((booking: any) => {
+                  const bookingStart = booking.timeSlot.startTime;
+                  const bookingEnd = booking.timeSlot.endTime;
+                  const slotStart = selectedTimeSlot.startTime;
+                  const slotEnd = selectedTimeSlot.endTime;
+                  
+                  // Check for time overlap
+                  return (
+                    (slotStart >= bookingStart && slotStart < bookingEnd) ||
+                    (slotEnd > bookingStart && slotEnd <= bookingEnd) ||
+                    (slotStart <= bookingStart && slotEnd >= bookingEnd)
+                  );
+                });
+                
+                busyStatus[staff.id] = isBusy;
+              }
+            } catch (err) {
+              console.error(`Error checking availability for staff ${staff.id}:`, err);
+            }
+          })
+        );
+        
+        setStaffBusyStatus(busyStatus);
+      } catch (err) {
+        console.error("Error checking staff availability:", err);
+      }
+    };
+
+    checkStaffAvailability();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedDate, selectedTimeSlot]);
+
   const calculateTotal = () => {
     const baseCost = service.baseCost || 0;
     const addOnsCost = selectedAddOns.reduce((sum, addon) => sum + addon.cost, 0);
@@ -407,17 +348,17 @@ function BookingForm({ service, business }: { service: any; business: any }) {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       {error && (
-        <Alert variant="destructive" className="border-red-200 bg-red-50/50">
-          <AlertDescription className="text-red-800 font-medium">{error}</AlertDescription>
-        </Alert>
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+          <p className="text-red-800 text-sm font-medium">{error}</p>
+        </div>
       )}
 
-      <div className="space-y-5">
+      <div className="space-y-4">
         <div className="space-y-2">
-          <label className="text-sm font-semibold text-foreground mb-2 block">
-            Select Date <span className="text-destructive">*</span>
+          <label className="text-sm font-semibold text-[#3A3A3A] mb-1.5 block">
+            Date:
           </label>
           <select
             value={selectedDate}
@@ -426,17 +367,16 @@ function BookingForm({ service, business }: { service: any; business: any }) {
               setSelectedTimeSlot(null);
               setSelectedStaff("");
             }}
-            className="w-full px-4 py-3 rounded-xl border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+            className="w-full px-4 py-3 rounded-lg border border-gray-300 bg-white text-[#3A3A3A] text-sm focus:outline-none focus:ring-1 focus:ring-[#EECFD1] focus:border-[#EECFD1] transition-all appearance-none bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTIiIGhlaWdodD0iOCIgdmlld0JveD0iMCAwIDEyIDgiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0iTTEgMUw2IDZMMTEgMSIgc3Ryb2tlPSIjNjY2IiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPjwvc3ZnPg==')] bg-no-repeat bg-right-3 pr-10"
           >
-            <option value="">Choose a date</option>
+            <option value="">Select Date</option>
             {availableDates.map((date: string) => {
               const dateObj = new Date(date);
               return (
                 <option key={date} value={date}>
-                  {dateObj.toLocaleDateString("en-US", {
-                    weekday: "long",
-                    day: "numeric",
-                    month: "long",
+                  {dateObj.toLocaleDateString("en-GB", {
+                    day: "2-digit",
+                    month: "2-digit",
                     year: "numeric",
                   })}
                 </option>
@@ -459,8 +399,8 @@ function BookingForm({ service, business }: { service: any; business: any }) {
 
         {selectedDate && availableTimeSlots.length > 0 && (
           <div className="space-y-2">
-            <label className="text-sm font-semibold text-foreground mb-2 block">
-              Select Time <span className="text-destructive">*</span>
+            <label className="text-sm font-semibold text-[#3A3A3A] mb-1.5 block">
+              Time:
             </label>
             <select
               value={selectedTimeSlot ? `${selectedTimeSlot.startTime}-${selectedTimeSlot.endTime}` : ""}
@@ -472,17 +412,27 @@ function BookingForm({ service, business }: { service: any; business: any }) {
                 setSelectedTimeSlot(slot);
                 setSelectedStaff("");
               }}
-              className="w-full px-4 py-3 rounded-xl border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+              className="w-full px-4 py-3 rounded-lg border border-gray-300 bg-white text-[#3A3A3A] text-sm focus:outline-none focus:ring-1 focus:ring-[#EECFD1] focus:border-[#EECFD1] transition-all appearance-none bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTIiIGhlaWdodD0iOCIgdmlld0JveD0iMCAwIDEyIDgiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0iTTEgMUw2IDZMMTEgMSIgc3Ryb2tlPSIjNjY2IiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPjwvc3ZnPg==')] bg-no-repeat bg-right-3 pr-10"
             >
-              <option value="">Choose a time</option>
-              {availableTimeSlots.map((slot: any, idx: number) => (
-                <option
-                  key={idx}
-                  value={`${slot.startTime}-${slot.endTime}`}
-                >
-                  {slot.startTime} - {slot.endTime}
-                </option>
-              ))}
+              <option value="">Select Preferred Time</option>
+              {availableTimeSlots.map((slot: any, idx: number) => {
+                // Calculate duration
+                const start = new Date(`2000-01-01T${slot.startTime}`);
+                const end = new Date(`2000-01-01T${slot.endTime}`);
+                const durationMs = end.getTime() - start.getTime();
+                const hours = Math.floor(durationMs / (1000 * 60 * 60));
+                const minutes = Math.floor((durationMs % (1000 * 60 * 60)) / (1000 * 60));
+                const duration = hours > 0 ? `${hours}hr${minutes > 0 ? ` ${minutes}mins` : ''}` : `${minutes}mins`;
+                
+                return (
+                  <option
+                    key={idx}
+                    value={`${slot.startTime}-${slot.endTime}`}
+                  >
+                    {slot.startTime} - {slot.endTime} {duration}
+                  </option>
+                );
+              })}
             </select>
           </div>
         )}
@@ -497,82 +447,138 @@ function BookingForm({ service, business }: { service: any; business: any }) {
 
         {availableStaff.length > 0 && selectedTimeSlot && (
           <div className="space-y-2">
-            <label className="text-sm font-semibold text-foreground mb-2 block">
-              Preferred Staff <span className="text-muted-foreground text-xs">(Optional)</span>
+            <label className="text-sm font-semibold text-[#3A3A3A] mb-1.5 block">
+              Staff:
             </label>
             <select
               value={selectedStaff}
               onChange={(e) => setSelectedStaff(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+              className="w-full px-4 py-3 rounded-lg border border-gray-300 bg-white text-[#3A3A3A] text-sm focus:outline-none focus:ring-1 focus:ring-[#EECFD1] focus:border-[#EECFD1] transition-all appearance-none bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTIiIGhlaWdodD0iOCIgdmlld0JveD0iMCAwIDEyIDgiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0iTTEgMUw2IDZMMTEgMSIgc3Ryb2tlPSIjNjY2IiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPjwvc3ZnPg==')] bg-no-repeat bg-right-3 pr-10"
             >
-              <option value="">Any available staff</option>
-              {availableStaff.map((staff: any) => (
-                <option key={staff.id} value={staff.id}>
-                  {staff.name}
-                </option>
-              ))}
+              <option value="">Select Preferred Staff</option>
+              {availableStaff.map((staff: any) => {
+                const isBusy = staffBusyStatus[staff.id] || false;
+                return (
+                  <option key={staff.id} value={staff.id} disabled={isBusy}>
+                    {staff.name} {isBusy ? "Busy" : ""}
+                  </option>
+                );
+              })}
             </select>
           </div>
         )}
 
         <div className="space-y-2">
-          <label className="text-sm font-semibold text-foreground mb-2 block">
-            Service Address
+          <label className="text-sm font-semibold text-[#3A3A3A] mb-1.5 block">
+            Service:
+          </label>
+          <input
+            type="text"
+            value={service.serviceName || ""}
+            disabled
+            className="w-full px-4 py-3 rounded-lg border border-gray-300 bg-gray-50 text-[#3A3A3A] text-sm"
+          />
+        </div>
+
+        <div className="space-y-2">
+          <label className="text-sm font-semibold text-[#3A3A3A] mb-1.5 block">
+            Address:
           </label>
           <input
             type="text"
             value={service.address || (typeof service.businessId === 'object' ? service.businessId.address : business?.address) || ""}
             disabled
-            className="w-full px-4 py-3 rounded-xl border border-border bg-muted/50 text-muted-foreground"
+            className="w-full px-4 py-3 rounded-lg border border-gray-300 bg-gray-50 text-[#3A3A3A] text-sm"
           />
         </div>
 
         <div className="space-y-2">
-          <label className="text-sm font-semibold text-foreground mb-2 block">
-            Special Requests <span className="text-muted-foreground text-xs">(Optional)</span>
+          <label className="text-sm font-semibold text-[#3A3A3A] mb-1.5 block">
+            Description:
           </label>
           <textarea
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder="Any special requests or notes for the service provider..."
+            value={service.description || ""}
+            disabled
             rows={4}
-            className="w-full px-4 py-3 rounded-xl border border-border bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all resize-none"
+            className="w-full px-4 py-3 rounded-lg border border-gray-300 bg-gray-50 text-[#3A3A3A] text-sm resize-none"
+          />
+        </div>
+
+        <div className="space-y-2">
+          <label className="text-sm font-semibold text-[#3A3A3A] mb-1.5 block">
+            cost:
+          </label>
+          <input
+            type="text"
+            value={`$${service.baseCost?.toFixed(2) || "0.00"}`}
+            disabled
+            className="w-full px-4 py-3 rounded-lg border border-gray-300 bg-gray-50 text-[#3A3A3A] text-sm font-semibold"
           />
         </div>
 
         {/* Add-ons */}
         {service.addOns && service.addOns.length > 0 && (
-          <div className="space-y-3 pt-4 border-t border-border/50">
-            <label className="text-sm font-semibold text-foreground block">
-              Add-Ons <span className="text-muted-foreground text-xs font-normal">(Optional)</span>
+          <div className="space-y-2">
+            <label className="text-sm font-semibold text-[#3A3A3A] mb-1.5 block">
+              Add-Ons:
             </label>
-            <div className="space-y-2.5">
+            <select
+              value=""
+              onChange={(e) => {
+                if (e.target.value) {
+                  const addon = service.addOns.find((a: any) => a.name === e.target.value);
+                  if (addon && !selectedAddOns.some((a) => a.name === addon.name)) {
+                    setSelectedAddOns([...selectedAddOns, { name: addon.name, cost: addon.cost || 0 }]);
+                  }
+                  e.target.value = "";
+                }
+              }}
+              className="w-full px-4 py-3 rounded-lg border border-gray-300 bg-white text-[#3A3A3A] text-sm focus:outline-none focus:ring-1 focus:ring-[#EECFD1] focus:border-[#EECFD1] transition-all appearance-none bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTIiIGhlaWdodD0iOCIgdmlld0JveD0iMCAwIDEyIDgiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0iTTEgMUw2IDZMMTEgMSIgc3Ryb2tlPSIjNjY2IiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPjwvc3ZnPg==')] bg-no-repeat bg-right-3 pr-10"
+            >
+              <option value="">Add-Ons</option>
               {service.addOns.map((addon: any, idx: number) => (
-                <label 
-                  key={idx} 
-                  className="flex items-center justify-between p-3 rounded-xl border border-border/50 hover:bg-muted/30 cursor-pointer transition-colors"
-                >
-                  <div className="flex items-center gap-3">
-                    <input
-                      type="checkbox"
-                      checked={selectedAddOns.some((a) => a.name === addon.name)}
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          setSelectedAddOns([...selectedAddOns, addon]);
-                        } else {
-                          setSelectedAddOns(selectedAddOns.filter((a) => a.name !== addon.name));
-                        }
-                      }}
-                      className="w-4 h-4 rounded border-border text-primary focus:ring-primary"
-                    />
-                    <span className="text-sm font-medium text-foreground">{addon.name}</span>
-                  </div>
-                  <span className="text-sm font-semibold text-foreground">+${addon.cost.toFixed(2)}</span>
-                </label>
+                <option key={idx} value={addon.name}>
+                  {addon.name} ${addon.cost?.toFixed(2) || "0.00"}
+                </option>
               ))}
-            </div>
+            </select>
+            {selectedAddOns.length > 0 && (
+              <div className="mt-2 space-y-1.5 pl-2">
+                {selectedAddOns.map((addon, idx) => (
+                  <div key={idx} className="flex items-center justify-between text-sm text-[#3A3A3A]">
+                    <span>{addon.name}</span>
+                    <span className="font-semibold">${addon.cost.toFixed(2)}</span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
+
+        <div className="space-y-2 pt-2">
+          <label className="text-sm font-semibold text-[#3A3A3A] mb-1.5 block">
+            Total Cost:
+          </label>
+          <input
+            type="text"
+            value={`= cost + add-ons`}
+            disabled
+            className="w-full px-4 py-3 rounded-lg border border-gray-300 bg-gray-50 text-[#3A3A3A] text-sm"
+          />
+          <div className="text-right mt-2">
+            <span className="text-xl font-bold text-[#3A3A3A]">
+              ${calculateTotal().toFixed(2)}
+            </span>
+          </div>
+        </div>
+
+        <button
+          onClick={handleAddToCart}
+          disabled={!selectedDate || !selectedTimeSlot || isLoading}
+          className="w-full bg-[#EECFD1] text-[#3A3A3A] hover:bg-[#EECFD1]/90 rounded-lg py-3.5 text-base font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed mt-4"
+        >
+          {isLoading ? "Processing..." : "Book Now"}
+        </button>
 
         {/* Pricing Summary */}
         <div className="pt-4 border-t border-border/50 space-y-3">
