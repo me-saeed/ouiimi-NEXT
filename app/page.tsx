@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { ServiceCard } from "@/components/ui/service-card";
 import { ServiceCarousel } from "@/components/ui/service-carousel";
 import { ArrowRight } from "lucide-react";
+import { useAuth } from "@/lib/contexts/AuthContext";
 
 const SERVICE_CATEGORIES = [
   "Hair Services",
@@ -36,28 +37,18 @@ interface Service {
 }
 
 export default function HomePage() {
-  const [user, setUser] = useState<any>(null);
+  const { user } = useAuth();
   const [services, setServices] = useState<Record<string, Service[]>>({});
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    const userData = localStorage.getItem("user");
-    if (token && userData) {
-      try {
-        setUser(JSON.parse(userData));
-      } catch (e) {
-        console.error("Error parsing user data:", e);
-      }
-    }
-
     loadServices();
   }, []);
 
   const loadServices = async () => {
     try {
       const servicesData: Record<string, Service[]> = {};
-      
+
       // Fetch services for each category
       await Promise.all(
         SERVICE_CATEGORIES.map(async (category) => {
@@ -118,7 +109,7 @@ export default function HomePage() {
   const formatServiceForCard = (service: Service) => {
     const { date, time } = getNextAvailableTimeSlot(service);
     const business = typeof service.businessId === 'object' ? service.businessId : null;
-    
+
     return {
       id: service.id,
       name: service.serviceName,
@@ -153,12 +144,9 @@ export default function HomePage() {
         <div className="bg-white py-4 border-b border-gray-200">
           <div className="container mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex justify-center">
-              <Link
-                href="/services"
-                className="bg-[#EECFD1] text-[#3A3A3A] px-8 py-2.5 rounded-lg font-semibold hover:bg-[#EECFD1]/90 transition-colors shadow-sm"
-              >
-                Book
-              </Link>
+              <Button variant="pink" size="lg" asChild>
+                <Link href="/services">Book</Link>
+              </Button>
             </div>
           </div>
         </div>
@@ -173,7 +161,7 @@ export default function HomePage() {
             {/* Service Categories */}
             {SERVICE_CATEGORIES.map((category, categoryIndex) => {
               const categoryServices = services[category] || [];
-              
+
               if (isLoading) {
                 return (
                   <div key={category} className="space-y-6">

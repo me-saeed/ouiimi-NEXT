@@ -29,10 +29,10 @@ export default function Header({ user }: HeaderProps) {
       <header className="sticky top-0 z-50 w-full bg-[#EECFD1] shadow-sm">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex h-16 items-center justify-between">
-            {/* Left: Hamburger Menu */}
+            {/* Left: Hamburger Menu (Mobile Only) */}
             <button
               onClick={() => setSidebarOpen(true)}
-              className="text-[#3A3A3A] hover:bg-black/5 transition-all duration-200 p-2 rounded-lg"
+              className="md:hidden text-[#3A3A3A] hover:bg-black/5 transition-all duration-200 p-2 rounded-lg"
               aria-label="Open menu"
             >
               <svg
@@ -56,6 +56,25 @@ export default function Header({ user }: HeaderProps) {
                 ouiimi
               </h1>
             </Link>
+
+            {/* Desktop Navigation (Hidden on Mobile) */}
+            <nav className="hidden md:flex items-center gap-6 absolute left-1/2 transform -translate-x-1/2">
+              {sidebarLinks.map((link) => {
+                const isActive = pathname === link.href || pathname?.startsWith(link.href + "/");
+                return (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    className={`text-sm font-medium transition-all duration-200 px-3 py-2 rounded-lg ${isActive
+                        ? "text-white bg-white/20"
+                        : "text-[#3A3A3A] hover:text-white hover:bg-white/10"
+                      }`}
+                  >
+                    {link.label}
+                  </Link>
+                );
+              })}
+            </nav>
 
             {/* Right: Cart Icon */}
             <Link
@@ -119,11 +138,10 @@ export default function Header({ user }: HeaderProps) {
                       key={link.href}
                       href={link.href}
                       onClick={() => setSidebarOpen(false)}
-                      className={`block px-4 py-3 rounded-lg text-[#3A3A3A] font-medium transition-all duration-200 ${
-                        isActive
+                      className={`block px-4 py-3 rounded-lg text-[#3A3A3A] font-medium transition-all duration-200 ${isActive
                           ? "bg-[#EECFD1] text-[#3A3A3A] font-semibold"
                           : "hover:bg-[#EECFD1]/50 hover:text-[#3A3A3A]"
-                      }`}
+                        }`}
                     >
                       {link.label}
                     </Link>
