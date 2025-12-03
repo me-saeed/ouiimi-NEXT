@@ -8,10 +8,12 @@ import { BookingsTab } from "@/components/business/BookingsTab";
 import { ListTab } from "@/components/business/ListTab";
 import { StaffTab } from "@/components/business/StaffTab";
 import { DetailsTab } from "@/components/business/DetailsTab";
+import { Button } from "@/components/ui/button";
+import { useAuth } from "@/lib/contexts/AuthContext";
 
 export default function BusinessDashboardPage() {
   const router = useRouter();
-  const [user, setUser] = useState<any>(null);
+  const { user, isAuthenticated } = useAuth();
   const [business, setBusiness] = useState<any>(null);
   const [stats, setStats] = useState({
     services: 0,
@@ -24,18 +26,19 @@ export default function BusinessDashboardPage() {
 
   useEffect(() => {
     const loadDashboardData = async () => {
-      const token = localStorage.getItem("token");
-      const userData = localStorage.getItem("user");
+      if (!isAuthenticated) {
+        router.push("/signin");
+        return;
+      }
 
-      if (!token || !userData) {
+      const token = localStorage.getItem("token");
+      if (!token) {
         router.push("/signin");
         return;
       }
 
       try {
-        const parsedUser = JSON.parse(userData);
-        setUser(parsedUser);
-        const userId = parsedUser.id || parsedUser._id;
+        const userId = user?.id || user?._id;
 
         if (!userId) {
           console.error("User ID not found");
@@ -96,7 +99,7 @@ export default function BusinessDashboardPage() {
     };
 
     loadDashboardData();
-  }, [router]);
+  }, [router, user, isAuthenticated]);
 
   if (!user) {
     return (
@@ -136,9 +139,9 @@ export default function BusinessDashboardPage() {
               <p className="text-muted-foreground mb-6">
                 You need to register a business first to access the dashboard.
               </p>
-              <Link href="/business/register">
-                <button className="btn-polished-primary">Register Business</button>
-              </Link>
+              <Button variant="pink" size="lg" asChild>
+                <Link href="/business/register">Register Business</Link>
+              </Button>
             </div>
           </div>
         </div>

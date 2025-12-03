@@ -10,14 +10,7 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // MERN App Color Scheme
-        "color-primary": "#77dd77",
-        "color-secondary": "#FF8439",
-        "color-btn": "#FF8439",
-        "color-black": "#2C2D28",
-        "color-bg": "#F8F8F8",
-        "color-gray": "#858585",
-        // Shadcn UI colors (using MERN colors)
+        // Shadcn UI colors (using CSS variables)
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",

@@ -14,14 +14,14 @@ interface ServiceCardProps {
     time?: string | null;
 }
 
-export function ServiceCard({ 
-    id, 
-    name, 
-    price, 
-    image, 
-    category, 
-    businessName, 
-    location, 
+export function ServiceCard({
+    id,
+    name,
+    price,
+    image,
+    category,
+    businessName,
+    location,
     duration,
     date,
     time
@@ -29,7 +29,7 @@ export function ServiceCard({
     return (
         <Link
             href={`/services/${id}`}
-            className="group block bg-[#D9D9D9] rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 flex-shrink-0 w-[280px]"
+            className="group block bg-[#D9D9D9] rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 flex-shrink-0 w-full sm:w-[280px] md:w-[300px] lg:w-[320px]"
         >
             <div className="p-4 space-y-3 bg-white">
                 {/* Business Logo and Name */}

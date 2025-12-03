@@ -162,29 +162,6 @@
     display: none;
   }
 
-  /* Legacy/Utility Class Mappings for Compatibility */
-  .btn-styl {
-    @apply inline-flex items-center justify-center rounded-md text-sm font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50;
-    @apply bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm hover:shadow-md;
-    @apply px-4 py-2;
-  }
-
-  .btn-primary {
-    @apply bg-primary text-primary-foreground hover:bg-primary/90;
-  }
-
-  .btn-polished-primary {
-    @apply bg-primary text-primary-foreground hover:bg-primary/90 focus:ring-primary;
-  }
-
-  .text-color-primary {
-    @apply text-foreground;
-  }
-
-  .bg-color-primary {
-    @apply bg-primary;
-  }
-
   /* Pink Accents */
   .text-accent-pink {
     color: #EECFD1;
