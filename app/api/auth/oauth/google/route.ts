@@ -4,6 +4,8 @@ import User, { IUser } from "@/lib/models/User";
 import { generateToken } from "@/lib/jwt";
 import { withRateLimit } from "@/lib/security/rate-limit";
 
+export const dynamic = 'force-dynamic';
+
 async function googleOAuthHandler(req: NextRequest) {
   try {
     const body = await req.json();

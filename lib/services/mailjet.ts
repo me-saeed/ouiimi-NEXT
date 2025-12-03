@@ -38,7 +38,10 @@ export type EmailTemplateType =
   | "verify_email"
   | "order_confirmation"
   | "order_shipped"
-  | "order_complete";
+  | "order_complete"
+  | "booking_confirmation"
+  | "booking_cancellation"
+  | "booking_completion";
 
 /**
  * Send email using Mailjet

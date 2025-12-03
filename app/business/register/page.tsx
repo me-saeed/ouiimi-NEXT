@@ -30,13 +30,37 @@ export default function BusinessRegisterPage() {
     // Only run on client side
     if (typeof window === "undefined") return;
 
-    const checkAuth = () => {
+    const checkAuth = async () => {
       const token = localStorage.getItem("token");
       const userData = localStorage.getItem("user");
       if (token && userData) {
         try {
           const parsedUser = JSON.parse(userData);
           setUser(parsedUser);
+          
+          // Check if business already exists
+          const userId = parsedUser.id || parsedUser._id;
+          if (userId) {
+            try {
+              const businessResponse = await fetch(`/api/business/search?userId=${userId}`, {
+                headers: {
+                  Authorization: `Bearer ${token}`,
+                },
+              });
+              
+              if (businessResponse.ok) {
+                const businessData = await businessResponse.json();
+                if (businessData.businesses && businessData.businesses.length > 0) {
+                  // Business exists, redirect to dashboard
+                  router.push("/business/dashboard");
+                  return;
+                }
+              }
+            } catch (e) {
+              console.error("Error checking business:", e);
+            }
+          }
+          
           setIsCheckingAuth(false);
         } catch (e) {
           console.error("Error parsing user data:", e);
@@ -185,6 +209,17 @@ export default function BusinessRegisterPage() {
         }
         
         console.error("Business registration failed:", errorMsg);
+        
+        // If business already exists, redirect to dashboard instead of showing error
+        if (result.error && result.error.includes("already have a business")) {
+          setError("");
+          alert("You already have a business registered. Redirecting to dashboard...");
+          setTimeout(() => {
+            router.push("/business/dashboard");
+          }, 1000);
+          return;
+        }
+        
         setError(errorMsg);
         setIsLoading(false);
         return;

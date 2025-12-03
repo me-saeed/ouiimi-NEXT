@@ -4,6 +4,8 @@ import Staff from "@/lib/models/Staff";
 import { staffUpdateSchema } from "@/lib/validation";
 import { withRateLimitDynamic } from "@/lib/security/rate-limit";
 
+export const dynamic = 'force-dynamic';
+
 async function getStaffHandler(
   req: NextRequest,
   { params }: { params: { id: string } }

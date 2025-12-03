@@ -9,6 +9,8 @@ import { withRateLimit } from "@/lib/security/rate-limit";
 // import { validateCSRFToken } from "@/lib/security/csrf";
 import { sendWelcomeEmail } from "@/lib/services/mailjet";
 
+export const dynamic = 'force-dynamic';
+
 async function signupHandler(req: NextRequest) {
   try {
     // CSRF Protection disabled for now

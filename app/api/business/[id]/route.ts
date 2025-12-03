@@ -4,6 +4,8 @@ import Business from "@/lib/models/Business";
 import { businessUpdateSchema } from "@/lib/validation";
 import { withRateLimitDynamic } from "@/lib/security/rate-limit";
 
+export const dynamic = 'force-dynamic';
+
 async function getBusinessHandler(
   req: NextRequest,
   { params }: { params: { id: string } }

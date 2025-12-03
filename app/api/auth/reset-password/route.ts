@@ -7,6 +7,8 @@ import { withRateLimit } from "@/lib/security/rate-limit";
 import { resetPasswordSchema } from "@/lib/validation";
 import mongoose from "mongoose";
 
+export const dynamic = 'force-dynamic';
+
 async function resetPasswordHandler(req: NextRequest) {
   try {
     const body = await req.json();

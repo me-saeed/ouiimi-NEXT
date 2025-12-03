@@ -126,18 +126,31 @@ export default function BusinessServicesPage() {
   };
 
   if (!user) {
-    return null;
+    return (
+      <PageLayout user={null}>
+        <div className="bg-white min-h-screen py-12">
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center justify-center py-20">
+              <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#EECFD1]"></div>
+            </div>
+          </div>
+        </div>
+      </PageLayout>
+    );
   }
 
   return (
     <PageLayout user={user}>
-      <div className="bg-white min-h-screen py-12">
+      <div className="bg-gradient-to-b from-background via-secondary/5 to-background min-h-screen py-12 md:py-16">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center mb-8">
-            <h1 className="text-4xl font-bold text-[#3A3A3A]">Services</h1>
+          <div className="flex justify-between items-center mb-10">
+            <div>
+              <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-2">Services</h1>
+              <p className="text-muted-foreground">Manage your service listings</p>
+            </div>
             <Link
               href="/business/services/create"
-              className="bg-[#EECFD1] text-white px-6 py-3 rounded-md font-semibold hover:bg-[#EECFD1]/90 transition-colors"
+              className="btn-polished btn-polished-primary px-6 py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all"
             >
               Add Service
             </Link>
@@ -170,27 +183,45 @@ export default function BusinessServicesPage() {
                 return (
                   <div
                     key={serviceId}
-                    className="card-polished p-6"
+                    className="bg-card rounded-2xl shadow-lg border border-border/50 p-6 hover:shadow-xl transition-all duration-300"
                   >
-                    <h3 className="text-xl font-bold text-[#3A3A3A] mb-2">
-                      {service.serviceName}
-                    </h3>
-                    <p className="text-sm text-[#3A3A3A]/70 mb-3">
-                      {service.category}
-                    </p>
-                    <p className="text-2xl font-bold text-[#3A3A3A] mb-6">
-                      ${service.baseCost?.toFixed(2) || "0.00"}
-                    </p>
-                    <div className="flex space-x-3">
+                    <div className="mb-4">
+                      <h3 className="text-xl font-bold text-foreground mb-2 line-clamp-2">
+                        {service.serviceName}
+                      </h3>
+                      <div className="flex items-center gap-2">
+                        <span className="px-3 py-1 bg-primary/10 text-primary rounded-full text-xs font-semibold">
+                          {service.category}
+                        </span>
+                        {service.subCategory && (
+                          <span className="px-3 py-1 bg-muted text-muted-foreground rounded-full text-xs">
+                            {service.subCategory}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    
+                    <div className="mb-6">
+                      <p className="text-3xl font-bold text-foreground">
+                        ${service.baseCost?.toFixed(2) || "0.00"}
+                      </p>
+                      {service.duration && (
+                        <p className="text-sm text-muted-foreground mt-1">
+                          {service.duration}
+                        </p>
+                      )}
+                    </div>
+                    
+                    <div className="flex gap-3 pt-4 border-t border-border/50">
                       <Link
                         href={`/business/services/${serviceId}/edit`}
-                        className="flex-1 btn-polished btn-polished-primary text-center text-sm py-2.5"
+                        className="flex-1 btn-polished btn-polished-primary text-center text-sm py-2.5 rounded-xl font-semibold"
                       >
                         Edit
                       </Link>
                       <button
                         onClick={() => handleDelete(serviceId)}
-                        className="flex-1 bg-red-500 text-white px-4 py-2.5 rounded-lg text-sm font-semibold hover:bg-red-600 transition-colors shadow-sm hover:shadow-md"
+                        className="flex-1 bg-red-500 text-white px-4 py-2.5 rounded-xl text-sm font-semibold hover:bg-red-600 transition-colors shadow-sm hover:shadow-md"
                       >
                         Delete
                       </button>

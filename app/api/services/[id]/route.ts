@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/db";
 import Service from "@/lib/models/Service";
+import Staff from "@/lib/models/Staff";
 import { serviceUpdateSchema } from "@/lib/validation";
 import { withRateLimitDynamic } from "@/lib/security/rate-limit";
+import mongoose from "mongoose";
+
+export const dynamic = 'force-dynamic';
 
 async function getServiceHandler(
   req: NextRequest,
@@ -11,9 +15,17 @@ async function getServiceHandler(
   try {
     await dbConnect();
 
+    // Validate ObjectId format
+    const mongoose = (await import("mongoose")).default;
+    if (!mongoose.Types.ObjectId.isValid(params.id)) {
+      return NextResponse.json(
+        { error: "Invalid service ID format" },
+        { status: 400 }
+      );
+    }
+
     const service = await Service.findById(params.id)
       .populate("businessId", "businessName logo address email phone")
-      .populate("timeSlots.staffIds", "name photo")
       .lean();
 
     if (!service) {
@@ -23,9 +35,65 @@ async function getServiceHandler(
       );
     }
 
-    const availableTimeSlots = service.timeSlots.filter(
-      (ts: any) => !ts.isBooked && new Date(ts.date) >= new Date()
-    );
+    // Manually populate staffIds if they exist (avoiding nested populate issues)
+    if (service.timeSlots && service.timeSlots.length > 0) {
+      const Staff = (await import("@/lib/models/Staff")).default;
+      const allStaffIds: string[] = [];
+      
+      // Collect all staff IDs from all time slots
+      service.timeSlots.forEach((ts: any) => {
+        if (ts.staffIds && Array.isArray(ts.staffIds)) {
+          ts.staffIds.forEach((id: any) => {
+            const idStr = typeof id === 'object' ? String(id._id || id) : String(id);
+            if (idStr && !allStaffIds.includes(idStr)) {
+              allStaffIds.push(idStr);
+            }
+          });
+        }
+      });
+
+      // Fetch all staff members at once
+      if (allStaffIds.length > 0) {
+        try {
+          const mongoose = (await import("mongoose")).default;
+          const staffMembers = await Staff.find({
+            _id: { $in: allStaffIds.map(id => new mongoose.Types.ObjectId(id)) }
+          }).select("name photo").lean();
+
+          // Create a map for quick lookup
+          const staffMap = new Map();
+          staffMembers.forEach((staff: any) => {
+            staffMap.set(String(staff._id), {
+              id: String(staff._id),
+              name: staff.name,
+              photo: staff.photo,
+            });
+          });
+
+          // Replace staffIds with populated staff objects
+          service.timeSlots.forEach((ts: any) => {
+            if (ts.staffIds && Array.isArray(ts.staffIds)) {
+              (ts as any).staffIds = ts.staffIds.map((id: any) => {
+                const idStr = typeof id === 'object' ? String(id._id || id) : String(id);
+                return staffMap.get(idStr) || id;
+              });
+            }
+          });
+        } catch (err) {
+          console.error("Error populating staff:", err);
+          // If staff population fails, just keep the IDs
+        }
+      }
+    }
+
+        // Filter available time slots (not booked and date is in the future)
+        const now = new Date();
+        now.setHours(0, 0, 0, 0);
+        const availableTimeSlots = (service.timeSlots || []).filter((ts: any) => {
+          const slotDate = new Date(ts.date);
+          slotDate.setHours(0, 0, 0, 0);
+          return !ts.isBooked && slotDate >= now;
+        });
 
     // Type-safe businessId handling
     let businessIdData: any;
@@ -101,6 +169,20 @@ async function updateServiceHandler(
       );
     }
 
+    // Handle timeSlots update separately if provided
+    if (body.timeSlots && Array.isArray(body.timeSlots)) {
+      service.timeSlots = body.timeSlots.map((slot: any) => ({
+        date: new Date(slot.date),
+        startTime: slot.startTime,
+        endTime: slot.endTime,
+        cost: slot.cost || service.baseCost,
+        staffIds: slot.staffIds ? slot.staffIds.map((id: string) => new mongoose.Types.ObjectId(id)) : [],
+        isBooked: slot.isBooked || false,
+        bookingId: slot.bookingId || null,
+      }));
+    }
+
+    // Update other fields
     Object.assign(service, validatedData);
     await service.save();
 
