@@ -53,7 +53,7 @@ export default function BusinessProfileEditPage() {
           if (businessData.businesses && businessData.businesses.length > 0) {
             const businessItem = businessData.businesses[0];
             setBusiness(businessItem);
-            
+
             // Populate form with existing data
             reset({
               businessName: businessItem.businessName || "",
@@ -112,7 +112,7 @@ export default function BusinessProfileEditPage() {
       }
 
       setSuccess("Business profile updated successfully!");
-      
+
       // Redirect to dashboard after 2 seconds
       setTimeout(() => {
         router.push("/business/dashboard");
@@ -178,8 +178,38 @@ export default function BusinessProfileEditPage() {
 
   return (
     <PageLayout user={user}>
-      <div className="bg-white min-h-screen py-12">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="bg-background min-h-screen">
+        {/* Profile Header - Light Pink Background */}
+        <div className="bg-secondary/30 py-8">
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex flex-col items-center text-center space-y-4">
+              <div className="relative">
+                {business?.logo ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={business.logo}
+                    alt={business.businessName}
+                    className="w-24 h-24 rounded-full object-cover border-4 border-white shadow-sm"
+                  />
+                ) : (
+                  <div className="w-24 h-24 rounded-full bg-white border-4 border-white shadow-sm flex items-center justify-center">
+                    <span className="text-2xl font-bold text-muted-foreground">
+                      {business?.businessName?.charAt(0) || "B"}
+                    </span>
+                  </div>
+                )}
+                <button className="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center text-lg font-bold hover:bg-primary/90">
+                  +
+                </button>
+              </div>
+
+              <h2 className="text-xl font-medium text-foreground">{business?.businessName}</h2>
+            </div>
+          </div>
+        </div>
+
+        {/* Form Content */}
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="max-w-2xl mx-auto">
             <div className="flex items-center justify-between mb-8">
               <h1 className="text-4xl font-bold text-[#3A3A3A]">

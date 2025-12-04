@@ -158,18 +158,18 @@ export default function HomePage() {
         {/* Discover Section */}
         <section className="py-8 md:py-12 bg-white">
           <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl">
-            <h1 className="text-[32px] font-bold text-[#3A3A3A] mb-[32px] text-center">
+            <h1 className="text-[32px] font-bold text-[#3A3A3A] mb-[32px] text-left">
               Discover
             </h1>
 
             {/* Service Categories */}
-            <div className="space-y-0">
+            <div className="space-y-12">
               {SERVICE_CATEGORIES.map((category, categoryIndex) => {
                 const categoryServices = services[category] || [];
 
                 if (isLoading) {
                   return (
-                    <div key={category} className="mb-10 md:mb-12">
+                    <div key={category} className="mb-0">
                       <div className="flex items-center justify-between mb-5 md:mb-6 px-4 md:px-0">
                         <h2 className="text-2xl md:text-3xl font-bold text-[#3A3A3A]">{category}</h2>
                       </div>
@@ -192,7 +192,7 @@ export default function HomePage() {
                   return (
                     <div
                       key={category}
-                      className="space-y-0"
+                      className="space-y-12"
                     >
                       {Object.entries(grouped).map(([subCategory, subServices]) => (
                         <ServiceCarousel

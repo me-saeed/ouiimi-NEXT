@@ -112,7 +112,7 @@ export const serviceCreateSchema = z.object({
   category: z.string().min(1, "Category is required"),
   subCategory: z.string().optional(),
   serviceName: z.string().min(1, "Service name is required"),
-  duration: z.string().min(1, "Duration is required"),
+  duration: z.string().optional(), // Auto-calculated from first time slot
   baseCost: z.number().min(0, "Base cost must be 0 or greater"),
   description: z.string().optional(),
   address: z.string().min(5, "Address must be at least 5 characters"),

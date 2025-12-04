@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import PageLayout from "@/components/layout/PageLayout";
+import { Plus, Clock, DollarSign, Edit2, Trash2, Calendar, Tag } from "lucide-react";
 
 export default function BusinessServicesPage() {
   const router = useRouter();
@@ -34,7 +35,7 @@ export default function BusinessServicesPage() {
     try {
       const token = localStorage.getItem("token");
       const userData = localStorage.getItem("user");
-      
+
       if (!token || !userData) {
         router.push("/signin");
         return;
@@ -67,14 +68,14 @@ export default function BusinessServicesPage() {
         const foundBusiness = businessData.businesses[0];
         const foundBusinessId = foundBusiness.id || foundBusiness._id;
         setBusinessId(foundBusinessId);
-        
+
         // Now load services for this business
         const servicesResponse = await fetch(`/api/services?businessId=${foundBusinessId}`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
         });
-        
+
         if (servicesResponse.ok) {
           const servicesData = await servicesResponse.json();
           if (servicesData.services) {
@@ -125,6 +126,16 @@ export default function BusinessServicesPage() {
     }
   };
 
+  // Group services by category
+  const groupedServices = services.reduce((acc, service) => {
+    const category = service.category || "Other";
+    if (!acc[category]) {
+      acc[category] = [];
+    }
+    acc[category].push(service);
+    return acc;
+  }, {} as Record<string, any[]>);
+
   if (!user) {
     return (
       <PageLayout user={null}>
@@ -141,94 +152,132 @@ export default function BusinessServicesPage() {
 
   return (
     <PageLayout user={user}>
-      <div className="bg-gradient-to-b from-background via-secondary/5 to-background min-h-screen py-12 md:py-16">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center mb-10">
+      <div className="bg-white min-h-screen py-12 md:py-16">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl">
+          {/* Header Section */}
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-12">
             <div>
-              <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-2">Services</h1>
-              <p className="text-muted-foreground">Manage your service listings</p>
+              <h1 className="text-3xl md:text-4xl font-bold text-[#3A3A3A] mb-2">Your Services</h1>
+              <p className="text-[#888888]">Manage and organize your service offerings</p>
             </div>
             <Link
               href="/business/services/create"
-              className="btn-polished btn-polished-primary px-6 py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all"
+              className="bg-[#EECFD1] text-white px-6 py-3 rounded-xl font-semibold shadow-sm hover:shadow-md hover:bg-[#e5c4c7] transition-all flex items-center gap-2"
             >
-              Add Service
+              <Plus className="w-5 h-5" />
+              Create Service
             </Link>
           </div>
 
           {isLoading ? (
-            <div className="flex items-center justify-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#EECFD1]"></div>
+            <div className="flex items-center justify-center py-20">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#EECFD1]"></div>
             </div>
           ) : services.length === 0 ? (
-            <div className="card-polished p-12 text-center max-w-md mx-auto">
-              <div className="mb-6">
-                <svg className="w-16 h-16 mx-auto text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                </svg>
+            <div className="bg-white rounded-2xl border border-[#F5F5F5] p-16 text-center max-w-2xl mx-auto shadow-sm">
+              <div className="w-20 h-20 rounded-full bg-[#EECFD1]/10 flex items-center justify-center mx-auto mb-6">
+                <Plus className="w-10 h-10 text-[#EECFD1]" />
               </div>
-              <p className="text-[#3A3A3A] font-semibold mb-2 text-lg">No services yet</p>
-              <p className="text-[#3A3A3A]/70 text-sm mb-6">Get started by creating your first service</p>
+              <h2 className="text-2xl font-bold text-[#3A3A3A] mb-3">No services yet</h2>
+              <p className="text-[#888888] mb-8 text-lg">
+                Start growing your business by creating your first service listing
+              </p>
               <Link
                 href="/business/services/create"
-                className="btn-polished btn-polished-primary inline-block"
+                className="inline-block bg-[#EECFD1] text-white px-8 py-3.5 rounded-xl font-semibold shadow-sm hover:shadow-md hover:bg-[#e5c4c7] transition-all"
               >
                 Create Your First Service
               </Link>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {services.map((service) => {
-                const serviceId = service.id || service._id;
-                return (
-                  <div
-                    key={serviceId}
-                    className="bg-card rounded-2xl shadow-lg border border-border/50 p-6 hover:shadow-xl transition-all duration-300"
-                  >
-                    <div className="mb-4">
-                      <h3 className="text-xl font-bold text-foreground mb-2 line-clamp-2">
-                        {service.serviceName}
-                      </h3>
-                      <div className="flex items-center gap-2">
-                        <span className="px-3 py-1 bg-primary/10 text-primary rounded-full text-xs font-semibold">
-                          {service.category}
-                        </span>
-                        {service.subCategory && (
-                          <span className="px-3 py-1 bg-muted text-muted-foreground rounded-full text-xs">
-                            {service.subCategory}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    
-                    <div className="mb-6">
-                      <p className="text-3xl font-bold text-foreground">
-                        ${service.baseCost?.toFixed(2) || "0.00"}
-                      </p>
-                      {service.duration && (
-                        <p className="text-sm text-muted-foreground mt-1">
-                          {service.duration}
-                        </p>
-                      )}
-                    </div>
-                    
-                    <div className="flex gap-3 pt-4 border-t border-border/50">
-                      <Link
-                        href={`/business/services/${serviceId}/edit`}
-                        className="flex-1 btn-polished btn-polished-primary text-center text-sm py-2.5 rounded-xl font-semibold"
-                      >
-                        Edit
-                      </Link>
-                      <button
-                        onClick={() => handleDelete(serviceId)}
-                        className="flex-1 bg-red-500 text-white px-4 py-2.5 rounded-xl text-sm font-semibold hover:bg-red-600 transition-colors shadow-sm hover:shadow-md"
-                      >
-                        Delete
-                      </button>
-                    </div>
+            <div className="space-y-10">
+              {Object.entries(groupedServices).map(([category, categoryServices]) => (
+                <div key={category} className="space-y-6">
+                  {/* Category Header */}
+                  <div className="flex items-center gap-3 pb-3 border-b-2 border-[#F5F5F5]">
+                    <Tag className="w-5 h-5 text-[#EECFD1]" />
+                    <h2 className="text-2xl font-bold text-[#3A3A3A]">{category}</h2>
+                    <span className="ml-auto bg-[#EECFD1]/10 text-[#EECFD1] px-3 py-1 rounded-full text-sm font-semibold">
+                      {categoryServices.length} {categoryServices.length === 1 ? 'service' : 'services'}
+                    </span>
                   </div>
-                );
-              })}
+
+                  {/* Services Grid */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                    {categoryServices.map((service) => {
+                      const serviceId = service.id || service._id;
+                      return (
+                        <div
+                          key={serviceId}
+                          className="bg-white rounded-2xl border border-[#F5F5F5] overflow-hidden hover:border-[#EECFD1] hover:shadow-lg transition-all duration-300 group"
+                        >
+                          {/* Service Content */}
+                          <div className="p-6 space-y-4">
+                            {/* Title and Sub-category */}
+                            <div>
+                              <h3 className="text-lg font-bold text-[#3A3A3A] mb-2 line-clamp-2 group-hover:text-[#EECFD1] transition-colors">
+                                {service.serviceName}
+                              </h3>
+                              {service.subCategory && (
+                                <span className="inline-block px-3 py-1 bg-[#F5F5F5] text-[#888888] rounded-full text-xs font-medium uppercase tracking-wide">
+                                  {service.subCategory}
+                                </span>
+                              )}
+                            </div>
+
+                            {/* Price and Duration */}
+                            <div className="space-y-2">
+                              <div className="flex items-center gap-2">
+                                <DollarSign className="w-5 h-5 text-[#EECFD1]" />
+                                <span className="text-2xl font-bold text-[#3A3A3A]">
+                                  ${service.baseCost?.toFixed(2) || "0.00"}
+                                </span>
+                              </div>
+                              {service.duration && (
+                                <div className="flex items-center gap-2 text-[#888888]">
+                                  <Clock className="w-4 h-4 text-[#EECFD1]" />
+                                  <span className="text-sm">{service.duration}</span>
+                                </div>
+                              )}
+                              {service.timeSlots && service.timeSlots.length > 0 && (
+                                <div className="flex items-center gap-2 text-[#888888]">
+                                  <Calendar className="w-4 h-4 text-[#EECFD1]" />
+                                  <span className="text-sm">{service.timeSlots.length} time slot{service.timeSlots.length !== 1 ? 's' : ''}</span>
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Description */}
+                            {service.description && (
+                              <p className="text-sm text-[#888888] line-clamp-3 leading-relaxed">
+                                {service.description}
+                              </p>
+                            )}
+                          </div>
+
+                          {/* Action Buttons */}
+                          <div className="flex border-t border-[#F5F5F5]">
+                            <Link
+                              href={`/business/services/${serviceId}/edit`}
+                              className="flex-1 flex items-center justify-center gap-2 py-3 text-[#EECFD1] font-semibold hover:bg-[#EECFD1] hover:text-white transition-all"
+                            >
+                              <Edit2 className="w-4 h-4" />
+                              <span className="text-sm">Edit</span>
+                            </Link>
+                            <button
+                              onClick={() => handleDelete(serviceId)}
+                              className="flex-1 flex items-center justify-center gap-2 py-3 text-red-500 font-semibold hover:bg-red-500 hover:text-white transition-all border-l border-[#F5F5F5]"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                              <span className="text-sm">Delete</span>
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </div>
