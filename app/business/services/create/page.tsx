@@ -10,6 +10,7 @@ import PageLayout from "@/components/layout/PageLayout";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
+import Image from "next/image";
 
 const CATEGORIES = [
   "Hair Services",
@@ -261,8 +262,7 @@ export default function CreateServicePage() {
   };
 
   const onSubmit = async (data: Omit<ServiceCreateInput, 'businessId'>) => {
-    console.log("=== SERVICE FORM SUBMITTED ===");
-    console.log("Form data:", data);
+
 
     setIsLoading(true);
     setError("");
@@ -294,7 +294,7 @@ export default function CreateServicePage() {
         return;
       }
 
-      console.log("User ID:", userId);
+
 
       // First, find the business for this user
       const businessResponse = await fetch(`/api/business/search?userId=${userId}`, {
@@ -324,8 +324,7 @@ export default function CreateServicePage() {
         return;
       }
 
-      console.log("Business ID found:", foundBusinessId);
-      console.log("Submitting service data:", { ...data, businessId: foundBusinessId });
+
 
       const timeSlotsForSubmission = getTimeSlotsForSubmission();
       const requestBody = {
@@ -340,8 +339,7 @@ export default function CreateServicePage() {
         })) : undefined,
       };
 
-      console.log("Request body:", JSON.stringify(requestBody, null, 2));
-      console.log("Making POST request to /api/services...");
+
 
       const response = await fetch("/api/services", {
         method: "POST",
@@ -352,9 +350,7 @@ export default function CreateServicePage() {
         body: JSON.stringify(requestBody),
       });
 
-      console.log("Service API response status:", response.status);
       const result = await response.json();
-      console.log("Service API response:", result);
 
       if (!response.ok) {
         const errorMsg = result.error || result.details || "Failed to create service";
@@ -377,7 +373,7 @@ export default function CreateServicePage() {
         return;
       }
 
-      console.log("Service created successfully:", result);
+
 
       toast({
         variant: "success",
@@ -450,11 +446,9 @@ export default function CreateServicePage() {
             <form
               onSubmit={handleSubmit(
                 (data) => {
-                  console.log("Form validation passed, calling onSubmit");
                   onSubmit(data);
                 },
                 (errors) => {
-                  console.log("Form validation failed:", errors);
                   const errorEntries = Object.entries(errors);
                   if (errorEntries.length > 0) {
                     const [fieldName, error] = errorEntries[0];
@@ -635,7 +629,7 @@ export default function CreateServicePage() {
                         />
                         <div className="flex items-center gap-2">
                           {member.photo ? (
-                            <img src={member.photo} alt={member.name} className="w-6 h-6 rounded-full object-cover" />
+                            <Image src={member.photo} alt={member.name} width={24} height={24} className="rounded-full object-cover" />
                           ) : (
                             <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary">
                               {member.name.charAt(0)}
@@ -956,7 +950,7 @@ export default function CreateServicePage() {
           </div>
         </div>
       </div>
-  </PageLayout>
+    </PageLayout>
   );
 }
 

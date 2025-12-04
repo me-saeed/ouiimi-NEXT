@@ -50,8 +50,8 @@ function ResetPasswordForm() {
     setSuccess("");
 
     try {
-      console.log("Submitting reset password form...");
-      
+
+
       const response = await fetch("/api/auth/reset-password", {
         method: "POST",
         headers: {
@@ -65,10 +65,9 @@ function ResetPasswordForm() {
         }),
       });
 
-      console.log("Response status:", response.status);
+
 
       const result = await response.json();
-      console.log("Response result:", result);
 
       if (!response.ok) {
         const errorMsg = result.error || result.message || "Failed to reset password. Please try again.";
@@ -78,7 +77,7 @@ function ResetPasswordForm() {
         return;
       }
 
-      console.log("Password reset successful!");
+
       setSuccess("Password has been updated successfully! Redirecting to sign in...");
       setIsLoading(false);
 
@@ -115,16 +114,10 @@ function ResetPasswordForm() {
   return (
     <div className="min-h-screen bg-color-bg p-4">
       <div className="max-w-md mx-auto">
-        <form 
-          className="w-full relative mt-20" 
+        <form
+          className="w-full relative mt-20"
           onSubmit={handleSubmit(
             (data) => {
-              console.log("Form validation passed, calling onSubmit with data:", { 
-                password: "***", 
-                confirmPassword: "***",
-                hasEmail: !!email,
-                hasToken: !!token
-              });
               onSubmit(data);
             },
             (errors) => {
@@ -149,9 +142,8 @@ function ResetPasswordForm() {
                 <input
                   type="password"
                   id="password"
-                  className={`input-styl px-2 py-2 h-10 ${
-                    errors.password ? "border-red-600" : ""
-                  }`}
+                  className={`input-styl px-2 py-2 h-10 ${errors.password ? "border-red-600" : ""
+                    }`}
                   placeholder="Enter new password"
                   {...register("password")}
                 />
@@ -174,9 +166,8 @@ function ResetPasswordForm() {
                 <input
                   type="password"
                   id="confirmPassword"
-                  className={`input-styl px-2 py-2 h-10 ${
-                    errors.confirmPassword ? "border-red-600" : ""
-                  }`}
+                  className={`input-styl px-2 py-2 h-10 ${errors.confirmPassword ? "border-red-600" : ""
+                    }`}
                   placeholder="Confirm new password"
                   {...register("confirmPassword")}
                 />
@@ -210,17 +201,10 @@ function ResetPasswordForm() {
                   <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
                 </div>
               ) : (
-                <button 
-                  className="btn-styl w-full" 
+                <button
+                  className="btn-styl w-full"
                   type="submit"
                   onClick={(e) => {
-                    console.log("Button clicked");
-                    const values = getValues();
-                    console.log("Form values:", { 
-                      password: values.password ? "***" : "empty",
-                      confirmPassword: values.confirmPassword ? "***" : "empty"
-                    });
-                    console.log("Form errors:", errors);
                   }}
                 >
                   Reset Password

@@ -113,14 +113,14 @@ export default function CartPage() {
       }
 
       // Create bookings for all items
-      console.log("Creating bookings for", cartItems.length, "items");
+
       const bookings = await Promise.all(
         cartItems.map(async (item, index) => {
-          console.log(`Processing cart item ${index + 1}:`, item);
-          
+
+
           // Parse time - format is "HH:MM - HH:MM" or "HH:MM-HH:MM"
           const timeRange = item.time.trim();
-          const [startTime, endTime] = timeRange.includes(" - ") 
+          const [startTime, endTime] = timeRange.includes(" - ")
             ? timeRange.split(" - ")
             : timeRange.split("-");
 
@@ -139,7 +139,7 @@ export default function CartPage() {
             customerNotes: item.description || undefined,
           };
 
-          console.log(`Booking payload for item ${index + 1}:`, JSON.stringify(bookingPayload, null, 2));
+
 
           const response = await fetch("/api/bookings", {
             method: "POST",
@@ -151,7 +151,6 @@ export default function CartPage() {
           });
 
           const responseData = await response.json();
-          console.log(`Booking ${index + 1} response:`, response.status, responseData);
 
           if (!response.ok) {
             console.error(`Failed to create booking ${index + 1}:`, responseData);
@@ -162,7 +161,7 @@ export default function CartPage() {
         })
       );
 
-      console.log("All bookings created successfully:", bookings.length);
+
 
       // Clear cart
       localStorage.removeItem("cart");

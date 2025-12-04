@@ -12,12 +12,12 @@ export const dynamic = 'force-dynamic';
 async function resetPasswordHandler(req: NextRequest) {
   try {
     const body = await req.json();
-    
+
     // Validate the request body
     // Note: confirmPassword is validated on frontend, but we only need password for the API
     const validatedData = resetPasswordSchema.parse(body);
-    
-    console.log("Reset password request received for:", validatedData.email);
+
+
 
     await dbConnect();
 
@@ -64,7 +64,7 @@ async function resetPasswordHandler(req: NextRequest) {
     let user = await User.findOne({
       email: validatedData.email.toLowerCase(),
     });
-    
+
     // If not found with lowercase, try original case
     if (!user) {
       user = await User.findOne({
@@ -87,7 +87,7 @@ async function resetPasswordHandler(req: NextRequest) {
       { _id: user._id },
       { $set: { password: hashedPassword } }
     );
-    
+
     // Verify the update was successful
     if (updateResult.matchedCount === 0) {
       return NextResponse.json(
