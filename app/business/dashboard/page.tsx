@@ -151,80 +151,103 @@ export default function BusinessDashboardPage() {
 
   return (
     <PageLayout user={user}>
-      <div className="bg-background min-h-screen py-8">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          {/* Header Section */}
-          <div className="bg-secondary/30 rounded-t-3xl p-8 mb-0">
+      <div className="bg-background min-h-screen">
+        {/* Header Section - Matching Shopper Profile */}
+        <div className="bg-white py-8 border-b border-gray-100">
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex flex-col items-center text-center space-y-4">
-              <h1 className="text-4xl font-serif italic text-secondary-foreground">ouiimi</h1>
-
-              {business?.logo ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={business.logo}
-                  alt={business.businessName}
-                  className="w-24 h-24 rounded-full object-cover border-4 border-white shadow-sm"
-                />
-              ) : (
-                <div className="w-24 h-24 rounded-full bg-white border-4 border-white shadow-sm flex items-center justify-center">
-                  <span className="text-2xl font-bold text-muted-foreground">
-                    {business?.businessName?.charAt(0) || "B"}
-                  </span>
-                </div>
-              )}
+              <div className="relative">
+                {business?.logo ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={business.logo}
+                    alt={business.businessName}
+                    className="w-24 h-24 rounded-full object-cover border-4 border-[#EECFD1] shadow-sm"
+                  />
+                ) : (
+                  <div className="w-24 h-24 rounded-full bg-[#EECFD1] border-4 border-white shadow-sm flex items-center justify-center">
+                    <span className="text-2xl font-bold text-white">
+                      {business?.businessName?.charAt(0) || "B"}
+                    </span>
+                  </div>
+                )}
+                <button className="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center text-lg font-bold hover:bg-primary/90">
+                  +
+                </button>
+              </div>
 
               <h2 className="text-xl font-medium text-foreground">{business?.businessName}</h2>
             </div>
           </div>
+        </div>
 
-          {/* Main Navigation Tabs */}
-          <div className="bg-white border-b border-border/50 sticky top-0 z-10 shadow-sm">
-            <div className="flex justify-center w-full max-w-3xl mx-auto">
+        {/* Main Navigation Tabs */}
+        <div className="bg-white border-b border-border/50 sticky top-16 z-10 shadow-sm">
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex justify-center w-full max-w-4xl mx-auto">
               <button
                 onClick={() => setActiveTab("bookings")}
-                className={`flex-1 py-4 text-sm font-medium transition-colors relative ${activeTab === "bookings" ? "text-foreground" : "text-muted-foreground hover:text-foreground"
+                className={`flex-1 py-4 text-sm font-medium transition-colors relative ${activeTab === "bookings"
+                  ? "text-foreground"
+                  : "text-muted-foreground hover:text-foreground"
                   }`}
               >
                 Bookings
-                {activeTab === "bookings" && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />}
+                {activeTab === "bookings" && (
+                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
+                )}
               </button>
               <button
                 onClick={() => setActiveTab("list")}
-                className={`flex-1 py-4 text-sm font-medium transition-colors relative ${activeTab === "list" ? "text-foreground" : "text-muted-foreground hover:text-foreground"
+                className={`flex-1 py-4 text-sm font-medium transition-colors relative ${activeTab === "list"
+                  ? "text-foreground"
+                  : "text-muted-foreground hover:text-foreground"
                   }`}
               >
-                List
-                {activeTab === "list" && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />}
+                Services
+                {activeTab === "list" && (
+                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
+                )}
               </button>
               <button
                 onClick={() => setActiveTab("staff")}
-                className={`flex-1 py-4 text-sm font-medium transition-colors relative ${activeTab === "staff" ? "text-foreground" : "text-muted-foreground hover:text-foreground"
+                className={`flex-1 py-4 text-sm font-medium transition-colors relative ${activeTab === "staff"
+                  ? "text-foreground"
+                  : "text-muted-foreground hover:text-foreground"
                   }`}
               >
                 Staff
-                {activeTab === "staff" && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />}
+                {activeTab === "staff" && (
+                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
+                )}
               </button>
               <button
                 onClick={() => setActiveTab("details")}
-                className={`flex-1 py-4 text-sm font-medium transition-colors relative ${activeTab === "details" ? "text-foreground" : "text-muted-foreground hover:text-foreground"
+                className={`flex-1 py-4 text-sm font-medium transition-colors relative ${activeTab === "details"
+                  ? "text-foreground"
+                  : "text-muted-foreground hover:text-foreground"
                   }`}
               >
                 Details
-                {activeTab === "details" && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />}
+                {activeTab === "details" && (
+                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
+                )}
               </button>
             </div>
           </div>
+        </div>
 
-          {/* Tab Content */}
-          <div className="bg-white min-h-[500px] p-6 md:p-8">
-            {activeTab === "bookings" && <BookingsTab business={business} />}
-            {activeTab === "list" && <ListTab business={business} />}
-            {activeTab === "staff" && <StaffTab business={business} />}
-            {activeTab === "details" && <DetailsTab business={business} />}
-          </div>
+        {/* Tab Content */}
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {activeTab === "bookings" && <BookingsTab business={business} />}
+          {activeTab === "list" && <ListTab business={business} />}
+          {activeTab === "staff" && <StaffTab business={business} />}
+          {activeTab === "details" && <DetailsTab business={business} />}
         </div>
       </div>
     </PageLayout>
   );
 }
+
+
 

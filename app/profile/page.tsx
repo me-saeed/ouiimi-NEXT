@@ -64,7 +64,7 @@ export default function ShopperProfilePage() {
   useEffect(() => {
     const token = localStorage.getItem("token");
     const userData = localStorage.getItem("user");
-    
+
     if (!token || !userData) {
       router.push("/signin");
       return;
@@ -256,10 +256,10 @@ export default function ShopperProfilePage() {
   };
 
   const handleRebook = (booking: Booking) => {
-    const businessId = typeof booking.businessId === 'object' 
+    const businessId = typeof booking.businessId === 'object'
       ? booking.businessId.id || booking.businessId._id
       : booking.businessId;
-    
+
     if (businessId) {
       router.push(`/business/${businessId}`);
     }
@@ -269,7 +269,7 @@ export default function ShopperProfilePage() {
     try {
       const token = localStorage.getItem("token");
       const userId = user?.id || user?._id;
-      
+
       const [fname, ...lnameParts] = userDetails.name.split(" ");
       const lname = lnameParts.join(" ") || "";
 
@@ -313,7 +313,7 @@ export default function ShopperProfilePage() {
 
   const getFilteredBookings = () => {
     let bookingsToFilter: Booking[] = [];
-    
+
     if (activeTab === "upcoming") {
       bookingsToFilter = upcomingBookings;
     } else if (activeTab === "pending") {
@@ -345,22 +345,20 @@ export default function ShopperProfilePage() {
     <PageLayout user={user}>
       <div className="bg-background min-h-screen">
         {/* Profile Header */}
-        <div className="bg-secondary/30 py-8">
+        <div className="bg-white py-8 border-b border-gray-100">
           <div className="container mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex flex-col items-center text-center space-y-4">
-              <h1 className="text-4xl font-serif italic text-secondary-foreground">ouiimi</h1>
-              
               <div className="relative">
                 {user.pic && user.pic !== "avatar.png" ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
                     src={user.pic}
                     alt={user.fname}
-                    className="w-24 h-24 rounded-full object-cover border-4 border-white shadow-sm"
+                    className="w-24 h-24 rounded-full object-cover border-4 border-[#EECFD1] shadow-sm"
                   />
                 ) : (
-                  <div className="w-24 h-24 rounded-full bg-white border-4 border-white shadow-sm flex items-center justify-center">
-                    <span className="text-2xl font-bold text-muted-foreground">
+                  <div className="w-24 h-24 rounded-full bg-[#EECFD1] border-4 border-white shadow-sm flex items-center justify-center">
+                    <span className="text-2xl font-bold text-white">
                       {user.fname?.charAt(0) || "U"}
                     </span>
                   </div>
@@ -388,11 +386,10 @@ export default function ShopperProfilePage() {
             <div className="flex justify-center w-full max-w-4xl mx-auto">
               <button
                 onClick={() => setActiveTab("upcoming")}
-                className={`flex-1 py-4 text-sm font-medium transition-colors relative ${
-                  activeTab === "upcoming"
-                    ? "text-foreground"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
+                className={`flex-1 py-4 text-sm font-medium transition-colors relative ${activeTab === "upcoming"
+                  ? "text-foreground"
+                  : "text-muted-foreground hover:text-foreground"
+                  }`}
               >
                 Upcoming
                 {activeTab === "upcoming" && (
@@ -401,11 +398,10 @@ export default function ShopperProfilePage() {
               </button>
               <button
                 onClick={() => setActiveTab("pending")}
-                className={`flex-1 py-4 text-sm font-medium transition-colors relative ${
-                  activeTab === "pending"
-                    ? "text-foreground"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
+                className={`flex-1 py-4 text-sm font-medium transition-colors relative ${activeTab === "pending"
+                  ? "text-foreground"
+                  : "text-muted-foreground hover:text-foreground"
+                  }`}
               >
                 Pending
                 {activeTab === "pending" && (
@@ -414,11 +410,10 @@ export default function ShopperProfilePage() {
               </button>
               <button
                 onClick={() => setActiveTab("finished")}
-                className={`flex-1 py-4 text-sm font-medium transition-colors relative ${
-                  activeTab === "finished"
-                    ? "text-foreground"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
+                className={`flex-1 py-4 text-sm font-medium transition-colors relative ${activeTab === "finished"
+                  ? "text-foreground"
+                  : "text-muted-foreground hover:text-foreground"
+                  }`}
               >
                 Finished
                 {activeTab === "finished" && (
@@ -427,11 +422,10 @@ export default function ShopperProfilePage() {
               </button>
               <button
                 onClick={() => setActiveTab("details")}
-                className={`flex-1 py-4 text-sm font-medium transition-colors relative ${
-                  activeTab === "details"
-                    ? "text-foreground"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
+                className={`flex-1 py-4 text-sm font-medium transition-colors relative ${activeTab === "details"
+                  ? "text-foreground"
+                  : "text-muted-foreground hover:text-foreground"
+                  }`}
               >
                 Details
                 {activeTab === "details" && (
@@ -477,11 +471,10 @@ export default function ShopperProfilePage() {
                       <div
                         key={booking.id}
                         onClick={() => setSelectedBooking(booking)}
-                        className={`card-polished p-4 cursor-pointer transition-colors ${
-                          selectedBooking?.id === booking.id
-                            ? "border-primary border-2"
-                            : "hover:border-primary/50"
-                        }`}
+                        className={`card-polished p-4 cursor-pointer transition-colors ${selectedBooking?.id === booking.id
+                          ? "border-primary border-2"
+                          : "hover:border-primary/50"
+                          }`}
                       >
                         <div className="flex items-start gap-4">
                           {typeof booking.businessId === 'object' && booking.businessId.logo ? (
@@ -494,7 +487,7 @@ export default function ShopperProfilePage() {
                           ) : (
                             <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
                               <span className="text-xl font-bold text-primary">
-                                {typeof booking.businessId === 'object' 
+                                {typeof booking.businessId === 'object'
                                   ? booking.businessId.businessName?.charAt(0) || "B"
                                   : "B"}
                               </span>
@@ -502,13 +495,13 @@ export default function ShopperProfilePage() {
                           )}
                           <div className="flex-1">
                             <h3 className="font-semibold">
-                              {typeof booking.businessId === 'object' 
-                                ? booking.businessId.businessName 
+                              {typeof booking.businessId === 'object'
+                                ? booking.businessId.businessName
                                 : "Business"}
                             </h3>
                             <p className="text-sm text-muted-foreground">
-                              {typeof booking.serviceId === 'object' 
-                                ? booking.serviceId.serviceName 
+                              {typeof booking.serviceId === 'object'
+                                ? booking.serviceId.serviceName
                                 : "Service"}
                             </p>
                             <p className="text-xs text-muted-foreground mt-1">
@@ -557,11 +550,10 @@ export default function ShopperProfilePage() {
                       <div
                         key={booking.id}
                         onClick={() => setSelectedBooking(booking)}
-                        className={`card-polished p-4 cursor-pointer transition-colors ${
-                          selectedBooking?.id === booking.id
-                            ? "border-primary border-2"
-                            : "hover:border-primary/50"
-                        }`}
+                        className={`card-polished p-4 cursor-pointer transition-colors ${selectedBooking?.id === booking.id
+                          ? "border-primary border-2"
+                          : "hover:border-primary/50"
+                          }`}
                       >
                         <div className="flex items-start gap-4">
                           {typeof booking.businessId === 'object' && booking.businessId.logo ? (
@@ -574,7 +566,7 @@ export default function ShopperProfilePage() {
                           ) : (
                             <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
                               <span className="text-xl font-bold text-primary">
-                                {typeof booking.businessId === 'object' 
+                                {typeof booking.businessId === 'object'
                                   ? booking.businessId.businessName?.charAt(0) || "B"
                                   : "B"}
                               </span>
@@ -582,13 +574,13 @@ export default function ShopperProfilePage() {
                           )}
                           <div className="flex-1">
                             <h3 className="font-semibold">
-                              {typeof booking.businessId === 'object' 
-                                ? booking.businessId.businessName 
+                              {typeof booking.businessId === 'object'
+                                ? booking.businessId.businessName
                                 : "Business"}
                             </h3>
                             <p className="text-sm text-muted-foreground">
-                              {typeof booking.serviceId === 'object' 
-                                ? booking.serviceId.serviceName 
+                              {typeof booking.serviceId === 'object'
+                                ? booking.serviceId.serviceName
                                 : "Service"}
                             </p>
                             <p className="text-xs text-muted-foreground mt-1">
@@ -703,7 +695,7 @@ function BookingDetailView({
           ) : (
             <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
               <span className="text-xl font-bold text-primary">
-                {typeof booking.businessId === 'object' 
+                {typeof booking.businessId === 'object'
                   ? booking.businessId.businessName?.charAt(0) || "B"
                   : "B"}
               </span>
@@ -711,8 +703,8 @@ function BookingDetailView({
           )}
           <div>
             <h3 className="text-lg font-semibold">
-              {typeof booking.businessId === 'object' 
-                ? booking.businessId.businessName 
+              {typeof booking.businessId === 'object'
+                ? booking.businessId.businessName
                 : "Business"}
             </h3>
             <p className="text-sm text-muted-foreground">
@@ -913,7 +905,7 @@ function FinishedBookingDetailView({
           ) : (
             <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
               <span className="text-xl font-bold text-primary">
-                {typeof booking.businessId === 'object' 
+                {typeof booking.businessId === 'object'
                   ? booking.businessId.businessName?.charAt(0) || "B"
                   : "B"}
               </span>
@@ -921,8 +913,8 @@ function FinishedBookingDetailView({
           )}
           <div>
             <h3 className="text-lg font-semibold">
-              {typeof booking.businessId === 'object' 
-                ? booking.businessId.businessName 
+              {typeof booking.businessId === 'object'
+                ? booking.businessId.businessName
                 : "Business"}
             </h3>
             <p className="text-sm text-muted-foreground">
@@ -1030,7 +1022,7 @@ function ContactView({
           ×
         </button>
       </div>
-      
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="card-polished p-4">
           <h5 className="font-medium mb-3">Admin</h5>

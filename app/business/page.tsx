@@ -58,10 +58,10 @@ export default function BusinessPage() {
   if (isLoading) {
     return (
       <PageLayout user={user}>
-        <div className="bg-gradient-to-b from-background via-secondary/5 to-background min-h-screen py-12">
+        <div className="bg-gray-50 min-h-screen py-12">
           <div className="container mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex items-center justify-center py-20">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
             </div>
           </div>
         </div>
@@ -71,150 +71,154 @@ export default function BusinessPage() {
 
   return (
     <PageLayout user={user}>
-      <div className="bg-gradient-to-b from-background via-secondary/5 to-background min-h-screen py-12 md:py-16">
+      <div className="bg-gray-50 min-h-screen py-12 md:py-16">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-6xl">
           {business ? (
-            <div className="space-y-8">
+            <div className="space-y-6">
               {/* Business Header Card */}
-              <div className="bg-card rounded-2xl shadow-xl border border-border/50 p-8 md:p-10">
-                <div className="flex flex-col md:flex-row gap-6 md:gap-8">
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 md:p-8">
+                <div className="flex flex-col md:flex-row gap-6 items-center md:items-start">
                   {/* Business Logo/Icon */}
                   <div className="flex-shrink-0">
-                    <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-primary/20 via-primary/10 to-secondary/20 flex items-center justify-center border-2 border-border/50 shadow-lg">
+                    <div className="w-24 h-24 rounded-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center border-2 border-gray-300 shadow-sm overflow-hidden">
                       {business.logo ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img
                           src={business.logo}
                           alt={business.businessName}
-                          className="w-full h-full rounded-2xl object-cover"
+                          className="w-full h-full object-cover"
                         />
                       ) : (
-                        <Building2 className="w-12 h-12 text-primary" />
+                        <Building2 className="w-12 h-12 text-gray-600" />
                       )}
                     </div>
                   </div>
 
                   {/* Business Info */}
-                  <div className="flex-1 space-y-4">
+                  <div className="flex-1 space-y-3 text-center md:text-left">
                     <div>
-                      <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-2">
+                      <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">
                         {business.businessName}
                       </h1>
-                      <div className="flex items-center gap-2">
-                        <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                          business.status === "approved" 
-                            ? "bg-green-100 text-green-800" 
-                            : business.status === "pending"
-                            ? "bg-yellow-100 text-yellow-800"
-                            : "bg-red-100 text-red-800"
-                        }`}>
-                          {business.status?.charAt(0).toUpperCase() + business.status?.slice(1) || "Pending"}
-                        </span>
-                      </div>
+                      <span className="inline-block px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium">
+                        {business.status === "approved" ? "Active" : business.status}
+                      </span>
                     </div>
 
-                    {/* Business Details */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                    {/* Contact Info */}
+                    <div className="space-y-2 text-gray-600">
                       {business.address && (
-                        <div className="flex items-start gap-2 text-muted-foreground">
-                          <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0 text-primary" />
-                          <span className="line-clamp-2">{business.address}</span>
+                        <div className="flex items-center justify-center md:justify-start gap-2">
+                          <MapPin className="w-4 h-4 text-gray-400" />
+                          <span className="text-sm">{business.address}</span>
                         </div>
                       )}
                       {business.email && (
-                        <div className="flex items-center gap-2 text-muted-foreground">
-                          <Mail className="w-4 h-4 flex-shrink-0 text-primary" />
-                          <span>{business.email}</span>
+                        <div className="flex items-center justify-center md:justify-start gap-2">
+                          <Mail className="w-4 h-4 text-gray-400" />
+                          <span className="text-sm">{business.email}</span>
                         </div>
                       )}
                       {business.phone && (
-                        <div className="flex items-center gap-2 text-muted-foreground">
-                          <Phone className="w-4 h-4 flex-shrink-0 text-primary" />
-                          <span>{business.phone}</span>
+                        <div className="flex items-center justify-center md:justify-start gap-2">
+                          <Phone className="w-4 h-4 text-gray-400" />
+                          <span className="text-sm">{business.phone}</span>
                         </div>
                       )}
                     </div>
 
-                    {/* Business Story */}
+                    {/* Story/About */}
                     {business.story && (
-                      <div className="pt-4 border-t border-border/50">
+                      <div className="pt-3 border-t border-gray-200">
                         <div className="flex items-start gap-2">
-                          <FileText className="w-4 h-4 mt-0.5 flex-shrink-0 text-primary" />
-                          <p className="text-sm text-muted-foreground leading-relaxed">{business.story}</p>
+                          <FileText className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
+                          <p className="text-sm text-gray-600 leading-relaxed">{business.story}</p>
                         </div>
                       </div>
                     )}
                   </div>
+
+                  {/* Edit Button */}
+                  <div className="flex-shrink-0">
+                    <Link
+                      href="/business/profile/edit"
+                      className="inline-flex items-center px-4 py-2 bg-gray-900 text-white rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors shadow-sm"
+                    >
+                      Edit Profile
+                    </Link>
+                  </div>
                 </div>
               </div>
 
-              {/* Action Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <Link
-                  href="/business/dashboard"
-                  className="group bg-card rounded-2xl shadow-lg border border-border/50 p-8 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1"
-                >
-                  <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                    <LayoutDashboard className="w-7 h-7 text-primary" />
-                  </div>
-                  <h3 className="text-xl font-bold text-foreground mb-2 group-hover:text-primary transition-colors">
-                    Dashboard
-                  </h3>
-                  <p className="text-sm text-muted-foreground">
-                    View your business overview, analytics, and recent activity
-                  </p>
-                </Link>
+              {/* Quick Actions */}
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h2>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <Link
+                    href="/business/dashboard"
+                    className="group bg-white rounded-xl border border-gray-200 p-6 hover:border-gray-300 hover:shadow-md transition-all"
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 rounded-lg bg-blue-50 flex items-center justify-center group-hover:bg-blue-100 transition-colors">
+                        <LayoutDashboard className="w-6 h-6 text-blue-600" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-gray-900">Dashboard</h3>
+                        <p className="text-sm text-gray-500">Manage your business</p>
+                      </div>
+                    </div>
+                  </Link>
 
-                <Link
-                  href="/business/services"
-                  className="group bg-card rounded-2xl shadow-lg border border-border/50 p-8 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1"
-                >
-                  <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                    <Briefcase className="w-7 h-7 text-primary" />
-                  </div>
-                  <h3 className="text-xl font-bold text-foreground mb-2 group-hover:text-primary transition-colors">
-                    Services
-                  </h3>
-                  <p className="text-sm text-muted-foreground">
-                    Manage your service listings, pricing, and availability
-                  </p>
-                </Link>
+                  <Link
+                    href="/business/services"
+                    className="group bg-white rounded-xl border border-gray-200 p-6 hover:border-gray-300 hover:shadow-md transition-all"
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 rounded-lg bg-purple-50 flex items-center justify-center group-hover:bg-purple-100 transition-colors">
+                        <Briefcase className="w-6 h-6 text-purple-600" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-gray-900">Services</h3>
+                        <p className="text-sm text-gray-500">View all services</p>
+                      </div>
+                    </div>
+                  </Link>
 
-                <Link
-                  href="/business/staff"
-                  className="group bg-card rounded-2xl shadow-lg border border-border/50 p-8 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1"
-                >
-                  <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                    <Users className="w-7 h-7 text-primary" />
-                  </div>
-                  <h3 className="text-xl font-bold text-foreground mb-2 group-hover:text-primary transition-colors">
-                    Staff
-                  </h3>
-                  <p className="text-sm text-muted-foreground">
-                    Manage your team members and their profiles
-                  </p>
-                </Link>
+                  <Link
+                    href="/business/staff"
+                    className="group bg-white rounded-xl border border-gray-200 p-6 hover:border-gray-300 hover:shadow-md transition-all"
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 rounded-lg bg-green-50 flex items-center justify-center group-hover:bg-green-100 transition-colors">
+                        <Users className="w-6 h-6 text-green-600" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-gray-900">Staff</h3>
+                        <p className="text-sm text-gray-500">Manage team members</p>
+                      </div>
+                    </div>
+                  </Link>
+                </div>
               </div>
             </div>
           ) : (
-            <div className="bg-card rounded-2xl shadow-xl border border-border/50 p-12 text-center max-w-2xl mx-auto">
-              <div className="mb-6">
-                <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center mx-auto">
-                  <Building2 className="w-10 h-10 text-primary" />
+            /* No Business - Registration Prompt */
+            <div className="max-w-2xl mx-auto text-center">
+              <div className="bg-white rounded-xl border border-gray-200 p-12 shadow-sm">
+                <div className="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-6">
+                  <Building2 className="w-10 h-10 text-gray-400" />
                 </div>
+                <h2 className="text-2xl font-bold text-gray-900 mb-3">No Business Registered</h2>
+                <p className="text-gray-600 mb-8 text-lg">
+                  Register your business to start offering services and managing bookings
+                </p>
+                <Link
+                  href="/business/register"
+                  className="inline-block bg-gray-900 text-white px-8 py-3 rounded-lg font-semibold hover:bg-gray-800 transition-colors shadow-sm"
+                >
+                  Register Your Business
+                </Link>
               </div>
-              <h2 className="text-2xl md:text-3xl font-bold text-foreground mb-4">
-                Start Your Business Journey
-              </h2>
-              <p className="text-muted-foreground mb-8 text-lg">
-                Register your business to start listing services and connect with customers
-              </p>
-              <Link
-                href="/business/register"
-                className="btn-polished btn-polished-primary inline-block rounded-xl px-8 py-3 font-semibold shadow-lg hover:shadow-xl transition-all"
-              >
-                Register Business
-              </Link>
             </div>
           )}
         </div>
@@ -222,4 +226,3 @@ export default function BusinessPage() {
     </PageLayout>
   );
 }
-
