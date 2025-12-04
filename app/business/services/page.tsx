@@ -191,7 +191,7 @@ export default function BusinessServicesPage() {
             </div>
           ) : (
             <div className="space-y-10">
-              {Object.entries(groupedServices).map(([category, categoryServices]) => (
+              {(Object.entries(groupedServices) as [string, any[]][]).map(([category, categoryServices]) => (
                 <div key={category} className="space-y-6">
                   {/* Category Header */}
                   <div className="flex items-center gap-3 pb-3 border-b-2 border-[#F5F5F5]">
