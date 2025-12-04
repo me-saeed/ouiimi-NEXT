@@ -99,7 +99,7 @@ async function updateBusinessHandler(
       );
     }
 
-    console.log("Business updated and verified. ID:", String(savedBusiness._id));
+
 
     return NextResponse.json(
       {

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { logger } from "../logger";
 
 interface RateLimitStore {
   [key: string]: {
@@ -12,6 +13,28 @@ const store: RateLimitStore = {};
 const WINDOW_MS = parseInt(process.env.RATE_LIMIT_WINDOW_MS || "900000", 10); // 15 minutes default
 const MAX_REQUESTS = parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || "100", 10);
 
+// Cleanup interval to prevent memory leaks
+setInterval(() => {
+  const now = Date.now();
+  Object.keys(store).forEach((key) => {
+    if (store[key].resetTime < now) {
+      delete store[key];
+    }
+  });
+}, 60000); // Clean up every minute
+
+/**
+ * Rate Limiting Function
+ * Features:
+ * - IP-based rate limiting
+ * - Configurable windows and limits
+ * - Memory-efficient with automatic cleanup
+ * - Ready for Redis integration for distributed systems
+ * 
+ * TODO: For production at scale, integrate Redis:
+ * - Install: npm install ioredis
+ * - Use Redis for distributed rate limiting across multiple servers
+ */
 export function rateLimit(req: NextRequest): {
   success: boolean;
   limit: number;
@@ -20,14 +43,6 @@ export function rateLimit(req: NextRequest): {
 } {
   const identifier = getIdentifier(req);
   const now = Date.now();
-  const windowStart = now - WINDOW_MS;
-
-  // Clean up old entries
-  Object.keys(store).forEach((key) => {
-    if (store[key].resetTime < now) {
-      delete store[key];
-    }
-  });
 
   if (!store[identifier] || store[identifier].resetTime < now) {
     store[identifier] = {
@@ -43,6 +58,12 @@ export function rateLimit(req: NextRequest): {
   }
 
   if (store[identifier].count >= MAX_REQUESTS) {
+    logger.warn('Rate limit exceeded', {
+      ip: identifier,
+      count: store[identifier].count,
+      limit: MAX_REQUESTS,
+    });
+
     return {
       success: false,
       limit: MAX_REQUESTS,
@@ -74,9 +95,13 @@ export function withRateLimit(
       const limit = rateLimit(req);
 
       if (!limit.success) {
+        const retryAfter = Math.ceil((limit.reset - Date.now()) / 1000);
+
         return NextResponse.json(
           {
             error: "Too many requests. Please try again later.",
+            code: "RATE_LIMIT_EXCEEDED",
+            retryAfter: retryAfter,
           },
           {
             status: 429,
@@ -84,7 +109,7 @@ export function withRateLimit(
               "X-RateLimit-Limit": limit.limit.toString(),
               "X-RateLimit-Remaining": limit.remaining.toString(),
               "X-RateLimit-Reset": limit.reset.toString(),
-              "Retry-After": Math.ceil((limit.reset - Date.now()) / 1000).toString(),
+              "Retry-After": retryAfter.toString(),
             },
           }
         );
@@ -97,9 +122,12 @@ export function withRateLimit(
 
       return response;
     } catch (error: any) {
-      console.error("Rate limit wrapper error:", error);
+      logger.error("Rate limit wrapper error", error);
       return NextResponse.json(
-        { error: "Internal server error", details: error.message },
+        {
+          error: "Internal server error",
+          code: "INTERNAL_ERROR"
+        },
         { status: 500 }
       );
     }
@@ -114,9 +142,13 @@ export function withRateLimitDynamic<T extends { params: { [key: string]: string
       const limit = rateLimit(req);
 
       if (!limit.success) {
+        const retryAfter = Math.ceil((limit.reset - Date.now()) / 1000);
+
         return NextResponse.json(
           {
             error: "Too many requests. Please try again later.",
+            code: "RATE_LIMIT_EXCEEDED",
+            retryAfter: retryAfter,
           },
           {
             status: 429,
@@ -124,7 +156,7 @@ export function withRateLimitDynamic<T extends { params: { [key: string]: string
               "X-RateLimit-Limit": limit.limit.toString(),
               "X-RateLimit-Remaining": limit.remaining.toString(),
               "X-RateLimit-Reset": limit.reset.toString(),
-              "Retry-After": Math.ceil((limit.reset - Date.now()) / 1000).toString(),
+              "Retry-After": retryAfter.toString(),
             },
           }
         );
@@ -137,9 +169,12 @@ export function withRateLimitDynamic<T extends { params: { [key: string]: string
 
       return response;
     } catch (error: any) {
-      console.error("Rate limit wrapper error:", error);
+      logger.error("Rate limit wrapper error", error);
       return NextResponse.json(
-        { error: "Internal server error", details: error.message },
+        {
+          error: "Internal server error",
+          code: "INTERNAL_ERROR"
+        },
         { status: 500 }
       );
     }
