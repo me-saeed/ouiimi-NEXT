@@ -50,15 +50,15 @@ export function ServiceCarousel({ children, title, viewAllHref }: ServiceCarouse
   };
 
   return (
-    <div className="relative mb-[40px]">
+    <div className="relative mb-8 sm:mb-10 md:mb-[40px]">
       {/* Header */}
       {title && (
-        <div className="flex items-center justify-between mb-[20px] px-4 md:px-0">
-          <h2 className="text-[24px] font-bold text-[#3A3A3A]">{title}</h2>
+        <div className="flex items-center justify-between mb-4 sm:mb-5 md:mb-6">
+          <h2 className="text-[18px] sm:text-[20px] md:text-[24px] font-bold text-[#3A3A3A]">{title}</h2>
           {viewAllHref && (
             <a
               href={viewAllHref}
-              className="text-sm text-[#3A3A3A] hover:text-[#EECFD1] font-medium inline-flex items-center gap-1 transition-colors underline"
+              className="text-xs sm:text-sm text-[#3A3A3A] hover:text-[#EECFD1] font-medium inline-flex items-center gap-1 transition-colors underline"
             >
               View all
             </a>
@@ -84,13 +84,15 @@ export function ServiceCarousel({ children, title, viewAllHref }: ServiceCarouse
         {/* Scrollable Container */}
         <div
           ref={scrollContainerRef}
-          className="flex gap-[16px] overflow-x-auto scrollbar-hide scroll-smooth px-4 md:px-0"
+          className="flex gap-3 sm:gap-4 overflow-x-auto scrollbar-hide scroll-smooth -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8"
           style={{
-            scrollSnapType: "x mandatory",
+            scrollSnapType: "x proximity",
             WebkitOverflowScrolling: "touch",
           }}
         >
           {children}
+          {/* Spacer to show peek of next card on mobile */}
+          <div className="flex-shrink-0 w-4 md:w-0" />
         </div>
 
         {/* Right Arrow - Hidden on mobile */}

@@ -6,6 +6,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { signinSchema, type SigninInput } from "@/lib/validation";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { signIn } from "next-auth/react";
 
@@ -107,127 +108,114 @@ export default function SigninPage() {
   };
 
   return (
-    <div className="min-h-screen bg-color-bg p-4">
-      <div className="max-w-md mx-auto">
-        <form className="w-full relative mt-20" onSubmit={handleSubmit(onSubmit)}>
-          <div className="space-y-3">
-            <div>
-              <div className="text-xl antialiased font-bold items-center mb-4">
-                Sign In
-              </div>
+    <div className="min-h-screen bg-white flex items-center justify-center px-4 py-12">
+      <div className="w-full max-w-md">
+        <div className="mb-8 text-center">
+          <h1 className="text-3xl font-bold text-[#3A3A3A] mb-2">Sign In</h1>
+          <p className="text-sm text-[#888888]">Welcome back to ouiimi</p>
+        </div>
 
-              <div className="mt-4">
-                <label
-                  className="block uppercase text-gray-700 text-xs font-bold mb-2"
-                  htmlFor="username"
-                >
-                  Email/ Username
-                </label>
-                <input
-                  type="text"
-                  className={`input-styl px-2 py-2 h-10 ${
-                    errors.username ? "border-red-600" : ""
-                  }`}
-                  placeholder=" Email/ Username"
-                  id="username"
-                  {...register("username")}
-                />
-                {errors.username && (
-                  <div className="text-red-600 text-sm mt-1">
-                    {errors.username.message}
-                  </div>
-                )}
-              </div>
-            </div>
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+          <div>
+            <label
+              className="block text-sm font-medium text-[#3A3A3A] mb-2"
+              htmlFor="username"
+            >
+              Email / Username
+            </label>
+            <Input
+              type="text"
+              id="username"
+              placeholder="Enter your email or username"
+              className={errors.username ? "border-red-500 focus-visible:ring-red-500" : ""}
+              {...register("username")}
+            />
+            {errors.username && (
+              <p className="text-red-500 text-sm mt-1.5">{errors.username.message}</p>
+            )}
+          </div>
 
-            <div>
-              <div className="mt-2">
-                <label
-                  className="block uppercase text-gray-700 text-xs font-bold mb-2"
-                  htmlFor="password"
-                >
-                  Password
-                </label>
-                <input
-                  type="password"
-                  id="password"
-                  className={`input-styl px-2 py-2 h-10 ${
-                    errors.password ? "border-red-600" : ""
-                  }`}
-                  placeholder="Password"
-                  {...register("password")}
-                />
-                {errors.password && (
-                  <div className="text-red-600 text-sm mt-1">
-                    {errors.password.message}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div className="flex flex-wrap gap-4 mt-4">
-              <div className="mt-2 mx-8">
-                {isLoading ? (
-                  <div className="flex justify-center items-center">
-                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
-                  </div>
-                ) : (
-                  <button className="btn-styl" type="submit">
-                    Sign In
-                  </button>
-                )}
-              </div>
-
-              <div className="mt-2 mx-8">
-                <a className="btn-styl block text-center" href="/signup">
-                  Sign up
-                </a>
-              </div>
-            </div>
-
-            <div className="mt-2 mx-8">
-              <a className="text-red-600 text-sm" href="/forgetpass">
-                Forget Password
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <label
+                className="block text-sm font-medium text-[#3A3A3A]"
+                htmlFor="password"
+              >
+                Password
+              </label>
+              <a
+                href="/forgetpass"
+                className="text-sm text-[#EECFD1] hover:text-[#e5c4c7] transition-colors"
+              >
+                Forgot?
               </a>
             </div>
+            <Input
+              type="password"
+              id="password"
+              placeholder="Enter your password"
+              className={errors.password ? "border-red-500 focus-visible:ring-red-500" : ""}
+              {...register("password")}
+            />
+            {errors.password && (
+              <p className="text-red-500 text-sm mt-1.5">{errors.password.message}</p>
+            )}
           </div>
-        </form>
 
-        {error && (
-          <div className="mt-4">
+          {error && (
             <Alert variant="destructive">
               <AlertDescription>{error}</AlertDescription>
             </Alert>
-          </div>
-        )}
+          )}
 
-        {success && (
-          <div className="mt-4">
-            <Alert variant="success">
+          {success && (
+            <Alert className="bg-green-50 border-green-200 text-green-800">
               <AlertDescription>{success}</AlertDescription>
             </Alert>
-          </div>
-        )}
+          )}
 
-        {/* Social Login Buttons */}
+          <Button
+            type="submit"
+            variant="pink"
+            className="w-full h-12 text-base font-medium"
+            disabled={isLoading}
+          >
+            {isLoading ? (
+              <div className="flex items-center justify-center">
+                <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent"></div>
+              </div>
+            ) : (
+              "Sign In"
+            )}
+          </Button>
+        </form>
+
+        <div className="mt-6 text-center">
+          <p className="text-sm text-[#888888]">
+            Don't have an account?{" "}
+            <a href="/signup" className="text-[#EECFD1] hover:text-[#e5c4c7] font-medium transition-colors">
+              Sign up
+            </a>
+          </p>
+        </div>
+
         <div className="mt-8">
           <div className="relative">
             <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t border-gray-300" />
+              <div className="w-full border-t border-[#E5E5E5]"></div>
             </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-color-bg px-2 text-gray-500">
-                Or continue with
-              </span>
+            <div className="relative flex justify-center text-xs">
+              <span className="bg-white px-4 text-[#888888]">Or continue with</span>
             </div>
           </div>
 
-          <div className="mt-6 grid grid-cols-2 gap-4">
-            <button
+          <div className="mt-6 grid grid-cols-2 gap-3">
+            <Button
               type="button"
+              variant="outline"
               onClick={() => handleOAuth("google")}
               disabled={isLoading}
-              className="flex items-center justify-center px-4 py-2 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full h-11 border-[#E5E5E5] hover:bg-gray-50"
             >
               <svg className="mr-2 h-5 w-5" viewBox="0 0 24 24">
                 <path
@@ -248,18 +236,19 @@ export default function SigninPage() {
                 />
               </svg>
               Google
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
+              variant="outline"
               onClick={() => handleOAuth("facebook")}
               disabled={isLoading}
-              className="flex items-center justify-center px-4 py-2 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full h-11 border-[#E5E5E5] hover:bg-gray-50"
             >
               <svg className="mr-2 h-5 w-5" fill="#1877F2" viewBox="0 0 24 24">
                 <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
               </svg>
               Facebook
-            </button>
+            </Button>
           </div>
         </div>
       </div>

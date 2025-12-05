@@ -230,6 +230,14 @@ async function deleteServiceHandler(
   try {
     await dbConnect();
 
+    // Validate ObjectId format
+    if (!mongoose.Types.ObjectId.isValid(params.id)) {
+      return NextResponse.json(
+        { error: "Invalid service ID format" },
+        { status: 400 }
+      );
+    }
+
     const service = await Service.findById(params.id);
 
     if (!service) {
@@ -239,26 +247,28 @@ async function deleteServiceHandler(
       );
     }
 
-    if (service.status === "booked") {
+    // Check if service has active bookings
+    const hasActiveBookings = service.timeSlots?.some((slot: any) => slot.isBooked === true);
+    if (hasActiveBookings) {
       return NextResponse.json(
         { error: "Cannot delete service with active bookings" },
         { status: 400 }
       );
     }
 
-    service.status = "cancelled";
-    await service.save();
+    // Actually delete the service
+    await Service.findByIdAndDelete(params.id);
 
     return NextResponse.json(
       {
-        message: "Service removed successfully",
+        message: "Service deleted successfully",
       },
       { status: 200 }
     );
   } catch (error: any) {
     console.error("Delete service error:", error);
     return NextResponse.json(
-      { error: "Failed to remove service" },
+      { error: "Failed to delete service" },
       { status: 500 }
     );
   }

@@ -96,7 +96,7 @@ export default function BusinessStaffPage() {
   };
 
   const handleDelete = async (staffId: string) => {
-    if (!confirm("Are you sure you want to remove this staff member? They will be deactivated.")) return;
+    if (!confirm("Are you sure you want to delete this staff member? This action cannot be undone.")) return;
 
     try {
       const token = localStorage.getItem("token");

@@ -128,6 +128,15 @@ async function deleteStaffHandler(
   try {
     await dbConnect();
 
+    // Validate ObjectId format
+    const mongoose = (await import("mongoose")).default;
+    if (!mongoose.Types.ObjectId.isValid(params.id)) {
+      return NextResponse.json(
+        { error: "Invalid staff ID format" },
+        { status: 400 }
+      );
+    }
+
     const staff = await Staff.findById(params.id);
 
     if (!staff) {
@@ -137,19 +146,19 @@ async function deleteStaffHandler(
       );
     }
 
-    staff.isActive = false;
-    await staff.save();
+    // Actually delete the staff member
+    await Staff.findByIdAndDelete(params.id);
 
     return NextResponse.json(
       {
-        message: "Staff member deactivated successfully",
+        message: "Staff member deleted successfully",
       },
       { status: 200 }
     );
   } catch (error: any) {
     console.error("Delete staff error:", error);
     return NextResponse.json(
-      { error: "Failed to deactivate staff member" },
+      { error: "Failed to delete staff member" },
       { status: 500 }
     );
   }
