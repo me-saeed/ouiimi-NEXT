@@ -29,10 +29,10 @@ export default function Header({ user }: HeaderProps) {
       <header className="sticky top-0 z-50 w-full bg-[#EECFD1]">
         <div className="container mx-auto px-4 max-w-7xl">
           <div className="flex h-16 items-center justify-between">
-            {/* Left: Hamburger Menu (Mobile Only) */}
+            {/* Left: Hamburger Menu */}
             <button
               onClick={() => setSidebarOpen(true)}
-              className="md:hidden text-[#3A3A3A] hover:bg-white/10 transition-all duration-200 p-2 rounded-lg tap-target"
+              className="text-white hover:bg-white/10 transition-all duration-200 p-2 rounded-lg tap-target"
               aria-label="Open menu"
             >
               <svg
@@ -51,8 +51,8 @@ export default function Header({ user }: HeaderProps) {
             </button>
 
             {/* Center: Logo */}
-            <Link href="/" className="flex items-center group absolute left-1/2 -translate-x-1/2 md:static md:translate-x-0">
-              <h1 className="text-[20px] font-semibold text-white tracking-tight group-hover:text-white/90 transition-colors duration-200">
+            <Link href="/" className="flex items-center group absolute left-1/2 -translate-x-1/2">
+              <h1 className="text-[22px] sm:text-[24px] font-normal text-white tracking-wide group-hover:text-white/90 transition-colors duration-200 italic" style={{ fontFamily: 'Georgia, "Times New Roman", serif' }}>
                 ouiimi
               </h1>
             </Link>
@@ -67,7 +67,7 @@ export default function Header({ user }: HeaderProps) {
                     href={link.href}
                     className={`text-[14px] font-medium transition-all duration-200 px-3 py-2 rounded-lg ${isActive
                         ? "text-white bg-white/20"
-                        : "text-[#3A3A3A] hover:text-white hover:bg-white/10"
+                        : "text-white hover:bg-white/10"
                       }`}
                   >
                     {link.label}
@@ -79,7 +79,7 @@ export default function Header({ user }: HeaderProps) {
             {/* Right: Cart Icon */}
             <Link
               href="/cart"
-              className="text-[#3A3A3A] hover:bg-white/10 transition-all duration-200 p-2 rounded-lg relative tap-target"
+              className="text-white hover:bg-white/10 transition-all duration-200 p-2 rounded-lg relative tap-target"
               aria-label="Shopping cart"
             >
               <svg

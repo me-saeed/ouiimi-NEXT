@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import mongoose from "mongoose";
 import dbConnect from "@/lib/db";
 import Booking from "@/lib/models/Booking";
 import User from "@/lib/models/User";
@@ -249,6 +250,11 @@ async function createBookingHandler(req: NextRequest) {
 
     // Time slot was already marked as booked in the atomic update step above
 
+    // Ensure Business model is registered before populate
+    if (!mongoose.models.Business) {
+      await import("@/lib/models/Business");
+    }
+
     const savedBooking = await Booking.findById(booking._id)
       .populate("userId", "fname lname email")
       .populate("businessId", "businessName logo address email phone")
@@ -447,6 +453,11 @@ async function getBookingsHandler(req: NextRequest) {
     }
 
     console.log("Fetching bookings with filter:", filter);
+
+    // Ensure Business model is registered before populate
+    if (!mongoose.models.Business) {
+      await import("@/lib/models/Business");
+    }
 
     const bookings = await Booking.find(filter)
       .populate("userId", "fname lname email contactNo")

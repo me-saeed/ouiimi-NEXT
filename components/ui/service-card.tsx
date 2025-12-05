@@ -29,11 +29,11 @@ export function ServiceCard({
     return (
         <Link
             href={`/services/${id}`}
-            className="group block bg-white rounded-[12px] overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 flex-shrink-0 w-full sm:w-[280px] md:w-[300px] lg:w-[320px] border border-[#F5F5F5]"
+            className="group block bg-white rounded-[12px] overflow-hidden shadow-sm hover:shadow-md transition-all duration-200 flex-shrink-0 w-[320px] sm:w-[320px] md:w-[340px] lg:w-[360px] border border-[#E5E5E5] h-[100px]"
         >
-            <div className="p-3 flex gap-3 items-start">
-                {/* Left: Business Logo */}
-                <div className="w-10 h-10 rounded-full bg-white border-2 border-[#F5F5F5] flex items-center justify-center overflow-hidden flex-shrink-0 shadow-sm">
+            <div className="p-4 flex gap-4 items-center h-full">
+                {/* Left: Business Logo - Large circular placeholder */}
+                <div className="w-16 h-16 rounded-full bg-white border border-[#E5E5E5] flex items-center justify-center overflow-hidden flex-shrink-0">
                     {image && image !== "/placeholder-logo.png" ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img
@@ -48,34 +48,30 @@ export function ServiceCard({
                     )}
                 </div>
 
-                {/* Right: Content Area */}
-                <div className="flex-1 min-w-0 space-y-0.5">
-                    {/* Row 1: Business Name */}
-                    <p className="text-[10px] font-semibold text-[#888888] uppercase tracking-wide truncate">
-                        {businessName || "Business"}
+                {/* Right: Content Area - Three lines, all left-aligned */}
+                <div className="flex-1 min-w-0 flex flex-col justify-center gap-1.5">
+                    {/* Line 1: Business/Staff Name - Largest, bold, dark gray */}
+                    <p className="text-[16px] font-semibold text-[#3A3A3A] truncate leading-none">
+                        {businessName || "Business Name"}
                     </p>
 
-                    {/* Row 2: Service Name + Duration + Cost */}
-                    <div className="flex items-baseline justify-between gap-2">
-                        <h3 className="font-semibold text-[#3A3A3A] line-clamp-1 text-sm leading-tight flex-1">
-                            {name}
-                        </h3>
-                        <div className="flex items-center gap-2 flex-shrink-0">
-                            {duration && (
-                                <span className="text-xs text-[#888888] font-medium">{duration}</span>
-                            )}
-                            <span className="text-sm font-bold text-[#3A3A3A]">${price.toFixed(2)}</span>
-                        </div>
+                    {/* Line 2: Service Name + Duration + Price - Same line, normal weight, dark gray */}
+                    <div className="flex items-baseline gap-2.5 flex-wrap">
+                        <span className="text-[14px] text-[#3A3A3A] leading-none">{name}</span>
+                        {duration && (
+                            <span className="text-[14px] text-[#3A3A3A] leading-none">{duration}</span>
+                        )}
+                        <span className="text-[14px] text-[#3A3A3A] leading-none">${price.toFixed(2)}</span>
                     </div>
 
-                    {/* Row 3: Date + Time */}
+                    {/* Line 3: Date + Time - Smallest, lighter gray, normal weight */}
                     {(date || time) && (
-                        <div className="flex items-center gap-3 pt-0.5">
+                        <div className="flex items-center gap-2.5">
                             {date && (
-                                <span className="text-xs text-[#3A3A3A] font-medium">{date}</span>
+                                <span className="text-[12px] text-[#888888] leading-none">{date}</span>
                             )}
                             {time && (
-                                <span className="text-xs text-[#3A3A3A] font-medium">{time}</span>
+                                <span className="text-[12px] text-[#888888] leading-none">{time}</span>
                             )}
                         </div>
                     )}

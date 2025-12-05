@@ -8,6 +8,7 @@ import { serviceCreateSchema, type ServiceCreateInput } from "@/lib/validation";
 import { z } from "zod";
 import PageLayout from "@/components/layout/PageLayout";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 import Image from "next/image";
@@ -39,14 +40,14 @@ export default function CreateServicePage() {
   const [success, setSuccess] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
   const [staff, setStaff] = useState<any[]>([]);
-  const [serviceDuration, setServiceDuration] = useState<string>(""); // Auto-calculated from first time slot
-  // Group time slots by date: { "2025-10-30": [{ startTime, endTime, cost, staffIds, duration }] }
+  const [defaultStaffIds, setDefaultStaffIds] = useState<string[]>([]);
+  const [durationMinutes, setDurationMinutes] = useState<number>(30); // Duration in minutes
+  // Group time slots by date: { "2025-10-30": [{ startTime, endTime, cost, staffIds }] }
   const [datesWithSlots, setDatesWithSlots] = useState<Record<string, Array<{
     startTime: string;
     endTime: string;
     cost?: number;
     staffIds: string[];
-    duration?: string;
   }>>>({});
   const [selectedDate, setSelectedDate] = useState<string>("");
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -80,6 +81,11 @@ export default function CreateServicePage() {
       setValue("subCategory", "");
     }
   }, [selectedCategory, setValue]);
+
+  useEffect(() => {
+    // Update duration field when durationMinutes changes
+    setValue("duration", formatDuration(durationMinutes));
+  }, [durationMinutes, setValue]);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -133,46 +139,48 @@ export default function CreateServicePage() {
     }
   };
 
+  // Calculate end time from start time + duration
+  const calculateEndTime = (startTime: string, durationMins: number): string => {
+    if (!startTime) return "";
+    const [hours, minutes] = startTime.split(":").map(Number);
+    const startDate = new Date();
+    startDate.setHours(hours, minutes, 0, 0);
+    const endDate = new Date(startDate.getTime() + durationMins * 60000);
+    const endHours = String(endDate.getHours()).padStart(2, "0");
+    const endMinutes = String(endDate.getMinutes()).padStart(2, "0");
+    return `${endHours}:${endMinutes}`;
+  };
+
   const handleSelectDate = (date: string) => {
     setSelectedDate(date);
     setShowDatePicker(false);
     setShowTimeSlotForm(true);
-    // Keep the default staff selection, only reset time and cost
-    setNewTimeSlot(prev => ({
-      ...prev,
+    // Initialize with default staff and reset time/cost
+    setNewTimeSlot({
       startTime: "",
       endTime: "",
       cost: "",
-    }));
+      staffIds: [...defaultStaffIds],
+    });
+  };
+
+  const handleStartTimeChange = (startTime: string) => {
+    const endTime = calculateEndTime(startTime, durationMinutes);
+    setNewTimeSlot({
+      ...newTimeSlot,
+      startTime,
+      endTime,
+    });
   };
 
   const handleAddTimeSlot = () => {
-    if (!selectedDate || !newTimeSlot.startTime || !newTimeSlot.endTime) {
-      setError("Please select a date and fill in start time and end time");
+    if (!selectedDate || !newTimeSlot.startTime) {
+      setError("Please select a date and start time");
       return;
     }
 
-    // Calculate duration from start and end time
-    const start = new Date(`2000-01-01T${newTimeSlot.startTime}`);
-    const end = new Date(`2000-01-01T${newTimeSlot.endTime}`);
-    const durationMs = end.getTime() - start.getTime();
-
-    if (durationMs <= 0) {
-      setError("End time must be after start time");
-      return;
-    }
-
-    const hours = Math.floor(durationMs / (1000 * 60 * 60));
-    const minutes = Math.floor((durationMs % (1000 * 60 * 60)) / (1000 * 60));
-    const duration = hours > 0 ? `${hours}Hr${minutes > 0 ? ` ${minutes}mins` : ''}` : `${minutes}mins`;
-
-    // If this is the first time slot, set the service duration
-    if (!serviceDuration && Object.keys(datesWithSlots).length === 0) {
-      setServiceDuration(duration);
-      setValue("duration", duration); // Set the hidden duration field
-    } else if (serviceDuration && duration !== serviceDuration) {
-      // Enforce same duration for all time slots
-      setError(`All time slots must have the same duration (${serviceDuration}). This slot is ${duration}.`);
+    if (!newTimeSlot.endTime) {
+      setError("End time is required");
       return;
     }
 
@@ -180,8 +188,7 @@ export default function CreateServicePage() {
       startTime: newTimeSlot.startTime,
       endTime: newTimeSlot.endTime,
       cost: newTimeSlot.cost ? parseFloat(newTimeSlot.cost) : undefined,
-      staffIds: newTimeSlot.staffIds,
-      duration,
+      staffIds: newTimeSlot.staffIds.length > 0 ? newTimeSlot.staffIds : defaultStaffIds,
     };
 
     // Add slot to the selected date
@@ -190,19 +197,18 @@ export default function CreateServicePage() {
       [selectedDate]: [...(datesWithSlots[selectedDate] || []), slot],
     });
 
-    // Reset form but keep date selected AND default staff
-    setNewTimeSlot(prev => ({
-      ...prev,
+    // Reset form but keep date selected and default staff
+    setNewTimeSlot({
       startTime: "",
       endTime: "",
       cost: "",
-      // staffIds are kept from previous state (default selection)
-    }));
+      staffIds: [...defaultStaffIds],
+    });
     setError("");
     toast({
       variant: "success",
       title: "Time slot added!",
-      description: `Added time slot for ${new Date(selectedDate).toLocaleDateString()} (Duration: ${duration})`,
+      description: `Added time slot for ${new Date(selectedDate).toLocaleDateString()}`,
     });
   };
 
@@ -229,13 +235,34 @@ export default function CreateServicePage() {
     }
   };
 
-  const handleToggleStaff = (staffId: string) => {
+  const handleToggleStaff = (staffId: string, isDefault: boolean = false) => {
+    if (isDefault) {
+      setDefaultStaffIds(prev =>
+        prev.includes(staffId)
+          ? prev.filter(id => id !== staffId)
+          : [...prev, staffId]
+      );
+    } else {
     setNewTimeSlot({
       ...newTimeSlot,
       staffIds: newTimeSlot.staffIds.includes(staffId)
         ? newTimeSlot.staffIds.filter(id => id !== staffId)
         : [...newTimeSlot.staffIds, staffId],
     });
+    }
+  };
+
+  // Convert duration minutes to string format
+  const formatDuration = (minutes: number): string => {
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    if (hours > 0 && mins > 0) {
+      return `${hours}Hr ${mins}mins`;
+    } else if (hours > 0) {
+      return `${hours}Hr`;
+    } else {
+      return `${mins}mins`;
+    }
   };
 
   // Convert datesWithSlots back to flat array for submission
@@ -262,7 +289,16 @@ export default function CreateServicePage() {
   };
 
   const onSubmit = async (data: Omit<ServiceCreateInput, 'businessId'>) => {
-
+    // Validate that dates and time slots are added
+    if (Object.keys(datesWithSlots).length === 0) {
+      setError("Please add at least one date with time slots");
+      toast({
+        variant: "destructive",
+        title: "Validation Error",
+        description: "Please add at least one date with time slots",
+      });
+      return;
+    }
 
     setIsLoading(true);
     setError("");
@@ -330,6 +366,8 @@ export default function CreateServicePage() {
       const requestBody = {
         ...data,
         businessId: foundBusinessId,
+        duration: formatDuration(durationMinutes),
+        defaultStaffIds: defaultStaffIds,
         timeSlots: timeSlotsForSubmission.length > 0 ? timeSlotsForSubmission.map(slot => ({
           date: slot.date,
           startTime: slot.startTime,
@@ -429,7 +467,7 @@ export default function CreateServicePage() {
           </div>
 
           {/* Form Card */}
-          <div className="bg-white rounded-2xl border border-[#F5F5F5] p-6 md:p-8 shadow-sm">
+          <div className="bg-white rounded-lg border border-[#E5E5E5] p-6 md:p-8 shadow-sm">
 
             {error && (
               <Alert className="mb-6 border-red-200 bg-red-50">
@@ -472,7 +510,7 @@ export default function CreateServicePage() {
               )}
               className="space-y-6"
             >
-              {/* Hidden duration field - auto-calculated */}
+              {/* Hidden duration field */}
               <input type="hidden" {...register("duration")} />
 
               {/* 2-column grid for desktop */}
@@ -483,9 +521,9 @@ export default function CreateServicePage() {
                   </label>
                   <select
                     {...register("category")}
-                    className="w-full px-4 py-2.5 rounded-lg border border-[#F5F5F5] bg-white text-[#3A3A3A] focus:outline-none focus:ring-2 focus:ring-[#EECFD1]/20 focus:border-[#EECFD1] transition-all"
+                    className="w-full px-4 py-2.5 rounded-lg border border-[#E5E5E5] bg-white text-[#3A3A3A] focus:outline-none focus:ring-2 focus:ring-[#EECFD1]/20 focus:border-[#EECFD1] transition-all"
                   >
-                    <option value="">Select category</option>
+                    <option value="">Select Category</option>
                     {CATEGORIES.map((cat) => (
                       <option key={cat} value={cat}>
                         {cat}
@@ -502,11 +540,11 @@ export default function CreateServicePage() {
                 {selectedCategory && SUB_CATEGORIES[selectedCategory] && (
                   <div className="space-y-2">
                     <label className="block text-sm font-semibold text-[#3A3A3A] mb-2">
-                      Sub-Category <span className="text-[#888888] text-xs">(Optional)</span>
+                      Sub-Category <span className="text-[#888888] text-xs font-normal">(Optional)</span>
                     </label>
                     <select
                       {...register("subCategory")}
-                      className="w-full px-4 py-2.5 rounded-lg border border-[#F5F5F5] bg-white text-[#3A3A3A] focus:outline-none focus:ring-2 focus:ring-[#EECFD1]/20 focus:border-[#EECFD1] transition-all"
+                      className="w-full px-4 py-2.5 rounded-lg border border-[#E5E5E5] bg-white text-[#3A3A3A] focus:outline-none focus:ring-2 focus:ring-[#EECFD1]/20 focus:border-[#EECFD1] transition-all"
                     >
                       <option value="">Select sub-category</option>
                       {SUB_CATEGORIES[selectedCategory].map((subCat) => (
@@ -527,7 +565,7 @@ export default function CreateServicePage() {
                   <input
                     {...register("serviceName")}
                     type="text"
-                    className="w-full px-4 py-2.5 rounded-lg border border-[#F5F5F5] bg-white text-[#3A3A3A] placeholder:text-[#888888] focus:outline-none focus:ring-2 focus:ring-[#EECFD1]/20 focus:border-[#EECFD1] transition-all"
+                    className="w-full px-4 py-2.5 rounded-lg border border-[#E5E5E5] bg-white text-[#3A3A3A] placeholder:text-[#888888] focus:outline-none focus:ring-2 focus:ring-[#EECFD1]/20 focus:border-[#EECFD1] transition-all"
                     placeholder="e.g., Men's Haircut"
                   />
                   {errors.serviceName && (
@@ -552,7 +590,7 @@ export default function CreateServicePage() {
                       type="number"
                       step="0.01"
                       min="0"
-                      className="w-full pl-8 pr-4 py-2.5 rounded-lg border border-[#F5F5F5] bg-white text-[#3A3A3A] placeholder:text-[#888888] focus:outline-none focus:ring-2 focus:ring-[#EECFD1]/20 focus:border-[#EECFD1] transition-all"
+                      className="w-full pl-8 pr-4 py-2.5 rounded-lg border border-[#E5E5E5] bg-white text-[#3A3A3A] placeholder:text-[#888888] focus:outline-none focus:ring-2 focus:ring-[#EECFD1]/20 focus:border-[#EECFD1] transition-all"
                       placeholder="50.00"
                     />
                   </div>
@@ -564,26 +602,50 @@ export default function CreateServicePage() {
                 </div>
               </div>
 
-              {serviceDuration && (
-                <div className="bg-[#EECFD1]/10 border border-[#EECFD1]/30 rounded-lg p-4">
-                  <p className="text-sm text-[#3A3A3A] font-medium">
-                    ⏱️ Service Duration: <span className="text-[#EECFD1] font-bold">{serviceDuration}</span>
-                  </p>
+              {/* Duration Field - Set First */}
+              <div className="space-y-2">
+                <label className="block text-sm font-semibold text-[#3A3A3A] mb-2">
+                  Duration <span className="text-red-500">*</span>
+                </label>
+                <div className="flex items-center gap-4">
+                  <div className="flex-1">
+                    <input
+                      type="number"
+                      min="15"
+                      step="15"
+                      value={durationMinutes}
+                      onChange={(e) => {
+                        const mins = parseInt(e.target.value) || 30;
+                        setDurationMinutes(mins);
+                        // Recalculate end time if start time is set
+                        if (newTimeSlot.startTime) {
+                          const endTime = calculateEndTime(newTimeSlot.startTime, mins);
+                          setNewTimeSlot({ ...newTimeSlot, endTime });
+                        }
+                      }}
+                      className="w-full px-4 py-2.5 rounded-lg border border-[#E5E5E5] bg-white text-[#3A3A3A] focus:outline-none focus:ring-2 focus:ring-[#EECFD1]/20 focus:border-[#EECFD1] transition-all"
+                      placeholder="30"
+                    />
+                  </div>
+                  <span className="text-sm text-[#888888]">minutes</span>
+                  <div className="text-sm text-[#3A3A3A] font-medium">
+                    ({formatDuration(durationMinutes)})
+                  </div>
+                </div>
                   <p className="text-xs text-[#888888] mt-1">
-                    All time slots will have this duration based on your first time slot.
+                  End time will be automatically calculated from start time + duration
                   </p>
                 </div>
-              )}
 
               <div className="space-y-2">
                 <label className="block text-sm font-semibold text-[#3A3A3A] mb-2">
                   Address <span className="text-red-500">*</span>
                 </label>
-                <input
+                <Input
                   {...register("address")}
                   type="text"
-                  className="w-full px-4 py-2.5 rounded-lg border border-[#F5F5F5] bg-white text-[#3A3A3A] placeholder:text-[#888888] focus:outline-none focus:ring-2 focus:ring-[#EECFD1]/20 focus:border-[#EECFD1] transition-all"
                   placeholder="123 Main St, City, State ZIP"
+                  className={errors.address ? "border-red-500 focus-visible:ring-red-500" : ""}
                 />
                 {errors.address && (
                   <p className="text-red-500 text-sm mt-1">
@@ -594,12 +656,12 @@ export default function CreateServicePage() {
 
               <div className="space-y-2">
                 <label className="block text-sm font-semibold text-[#3A3A3A] mb-2">
-                  Description <span className="text-[#888888] text-xs">(Optional)</span>
+                  Description <span className="text-[#888888] text-xs font-normal">(Optional)</span>
                 </label>
                 <textarea
                   {...register("description")}
                   rows={3}
-                  className="w-full px-4 py-2.5 rounded-lg border border-[#F5F5F5] bg-white text-[#3A3A3A] placeholder:text-[#888888] focus:outline-none focus:ring-2 focus:ring-[#EECFD1]/20 focus:border-[#EECFD1] transition-all resize-none"
+                  className="w-full px-4 py-2.5 rounded-lg border border-[#E5E5E5] bg-white text-[#3A3A3A] placeholder:text-[#888888] focus:outline-none focus:ring-2 focus:ring-[#EECFD1]/20 focus:border-[#EECFD1] transition-all resize-none"
                   placeholder="Describe your service"
                 />
                 {errors.description && (
@@ -611,31 +673,31 @@ export default function CreateServicePage() {
 
               {/* Default Staff Selection */}
               {staff.length > 0 && (
-                <div className="space-y-2 pt-4 border-t border-border">
-                  <label className="block text-sm font-semibold text-foreground mb-2">
-                    Default Staff for this Service <span className="text-muted-foreground text-xs">(Optional)</span>
+                <div className="space-y-3 pt-4 border-t border-[#E5E5E5]">
+                  <label className="block text-sm font-semibold text-[#3A3A3A]">
+                    Default Staff for this Service <span className="text-[#888888] text-xs font-normal">(Optional)</span>
                   </label>
-                  <p className="text-sm text-muted-foreground mb-3">
-                    Select staff members who usually perform this service. They will be automatically assigned to new time slots (you can change this per slot).
+                  <p className="text-xs text-[#888888]">
+                    Selected staff will be automatically assigned to new time slots. You can change this per slot.
                   </p>
-                  <div className="border border-border rounded-xl p-4 bg-background max-h-48 overflow-y-auto grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <div className="border border-[#E5E5E5] rounded-lg p-3 bg-white space-y-2">
                     {staff.map((member) => (
-                      <label key={member.id || member._id} className="flex items-center gap-3 p-2 hover:bg-muted/50 rounded-lg cursor-pointer transition-colors">
+                      <label key={member.id || member._id} className="flex items-center gap-3 p-2.5 hover:bg-[#F5F5F5] rounded-lg cursor-pointer transition-colors">
                         <input
                           type="checkbox"
-                          checked={newTimeSlot.staffIds.includes(member.id || member._id)}
-                          onChange={() => handleToggleStaff(member.id || member._id)}
-                          className="w-4 h-4 text-primary border-border rounded focus:ring-primary"
+                          checked={defaultStaffIds.includes(member.id || member._id)}
+                          onChange={() => handleToggleStaff(member.id || member._id, true)}
+                          className="w-4 h-4 text-[#EECFD1] border-[#E5E5E5] rounded focus:ring-[#EECFD1]"
                         />
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2.5">
                           {member.photo ? (
-                            <Image src={member.photo} alt={member.name} width={24} height={24} className="rounded-full object-cover" />
+                            <Image src={member.photo} alt={member.name} width={28} height={28} className="rounded-full object-cover" />
                           ) : (
-                            <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary">
+                            <div className="w-7 h-7 rounded-full bg-[#EECFD1] flex items-center justify-center text-sm font-bold text-[#3A3A3A]">
                               {member.name.charAt(0)}
                             </div>
                           )}
-                          <span className="text-sm font-medium">{member.name}</span>
+                          <span className="text-sm font-medium text-[#3A3A3A]">{member.name}</span>
                         </div>
                       </label>
                     ))}
@@ -644,40 +706,33 @@ export default function CreateServicePage() {
               )}
 
               {/* Dates and Time Slots Section */}
-              <div className="space-y-4 pt-6 border-t-2 border-primary/20">
-                <div className="bg-primary/5 rounded-xl p-4 border border-primary/20">
+              <div className="space-y-4 pt-6 border-t border-[#E5E5E5]">
                   <div className="flex items-center justify-between mb-4">
-                    <div>
-                      <label className="block text-base font-bold text-foreground mb-1">
-                        📅 Dates & Time Slots <span className="text-destructive">*</span>
+                  <label className="block text-base font-bold text-[#3A3A3A]">
+                    Dates & Time Slots <span className="text-red-500">*</span>
                       </label>
-                      <p className="text-sm text-muted-foreground">
-                        Add dates and time slots when customers can book this service. You can add multiple dates and multiple time slots per date.
-                      </p>
-                    </div>
                     <Button
                       type="button"
                       onClick={() => setShowDatePicker(true)}
                       variant="outline"
-                      size="sm"
-                      className="rounded-xl border-primary/30 hover:bg-primary/10"
+                      className="h-9 px-4 rounded-lg border border-[#E5E5E5] bg-white hover:bg-[#F5F5F5] text-sm font-medium text-[#3A3A3A] transition-colors"
                     >
                       + Add Date
                     </Button>
-                  </div>
                 </div>
 
                 {/* Date Picker Modal */}
                 {showDatePicker && (
                   <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl">
+                    <div className="bg-white rounded-lg p-6 max-w-md w-full shadow-xl">
                       <div className="flex items-center justify-between mb-4">
-                        <h3 className="text-lg font-bold text-foreground">Select Date</h3>
+                        <h3 className="text-lg font-bold text-[#3A3A3A]">Select Date</h3>
                         <button
                           onClick={() => setShowDatePicker(false)}
-                          className="text-muted-foreground hover:text-foreground"
+                          className="w-8 h-8 flex items-center justify-center rounded-lg text-[#888888] hover:text-[#3A3A3A] hover:bg-[#F5F5F5] transition-colors"
+                          aria-label="Close"
                         >
-                          ✕
+                          ×
                         </button>
                       </div>
                       <input
@@ -688,10 +743,10 @@ export default function CreateServicePage() {
                             handleSelectDate(e.target.value);
                           }
                         }}
-                        className="w-full px-4 py-3 rounded-xl border-2 border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary font-medium"
+                        className="w-full px-4 py-2.5 rounded-lg border border-[#E5E5E5] bg-white text-[#3A3A3A] focus:outline-none focus:ring-2 focus:ring-[#EECFD1]/20 focus:border-[#EECFD1] transition-all"
                         autoFocus
                       />
-                      <p className="text-xs text-muted-foreground mt-2">
+                      <p className="text-xs text-[#888888] mt-2">
                         Select a date to add time slots
                       </p>
                     </div>
@@ -700,9 +755,9 @@ export default function CreateServicePage() {
 
                 {/* Time Slot Form - Shows when a date is selected */}
                 {showTimeSlotForm && selectedDate && (
-                  <div className="bg-card rounded-xl p-6 space-y-5 border-2 border-primary/30 shadow-lg">
+                  <div className="bg-white rounded-lg p-6 space-y-5 border border-[#E5E5E5] shadow-sm">
                     <div className="flex items-center justify-between mb-4">
-                      <h3 className="text-lg font-bold text-foreground">
+                      <h3 className="text-lg font-bold text-[#3A3A3A]">
                         Add Time Slot for {new Date(selectedDate).toLocaleDateString("en-GB", {
                           day: "2-digit",
                           month: "2-digit",
@@ -714,91 +769,90 @@ export default function CreateServicePage() {
                           setShowTimeSlotForm(false);
                           setSelectedDate("");
                         }}
-                        className="text-muted-foreground hover:text-foreground"
+                        className="w-8 h-8 flex items-center justify-center rounded-lg text-[#888888] hover:text-[#3A3A3A] hover:bg-[#F5F5F5] transition-colors"
+                        aria-label="Close"
                       >
-                        ✕
+                        ×
                       </button>
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <label className="text-sm font-semibold text-foreground flex items-center gap-1">
-                          <span>🕐</span> Start Time <span className="text-destructive">*</span>
+                        <label className="text-sm font-semibold text-[#3A3A3A]">
+                          Start Time <span className="text-red-500">*</span>
                         </label>
                         <input
                           type="time"
                           value={newTimeSlot.startTime}
-                          onChange={(e) => setNewTimeSlot({ ...newTimeSlot, startTime: e.target.value })}
-                          className="w-full px-4 py-3 rounded-xl border-2 border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all font-medium"
+                          onChange={(e) => handleStartTimeChange(e.target.value)}
+                          className="w-full px-4 py-2.5 rounded-lg border border-[#E5E5E5] bg-white text-[#3A3A3A] focus:outline-none focus:ring-2 focus:ring-[#EECFD1]/20 focus:border-[#EECFD1] transition-all"
                           required
                         />
                       </div>
                       <div className="space-y-2">
-                        <label className="text-sm font-semibold text-foreground flex items-center gap-1">
-                          <span>🕐</span> End Time <span className="text-destructive">*</span>
+                        <label className="text-sm font-semibold text-[#3A3A3A]">
+                          End Time <span className="text-[#888888] text-xs font-normal">(Auto-calculated)</span>
                         </label>
                         <input
                           type="time"
                           value={newTimeSlot.endTime}
-                          onChange={(e) => setNewTimeSlot({ ...newTimeSlot, endTime: e.target.value })}
-                          className="w-full px-4 py-3 rounded-xl border-2 border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all font-medium"
-                          required
+                          readOnly
+                          className="w-full px-4 py-2.5 rounded-lg border border-[#E5E5E5] bg-[#F5F5F5] text-[#3A3A3A] cursor-not-allowed"
                         />
                       </div>
                     </div>
 
                     <div className="space-y-2">
-                      <label className="text-sm font-semibold text-foreground">
-                        Cost (Optional) - Leave empty to use base cost
+                      <label className="text-sm font-semibold text-[#3A3A3A]">
+                        Cost <span className="text-[#888888] text-xs font-normal">(Optional - Leave empty to use base cost)</span>
                       </label>
                       <div className="relative">
-                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[#888888]">$</span>
                         <input
                           type="number"
                           step="0.01"
                           value={newTimeSlot.cost}
                           onChange={(e) => setNewTimeSlot({ ...newTimeSlot, cost: e.target.value })}
                           placeholder="e.g., 60.00"
-                          className="w-full pl-9 pr-4 py-3 rounded-xl border-2 border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all font-medium"
+                          className="w-full pl-8 pr-4 py-2.5 rounded-lg border border-[#E5E5E5] bg-white text-[#3A3A3A] focus:outline-none focus:ring-2 focus:ring-[#EECFD1]/20 focus:border-[#EECFD1] transition-all"
                         />
                       </div>
                     </div>
 
                     {staff.length > 0 && (
                       <div className="space-y-2">
-                        <label className="text-sm font-semibold text-foreground">Assign Staff (Optional)</label>
-                        <div className="border-2 border-border rounded-xl p-3 bg-background max-h-40 overflow-y-auto">
+                        <label className="text-sm font-semibold text-[#3A3A3A]">Assign Staff <span className="text-[#888888] text-xs font-normal">(Optional)</span></label>
+                        <div className="border border-[#E5E5E5] rounded-lg p-3 bg-white max-h-40 overflow-y-auto space-y-2">
                           {staff.map((member) => (
-                            <label key={member.id || member._id} className="flex items-center gap-2 p-2 hover:bg-muted/50 rounded-lg cursor-pointer">
+                            <label key={member.id || member._id} className="flex items-center gap-2.5 p-2.5 hover:bg-[#F5F5F5] rounded-lg cursor-pointer transition-colors">
                               <input
                                 type="checkbox"
                                 checked={newTimeSlot.staffIds.includes(member.id || member._id)}
-                                onChange={() => handleToggleStaff(member.id || member._id)}
-                                className="w-4 h-4 text-primary border-border rounded focus:ring-primary"
+                                onChange={() => handleToggleStaff(member.id || member._id, false)}
+                                className="w-4 h-4 text-[#EECFD1] border-[#E5E5E5] rounded focus:ring-[#EECFD1]"
                               />
-                              <span className="text-sm font-medium">{member.name}</span>
+                              <div className="flex items-center gap-2.5">
+                                {member.photo ? (
+                                  <Image src={member.photo} alt={member.name} width={24} height={24} className="rounded-full object-cover" />
+                                ) : (
+                                  <div className="w-6 h-6 rounded-full bg-[#EECFD1] flex items-center justify-center text-xs font-bold text-[#3A3A3A]">
+                                    {member.name.charAt(0)}
+                                  </div>
+                                )}
+                                <span className="text-sm font-medium text-[#3A3A3A]">{member.name}</span>
+                              </div>
                             </label>
                           ))}
                         </div>
-                        {newTimeSlot.staffIds.length > 0 && (
-                          <div className="mt-2 p-2 bg-primary/10 rounded-lg">
-                            <p className="text-xs font-semibold text-primary mb-1">Staff Selected:</p>
-                            <p className="text-sm text-foreground">
-                              {newTimeSlot.staffIds.map(id => {
-                                const member = staff.find(s => (s.id || s._id) === id);
-                                return member?.name;
-                              }).filter(Boolean).join(", ")}
-                            </p>
-                          </div>
-                        )}
                       </div>
                     )}
 
-                    <div className="flex gap-3">
+                    <div className="flex gap-3 pt-2">
                       <Button
                         type="button"
                         onClick={handleAddTimeSlot}
-                        className="flex-1 btn-polished-primary rounded-xl"
+                        variant="pink"
+                        className="flex-1 h-10 rounded-lg font-medium"
                       >
                         Add Time Slot
                       </Button>
@@ -809,7 +863,7 @@ export default function CreateServicePage() {
                           setSelectedDate("");
                         }}
                         variant="outline"
-                        className="rounded-xl"
+                        className="h-10 px-6 rounded-lg border border-[#E5E5E5] bg-white hover:bg-[#F5F5F5] text-[#3A3A3A] font-medium transition-colors"
                       >
                         Cancel
                       </Button>
@@ -823,19 +877,21 @@ export default function CreateServicePage() {
                     {Object.entries(datesWithSlots)
                       .sort(([dateA], [dateB]) => new Date(dateA).getTime() - new Date(dateB).getTime())
                       .map(([date, slots]) => (
-                        <div key={date} className="bg-card rounded-xl p-5 border-2 border-border/50 shadow-sm">
+                        <div key={date} className="bg-white rounded-lg p-5 border border-[#E5E5E5] shadow-sm">
                           <div className="flex items-center justify-between mb-4">
                             <div className="flex items-center gap-3">
-                              <span className="text-2xl">📅</span>
+                              <div className="w-10 h-10 rounded-full bg-[#EECFD1]/20 flex items-center justify-center">
+                                <span className="text-lg">📅</span>
+                              </div>
                               <div>
-                                <h4 className="font-bold text-lg text-foreground">
+                                <h4 className="font-bold text-base text-[#3A3A3A]">
                                   {new Date(date).toLocaleDateString("en-GB", {
                                     day: "2-digit",
                                     month: "2-digit",
                                     year: "numeric"
                                   })}
                                 </h4>
-                                <p className="text-xs text-muted-foreground">
+                                <p className="text-xs text-[#888888]">
                                   {new Date(date).toLocaleDateString("en-US", { weekday: "long" })}
                                 </p>
                               </div>
@@ -845,8 +901,7 @@ export default function CreateServicePage() {
                                 type="button"
                                 onClick={() => handleSelectDate(date)}
                                 variant="outline"
-                                size="sm"
-                                className="text-xs"
+                                className="h-8 px-3 text-xs rounded-lg border border-[#E5E5E5] bg-white hover:bg-[#F5F5F5] text-[#3A3A3A] font-medium transition-colors"
                               >
                                 + Add Slot
                               </Button>
@@ -854,10 +909,9 @@ export default function CreateServicePage() {
                                 type="button"
                                 onClick={() => handleRemoveDate(date)}
                                 variant="outline"
-                                size="sm"
-                                className="text-xs text-red-500 border-red-200 hover:bg-red-50"
+                                className="h-8 px-3 text-xs rounded-lg border border-red-200 bg-white hover:bg-red-50 text-red-500 hover:text-red-600 font-medium transition-colors"
                               >
-                                Remove Date
+                                Remove
                               </Button>
                             </div>
                           </div>
@@ -868,22 +922,28 @@ export default function CreateServicePage() {
                                 slot.staffIds.includes(s.id || s._id)
                               );
                               const slotCost = slot.cost || "Base Cost";
+                              const start = new Date(`2000-01-01T${slot.startTime}`);
+                              const end = new Date(`2000-01-01T${slot.endTime}`);
+                              const durationMs = end.getTime() - start.getTime();
+                              const hours = Math.floor(durationMs / (1000 * 60 * 60));
+                              const minutes = Math.floor((durationMs % (1000 * 60 * 60)) / (1000 * 60));
+                              const duration = hours > 0 ? `${hours}Hr${minutes > 0 ? ` ${minutes}mins` : ''}` : `${minutes}mins`;
 
                               return (
                                 <div
                                   key={index}
-                                  className="flex items-center justify-between p-3 bg-muted/30 rounded-lg border border-border/30"
+                                  className="flex items-center justify-between p-3 bg-[#F5F5F5] rounded-lg border border-[#E5E5E5]"
                                 >
                                   <div className="flex-1">
-                                    <p className="text-sm font-semibold text-foreground">
-                                      Time Slot: {slot.startTime} To {slot.endTime} {slot.duration}
+                                    <p className="text-sm font-semibold text-[#3A3A3A]">
+                                      {slot.startTime} - {slot.endTime} ({duration})
                                     </p>
-                                    <div className="flex items-center gap-4 mt-1 text-xs text-muted-foreground">
+                                    <div className="flex items-center gap-4 mt-1 text-xs text-[#888888]">
                                       <span>
                                         Cost: {typeof slotCost === 'number' ? `$${slotCost.toFixed(2)}` : String(slotCost)}
                                       </span>
                                       {assignedStaff.length > 0 && (
-                                        <span className="text-primary font-medium">
+                                        <span className="text-[#3A3A3A] font-medium">
                                           Staff: {assignedStaff.map((s: any) => s.name).join(", ")}
                                         </span>
                                       )}
@@ -893,8 +953,7 @@ export default function CreateServicePage() {
                                     type="button"
                                     onClick={() => handleRemoveTimeSlot(date, index)}
                                     variant="outline"
-                                    size="sm"
-                                    className="text-red-500 hover:text-red-700 hover:bg-red-50 border-red-200 text-xs"
+                                    className="h-8 px-3 text-xs rounded-lg border border-red-200 bg-white hover:bg-red-50 text-red-500 hover:text-red-600 font-medium transition-colors"
                                   >
                                     Remove
                                   </Button>
@@ -905,33 +964,21 @@ export default function CreateServicePage() {
                         </div>
                       ))}
                   </div>
-                ) : (
-                  <div className="text-center py-10 bg-muted/20 rounded-xl border-2 border-dashed border-border/50">
-                    <div className="text-4xl mb-3">📅</div>
-                    <p className="text-sm font-medium text-muted-foreground mb-1">
-                      No dates added yet
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      Click &quot;Add Date&quot; above to add dates and time slots for this service
-                    </p>
-                  </div>
-                )}
+                ) : null}
               </div>
 
-              <div className="flex flex-col sm:flex-row gap-4 pt-4">
+              <div className="flex flex-col sm:flex-row gap-3 pt-6 border-t border-[#E5E5E5]">
                 <Button
                   type="submit"
                   disabled={isLoading || Object.keys(datesWithSlots).length === 0}
-                  size="lg"
-                  className="flex-1 h-12 rounded-xl btn-polished-primary shadow-lg hover:shadow-xl transition-all font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                  variant="pink"
+                  className="flex-1 h-11 rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isLoading ? (
                     <>
                       <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
                       Creating...
                     </>
-                  ) : Object.keys(datesWithSlots).length === 0 ? (
-                    "Add Dates & Time Slots First"
                   ) : (
                     "Create Service"
                   )}
@@ -940,8 +987,7 @@ export default function CreateServicePage() {
                   type="button"
                   onClick={() => router.back()}
                   variant="outline"
-                  size="lg"
-                  className="flex-1 h-12 rounded-xl border-2 font-semibold"
+                  className="flex-1 h-11 rounded-lg border border-[#E5E5E5] bg-white hover:bg-[#F5F5F5] text-[#3A3A3A] font-medium transition-colors"
                 >
                   Cancel
                 </Button>

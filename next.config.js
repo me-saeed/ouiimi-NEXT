@@ -8,6 +8,20 @@ const nextConfig = {
     NEXTAUTH_URL: process.env.NEXTAUTH_URL,
     // Keep other env vars that might be needed client-side
   },
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'share.google',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: '**.googleusercontent.com',
+        pathname: '/**',
+      },
+    ],
+  },
   webpack: (config, { isServer }) => {
     if (isServer) {
       // Exclude problematic dependencies from server-side bundling
