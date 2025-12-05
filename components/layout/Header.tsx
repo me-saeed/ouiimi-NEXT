@@ -28,11 +28,11 @@ export default function Header({ user }: HeaderProps) {
     <>
       <header className="sticky top-0 z-50 w-full bg-[#EECFD1]">
         <div className="container mx-auto px-4 max-w-7xl">
-          <div className="flex h-16 items-center justify-between">
-            {/* Left: Hamburger Menu */}
+          <div className="flex h-16 items-center justify-between relative">
+            {/* Left: Hamburger Menu (Mobile only) */}
             <button
               onClick={() => setSidebarOpen(true)}
-              className="text-white hover:bg-white/10 transition-all duration-200 p-2 rounded-lg tap-target"
+              className="md:hidden text-white hover:bg-white/10 transition-all duration-200 p-2 rounded-lg tap-target"
               aria-label="Open menu"
             >
               <svg
@@ -50,15 +50,8 @@ export default function Header({ user }: HeaderProps) {
               </svg>
             </button>
 
-            {/* Center: Logo */}
-            <Link href="/" className="flex items-center group absolute left-1/2 -translate-x-1/2">
-              <h1 className="text-[22px] sm:text-[24px] font-normal text-white tracking-wide group-hover:text-white/90 transition-colors duration-200 italic" style={{ fontFamily: 'Georgia, "Times New Roman", serif' }}>
-                ouiimi
-              </h1>
-            </Link>
-
-            {/* Desktop Navigation (Hidden on Mobile) */}
-            <nav className="hidden md:flex items-center gap-6 absolute left-1/2 transform -translate-x-1/2">
+            {/* Desktop Navigation (Left side - Desktop only) */}
+            <nav className="hidden md:flex items-center gap-4 lg:gap-6">
               {sidebarLinks.map((link) => {
                 const isActive = pathname === link.href || pathname?.startsWith(link.href + "/");
                 return (
@@ -76,10 +69,17 @@ export default function Header({ user }: HeaderProps) {
               })}
             </nav>
 
+            {/* Center: Logo */}
+            <Link href="/" className="flex items-center group absolute left-1/2 -translate-x-1/2">
+              <h1 className="text-[22px] sm:text-[24px] font-serif italic text-white tracking-tight group-hover:text-white/90 transition-colors duration-200">
+                ouiimi
+              </h1>
+            </Link>
+
             {/* Right: Cart Icon */}
             <Link
               href="/cart"
-              className="text-white hover:bg-white/10 transition-all duration-200 p-2 rounded-lg relative tap-target"
+              className="text-white hover:bg-white/10 transition-all duration-200 p-2 rounded-lg relative tap-target ml-auto"
               aria-label="Shopping cart"
             >
               <svg
