@@ -20,7 +20,8 @@ export default function Header({ user }: HeaderProps) {
   const sidebarLinks = [
     { href: "/about", label: "About" },
     { href: "/profile", label: "Shopper" },
-    { href: "/business", label: "Small Business" },
+    { href: "/business/dashboard", label: "Small Business" },
+    { href: "/admin/dashboard", label: "Admin" },
     { href: "/how-it-works", label: "How it works" },
   ];
 

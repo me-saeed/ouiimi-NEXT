@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -8,6 +8,7 @@ import { staffUpdateSchema, type StaffUpdateInput } from "@/lib/validation";
 import PageLayout from "@/components/layout/PageLayout";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Plus } from "lucide-react";
 
 export default function EditStaffPage() {
   const router = useRouter();
@@ -18,6 +19,9 @@ export default function EditStaffPage() {
   const [success, setSuccess] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingStaff, setIsLoadingStaff] = useState(true);
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const {
     register,
@@ -66,7 +70,10 @@ export default function EditStaffPage() {
         setValue("name", data.staff.name);
         setValue("photo", data.staff.photo || "");
         setValue("qualifications", data.staff.qualifications || "");
-        setValue("about", data.staff.about || "");
+        setValue("about", data.staff.about || data.staff.bio || "");
+        if (data.staff.photo) {
+          setImagePreview(data.staff.photo);
+        }
       }
     } catch (err: any) {
       setError("Failed to load staff member");
@@ -76,6 +83,30 @@ export default function EditStaffPage() {
     }
   };
 
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setSelectedImage(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const convertImageToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64String = reader.result as string;
+        resolve(base64String);
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  };
+
   const onSubmit = async (data: StaffUpdateInput) => {
     setIsLoading(true);
     setError("");
@@ -83,13 +114,23 @@ export default function EditStaffPage() {
 
     try {
       const token = localStorage.getItem("token");
+      
+      // Convert image to base64 if selected
+      let photoUrl = data.photo || "";
+      if (selectedImage) {
+        photoUrl = await convertImageToBase64(selectedImage);
+      }
+
       const response = await fetch(`/api/staff/${staffId}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(data),
+        body: JSON.stringify({
+          ...data,
+          photo: photoUrl || undefined,
+        }),
       });
 
       const result = await response.json();
@@ -126,111 +167,126 @@ export default function EditStaffPage() {
 
   return (
     <PageLayout user={user}>
-      <div className="bg-white min-h-screen py-12">
+      <div className="bg-white min-h-screen py-12 md:py-16">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="max-w-2xl mx-auto">
-            <h1 className="text-4xl font-bold text-[#3A3A3A] mb-8">
-              Edit Staff Member
-            </h1>
+          <div className="max-w-md mx-auto">
+            {/* Title - Above the card */}
+            <h1 className="text-xl font-semibold text-[#3A3A3A] mb-4">EDIT</h1>
 
-            {error && (
-              <Alert className="mb-6 bg-red-50 border-red-200">
-                <AlertDescription className="text-red-800">{error}</AlertDescription>
-              </Alert>
-            )}
+            {/* Form Card - No border, smooth white background */}
+            <div className="bg-white rounded-2xl shadow-sm p-8">
+              {error && (
+                <Alert className="mb-4 border-red-200 bg-red-50">
+                  <AlertDescription className="text-red-800 text-sm">{error}</AlertDescription>
+                </Alert>
+              )}
 
-            {success && (
-              <Alert className="mb-6 border-green-200 bg-green-50">
-                <AlertDescription className="text-green-800">{success}</AlertDescription>
-              </Alert>
-            )}
+              {success && (
+                <Alert className="mb-4 border-green-200 bg-green-50">
+                  <AlertDescription className="text-green-800 text-sm">{success}</AlertDescription>
+                </Alert>
+              )}
 
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-              <div>
-                <label className="block text-sm font-semibold text-[#3A3A3A] mb-2.5">
-                  Name *
-                </label>
-                <input
-                  {...register("name")}
-                  type="text"
-                  className="input-polished"
-                  placeholder="John Doe"
-                />
-                {errors.name && (
-                  <p className="text-red-500 text-sm mt-1.5">
-                    {errors.name.message}
-                  </p>
-                )}
-              </div>
+              <form 
+                onSubmit={handleSubmit(onSubmit)} 
+                className="space-y-6"
+              >
+                {/* Image Upload - Centered */}
+                <div className="flex justify-center pt-2">
+                  <div className="relative">
+                    <div 
+                      onClick={() => fileInputRef.current?.click()}
+                      className="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center cursor-pointer hover:bg-gray-200 transition-colors overflow-hidden"
+                    >
+                      {imagePreview ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={imagePreview}
+                          alt="Staff preview"
+                          className="w-full h-full object-cover rounded-full"
+                        />
+                      ) : null}
+                    </div>
+                    {/* Plus icon positioned below and to the right */}
+                    <div 
+                      onClick={() => fileInputRef.current?.click()}
+                      className="absolute -bottom-1 -right-1 w-6 h-6 bg-black rounded-full flex items-center justify-center cursor-pointer z-10 shadow-sm"
+                    >
+                      <Plus className="w-4 h-4 text-white" strokeWidth={3} />
+                    </div>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageSelect}
+                      className="hidden"
+                    />
+                  </div>
+                </div>
 
-              <div>
-                <label className="block text-sm font-semibold text-[#3A3A3A] mb-2.5">
-                  Photo URL
-                </label>
-                <input
-                  {...register("photo")}
-                  type="url"
-                  className="input-polished"
-                  placeholder="https://example.com/photo.jpg"
-                />
-                {errors.photo && (
-                  <p className="text-red-500 text-sm mt-1.5">
-                    {errors.photo.message}
-                  </p>
-                )}
-              </div>
+                {/* Name Input - Light grey background, centered text */}
+                <div>
+                  <input
+                    {...register("name")}
+                    type="text"
+                    className="w-full px-4 py-3 rounded-xl border-0 bg-gray-100 text-[#3A3A3A] placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:bg-white transition-all text-center"
+                    placeholder="Name"
+                  />
+                  {errors.name && (
+                    <p className="text-red-500 text-xs mt-1.5 text-center">
+                      {errors.name.message}
+                    </p>
+                  )}
+                </div>
 
-              <div>
-                <label className="block text-sm font-semibold text-[#3A3A3A] mb-2.5">
-                  Qualifications
-                </label>
+                {/* About/Qualifications Textarea - Light grey background, left-aligned */}
+                <div>
+                  <textarea
+                    {...register("about")}
+                    rows={5}
+                    className="w-full px-4 py-3 rounded-xl border-0 bg-gray-100 text-[#3A3A3A] placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:bg-white transition-all resize-none text-left leading-relaxed"
+                    placeholder="About staff member and qualifications"
+                  />
+                  {errors.about && (
+                    <p className="text-red-500 text-xs mt-1.5 text-left">
+                      {errors.about.message}
+                    </p>
+                  )}
+                </div>
+
+                {/* Qualifications - Store in hidden field, combine with about for display */}
                 <input
                   {...register("qualifications")}
-                  type="text"
-                  className="input-polished"
-                  placeholder="Certified Hair Stylist"
+                  type="hidden"
                 />
-                {errors.qualifications && (
-                  <p className="text-red-500 text-sm mt-1.5">
-                    {errors.qualifications.message}
-                  </p>
-                )}
-              </div>
+              </form>
+            </div>
 
-              <div>
-                <label className="block text-sm font-semibold text-[#3A3A3A] mb-2.5">
-                  About
-                </label>
-                <textarea
-                  {...register("about")}
-                  rows={4}
-                  className="input-polished resize-none"
-                  placeholder="Tell us about this staff member..."
-                />
-                {errors.about && (
-                  <p className="text-red-500 text-sm mt-1.5">
-                    {errors.about.message}
-                  </p>
+            {/* UPDATE Button - Below the card, centered */}
+            <div className="mt-4 flex justify-center gap-3">
+              <button
+                type="button"
+                onClick={handleSubmit(onSubmit)}
+                disabled={isLoading}
+                className="px-8 py-2.5 rounded-lg bg-[#3A3A3A] text-white hover:bg-[#2a2a2a] font-semibold transition-all disabled:opacity-50"
+              >
+                {isLoading ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2 inline-block" />
+                    Updating...
+                  </>
+                ) : (
+                  "UPDATE"
                 )}
-              </div>
-
-              <div className="flex space-x-4">
-                <Button
-                  type="submit"
-                  disabled={isLoading}
-                  className="flex-1 btn-polished btn-polished-primary"
-                >
-                  {isLoading ? "Updating..." : "Update Staff Member"}
-                </Button>
-                <Button
-                  type="button"
-                  onClick={() => router.back()}
-                  className="flex-1 bg-gray-200 text-[#3A3A3A] hover:bg-gray-300 rounded-lg px-6 py-3 font-semibold transition-all duration-200 shadow-sm hover:shadow-md"
-                >
-                  Cancel
-                </Button>
-              </div>
-            </form>
+              </button>
+              <button
+                type="button"
+                onClick={() => router.back()}
+                className="px-8 py-2.5 rounded-lg bg-gray-200 text-[#3A3A3A] hover:bg-gray-300 font-semibold transition-all"
+              >
+                Cancel
+              </button>
+            </div>
           </div>
         </div>
       </div>

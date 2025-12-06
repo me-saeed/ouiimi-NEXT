@@ -228,6 +228,14 @@ async function deleteServiceHandler(
   { params }: { params: { id: string } }
 ) {
   try {
+    const authHeader = req.headers.get("authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return NextResponse.json(
+        { error: "Unauthorized" },
+        { status: 401 }
+      );
+    }
+
     await dbConnect();
 
     // Validate ObjectId format
@@ -247,11 +255,26 @@ async function deleteServiceHandler(
       );
     }
 
-    // Check if service has active bookings
-    const hasActiveBookings = service.timeSlots?.some((slot: any) => slot.isBooked === true);
-    if (hasActiveBookings) {
+    // Check if service has active (future) bookings
+    // Only prevent deletion if there are future bookings that are confirmed or pending
+    const Booking = (await import("@/lib/models/Booking")).default;
+    const now = new Date();
+    
+    const activeBookings = await Booking.find({
+      serviceId: new mongoose.Types.ObjectId(params.id),
+      status: { $in: ["confirmed", "pending"] }, // Only check confirmed/pending bookings
+    }).lean();
+
+    // Check if any booking is in the future
+    const hasFutureBookings = activeBookings.some((booking: any) => {
+      const bookingDate = new Date(booking.timeSlot.date);
+      const bookingEndTime = new Date(`${bookingDate.toISOString().split('T')[0]}T${booking.timeSlot.endTime}`);
+      return bookingEndTime > now; // Booking hasn't ended yet
+    });
+
+    if (hasFutureBookings) {
       return NextResponse.json(
-        { error: "Cannot delete service with active bookings" },
+        { error: "Cannot delete service with active future bookings. Please cancel or wait for bookings to complete." },
         { status: 400 }
       );
     }

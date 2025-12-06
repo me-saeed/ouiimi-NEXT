@@ -41,7 +41,8 @@ export default function CreateServicePage() {
   const [isLoading, setIsLoading] = useState(false);
   const [staff, setStaff] = useState<any[]>([]);
   const [defaultStaffIds, setDefaultStaffIds] = useState<string[]>([]);
-  const [durationMinutes, setDurationMinutes] = useState<number>(30); // Duration in minutes
+  const [durationMinutes, setDurationMinutes] = useState<number | "">(""); // Duration in minutes
+  const [durationError, setDurationError] = useState<string>("");
   // Group time slots by date: { "2025-10-30": [{ startTime, endTime, cost, staffIds }] }
   const [datesWithSlots, setDatesWithSlots] = useState<Record<string, Array<{
     startTime: string;
@@ -55,12 +56,15 @@ export default function CreateServicePage() {
   const [newTimeSlot, setNewTimeSlot] = useState({
     startTime: "",
     endTime: "",
-    cost: "",
     staffIds: [] as string[],
   });
 
   // Form schema without businessId (we add it dynamically)
-  const formSchema = serviceCreateSchema.omit({ businessId: true });
+  // Make serviceName optional since we use subCategory instead, and make subCategory required
+  const formSchema = serviceCreateSchema.omit({ businessId: true }).extend({
+    serviceName: z.string().optional(),
+    subCategory: z.string().min(1, "Service name is required"),
+  });
 
   const {
     register,
@@ -84,7 +88,12 @@ export default function CreateServicePage() {
 
   useEffect(() => {
     // Update duration field when durationMinutes changes
-    setValue("duration", formatDuration(durationMinutes));
+    if (durationMinutes !== "" && typeof durationMinutes === "number" && durationMinutes >= 15) {
+      setValue("duration", formatDuration(durationMinutes));
+      setDurationError("");
+    } else {
+      setValue("duration", "");
+    }
   }, [durationMinutes, setValue]);
 
   useEffect(() => {
@@ -154,12 +163,12 @@ export default function CreateServicePage() {
   const handleSelectDate = (date: string) => {
     setSelectedDate(date);
     setShowDatePicker(false);
-    setShowTimeSlotForm(true);
-    // Initialize with default staff and reset time/cost
+    if (!showTimeSlotForm) {
+      setShowTimeSlotForm(true);
+    }
     setNewTimeSlot({
       startTime: "",
       endTime: "",
-      cost: "",
       staffIds: [...defaultStaffIds],
     });
   };
@@ -187,7 +196,6 @@ export default function CreateServicePage() {
     const slot = {
       startTime: newTimeSlot.startTime,
       endTime: newTimeSlot.endTime,
-      cost: newTimeSlot.cost ? parseFloat(newTimeSlot.cost) : undefined,
       staffIds: newTimeSlot.staffIds.length > 0 ? newTimeSlot.staffIds : defaultStaffIds,
     };
 
@@ -201,7 +209,6 @@ export default function CreateServicePage() {
     setNewTimeSlot({
       startTime: "",
       endTime: "",
-      cost: "",
       staffIds: [...defaultStaffIds],
     });
     setError("");
@@ -253,7 +260,8 @@ export default function CreateServicePage() {
   };
 
   // Convert duration minutes to string format
-  const formatDuration = (minutes: number): string => {
+  const formatDuration = (minutes: number | ""): string => {
+    if (minutes === "" || typeof minutes !== "number") return "";
     const hours = Math.floor(minutes / 60);
     const mins = minutes % 60;
     if (hours > 0 && mins > 0) {
@@ -362,9 +370,31 @@ export default function CreateServicePage() {
 
 
 
+      // Validate subCategory is selected (it will be used as serviceName)
+      if (!data.subCategory) {
+        setError("Please select a service name");
+        setIsLoading(false);
+        return;
+      }
+
+      // Validate duration
+      if (durationMinutes === "" || typeof durationMinutes !== "number" || durationMinutes < 15) {
+        setDurationError("Duration is required and must be at least 15 minutes");
+        setError("Please enter a valid duration (minimum 15 minutes)");
+        setIsLoading(false);
+        return;
+      }
+      if (durationMinutes > 180) {
+        setDurationError("Duration cannot exceed 3 hours (180 minutes)");
+        setError("Duration cannot exceed 3 hours (180 minutes)");
+        setIsLoading(false);
+        return;
+      }
+
       const timeSlotsForSubmission = getTimeSlotsForSubmission();
       const requestBody = {
         ...data,
+        serviceName: data.subCategory, // Use subCategory as serviceName
         businessId: foundBusinessId,
         duration: formatDuration(durationMinutes),
         defaultStaffIds: defaultStaffIds,
@@ -422,7 +452,7 @@ export default function CreateServicePage() {
       setSuccess("Service created successfully! Redirecting...");
 
       await new Promise(resolve => setTimeout(resolve, 2000));
-      router.push("/business/services");
+      router.push("/business/dashboard?tab=list");
     } catch (err: any) {
       console.error("Service creation error:", err);
       const errorMsg = err.message || "Something went wrong. Please try again.";
@@ -492,7 +522,7 @@ export default function CreateServicePage() {
                     const [fieldName, error] = errorEntries[0];
                     const fieldLabels: Record<string, string> = {
                       category: "Category",
-                      serviceName: "Service Name",
+                      subCategory: "Service Name",
                       baseCost: "Base Cost",
                       address: "Address",
                       description: "Description",
@@ -537,44 +567,38 @@ export default function CreateServicePage() {
                   )}
                 </div>
 
-                {selectedCategory && SUB_CATEGORIES[selectedCategory] && (
-                  <div className="space-y-2">
-                    <label className="block text-sm font-semibold text-[#3A3A3A] mb-2">
-                      Sub-Category <span className="text-[#888888] text-xs font-normal">(Optional)</span>
-                    </label>
+                <div className="space-y-2">
+                  <label className="block text-sm font-semibold text-[#3A3A3A] mb-2">
+                    Service Name <span className="text-red-500">*</span>
+                  </label>
+                  <div className="relative">
                     <select
-                      {...register("subCategory")}
-                      className="w-full px-4 py-2.5 rounded-lg border border-[#E5E5E5] bg-white text-[#3A3A3A] focus:outline-none focus:ring-2 focus:ring-[#EECFD1]/20 focus:border-[#EECFD1] transition-all"
+                      {...register("subCategory", { required: "Service name is required" })}
+                      disabled={!selectedCategory || !SUB_CATEGORIES[selectedCategory]}
+                      className="w-full px-4 py-2.5 rounded-lg border border-[#E5E5E5] bg-white text-[#3A3A3A] focus:outline-none focus:ring-2 focus:ring-[#EECFD1]/20 focus:border-[#EECFD1] transition-all appearance-none bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2712%27 height=%278%27 viewBox=%270 0 12 8%27 fill=%27none%27%3E%3Cpath d=%27M1 1L6 6L11 1%27 stroke=%27%23666%27 stroke-width=%272%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27/%3E%3C/svg%3E')] bg-no-repeat bg-right-4 pr-10 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed disabled:opacity-60"
                     >
-                      <option value="">Select sub-category</option>
-                      {SUB_CATEGORIES[selectedCategory].map((subCat) => (
+                      <option value="">{selectedCategory && SUB_CATEGORIES[selectedCategory] ? "Select Service Name" : "Select Category First"}</option>
+                      {selectedCategory && SUB_CATEGORIES[selectedCategory] && SUB_CATEGORIES[selectedCategory].map((subCat) => (
                         <option key={subCat} value={subCat}>
                           {subCat}
                         </option>
                       ))}
                     </select>
+                    <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                      <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </div>
                   </div>
-                )}
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <label className="block text-sm font-semibold text-[#3A3A3A] mb-2">
-                    Service Name <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    {...register("serviceName")}
-                    type="text"
-                    className="w-full px-4 py-2.5 rounded-lg border border-[#E5E5E5] bg-white text-[#3A3A3A] placeholder:text-[#888888] focus:outline-none focus:ring-2 focus:ring-[#EECFD1]/20 focus:border-[#EECFD1] transition-all"
-                    placeholder="e.g., Men's Haircut"
-                  />
-                  {errors.serviceName && (
+                  {errors.subCategory && (
                     <p className="text-red-500 text-sm mt-1">
-                      {errors.serviceName.message}
+                      {errors.subCategory.message}
                     </p>
                   )}
                 </div>
+              </div>
 
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <label className="block text-sm font-semibold text-[#3A3A3A] mb-2">
                     Base Cost ($) <span className="text-red-500">*</span>
@@ -605,37 +629,74 @@ export default function CreateServicePage() {
               {/* Duration Field - Set First */}
               <div className="space-y-2">
                 <label className="block text-sm font-semibold text-[#3A3A3A] mb-2">
-                  Duration <span className="text-red-500">*</span>
+                  Duration (in minutes) <span className="text-red-500">*</span>
                 </label>
                 <div className="flex items-center gap-4">
                   <div className="flex-1">
                     <input
                       type="number"
                       min="15"
-                      step="15"
-                      value={durationMinutes}
+                      max="180"
+                      step="1"
+                      value={durationMinutes === "" ? "" : durationMinutes}
                       onChange={(e) => {
-                        const mins = parseInt(e.target.value) || 30;
-                        setDurationMinutes(mins);
-                        // Recalculate end time if start time is set
-                        if (newTimeSlot.startTime) {
-                          const endTime = calculateEndTime(newTimeSlot.startTime, mins);
-                          setNewTimeSlot({ ...newTimeSlot, endTime });
+                        const value = e.target.value;
+                        if (value === "") {
+                          setDurationMinutes("");
+                          setDurationError("");
+                        } else {
+                          const mins = parseInt(value, 10);
+                          if (isNaN(mins)) {
+                            setDurationMinutes("");
+                            setDurationError("");
+                          } else if (mins < 15) {
+                            setDurationMinutes(mins);
+                            setDurationError("Duration must be at least 15 minutes");
+                          } else if (mins > 180) {
+                            setDurationMinutes(mins);
+                            setDurationError("Duration cannot exceed 3 hours (180 minutes)");
+                          } else {
+                            setDurationMinutes(mins);
+                            setDurationError("");
+                            // Recalculate end time if start time is set
+                            if (newTimeSlot.startTime) {
+                              const endTime = calculateEndTime(newTimeSlot.startTime, mins);
+                              setNewTimeSlot({ ...newTimeSlot, endTime });
+                            }
+                          }
                         }
                       }}
-                      className="w-full px-4 py-2.5 rounded-lg border border-[#E5E5E5] bg-white text-[#3A3A3A] focus:outline-none focus:ring-2 focus:ring-[#EECFD1]/20 focus:border-[#EECFD1] transition-all"
-                      placeholder="30"
+                      onBlur={() => {
+                        if (durationMinutes === "" || (typeof durationMinutes === "number" && durationMinutes < 15)) {
+                          setDurationError("Duration is required and must be at least 15 minutes");
+                        } else if (typeof durationMinutes === "number" && durationMinutes > 180) {
+                          setDurationError("Duration cannot exceed 3 hours (180 minutes)");
+                        } else {
+                          setDurationError("");
+                        }
+                      }}
+                      className={`w-full px-4 py-2.5 rounded-lg border ${
+                        durationError ? "border-red-500" : "border-[#E5E5E5]"
+                      } bg-white text-[#3A3A3A] placeholder:text-[#888888] focus:outline-none focus:ring-2 focus:ring-[#EECFD1]/20 focus:border-[#EECFD1] transition-all`}
+                      placeholder="Enter duration (e.g., 30)"
                     />
                   </div>
-                  <span className="text-sm text-[#888888]">minutes</span>
-                  <div className="text-sm text-[#3A3A3A] font-medium">
-                    ({formatDuration(durationMinutes)})
-                  </div>
+                  <span className="text-sm text-[#888888] whitespace-nowrap">minutes</span>
+                  {durationMinutes !== "" && typeof durationMinutes === "number" && durationMinutes >= 15 && (
+                    <div className="text-sm text-[#3A3A3A] font-medium whitespace-nowrap">
+                      ({formatDuration(durationMinutes)})
+                    </div>
+                  )}
                 </div>
-                  <p className="text-xs text-[#888888] mt-1">
-                  End time will be automatically calculated from start time + duration
+                {durationError && (
+                  <p className="text-red-500 text-sm mt-1">
+                    {durationError}
                   </p>
-                </div>
+                )}
+                <p className="text-xs text-[#888888] mt-1">
+                  Minimum 15 minutes, maximum 3 hours (180 minutes). End time will be automatically calculated from start time + duration.
+                </p>
+              </div>
 
               <div className="space-y-2">
                 <label className="block text-sm font-semibold text-[#3A3A3A] mb-2">
@@ -711,14 +772,29 @@ export default function CreateServicePage() {
                   <label className="block text-base font-bold text-[#3A3A3A]">
                     Dates & Time Slots <span className="text-red-500">*</span>
                       </label>
-                    <Button
-                      type="button"
-                      onClick={() => setShowDatePicker(true)}
-                      variant="outline"
-                      className="h-9 px-4 rounded-lg border border-[#E5E5E5] bg-white hover:bg-[#F5F5F5] text-sm font-medium text-[#3A3A3A] transition-colors"
-                    >
-                      + Add Date
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button
+                        type="button"
+                        onClick={() => {
+                          setShowTimeSlotForm(true);
+                          if (!selectedDate) {
+                            setShowDatePicker(true);
+                          }
+                        }}
+                        variant="outline"
+                        className="h-9 px-4 rounded-lg border border-[#E5E5E5] bg-white hover:bg-[#F5F5F5] text-sm font-medium text-[#3A3A3A] transition-colors"
+                      >
+                        + Add Time Slot
+                      </Button>
+                      <Button
+                        type="button"
+                        onClick={() => setShowDatePicker(true)}
+                        variant="outline"
+                        className="h-9 px-4 rounded-lg border border-[#E5E5E5] bg-white hover:bg-[#F5F5F5] text-sm font-medium text-[#3A3A3A] transition-colors"
+                      >
+                        + Add Date
+                      </Button>
+                    </div>
                 </div>
 
                 {/* Date Picker Modal */}
@@ -753,16 +829,16 @@ export default function CreateServicePage() {
                   </div>
                 )}
 
-                {/* Time Slot Form - Shows when a date is selected */}
-                {showTimeSlotForm && selectedDate && (
+                {/* Time Slot Form - Always visible but disabled until date is selected */}
+                {showTimeSlotForm && (
                   <div className="bg-white rounded-lg p-6 space-y-5 border border-[#E5E5E5] shadow-sm">
                     <div className="flex items-center justify-between mb-4">
                       <h3 className="text-lg font-bold text-[#3A3A3A]">
-                        Add Time Slot for {new Date(selectedDate).toLocaleDateString("en-GB", {
+                        {selectedDate ? `Add Time Slot for ${new Date(selectedDate).toLocaleDateString("en-GB", {
                           day: "2-digit",
                           month: "2-digit",
                           year: "numeric"
-                        })}
+                        })}` : "Add Time Slot"}
                       </h3>
                       <button
                         onClick={() => {
@@ -785,7 +861,8 @@ export default function CreateServicePage() {
                           type="time"
                           value={newTimeSlot.startTime}
                           onChange={(e) => handleStartTimeChange(e.target.value)}
-                          className="w-full px-4 py-2.5 rounded-lg border border-[#E5E5E5] bg-white text-[#3A3A3A] focus:outline-none focus:ring-2 focus:ring-[#EECFD1]/20 focus:border-[#EECFD1] transition-all"
+                          disabled={!selectedDate}
+                          className="w-full px-4 py-2.5 rounded-lg border border-[#E5E5E5] bg-white text-[#3A3A3A] focus:outline-none focus:ring-2 focus:ring-[#EECFD1]/20 focus:border-[#EECFD1] transition-all disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed disabled:opacity-60"
                           required
                         />
                       </div>
@@ -797,39 +874,24 @@ export default function CreateServicePage() {
                           type="time"
                           value={newTimeSlot.endTime}
                           readOnly
-                          className="w-full px-4 py-2.5 rounded-lg border border-[#E5E5E5] bg-[#F5F5F5] text-[#3A3A3A] cursor-not-allowed"
+                          disabled={!selectedDate}
+                          className="w-full px-4 py-2.5 rounded-lg border border-[#E5E5E5] bg-[#F5F5F5] text-[#3A3A3A] cursor-not-allowed disabled:opacity-60"
                         />
                       </div>
                     </div>
 
                     <div className="space-y-2">
-                      <label className="text-sm font-semibold text-[#3A3A3A]">
-                        Cost <span className="text-[#888888] text-xs font-normal">(Optional - Leave empty to use base cost)</span>
-                      </label>
-                      <div className="relative">
-                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[#888888]">$</span>
-                        <input
-                          type="number"
-                          step="0.01"
-                          value={newTimeSlot.cost}
-                          onChange={(e) => setNewTimeSlot({ ...newTimeSlot, cost: e.target.value })}
-                          placeholder="e.g., 60.00"
-                          className="w-full pl-8 pr-4 py-2.5 rounded-lg border border-[#E5E5E5] bg-white text-[#3A3A3A] focus:outline-none focus:ring-2 focus:ring-[#EECFD1]/20 focus:border-[#EECFD1] transition-all"
-                        />
-                      </div>
-                    </div>
-
-                    {staff.length > 0 && (
-                      <div className="space-y-2">
-                        <label className="text-sm font-semibold text-[#3A3A3A]">Assign Staff <span className="text-[#888888] text-xs font-normal">(Optional)</span></label>
-                        <div className="border border-[#E5E5E5] rounded-lg p-3 bg-white max-h-40 overflow-y-auto space-y-2">
-                          {staff.map((member) => (
+                      <label className="text-sm font-semibold text-[#3A3A3A]">Assign Staff <span className="text-[#888888] text-xs font-normal">(Optional)</span></label>
+                      <div className={`border border-[#E5E5E5] rounded-lg p-3 bg-white max-h-40 overflow-y-auto space-y-2 ${!selectedDate ? 'opacity-60 pointer-events-none' : ''}`}>
+                        {staff.length > 0 ? (
+                          staff.map((member) => (
                             <label key={member.id || member._id} className="flex items-center gap-2.5 p-2.5 hover:bg-[#F5F5F5] rounded-lg cursor-pointer transition-colors">
                               <input
                                 type="checkbox"
                                 checked={newTimeSlot.staffIds.includes(member.id || member._id)}
                                 onChange={() => handleToggleStaff(member.id || member._id, false)}
-                                className="w-4 h-4 text-[#EECFD1] border-[#E5E5E5] rounded focus:ring-[#EECFD1]"
+                                disabled={!selectedDate}
+                                className="w-4 h-4 text-[#EECFD1] border-[#E5E5E5] rounded focus:ring-[#EECFD1] disabled:cursor-not-allowed"
                               />
                               <div className="flex items-center gap-2.5">
                                 {member.photo ? (
@@ -842,17 +904,20 @@ export default function CreateServicePage() {
                                 <span className="text-sm font-medium text-[#3A3A3A]">{member.name}</span>
                               </div>
                             </label>
-                          ))}
-                        </div>
+                          ))
+                        ) : (
+                          <p className="text-sm text-[#888888] text-center py-2">No staff members available</p>
+                        )}
                       </div>
-                    )}
+                    </div>
 
                     <div className="flex gap-3 pt-2">
                       <Button
                         type="button"
                         onClick={handleAddTimeSlot}
                         variant="pink"
-                        className="flex-1 h-10 rounded-lg font-medium"
+                        disabled={!selectedDate}
+                        className="flex-1 h-10 rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         Add Time Slot
                       </Button>

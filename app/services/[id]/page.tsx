@@ -124,32 +124,12 @@ function ServiceDetailContent() {
     <PageLayout user={user || null}>
       <div className="bg-white min-h-screen py-6 md:py-8">
         <div className="container mx-auto px-4 sm:px-6 max-w-2xl">
-          {/* Booking Card - Mobile First Design */}
-          <div className="bg-white rounded-lg shadow-lg border border-gray-200 p-6 md:p-8">
-            {/* Business Header */}
-            {business && (
-              <div className="flex items-center gap-4 mb-6 pb-6 border-b border-gray-200">
-                {business.logo && (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={business.logo}
-                    alt={business.businessName}
-                    className="w-16 h-16 rounded-full object-cover border-2 border-gray-200"
-                  />
-                )}
-                <div className="flex-1">
-                  <Link
-                    href={`/business/${business._id || business.id}`}
-                    className="text-lg font-bold text-[#3A3A3A] hover:text-[#EECFD1] transition-colors block"
-                  >
-                    {business.businessName}
-                  </Link>
-                </div>
-              </div>
-            )}
-
+          {/* Booking Card - Modern Professional Design */}
+          <div className="bg-white rounded-2xl shadow-xl border-0 overflow-hidden">
             {/* Booking Form */}
-            <BookingForm service={service} business={business} />
+            <div className="p-8">
+              <BookingForm service={service} business={business} user={user || null} />
+            </div>
           </div>
         </div>
       </div>
@@ -158,7 +138,7 @@ function ServiceDetailContent() {
 }
 
 // Booking Form Component
-function BookingForm({ service, business }: { service: any; business: any }) {
+function BookingForm({ service, business, user }: { service: any; business: any; user: any }) {
   const router = useRouter();
   const [selectedDate, setSelectedDate] = useState<string>("");
   const [selectedTimeSlot, setSelectedTimeSlot] = useState<any>(null);
@@ -348,17 +328,26 @@ function BookingForm({ service, business }: { service: any; business: any }) {
   };
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       {error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+        <div className="bg-red-50 border-l-4 border-red-500 rounded-r-lg p-4 mb-6">
           <p className="text-red-800 text-sm font-medium">{error}</p>
         </div>
       )}
 
-      <div className="space-y-4">
+      {/* User/Business Name Header */}
+      {(business?.businessName || user?.fname) && (
+        <div className="pb-4 border-b border-gray-200">
+          <h2 className="text-2xl font-bold text-[#3A3A3A]">
+            {business?.businessName || `${user?.fname || ''} ${user?.lname || ''}`.trim() || 'Booking'}
+          </h2>
+        </div>
+      )}
+
+      <div className="space-y-6">
         <div className="space-y-2">
-          <label className="text-sm font-semibold text-[#3A3A3A] mb-1.5 block">
-            Date:
+          <label className="text-sm font-semibold text-gray-700 mb-2 block">
+            Date
           </label>
           <select
             value={selectedDate}
@@ -367,7 +356,7 @@ function BookingForm({ service, business }: { service: any; business: any }) {
               setSelectedTimeSlot(null);
               setSelectedStaff("");
             }}
-            className="w-full px-4 py-3 rounded-lg border border-gray-300 bg-white text-[#3A3A3A] text-sm focus:outline-none focus:ring-1 focus:ring-[#EECFD1] focus:border-[#EECFD1] transition-all appearance-none bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTIiIGhlaWdodD0iOCIgdmlld0JveD0iMCAwIDEyIDgiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0iTTEgMUw2IDZMMTEgMSIgc3Ryb2tlPSIjNjY2IiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPjwvc3ZnPg==')] bg-no-repeat bg-right-3 pr-10"
+            className="w-full px-4 py-3.5 rounded-xl border border-gray-200 bg-white text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-[#EECFD1] focus:border-[#EECFD1] transition-all appearance-none bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTIiIGhlaWdodD0iOCIgdmlld0JveD0iMCAwIDEyIDgiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0iTTEgMUw2IDZMMTEgMSIgc3Ryb2tlPSIjNjY2IiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPjwvc3ZnPg==')] bg-no-repeat bg-right-4 pr-10 hover:border-gray-300"
           >
             <option value="">Select Date</option>
             {availableDates.map((date: string) => {
@@ -397,11 +386,11 @@ function BookingForm({ service, business }: { service: any; business: any }) {
           )}
         </div>
 
-        {selectedDate && availableTimeSlots.length > 0 && (
-          <div className="space-y-2">
-            <label className="text-sm font-semibold text-[#3A3A3A] mb-1.5 block">
-              Time:
-            </label>
+        <div className="space-y-2">
+          <label className="text-sm font-semibold text-gray-700 mb-2 block">
+            Time
+          </label>
+          <div className="relative">
             <select
               value={selectedTimeSlot ? `${selectedTimeSlot.startTime}-${selectedTimeSlot.endTime}` : ""}
               onChange={(e) => {
@@ -412,9 +401,10 @@ function BookingForm({ service, business }: { service: any; business: any }) {
                 setSelectedTimeSlot(slot);
                 setSelectedStaff("");
               }}
-              className="w-full px-4 py-3 rounded-lg border border-gray-300 bg-white text-[#3A3A3A] text-sm focus:outline-none focus:ring-1 focus:ring-[#EECFD1] focus:border-[#EECFD1] transition-all appearance-none bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTIiIGhlaWdodD0iOCIgdmlld0JveD0iMCAwIDEyIDgiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0iTTEgMUw2IDZMMTEgMSIgc3Ryb2tlPSIjNjY2IiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPjwvc3ZnPg==')] bg-no-repeat bg-right-3 pr-10"
+              disabled={!selectedDate || availableTimeSlots.length === 0}
+              className="w-full px-4 py-3.5 pr-10 rounded-xl border border-gray-200 bg-white text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-[#EECFD1] focus:border-[#EECFD1] transition-all appearance-none hover:border-gray-300 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              <option value="">Select Preferred Time</option>
+              <option value="">{selectedDate && availableTimeSlots.length > 0 ? "Select Preferred Time" : selectedDate ? "No time slots available" : "Select Date First"}</option>
               {availableTimeSlots.map((slot: any, idx: number) => {
                 // Calculate duration
                 const start = new Date(`2000-01-01T${slot.startTime}`);
@@ -434,28 +424,26 @@ function BookingForm({ service, business }: { service: any; business: any }) {
                 );
               })}
             </select>
+            <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+              <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </div>
           </div>
-        )}
+        </div>
 
-        {selectedDate && availableTimeSlots.length === 0 && (
-          <div className="p-4 bg-muted/50 rounded-xl border border-border/50">
-            <p className="text-sm text-muted-foreground text-center">
-              No available time slots for this date
-            </p>
-          </div>
-        )}
-
-        {availableStaff.length > 0 && selectedTimeSlot && (
-          <div className="space-y-2">
-            <label className="text-sm font-semibold text-[#3A3A3A] mb-1.5 block">
-              Staff:
-            </label>
+        <div className="space-y-2">
+          <label className="text-sm font-semibold text-gray-700 mb-2 block">
+            Staff
+          </label>
+          <div className="relative">
             <select
               value={selectedStaff}
               onChange={(e) => setSelectedStaff(e.target.value)}
-              className="w-full px-4 py-3 rounded-lg border border-gray-300 bg-white text-[#3A3A3A] text-sm focus:outline-none focus:ring-1 focus:ring-[#EECFD1] focus:border-[#EECFD1] transition-all appearance-none bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTIiIGhlaWdodD0iOCIgdmlld0JveD0iMCAwIDEyIDgiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0iTTEgMUw2IDZMMTEgMSIgc3Ryb2tlPSIjNjY2IiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPjwvc3ZnPg==')] bg-no-repeat bg-right-3 pr-10"
+              disabled={!selectedTimeSlot || availableStaff.length === 0}
+              className="w-full px-4 py-3.5 pr-10 rounded-xl border border-gray-200 bg-white text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-[#EECFD1] focus:border-[#EECFD1] transition-all appearance-none hover:border-gray-300 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              <option value="">Select Preferred Staff</option>
+              <option value="">{selectedTimeSlot && availableStaff.length > 0 ? "Select Preferred Staff" : selectedTimeSlot ? "No staff available" : "Select Time First"}</option>
               {availableStaff.map((staff: any) => {
                 const isBusy = staffBusyStatus[staff.id] || false;
                 return (
@@ -465,62 +453,47 @@ function BookingForm({ service, business }: { service: any; business: any }) {
                 );
               })}
             </select>
+            <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+              <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </div>
           </div>
-        )}
-
-        <div className="space-y-2">
-          <label className="text-sm font-semibold text-[#3A3A3A] mb-1.5 block">
-            Service:
-          </label>
-          <input
-            type="text"
-            value={service.serviceName || ""}
-            disabled
-            className="w-full px-4 py-3 rounded-lg border border-gray-300 bg-gray-50 text-[#3A3A3A] text-sm"
-          />
         </div>
 
-        <div className="space-y-2">
-          <label className="text-sm font-semibold text-[#3A3A3A] mb-1.5 block">
-            Address:
-          </label>
-          <input
-            type="text"
-            value={service.address || (typeof service.businessId === 'object' ? service.businessId.address : business?.address) || ""}
-            disabled
-            className="w-full px-4 py-3 rounded-lg border border-gray-300 bg-gray-50 text-[#3A3A3A] text-sm"
-          />
-        </div>
+        {/* Service Details Section */}
+        <div className="space-y-4">
+          <div>
+            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 block">
+              SERVICE
+            </label>
+            <p className="text-base font-bold text-[#3A3A3A]">{service.serviceName || ""}</p>
+          </div>
 
-        <div className="space-y-2">
-          <label className="text-sm font-semibold text-[#3A3A3A] mb-1.5 block">
-            Description:
-          </label>
-          <textarea
-            value={service.description || ""}
-            disabled
-            rows={4}
-            className="w-full px-4 py-3 rounded-lg border border-gray-300 bg-gray-50 text-[#3A3A3A] text-sm resize-none"
-          />
-        </div>
+          <div>
+            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 block">
+              ADDRESS
+            </label>
+            <p className="text-sm text-[#3A3A3A]">
+              {service.address || (typeof service.businessId === 'object' ? service.businessId.address : business?.address) || ""}
+            </p>
+          </div>
 
-        <div className="space-y-2">
-          <label className="text-sm font-semibold text-[#3A3A3A] mb-1.5 block">
-            cost:
-          </label>
-          <input
-            type="text"
-            value={`$${service.baseCost?.toFixed(2) || "0.00"}`}
-            disabled
-            className="w-full px-4 py-3 rounded-lg border border-gray-300 bg-gray-50 text-[#3A3A3A] text-sm font-semibold"
-          />
+          {service.description && (
+            <div>
+              <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 block">
+                DESCRIPTION
+              </label>
+              <p className="text-sm text-[#3A3A3A] leading-relaxed">{service.description}</p>
+            </div>
+          )}
         </div>
 
         {/* Add-ons */}
         {service.addOns && service.addOns.length > 0 && (
           <div className="space-y-2">
-            <label className="text-sm font-semibold text-[#3A3A3A] mb-1.5 block">
-              Add-Ons:
+            <label className="text-sm font-semibold text-gray-700 mb-2 block">
+              Add-Ons
             </label>
             <select
               value=""
@@ -533,21 +506,21 @@ function BookingForm({ service, business }: { service: any; business: any }) {
                   e.target.value = "";
                 }
               }}
-              className="w-full px-4 py-3 rounded-lg border border-gray-300 bg-white text-[#3A3A3A] text-sm focus:outline-none focus:ring-1 focus:ring-[#EECFD1] focus:border-[#EECFD1] transition-all appearance-none bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTIiIGhlaWdodD0iOCIgdmlld0JveD0iMCAwIDEyIDgiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0iTTEgMUw2IDZMMTEgMSIgc3Ryb2tlPSIjNjY2IiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPjwvc3ZnPg==')] bg-no-repeat bg-right-3 pr-10"
+              className="w-full px-4 py-3.5 rounded-xl border border-gray-200 bg-white text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-[#EECFD1] focus:border-[#EECFD1] transition-all appearance-none bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTIiIGhlaWdodD0iOCIgdmlld0JveD0iMCAwIDEyIDgiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0iTTEgMUw2IDZMMTEgMSIgc3Ryb2tlPSIjNjY2IiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPjwvc3ZnPg==')] bg-no-repeat bg-right-4 pr-10 hover:border-gray-300"
             >
-              <option value="">Add-Ons</option>
+              <option value="">Select Add-Ons</option>
               {service.addOns.map((addon: any, idx: number) => (
                 <option key={idx} value={addon.name}>
-                  {addon.name} ${addon.cost?.toFixed(2) || "0.00"}
+                  {addon.name} - ${addon.cost?.toFixed(2) || "0.00"}
                 </option>
               ))}
             </select>
             {selectedAddOns.length > 0 && (
-              <div className="mt-2 space-y-1.5 pl-2">
+              <div className="mt-3 space-y-2 pl-1">
                 {selectedAddOns.map((addon, idx) => (
-                  <div key={idx} className="flex items-center justify-between text-sm text-[#3A3A3A]">
-                    <span>{addon.name}</span>
-                    <span className="font-semibold">${addon.cost.toFixed(2)}</span>
+                  <div key={idx} className="flex items-center justify-between text-sm bg-white rounded-lg px-4 py-2.5 border border-gray-100">
+                    <span className="text-gray-700">{addon.name}</span>
+                    <span className="font-semibold text-gray-900">${addon.cost.toFixed(2)}</span>
                   </div>
                 ))}
               </div>
@@ -555,63 +528,42 @@ function BookingForm({ service, business }: { service: any; business: any }) {
           </div>
         )}
 
-        <div className="space-y-2 pt-2">
-          <label className="text-sm font-semibold text-[#3A3A3A] mb-1.5 block">
-            Total Cost:
-          </label>
-          <input
-            type="text"
-            value={`= cost + add-ons`}
-            disabled
-            className="w-full px-4 py-3 rounded-lg border border-gray-300 bg-gray-50 text-[#3A3A3A] text-sm"
-          />
-          <div className="text-right mt-2">
-            <span className="text-xl font-bold text-[#3A3A3A]">
-              ${calculateTotal().toFixed(2)}
-            </span>
-          </div>
-        </div>
-
-        <button
-          onClick={handleAddToCart}
-          disabled={!selectedDate || !selectedTimeSlot || isLoading}
-          className="w-full bg-[#EECFD1] text-[#3A3A3A] hover:bg-[#EECFD1]/90 rounded-lg py-3.5 text-base font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed mt-4"
-        >
-          {isLoading ? "Processing..." : "Book Now"}
-        </button>
-
         {/* Pricing Summary */}
-        <div className="pt-4 border-t border-border/50 space-y-3">
-          <div className="flex justify-between text-sm">
-            <span className="text-muted-foreground">Base Cost</span>
-            <span className="font-medium text-foreground">${service.baseCost?.toFixed(2) || "0.00"}</span>
-          </div>
-          {selectedAddOns.length > 0 && (
-            <div className="space-y-1.5">
-              {selectedAddOns.map((addon, idx) => (
-                <div key={idx} className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">{addon.name}</span>
-                  <span className="font-medium text-foreground">+${addon.cost.toFixed(2)}</span>
-                </div>
-              ))}
+        <div className="space-y-4">
+          <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">PRICING SUMMARY</h3>
+          <div className="space-y-3">
+            <div className="flex justify-between items-center text-sm">
+              <span className="text-gray-600">Base Cost</span>
+              <span className="font-medium text-[#3A3A3A]">${service.baseCost?.toFixed(2) || "0.00"}</span>
             </div>
-          )}
-          <div className="flex justify-between items-center pt-3 border-t border-border/50">
-            <span className="font-bold text-foreground">Total</span>
-            <span className="text-2xl font-bold text-foreground">${calculateTotal().toFixed(2)}</span>
+            {selectedAddOns.length > 0 && (
+              <div className="space-y-2 pt-2 border-t border-gray-200">
+                {selectedAddOns.map((addon, idx) => (
+                  <div key={idx} className="flex justify-between items-center text-sm">
+                    <span className="text-gray-600">{addon.name}</span>
+                    <span className="font-medium text-[#3A3A3A]">+${addon.cost.toFixed(2)}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+            <div className="flex justify-between items-center pt-4 border-t border-gray-300">
+              <span className="text-base font-bold text-[#3A3A3A]">Total</span>
+              <span className="text-2xl font-bold text-[#3A3A3A]">${calculateTotal().toFixed(2)}</span>
+            </div>
           </div>
         </div>
 
+        {/* Book Now Button */}
         <Button
           onClick={handleAddToCart}
           disabled={isLoading || !selectedDate || !selectedTimeSlot || availableDates.length === 0}
           size="lg"
-          className="w-full h-12 rounded-xl btn-polished-primary shadow-lg hover:shadow-xl font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full h-14 rounded-xl bg-[#EECFD1] hover:bg-[#EECFD1]/90 text-[#3A3A3A] font-semibold text-base shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isLoading ? (
             <>
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
-              Adding to Cart...
+              <div className="animate-spin rounded-full h-5 w-5 border-2 border-[#3A3A3A] border-t-transparent mr-2" />
+              Processing...
             </>
           ) : availableDates.length === 0 ? (
             "No Available Dates"
@@ -620,11 +572,11 @@ function BookingForm({ service, business }: { service: any; business: any }) {
           ) : !selectedTimeSlot ? (
             "Select Time First"
           ) : (
-            "Add to Cart"
+            "Book Now"
           )}
         </Button>
 
-        <p className="text-xs text-muted-foreground text-center leading-relaxed">
+        <p className="text-xs text-gray-500 text-center leading-relaxed pt-2">
           10% Deposit + $1.99 ouiimi fee paid today, 90% paid directly to Business
         </p>
       </div>

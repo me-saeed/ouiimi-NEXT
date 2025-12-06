@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -10,6 +10,7 @@ import PageLayout from "@/components/layout/PageLayout";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
+import { Plus } from "lucide-react";
 
 export default function AddStaffPage() {
   const router = useRouter();
@@ -19,9 +20,12 @@ export default function AddStaffPage() {
   const [error, setError] = useState<string>("");
   const [success, setSuccess] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
 
-  // Form schema without businessId (we add it dynamically)
-  const formSchema = staffCreateSchema.omit({ businessId: true });
+  // Form schema without businessId and photo (we handle photo separately)
+  const formSchema = staffCreateSchema.omit({ businessId: true, photo: true });
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   const {
     register,
@@ -31,6 +35,30 @@ export default function AddStaffPage() {
   } = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
   });
+
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setSelectedImage(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const convertImageToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64String = reader.result as string;
+        resolve(base64String);
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  };
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -114,11 +142,17 @@ export default function AddStaffPage() {
       }
 
       console.log("Business ID found:", foundBusinessId);
-      console.log("Submitting staff data:", { ...data, businessId: foundBusinessId });
+      
+      // Convert image to base64 if selected
+      let photoUrl = "";
+      if (selectedImage) {
+        photoUrl = await convertImageToBase64(selectedImage);
+      }
 
       const requestBody = {
         ...data,
         businessId: foundBusinessId,
+        photo: photoUrl || undefined,
       };
       
       console.log("Request body:", JSON.stringify(requestBody, null, 2));
@@ -211,159 +245,154 @@ export default function AddStaffPage() {
 
   return (
     <PageLayout user={user}>
-      <div className="bg-gradient-to-b from-background via-secondary/5 to-background min-h-screen py-12 md:py-16">
+      <div className="bg-white min-h-screen py-12 md:py-16">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="max-w-3xl mx-auto">
-            {/* Header Section */}
-            <div className="text-center mb-10 space-y-4 animate-in fade-in slide-in-from-top-8 duration-500">
-              <h1 className="text-4xl md:text-5xl font-bold text-foreground">
-                Add Staff Member
-              </h1>
-              <p className="text-lg text-muted-foreground max-w-xl mx-auto">
-                Add a new team member to your business. Fill in their details below.
-              </p>
-            </div>
+          <div className="max-w-md mx-auto">
+            {/* Title - Above the card */}
+            <h1 className="text-xl font-semibold text-[#3A3A3A] mb-4">ADD</h1>
 
-            {/* Form Card */}
-            <div className="bg-card rounded-2xl shadow-xl border border-border/50 p-8 md:p-10 animate-in fade-in slide-in-from-bottom-8 duration-700 delay-100">
+            {/* Form Card - No border, smooth white background */}
+            <div className="bg-white rounded-2xl shadow-sm p-8">
               {error && (
-                <Alert className="mb-6 border-red-200 bg-red-50/50 backdrop-blur-sm">
-                  <AlertDescription className="text-red-800 font-medium">{error}</AlertDescription>
+                <Alert className="mb-4 border-red-200 bg-red-50">
+                  <AlertDescription className="text-red-800 text-sm">{error}</AlertDescription>
                 </Alert>
               )}
 
               {success && (
-                <Alert className="mb-6 border-green-200 bg-green-50/50 backdrop-blur-sm">
-                  <AlertDescription className="text-green-800 font-medium">{success}</AlertDescription>
+                <Alert className="mb-4 border-green-200 bg-green-50">
+                  <AlertDescription className="text-green-800 text-sm">{success}</AlertDescription>
                 </Alert>
               )}
 
               <form 
-              onSubmit={handleSubmit(
-                (data) => {
-                  console.log("Form validation passed, calling onSubmit");
-                  onSubmit(data);
-                },
-                (errors) => {
-                  console.log("Form validation failed:", errors);
-                  const firstError = Object.values(errors)[0];
-                  if (firstError) {
-                    const errorMsg = firstError.message || "Please fix the form errors";
-                    setError(errorMsg);
-                    toast({
-                      variant: "destructive",
-                      title: "Validation Error",
-                      description: errorMsg,
-                    });
+                onSubmit={handleSubmit(
+                  (data) => {
+                    console.log("Form validation passed, calling onSubmit");
+                    onSubmit(data);
+                  },
+                  (errors) => {
+                    console.log("Form validation failed:", errors);
+                    const firstError = Object.values(errors)[0];
+                    if (firstError) {
+                      const errorMsg = firstError.message || "Please fix the form errors";
+                      setError(errorMsg);
+                      toast({
+                        variant: "destructive",
+                        title: "Validation Error",
+                        description: errorMsg,
+                      });
+                    }
                   }
-                }
-              )} 
-              className="space-y-6 md:space-y-8"
-            >
-              <div className="space-y-2">
-                <label className="block text-sm font-semibold text-foreground mb-2">
-                  Full Name <span className="text-destructive">*</span>
-                </label>
-                <input
-                  {...register("name")}
-                  type="text"
-                  className="w-full px-4 py-3.5 rounded-xl border border-border bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-base"
-                  placeholder="Enter staff member's full name"
-                />
-                {errors.name && (
-                  <p className="text-red-500 text-sm mt-1.5">
-                    {errors.name.message}
-                  </p>
-                )}
-              </div>
+                )} 
+                className="space-y-6"
+              >
+                {/* Image Upload - Centered */}
+                <div className="flex justify-center pt-2">
+                  <div className="relative">
+                    <div 
+                      onClick={() => fileInputRef.current?.click()}
+                      className="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center cursor-pointer hover:bg-gray-200 transition-colors overflow-hidden"
+                    >
+                      {imagePreview ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={imagePreview}
+                          alt="Staff preview"
+                          className="w-full h-full object-cover rounded-full"
+                        />
+                      ) : null}
+                    </div>
+                    {/* Plus icon positioned below and to the right */}
+                    <div 
+                      onClick={() => fileInputRef.current?.click()}
+                      className="absolute -bottom-1 -right-1 w-6 h-6 bg-black rounded-full flex items-center justify-center cursor-pointer z-10 shadow-sm"
+                    >
+                      <Plus className="w-4 h-4 text-white" strokeWidth={3} />
+                    </div>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageSelect}
+                      className="hidden"
+                    />
+                  </div>
+                </div>
 
-              <div className="space-y-2">
-                <label className="block text-sm font-semibold text-foreground mb-2">
-                  Photo URL <span className="text-muted-foreground text-xs font-normal">(Optional)</span>
-                </label>
-                <input
-                  {...register("photo")}
-                  type="url"
-                  className="w-full px-4 py-3.5 rounded-xl border border-border bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-base"
-                  placeholder="https://example.com/profile-photo.jpg"
-                />
-                <p className="text-xs text-muted-foreground mt-1.5">
-                  Add a profile photo URL for this staff member
-                </p>
-                {errors.photo && (
-                  <p className="text-red-500 text-sm mt-1.5">
-                    {errors.photo.message}
-                  </p>
-                )}
-              </div>
+                {/* Name Input - Light grey background, centered text */}
+                <div>
+                  <input
+                    {...register("name")}
+                    type="text"
+                    className="w-full px-4 py-3 rounded-xl border-0 bg-gray-100 text-[#3A3A3A] placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:bg-white transition-all text-center"
+                    placeholder="Name"
+                  />
+                  {errors.name && (
+                    <p className="text-red-500 text-xs mt-1.5 text-center">
+                      {errors.name.message}
+                    </p>
+                  )}
+                </div>
 
-              <div className="space-y-2">
-                <label className="block text-sm font-semibold text-foreground mb-2">
-                  Qualifications <span className="text-muted-foreground text-xs font-normal">(Optional)</span>
-                </label>
+                {/* About/Qualifications Textarea - Light grey background, left-aligned */}
+                <div>
+                  <textarea
+                    {...register("about")}
+                    rows={5}
+                    className="w-full px-4 py-3 rounded-xl border-0 bg-gray-100 text-[#3A3A3A] placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:bg-white transition-all resize-none text-left leading-relaxed"
+                    placeholder="About staff member and qualifications"
+                  />
+                  {errors.about && (
+                    <p className="text-red-500 text-xs mt-1.5 text-left">
+                      {errors.about.message}
+                    </p>
+                  )}
+                </div>
+
+                {/* Qualifications (hidden but still in form data) */}
                 <input
                   {...register("qualifications")}
-                  type="text"
-                  className="w-full px-4 py-3.5 rounded-xl border border-border bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-base"
-                  placeholder="e.g., Certified Hair Stylist, Licensed Massage Therapist"
+                  type="hidden"
                 />
-                <p className="text-xs text-muted-foreground mt-1.5">
-                  List certifications, licenses, or specializations
-                </p>
-                {errors.qualifications && (
-                  <p className="text-red-500 text-sm mt-1.5">
-                    {errors.qualifications.message}
-                  </p>
-                )}
-              </div>
+              </form>
+            </div>
 
-              <div className="space-y-2">
-                <label className="block text-sm font-semibold text-foreground mb-2">
-                  About <span className="text-muted-foreground text-xs font-normal">(Optional)</span>
-                </label>
-                <textarea
-                  {...register("about")}
-                  rows={6}
-                  className="w-full px-4 py-3.5 rounded-xl border border-border bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all resize-none text-base leading-relaxed"
-                  placeholder="Describe this staff member's experience, specialties, years of service, and any other relevant background information..."
-                />
-                <p className="text-xs text-muted-foreground mt-1.5">
-                  Provide a brief bio or description of the staff member
-                </p>
-                {errors.about && (
-                  <p className="text-red-500 text-sm mt-1.5">
-                    {errors.about.message}
-                  </p>
+            {/* ADD Button - Below the card, centered */}
+            <div className="mt-4 flex justify-center">
+              <button
+                type="button"
+                onClick={handleSubmit(
+                  (data) => {
+                    console.log("Form validation passed, calling onSubmit");
+                    onSubmit(data);
+                  },
+                  (errors) => {
+                    console.log("Form validation failed:", errors);
+                    const firstError = Object.values(errors)[0];
+                    if (firstError) {
+                      const errorMsg = firstError.message || "Please fix the form errors";
+                      setError(errorMsg);
+                      toast({
+                        variant: "destructive",
+                        title: "Validation Error",
+                        description: errorMsg,
+                      });
+                    }
+                  }
                 )}
-              </div>
-
-              <div className="flex flex-col sm:flex-row gap-4 pt-4">
-                <Button
-                  type="submit"
-                  disabled={isLoading}
-                  size="lg"
-                  className="flex-1 h-12 rounded-xl btn-polished-primary shadow-lg hover:shadow-xl transition-all font-semibold"
-                >
-                  {isLoading ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
-                      Adding...
-                    </>
-                  ) : (
-                    "Add Staff Member"
-                  )}
-                </Button>
-                <Button
-                  type="button"
-                  onClick={() => router.back()}
-                  variant="outline"
-                  size="lg"
-                  className="flex-1 h-12 rounded-xl border-2 font-semibold"
-                >
-                  Cancel
-                </Button>
-              </div>
-            </form>
+                disabled={isLoading}
+                className="px-8 py-2.5 text-[#3A3A3A] hover:text-[#2a2a2a] font-semibold transition-colors disabled:opacity-50"
+              >
+                {isLoading ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-[#3A3A3A] mr-2 inline-block" />
+                    Adding...
+                  </>
+                ) : (
+                  "ADD"
+                )}
+              </button>
             </div>
           </div>
         </div>
