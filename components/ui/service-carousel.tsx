@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState, useEffect } from "react";
+import Link from "next/link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -8,12 +9,15 @@ interface ServiceCarouselProps {
   children: React.ReactNode;
   title?: string;
   viewAllHref?: string;
+  totalCount?: number;
+  showMoreHref?: string;
 }
 
-export function ServiceCarousel({ children, title, viewAllHref }: ServiceCarouselProps) {
+export function ServiceCarousel({ children, title, viewAllHref, totalCount = 0, showMoreHref }: ServiceCarouselProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
+  const [showShowMore, setShowShowMore] = useState(false);
 
   const checkScrollability = () => {
     if (!scrollContainerRef.current) return;
@@ -24,6 +28,13 @@ export function ServiceCarousel({ children, title, viewAllHref }: ServiceCarouse
 
   useEffect(() => {
     checkScrollability();
+    // Show "Show more" button when there are more than 6 services
+    if (totalCount > 6) {
+      setShowShowMore(true);
+    } else {
+      setShowShowMore(false);
+    }
+    
     const container = scrollContainerRef.current;
     if (container) {
       container.addEventListener("scroll", checkScrollability);
@@ -33,7 +44,7 @@ export function ServiceCarousel({ children, title, viewAllHref }: ServiceCarouse
         window.removeEventListener("resize", checkScrollability);
       };
     }
-  }, [children]);
+  }, [children, totalCount]);
 
   const scroll = (direction: "left" | "right") => {
     if (!scrollContainerRef.current) return;
@@ -55,14 +66,6 @@ export function ServiceCarousel({ children, title, viewAllHref }: ServiceCarouse
       {title && (
         <div className="flex items-center justify-between mb-4 sm:mb-5 md:mb-6">
           <h2 className="text-[18px] sm:text-[20px] md:text-[24px] font-bold text-[#3A3A3A]">{title}</h2>
-          {viewAllHref && (
-            <a
-              href={viewAllHref}
-              className="text-xs sm:text-sm text-[#3A3A3A] hover:text-[#EECFD1] font-medium inline-flex items-center gap-1 transition-colors underline"
-            >
-              View all
-            </a>
-          )}
         </div>
       )}
 
@@ -91,6 +94,17 @@ export function ServiceCarousel({ children, title, viewAllHref }: ServiceCarouse
           }}
         >
           {children}
+          {/* Show More Button - Appears when there are more than 6 services */}
+          {showShowMore && showMoreHref && (
+            <div className="flex-shrink-0 flex items-center min-w-[100px]">
+              <Link
+                href={showMoreHref}
+                className="text-xs sm:text-sm text-[#3A3A3A] hover:text-[#EECFD1] font-medium inline-flex items-center gap-1 transition-colors underline whitespace-nowrap px-2"
+              >
+                Show more
+              </Link>
+            </div>
+          )}
           {/* Spacer to show peek of next card on mobile */}
           <div className="flex-shrink-0 w-4 md:w-0" />
         </div>

@@ -3,6 +3,7 @@
 import { useState, useEffect, Suspense } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import PageLayout from "@/components/layout/PageLayout";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -17,6 +18,15 @@ function ServiceDetailContent() {
   const [business, setBusiness] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string>("");
+
+  // Convert 24-hour time to 12-hour format with AM/PM
+  const formatTime12Hour = (time24: string): string => {
+    if (!time24) return "";
+    const [hours, minutes] = time24.split(":").map(Number);
+    const period = hours >= 12 ? "PM" : "AM";
+    const hours12 = hours % 12 || 12;
+    return `${hours12}:${String(minutes).padStart(2, "0")} ${period}`;
+  };
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -148,6 +158,15 @@ function BookingForm({ service, business, user }: { service: any; business: any;
   const [error, setError] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
   const [staffBusyStatus, setStaffBusyStatus] = useState<Record<string, boolean>>({});
+
+  // Convert 24-hour time to 12-hour format with AM/PM
+  const formatTime12Hour = (time24: string): string => {
+    if (!time24) return "";
+    const [hours, minutes] = time24.split(":").map(Number);
+    const period = hours >= 12 ? "PM" : "AM";
+    const hours12 = hours % 12 || 12;
+    return `${hours12}:${String(minutes).padStart(2, "0")} ${period}`;
+  };
 
   // Fix date logic - properly filter and sort dates
   const today = new Date();
@@ -296,7 +315,7 @@ function BookingForm({ service, business, user }: { service: any; business: any;
         ? service.businessId.logo 
         : business?.logo,
       date: selectedDate,
-      time: `${selectedTimeSlot.startTime} - ${selectedTimeSlot.endTime}`,
+      time: `${formatTime12Hour(selectedTimeSlot.startTime)} - ${formatTime12Hour(selectedTimeSlot.endTime)}`,
       staffId: selectedStaff || undefined,
       staffName: availableStaff.find((s: any) => s.id === selectedStaff)?.name,
       baseCost: service.baseCost,
@@ -335,12 +354,39 @@ function BookingForm({ service, business, user }: { service: any; business: any;
         </div>
       )}
 
-      {/* User/Business Name Header */}
-      {(business?.businessName || user?.fname) && (
+      {/* Business Owner Name and Logo Header - Clickable */}
+      {(business?.businessName || business?.logo || user?.fname) && (
         <div className="pb-4 border-b border-gray-200">
-          <h2 className="text-2xl font-bold text-[#3A3A3A]">
-            {business?.businessName || `${user?.fname || ''} ${user?.lname || ''}`.trim() || 'Booking'}
-          </h2>
+          <Link 
+            href={business?._id || business?.id ? `/business/${business._id || business.id}` : '#'}
+            className="flex items-center gap-3 hover:opacity-80 transition-opacity cursor-pointer group"
+          >
+            {business?.logo ? (
+              <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-gray-200 group-hover:border-[#EECFD1] transition-colors flex-shrink-0">
+                <Image
+                  src={business.logo}
+                  alt={business.businessName || "Business Logo"}
+                  width={48}
+                  height={48}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+            ) : (
+              <div className="w-12 h-12 rounded-full bg-gray-200 group-hover:bg-[#EECFD1]/20 transition-colors flex items-center justify-center flex-shrink-0">
+                <span className="text-lg font-bold text-gray-500 group-hover:text-[#EECFD1]">
+                  {(business?.businessName || user?.fname || 'B').charAt(0).toUpperCase()}
+                </span>
+              </div>
+            )}
+            <div className="flex-1 min-w-0">
+              <h2 className="text-2xl font-bold text-[#3A3A3A] group-hover:text-[#EECFD1] transition-colors">
+                {business?.businessName || `${user?.fname || ''} ${user?.lname || ''}`.trim() || 'Booking'}
+              </h2>
+              {business?.businessName && (
+                <p className="text-xs text-gray-500 mt-0.5">Click to view business profile</p>
+              )}
+            </div>
+          </Link>
         </div>
       )}
 
@@ -349,16 +395,17 @@ function BookingForm({ service, business, user }: { service: any; business: any;
           <label className="text-sm font-semibold text-gray-700 mb-2 block">
             Date
           </label>
-          <select
-            value={selectedDate}
-            onChange={(e) => {
-              setSelectedDate(e.target.value);
-              setSelectedTimeSlot(null);
-              setSelectedStaff("");
-            }}
-            className="w-full px-4 py-3.5 rounded-xl border border-gray-200 bg-white text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-[#EECFD1] focus:border-[#EECFD1] transition-all appearance-none bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTIiIGhlaWdodD0iOCIgdmlld0JveD0iMCAwIDEyIDgiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0iTTEgMUw2IDZMMTEgMSIgc3Ryb2tlPSIjNjY2IiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPjwvc3ZnPg==')] bg-no-repeat bg-right-4 pr-10 hover:border-gray-300"
-          >
-            <option value="">Select Date</option>
+          <div className="relative">
+            <select
+              value={selectedDate}
+              onChange={(e) => {
+                setSelectedDate(e.target.value);
+                setSelectedTimeSlot(null);
+                setSelectedStaff("");
+              }}
+              className="w-full px-4 py-3.5 pr-10 rounded-xl border border-gray-200 bg-white text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-[#EECFD1] focus:border-[#EECFD1] transition-all appearance-none hover:border-gray-300"
+            >
+              <option value="">Select Date</option>
             {availableDates.map((date: string) => {
               const dateObj = new Date(date);
               return (
@@ -372,6 +419,12 @@ function BookingForm({ service, business, user }: { service: any; business: any;
               );
             })}
           </select>
+          <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+            <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </div>
+        </div>
           {availableDates.length === 0 && (
             <div className="space-y-2">
               <p className="text-sm text-amber-600 font-medium">
@@ -419,7 +472,7 @@ function BookingForm({ service, business, user }: { service: any; business: any;
                     key={idx}
                     value={`${slot.startTime}-${slot.endTime}`}
                   >
-                    {slot.startTime} - {slot.endTime} {duration}
+                    {formatTime12Hour(slot.startTime)} - {formatTime12Hour(slot.endTime)} {duration}
                   </option>
                 );
               })}
