@@ -211,6 +211,11 @@ async function createBookingHandler(req: NextRequest) {
 
     console.log("Atomic slot reservation successful");
 
+    // Calculate platform fee (e.g., 1.99) and service amount
+    const PLATFORM_FEE = 1.99;
+    const platformFee = PLATFORM_FEE;
+    const serviceAmount = calculatedTotalCost - platformFee;
+
     const bookingData: any = {
       _id: bookingId,
       userId: new mongoose.Types.ObjectId(validatedData.userId),
@@ -224,8 +229,11 @@ async function createBookingHandler(req: NextRequest) {
       totalCost: calculatedTotalCost, // Use server-calculated cost
       depositAmount: Math.round(calculatedTotalCost * 0.1 * 100) / 100,
       remainingAmount: Math.round(calculatedTotalCost * 0.9 * 100) / 100,
+      platformFee: platformFee,
+      serviceAmount: serviceAmount,
       status: "confirmed",
-      paymentStatus: "pending", // Fix: Default to pending, not paid
+      paymentStatus: "pending",
+      adminPaymentStatus: "pending", // Admin needs to release payment
     };
 
     if (validatedData.staffId) {
@@ -500,12 +508,16 @@ async function getBookingsHandler(req: NextRequest) {
             id: b.staffId._id?.toString(),
             name: b.staffId.name,
             photo: b.staffId.photo,
+            photo: b.staffId.photo,
           } : b.staffId.toString()) : null,
           timeSlot: b.timeSlot,
           addOns: b.addOns || [],
           totalCost: b.totalCost,
           depositAmount: b.depositAmount,
           remainingAmount: b.remainingAmount,
+          platformFee: b.platformFee || 0,
+          serviceAmount: b.serviceAmount || (b.totalCost - (b.platformFee || 0)),
+          adminPaymentStatus: b.adminPaymentStatus || "pending",
           status: b.status,
           paymentStatus: b.paymentStatus,
           customerNotes: b.customerNotes,

@@ -19,6 +19,9 @@ export interface IBooking extends Document {
   remainingAmount: number;
   status: "pending" | "confirmed" | "completed" | "cancelled" | "refunded";
   paymentStatus: "pending" | "deposit_paid" | "fully_paid" | "refunded";
+  adminPaymentStatus?: "pending" | "released"; // Admin payment release status
+  platformFee?: number; // Platform fee (e.g., 1.99)
+  serviceAmount?: number; // Service amount after fee (e.g., 45)
   paymentIntentId?: string; // Stripe payment intent ID
   customerNotes?: string;
   businessNotes?: string;
@@ -88,6 +91,19 @@ const bookingSchema = new Schema<IBooking>(
       type: String,
       enum: ["pending", "deposit_paid", "fully_paid", "refunded"],
       default: "pending",
+    },
+    adminPaymentStatus: {
+      type: String,
+      enum: ["pending", "released"],
+      default: "pending",
+    },
+    platformFee: {
+      type: Number,
+      default: 0,
+    },
+    serviceAmount: {
+      type: Number,
+      default: 0,
     },
     paymentIntentId: {
       type: String,

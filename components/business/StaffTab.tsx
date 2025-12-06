@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import Link from "next/link";
-import { User, Edit2, Trash2, Award, CheckCircle2 } from "lucide-react";
+import { User } from "lucide-react";
 
 interface StaffTabProps {
   business: any;
@@ -126,88 +126,32 @@ export function StaffTab({ business }: StaffTabProps) {
           </Link>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="space-y-2">
           {staff.map((member) => (
             <div
               key={member.id}
-              className="bg-white rounded-xl border border-gray-200 p-6 hover:border-gray-300 hover:shadow-md transition-all duration-300 flex flex-col group"
+              onClick={() => router.push(`/business/staff/${member.id}`)}
+              className="flex items-center gap-4 p-4 bg-white rounded-lg hover:bg-gray-50 transition-all cursor-pointer"
             >
-              {/* Header with Avatar and Actions */}
-              <div className="flex items-start justify-between mb-5">
-                {/* Avatar with Initial */}
-                <div className="relative">
-                  <div className="w-16 h-16 rounded-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center shadow-md group-hover:shadow-lg transition-shadow">
-                    <span className="text-2xl font-bold text-gray-700">
-                      {member.name?.charAt(0)?.toUpperCase() || "S"}
-                    </span>
-                  </div>
-                  {member.isActive && (
-                    <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-green-500 rounded-full border-2 border-white flex items-center justify-center">
-                      <CheckCircle2 className="w-3 h-3 text-white" />
-                    </div>
-                  )}
-                </div>
-
-                {/* Delete Button */}
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleDelete(member.id);
-                  }}
-                  className="p-2 rounded-lg text-[#888888] hover:text-red-500 hover:bg-red-50 transition-colors"
-                  aria-label="Delete staff member"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
+              {/* Avatar */}
+              <div className="w-12 h-12 rounded-full bg-[#EECFD1] flex items-center justify-center flex-shrink-0">
+                {member.photo ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={member.photo}
+                    alt={member.name}
+                    className="w-full h-full rounded-full object-cover"
+                  />
+                ) : (
+                  <span className="text-lg font-bold text-[#3A3A3A]">
+                    {member.name?.charAt(0)?.toUpperCase() || "S"}
+                  </span>
+                )}
               </div>
-
-              {/* Name and Status */}
-              <div className="mb-4">
-                <h3 className="text-lg font-bold text-gray-900 mb-2">{member.name}</h3>
-                <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${member.isActive
-                  ? "bg-green-100 text-green-700"
-                  : "bg-gray-100 text-gray-600"
-                  }`}>
-                  {member.isActive ? (
-                    <>
-                      <CheckCircle2 className="w-3 h-3" />
-                      Active
-                    </>
-                  ) : (
-                    "Inactive"
-                  )}
-                </span>
-              </div>
-
-              {/* Qualifications */}
-              {member.qualifications && (
-                <div className="mb-4 flex items-start gap-2 p-3 bg-[#F5F5F5] rounded-lg">
-                  <Award className="w-4 h-4 text-[#EECFD1] mt-0.5 flex-shrink-0" />
-                  <p className="text-sm text-[#3A3A3A] line-clamp-2 font-medium">{member.qualifications}</p>
-                </div>
-              )}
-
-              {/* Bio/About */}
-              {(member.bio || member.about) && (
-                <p className="text-sm text-[#888888] line-clamp-3 mb-6 flex-1 leading-relaxed">
-                  {member.bio || member.about}
-                </p>
-              )}
-
-              {/* Actions */}
-              <div className="pt-4 border-t border-[#F5F5F5] mt-auto">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="w-full rounded-xl font-semibold border-[#EECFD1] text-[#EECFD1] hover:bg-[#EECFD1] hover:text-white transition-all"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    router.push(`/business/staff/${member.id}/edit`);
-                  }}
-                >
-                  <Edit2 className="w-4 h-4 mr-2" />
-                  Edit Details
-                </Button>
+              
+              {/* Name */}
+              <div className="flex-1">
+                <h3 className="text-base font-semibold text-[#3A3A3A]">{member.name}</h3>
               </div>
             </div>
           ))}

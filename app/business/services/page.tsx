@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import PageLayout from "@/components/layout/PageLayout";
-import { Plus, Clock, DollarSign, Edit2, Trash2, Calendar, Tag } from "lucide-react";
+import { Plus, Tag, Edit, Trash2 } from "lucide-react";
+import { ServiceCard } from "@/components/ui/service-card";
 
 export default function BusinessServicesPage() {
   const router = useRouter();
@@ -95,7 +96,11 @@ export default function BusinessServicesPage() {
     }
   };
 
-  const handleDelete = async (serviceId: string) => {
+  const handleDelete = async (serviceId: string, e?: React.MouseEvent) => {
+    if (e) {
+      e.stopPropagation();
+    }
+    
     if (!confirm("Are you sure you want to delete this service? This action cannot be undone.")) return;
 
     try {
@@ -135,6 +140,54 @@ export default function BusinessServicesPage() {
     acc[category].push(service);
     return acc;
   }, {} as Record<string, any[]>);
+
+  const getNextAvailableTimeSlot = (service: any) => {
+    if (!service.timeSlots || service.timeSlots.length === 0) {
+      return { date: null, time: null };
+    }
+
+    const now = new Date();
+    const availableSlots = service.timeSlots
+      .filter((slot: any) => {
+        const slotDate = new Date(slot.date);
+        return slotDate >= now;
+      })
+      .sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+    if (availableSlots.length === 0) {
+      return { date: null, time: null };
+    }
+
+    const nextSlot = availableSlots[0];
+    const date = new Date(nextSlot.date);
+    const formattedDate = date.toLocaleDateString("en-GB", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "2-digit",
+    });
+    const time = `${nextSlot.startTime} - ${nextSlot.endTime}`;
+
+    return { date: formattedDate, time };
+  };
+
+  const formatServiceForCard = (service: any) => {
+    const { date, time } = getNextAvailableTimeSlot(service);
+    const businessData = typeof service.businessId === 'object' ? service.businessId : null;
+
+    return {
+      id: service.id || service._id,
+      name: service.serviceName,
+      price: service.baseCost,
+      image: businessData?.logo || "/placeholder-logo.png",
+      category: service.category,
+      subCategory: service.subCategory,
+      businessName: businessData?.businessName || "Business",
+      location: businessData?.address || "",
+      duration: service.duration,
+      date: date,
+      time: time,
+    };
+  };
 
   if (!user) {
     return (
@@ -203,75 +256,36 @@ export default function BusinessServicesPage() {
                   </div>
 
                   {/* Services Grid */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                     {categoryServices.map((service) => {
                       const serviceId = service.id || service._id;
+                      const cardData = formatServiceForCard(service);
                       return (
                         <div
                           key={serviceId}
-                          className="bg-white rounded-2xl border border-[#F5F5F5] overflow-hidden hover:border-[#EECFD1] hover:shadow-lg transition-all duration-300 group"
+                          onClick={() => router.push(`/business/services/${serviceId}`)}
+                          className="relative cursor-pointer [&_a]:pointer-events-none group"
                         >
-                          {/* Service Content */}
-                          <div className="p-6 space-y-4">
-                            {/* Title and Sub-category */}
-                            <div>
-                              <h3 className="text-lg font-bold text-[#3A3A3A] mb-2 line-clamp-2 group-hover:text-[#EECFD1] transition-colors">
-                                {service.serviceName}
-                              </h3>
-                              {service.subCategory && (
-                                <span className="inline-block px-3 py-1 bg-[#F5F5F5] text-[#888888] rounded-full text-xs font-medium uppercase tracking-wide">
-                                  {service.subCategory}
-                                </span>
-                              )}
-                            </div>
-
-                            {/* Price and Duration */}
-                            <div className="space-y-2">
-                              <div className="flex items-center gap-2">
-                                <DollarSign className="w-5 h-5 text-[#EECFD1]" />
-                                <span className="text-2xl font-bold text-[#3A3A3A]">
-                                  ${service.baseCost?.toFixed(2) || "0.00"}
-                                </span>
-                              </div>
-                              {service.duration && (
-                                <div className="flex items-center gap-2 text-[#888888]">
-                                  <Clock className="w-4 h-4 text-[#EECFD1]" />
-                                  <span className="text-sm">{service.duration}</span>
-                                </div>
-                              )}
-                              {service.timeSlots && service.timeSlots.length > 0 && (
-                                <div className="flex items-center gap-2 text-[#888888]">
-                                  <Calendar className="w-4 h-4 text-[#EECFD1]" />
-                                  <span className="text-sm">{service.timeSlots.length} time slot{service.timeSlots.length !== 1 ? 's' : ''}</span>
-                                </div>
-                              )}
-                            </div>
-
-                            {/* Description */}
-                            {service.description && (
-                              <p className="text-sm text-[#888888] line-clamp-3 leading-relaxed">
-                                {service.description}
-                              </p>
-                            )}
-                          </div>
-
-                          {/* Action Buttons */}
-                          <div className="flex border-t border-[#F5F5F5]">
-                            <Link
-                              href={`/business/services/${serviceId}/edit`}
-                              className="flex-1 flex items-center justify-center gap-2 py-3 text-[#EECFD1] font-semibold hover:bg-[#EECFD1] hover:text-white transition-all"
-                            >
-                              <Edit2 className="w-4 h-4" />
-                              <span className="text-sm">Edit</span>
-                            </Link>
-                            <button
-                              onClick={() => handleDelete(serviceId)}
-                              className="flex-1 flex items-center justify-center gap-2 py-3 text-red-500 font-semibold hover:bg-red-500 hover:text-white transition-all border-l border-[#F5F5F5]"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                              <span className="text-sm">Delete</span>
-                            </button>
-                          </div>
+                          <ServiceCard {...cardData} />
+                          {/* Edit Button - Top Right Corner */}
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              router.push(`/business/services/${serviceId}/edit`);
+                            }}
+                            className="absolute top-2 right-2 bg-white hover:bg-gray-50 rounded-lg p-2 shadow-md opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                            title="Edit Service"
+                          >
+                            <Edit className="w-4 h-4 text-gray-700" />
+                          </button>
+                          {/* Delete Button - Top Left Corner */}
+                          <button
+                            onClick={(e) => handleDelete(serviceId, e)}
+                            className="absolute top-2 left-2 bg-white hover:bg-red-50 rounded-lg p-2 shadow-md opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                            title="Delete Service"
+                          >
+                            <Trash2 className="w-4 h-4 text-red-600" />
+                          </button>
                         </div>
                       );
                     })}

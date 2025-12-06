@@ -14,7 +14,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   const links = [
     { href: "/about", label: "About" },
     { href: "/shopper", label: "Shopper" },
-    { href: "/business", label: "Small Business" },
+    { href: "/business/dashboard", label: "Small Business" },
     { href: "/how-it-works", label: "How it works" },
   ];
 

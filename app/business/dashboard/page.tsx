@@ -24,6 +24,19 @@ export default function BusinessDashboardPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"bookings" | "list" | "staff" | "details">("bookings");
 
+  // Check URL hash or query param for initial tab
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const hash = window.location.hash;
+      const params = new URLSearchParams(window.location.search);
+      const tabParam = params.get("tab") || hash.replace("#", "");
+      
+      if (tabParam && ["bookings", "list", "staff", "details"].includes(tabParam)) {
+        setActiveTab(tabParam as "bookings" | "list" | "staff" | "details");
+      }
+    }
+  }, []);
+
   useEffect(() => {
     const loadDashboardData = async () => {
       if (!isAuthenticated) {
