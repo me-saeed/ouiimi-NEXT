@@ -39,6 +39,7 @@ interface Service {
 export default function HomePage() {
   const { user } = useAuth();
   const [services, setServices] = useState<Record<string, Service[]>>({});
+  const [serviceCounts, setServiceCounts] = useState<Record<string, number>>({});
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -48,28 +49,35 @@ export default function HomePage() {
   const loadServices = async () => {
     try {
       const servicesData: Record<string, Service[]> = {};
+      const countsData: Record<string, number> = {};
 
       // Fetch services for each category
       await Promise.all(
         SERVICE_CATEGORIES.map(async (category) => {
           try {
+            // Fetch first 6 services for display
             const response = await fetch(
               `/api/services?category=${encodeURIComponent(category)}&status=listed&limit=6`
             );
             if (response.ok) {
               const data = await response.json();
               servicesData[category] = data.services || [];
+              // Get total count from pagination
+              countsData[category] = data.pagination?.total || data.services?.length || 0;
             } else {
               servicesData[category] = [];
+              countsData[category] = 0;
             }
           } catch (error) {
             console.error(`Error loading services for ${category}:`, error);
             servicesData[category] = [];
+            countsData[category] = 0;
           }
         })
       );
 
       setServices(servicesData);
+      setServiceCounts(countsData);
     } catch (error) {
       console.error("Error loading services:", error);
     } finally {
@@ -197,7 +205,8 @@ export default function HomePage() {
                   <ServiceCarousel
                     key={category}
                     title={category}
-                    viewAllHref={`/services?category=${encodeURIComponent(category)}`}
+                    totalCount={serviceCounts[category] || 0}
+                    showMoreHref={`/services?category=${encodeURIComponent(category)}`}
                   >
                     {categoryServices.map((service) => (
                       <ServiceCard

@@ -58,6 +58,9 @@ export default function CreateServicePage() {
     endTime: "",
     staffIds: [] as string[],
   });
+  const [startHour, setStartHour] = useState<string>("");
+  const [startMinute, setStartMinute] = useState<string>("00");
+  const [startPeriod, setStartPeriod] = useState<"AM" | "PM">("AM");
 
   // Form schema without businessId (we add it dynamically)
   // Make serviceName optional since we use subCategory instead, and make subCategory required
@@ -148,6 +151,21 @@ export default function CreateServicePage() {
     }
   };
 
+  // Convert 12-hour to 24-hour format
+  const convertTo24Hour = (hour: string, minute: string, period: "AM" | "PM"): string => {
+    if (!hour) return "";
+    let h = parseInt(hour, 10);
+    const m = parseInt(minute, 10) || 0;
+    
+    if (period === "AM") {
+      if (h === 12) h = 0;
+    } else {
+      if (h !== 12) h += 12;
+    }
+    
+    return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+  };
+
   // Calculate end time from start time + duration
   const calculateEndTime = (startTime: string, durationMins: number): string => {
     if (!startTime) return "";
@@ -171,16 +189,110 @@ export default function CreateServicePage() {
       endTime: "",
       staffIds: [...defaultStaffIds],
     });
+    setStartHour("");
+    setStartMinute("00");
+    setStartPeriod("AM");
   };
 
-  const handleStartTimeChange = (startTime: string) => {
-    const endTime = calculateEndTime(startTime, durationMinutes);
-    setNewTimeSlot({
-      ...newTimeSlot,
-      startTime,
-      endTime,
+  // Check for time conflicts (overlapping time ranges)
+  const checkTimeConflict = (startTime24: string, endTime24: string, staffIds: string[]): boolean => {
+    if (!selectedDate || !startTime24 || !endTime24) return false;
+    
+    const existingSlots = datesWithSlots[selectedDate] || [];
+    const start = new Date(`2000-01-01T${startTime24}`);
+    const end = new Date(`2000-01-01T${endTime24}`);
+    
+    return existingSlots.some((existingSlot: any) => {
+      const existingStart = new Date(`2000-01-01T${existingSlot.startTime}`);
+      const existingEnd = new Date(`2000-01-01T${existingSlot.endTime}`);
+      const existingStaff = (existingSlot.staffIds || []).sort();
+      const selectedStaff = staffIds.sort();
+      
+      // Check if staff overlap
+      const staffOverlap = selectedStaff.length === 0 || existingStaff.length === 0 || 
+        selectedStaff.some(id => existingStaff.includes(id));
+      
+      if (!staffOverlap) return false;
+      
+      // Check if time ranges overlap
+      return (start < existingEnd && end > existingStart);
     });
   };
+
+  const handleTimeChange = () => {
+    if (!startHour) {
+      setNewTimeSlot({
+        ...newTimeSlot,
+        startTime: "",
+        endTime: "",
+      });
+      setError("");
+      return;
+    }
+
+    const startTime24 = convertTo24Hour(startHour, startMinute, startPeriod);
+    const endTime24 = calculateEndTime(startTime24, typeof durationMinutes === "number" ? durationMinutes : 30);
+    
+    if (!endTime24) {
+      setError("Invalid time selection");
+      return;
+    }
+
+    // Check for conflicts with existing slots
+    const selectedStaffIds = newTimeSlot.staffIds.length > 0 ? newTimeSlot.staffIds : defaultStaffIds;
+    const hasConflict = checkTimeConflict(startTime24, endTime24, selectedStaffIds);
+
+    if (hasConflict) {
+      setError(`This time slot (${startHour}:${startMinute} ${startPeriod} - ${formatTime12Hour(endTime24)}) conflicts with an existing booking for the selected staff on this date. Please select a different time.`);
+      return;
+    }
+
+    setNewTimeSlot({
+      ...newTimeSlot,
+      startTime: startTime24,
+      endTime: endTime24,
+    });
+    setError("");
+  };
+
+  useEffect(() => {
+    if (startHour && startMinute && startPeriod) {
+      const startTime24 = convertTo24Hour(startHour, startMinute, startPeriod);
+      const endTime24 = calculateEndTime(startTime24, typeof durationMinutes === "number" ? durationMinutes : 30);
+      
+      if (endTime24) {
+        const selectedStaffIds = newTimeSlot.staffIds.length > 0 ? newTimeSlot.staffIds : defaultStaffIds;
+        const hasConflict = checkTimeConflict(startTime24, endTime24, selectedStaffIds);
+
+        if (hasConflict) {
+          setError(`This time slot conflicts with an existing booking for the selected staff on this date.`);
+        } else {
+          setError("");
+        }
+
+        setNewTimeSlot({
+          ...newTimeSlot,
+          startTime: startTime24,
+          endTime: endTime24,
+        });
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [startHour, startMinute, startPeriod, durationMinutes]);
+
+  useEffect(() => {
+    if (newTimeSlot.startTime && newTimeSlot.endTime && selectedDate) {
+      const selectedStaffIds = newTimeSlot.staffIds.length > 0 ? newTimeSlot.staffIds : defaultStaffIds;
+      const hasConflict = checkTimeConflict(newTimeSlot.startTime, newTimeSlot.endTime, selectedStaffIds);
+
+      if (hasConflict) {
+        setError(`This time slot conflicts with an existing booking for the selected staff on this date.`);
+      } else {
+        setError("");
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [newTimeSlot.staffIds, selectedDate]);
 
   const handleAddTimeSlot = () => {
     if (!selectedDate || !newTimeSlot.startTime) {
@@ -193,16 +305,24 @@ export default function CreateServicePage() {
       return;
     }
 
+    // Final check for conflicts (in case staff was changed after time selection)
     const slot = {
       startTime: newTimeSlot.startTime,
       endTime: newTimeSlot.endTime,
       staffIds: newTimeSlot.staffIds.length > 0 ? newTimeSlot.staffIds : defaultStaffIds,
     };
 
+    const hasConflict = checkTimeConflict(slot.startTime, slot.endTime, slot.staffIds);
+
+    if (hasConflict) {
+      setError(`This time slot conflicts with an existing booking for the selected staff on this date.`);
+      return;
+    }
+
     // Add slot to the selected date
     setDatesWithSlots({
       ...datesWithSlots,
-      [selectedDate]: [...(datesWithSlots[selectedDate] || []), slot],
+      [selectedDate]: [...existingSlots, slot],
     });
 
     // Reset form but keep date selected and default staff
@@ -211,6 +331,9 @@ export default function CreateServicePage() {
       endTime: "",
       staffIds: [...defaultStaffIds],
     });
+    setStartHour("");
+    setStartMinute("00");
+    setStartPeriod("AM");
     setError("");
     toast({
       variant: "success",
@@ -271,6 +394,15 @@ export default function CreateServicePage() {
     } else {
       return `${mins}mins`;
     }
+  };
+
+  // Convert 24-hour time to 12-hour format with AM/PM
+  const formatTime12Hour = (time24: string): string => {
+    if (!time24) return "";
+    const [hours, minutes] = time24.split(":").map(Number);
+    const period = hours >= 12 ? "PM" : "AM";
+    const hours12 = hours % 12 || 12;
+    return `${hours12}:${String(minutes).padStart(2, "0")} ${period}`;
   };
 
   // Convert datesWithSlots back to flat array for submission
@@ -831,52 +963,133 @@ export default function CreateServicePage() {
 
                 {/* Time Slot Form - Always visible but disabled until date is selected */}
                 {showTimeSlotForm && (
-                  <div className="bg-white rounded-lg p-6 space-y-5 border border-[#E5E5E5] shadow-sm">
-                    <div className="flex items-center justify-between mb-4">
-                      <h3 className="text-lg font-bold text-[#3A3A3A]">
-                        {selectedDate ? `Add Time Slot for ${new Date(selectedDate).toLocaleDateString("en-GB", {
-                          day: "2-digit",
-                          month: "2-digit",
-                          year: "numeric"
-                        })}` : "Add Time Slot"}
-                      </h3>
+                  <div className="bg-white rounded-2xl p-6 md:p-8 space-y-6 border border-gray-100 shadow-lg">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="text-xl font-bold text-[#3A3A3A]">
+                          {selectedDate ? `Add Time Slot` : "Add Time Slot"}
+                        </h3>
+                        {selectedDate && (
+                          <p className="text-sm text-gray-500 mt-1">
+                            {new Date(selectedDate).toLocaleDateString("en-GB", {
+                              day: "numeric",
+                              month: "long",
+                              year: "numeric",
+                              weekday: "long"
+                            })}
+                          </p>
+                        )}
+                      </div>
                       <button
                         onClick={() => {
                           setShowTimeSlotForm(false);
                           setSelectedDate("");
                         }}
-                        className="w-8 h-8 flex items-center justify-center rounded-lg text-[#888888] hover:text-[#3A3A3A] hover:bg-[#F5F5F5] transition-colors"
+                        className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-[#3A3A3A] hover:bg-gray-100 transition-colors"
                         aria-label="Close"
                       >
-                        ×
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
                       </button>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <label className="text-sm font-semibold text-[#3A3A3A]">
+                    <div className="space-y-6">
+                      {/* Time Selection - Clean and Professional */}
+                      <div className="space-y-3">
+                        <label className="block text-sm font-semibold text-[#3A3A3A]">
                           Start Time <span className="text-red-500">*</span>
                         </label>
-                        <input
-                          type="time"
-                          value={newTimeSlot.startTime}
-                          onChange={(e) => handleStartTimeChange(e.target.value)}
-                          disabled={!selectedDate}
-                          className="w-full px-4 py-2.5 rounded-lg border border-[#E5E5E5] bg-white text-[#3A3A3A] focus:outline-none focus:ring-2 focus:ring-[#EECFD1]/20 focus:border-[#EECFD1] transition-all disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed disabled:opacity-60"
-                          required
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-sm font-semibold text-[#3A3A3A]">
-                          End Time <span className="text-[#888888] text-xs font-normal">(Auto-calculated)</span>
-                        </label>
-                        <input
-                          type="time"
-                          value={newTimeSlot.endTime}
-                          readOnly
-                          disabled={!selectedDate}
-                          className="w-full px-4 py-2.5 rounded-lg border border-[#E5E5E5] bg-[#F5F5F5] text-[#3A3A3A] cursor-not-allowed disabled:opacity-60"
-                        />
+                        <div className="flex items-center gap-3">
+                          {/* Unified Time Picker */}
+                          <div className="flex-1 flex items-center gap-2 bg-gray-50 rounded-xl p-1 border border-gray-200">
+                            <div className="flex-1 relative">
+                              <select
+                                value={startHour}
+                                onChange={(e) => {
+                                  setStartHour(e.target.value);
+                                  setNewTimeSlot({ ...newTimeSlot, startTime: "", endTime: "" });
+                                }}
+                                disabled={!selectedDate}
+                                className="w-full px-4 py-3 pr-8 bg-transparent border-0 text-[#3A3A3A] font-medium text-base focus:outline-none focus:ring-0 disabled:opacity-50 disabled:cursor-not-allowed appearance-none cursor-pointer"
+                              >
+                                <option value="">--</option>
+                                {Array.from({ length: 12 }, (_, i) => i + 1).map((h) => (
+                                  <option key={h} value={String(h)}>{String(h).padStart(2, '0')}</option>
+                                ))}
+                              </select>
+                              <div className="absolute inset-y-0 right-2 flex items-center pointer-events-none">
+                                <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                </svg>
+                              </div>
+                            </div>
+                            <span className="text-[#3A3A3A] font-semibold text-lg">:</span>
+                            <div className="flex-1 relative">
+                              <select
+                                value={startMinute}
+                                onChange={(e) => {
+                                  setStartMinute(e.target.value);
+                                  setNewTimeSlot({ ...newTimeSlot, startTime: "", endTime: "" });
+                                }}
+                                disabled={!selectedDate || !startHour}
+                                className="w-full px-4 py-3 pr-8 bg-transparent border-0 text-[#3A3A3A] font-medium text-base focus:outline-none focus:ring-0 disabled:opacity-50 disabled:cursor-not-allowed appearance-none cursor-pointer"
+                              >
+                                {Array.from({ length: 12 }, (_, i) => {
+                                  const minute = String(i * 5).padStart(2, '0');
+                                  return <option key={minute} value={minute}>{minute}</option>;
+                                })}
+                              </select>
+                              <div className="absolute inset-y-0 right-2 flex items-center pointer-events-none">
+                                <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                </svg>
+                              </div>
+                            </div>
+                            <div className="flex gap-1 bg-white rounded-lg p-1 border border-gray-200">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setStartPeriod("AM");
+                                  setNewTimeSlot({ ...newTimeSlot, startTime: "", endTime: "" });
+                                }}
+                                disabled={!selectedDate || !startHour}
+                                className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
+                                  startPeriod === "AM"
+                                    ? "bg-[#EECFD1] text-[#3A3A3A] shadow-sm"
+                                    : "text-gray-500 hover:text-[#3A3A3A] hover:bg-gray-50"
+                                } disabled:opacity-50 disabled:cursor-not-allowed`}
+                              >
+                                AM
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setStartPeriod("PM");
+                                  setNewTimeSlot({ ...newTimeSlot, startTime: "", endTime: "" });
+                                }}
+                                disabled={!selectedDate || !startHour}
+                                className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
+                                  startPeriod === "PM"
+                                    ? "bg-[#EECFD1] text-[#3A3A3A] shadow-sm"
+                                    : "text-gray-500 hover:text-[#3A3A3A] hover:bg-gray-50"
+                                } disabled:opacity-50 disabled:cursor-not-allowed`}
+                              >
+                                PM
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        {/* End Time Display - Elegant */}
+                        {newTimeSlot.endTime && (
+                          <div className="flex items-center gap-2 text-sm">
+                            <span className="text-gray-500">Ends at</span>
+                            <span className="font-semibold text-[#3A3A3A] px-3 py-1.5 bg-[#EECFD1]/10 rounded-lg">
+                              {formatTime12Hour(newTimeSlot.endTime)}
+                            </span>
+                          </div>
+                        )}
                       </div>
                     </div>
 
@@ -957,7 +1170,11 @@ export default function CreateServicePage() {
                                   })}
                                 </h4>
                                 <p className="text-xs text-[#888888]">
-                                  {new Date(date).toLocaleDateString("en-US", { weekday: "long" })}
+                                  {new Date(date).toLocaleDateString("en-US", { weekday: "long" })} • {new Date(date).toLocaleDateString("en-GB", {
+                                    day: "numeric",
+                                    month: "long",
+                                    year: "numeric"
+                                  })}
                                 </p>
                               </div>
                             </div>
@@ -1001,7 +1218,7 @@ export default function CreateServicePage() {
                                 >
                                   <div className="flex-1">
                                     <p className="text-sm font-semibold text-[#3A3A3A]">
-                                      {slot.startTime} - {slot.endTime} ({duration})
+                                      {formatTime12Hour(slot.startTime)} - {formatTime12Hour(slot.endTime)} ({duration})
                                     </p>
                                     <div className="flex items-center gap-4 mt-1 text-xs text-[#888888]">
                                       <span>
