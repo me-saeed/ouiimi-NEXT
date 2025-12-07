@@ -275,17 +275,17 @@ export default function BusinessServicesPage() {
                             }}
                             className="absolute top-2 right-2 bg-white hover:bg-gray-50 rounded-lg p-2 shadow-md opacity-0 group-hover:opacity-100 transition-opacity z-10"
                             title="Edit Service"
-                          >
+                            >
                             <Edit className="w-4 h-4 text-gray-700" />
                           </button>
                           {/* Delete Button - Top Left Corner */}
-                          <button
+                            <button
                             onClick={(e) => handleDelete(serviceId, e)}
                             className="absolute top-2 left-2 bg-white hover:bg-red-50 rounded-lg p-2 shadow-md opacity-0 group-hover:opacity-100 transition-opacity z-10"
                             title="Delete Service"
-                          >
+                            >
                             <Trash2 className="w-4 h-4 text-red-600" />
-                          </button>
+                            </button>
                         </div>
                       );
                     })}
