@@ -174,7 +174,7 @@ export default function EditServicePage() {
             }
             
             // Use price if available, fallback to cost for backward compatibility
-            const price = slot.price !== undefined ? slot.price : (slot.cost || 0);
+            const price = slot.price || 0;
             // Use duration if available, otherwise calculate
             const duration = slot.duration !== undefined ? slot.duration : calculateDuration(slot.startTime, slot.endTime);
             

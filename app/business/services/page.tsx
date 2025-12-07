@@ -177,7 +177,7 @@ export default function BusinessServicesPage() {
     return {
       id: service.id || service._id,
       name: service.serviceName,
-      price: service.baseCost,
+      price: service.timeSlots && service.timeSlots.length > 0 ? (service.timeSlots[0]?.price || 0) : 0,
       image: businessData?.logo || "/placeholder-logo.png",
       category: service.category,
       subCategory: service.subCategory,

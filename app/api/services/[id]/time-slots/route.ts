@@ -35,7 +35,7 @@ async function updateTimeSlotsHandler(
       date: new Date(slot.date),
       startTime: slot.startTime,
       endTime: slot.endTime,
-      cost: slot.cost || service.baseCost,
+      price: slot.price || 0, // Price from time slot
       staffIds: slot.staffIds
         ? slot.staffIds.map((id) => new mongoose.Types.ObjectId(id))
         : [],
