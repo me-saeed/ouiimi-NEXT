@@ -10,6 +10,7 @@ import PageLayout from "@/components/layout/PageLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AddressAutocomplete } from "@/components/ui/address-autocomplete";
 import { useToast } from "@/hooks/use-toast";
 import Image from "next/image";
 
@@ -72,6 +73,7 @@ export default function CreateServicePage() {
   const {
     register,
     handleSubmit,
+    control,
     watch,
     setValue,
     formState: { errors },
@@ -92,7 +94,7 @@ export default function CreateServicePage() {
   useEffect(() => {
     // Update duration field when durationMinutes changes
     if (durationMinutes !== "" && typeof durationMinutes === "number" && durationMinutes >= 15) {
-      setValue("duration", formatDuration(durationMinutes));
+    setValue("duration", formatDuration(durationMinutes));
       setDurationError("");
     } else {
       setValue("duration", "");
@@ -182,7 +184,7 @@ export default function CreateServicePage() {
     setSelectedDate(date);
     setShowDatePicker(false);
     if (!showTimeSlotForm) {
-      setShowTimeSlotForm(true);
+    setShowTimeSlotForm(true);
     }
     setNewTimeSlot({
       startTime: "",
@@ -221,8 +223,8 @@ export default function CreateServicePage() {
 
   const handleTimeChange = () => {
     if (!startHour) {
-      setNewTimeSlot({
-        ...newTimeSlot,
+    setNewTimeSlot({
+      ...newTimeSlot,
         startTime: "",
         endTime: "",
       });
@@ -699,10 +701,10 @@ export default function CreateServicePage() {
                   )}
                 </div>
 
-                <div className="space-y-2">
-                  <label className="block text-sm font-semibold text-[#3A3A3A] mb-2">
+                  <div className="space-y-2">
+                    <label className="block text-sm font-semibold text-[#3A3A3A] mb-2">
                     Service Name <span className="text-red-500">*</span>
-                  </label>
+                    </label>
                   <div className="relative">
                     <select
                       {...register("subCategory", { required: "Service name is required" })}
@@ -720,15 +722,15 @@ export default function CreateServicePage() {
                       <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                       </svg>
-                    </div>
                   </div>
+              </div>
                   {errors.subCategory && (
                     <p className="text-red-500 text-sm mt-1">
                       {errors.subCategory.message}
                     </p>
                   )}
                 </div>
-              </div>
+                </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
@@ -782,7 +784,7 @@ export default function CreateServicePage() {
                             setDurationMinutes("");
                             setDurationError("");
                           } else if (mins < 15) {
-                            setDurationMinutes(mins);
+                        setDurationMinutes(mins);
                             setDurationError("Duration must be at least 15 minutes");
                           } else if (mins > 180) {
                             setDurationMinutes(mins);
@@ -790,10 +792,10 @@ export default function CreateServicePage() {
                           } else {
                             setDurationMinutes(mins);
                             setDurationError("");
-                            // Recalculate end time if start time is set
-                            if (newTimeSlot.startTime) {
-                              const endTime = calculateEndTime(newTimeSlot.startTime, mins);
-                              setNewTimeSlot({ ...newTimeSlot, endTime });
+                        // Recalculate end time if start time is set
+                        if (newTimeSlot.startTime) {
+                          const endTime = calculateEndTime(newTimeSlot.startTime, mins);
+                          setNewTimeSlot({ ...newTimeSlot, endTime });
                             }
                           }
                         }
@@ -816,8 +818,8 @@ export default function CreateServicePage() {
                   <span className="text-sm text-[#888888] whitespace-nowrap">minutes</span>
                   {durationMinutes !== "" && typeof durationMinutes === "number" && durationMinutes >= 15 && (
                     <div className="text-sm text-[#3A3A3A] font-medium whitespace-nowrap">
-                      ({formatDuration(durationMinutes)})
-                    </div>
+                    ({formatDuration(durationMinutes)})
+                  </div>
                   )}
                 </div>
                 {durationError && (
@@ -825,26 +827,22 @@ export default function CreateServicePage() {
                     {durationError}
                   </p>
                 )}
-                <p className="text-xs text-[#888888] mt-1">
+                  <p className="text-xs text-[#888888] mt-1">
                   Minimum 15 minutes, maximum 3 hours (180 minutes). End time will be automatically calculated from start time + duration.
-                </p>
-              </div>
+                  </p>
+                </div>
 
               <div className="space-y-2">
                 <label className="block text-sm font-semibold text-[#3A3A3A] mb-2">
                   Address <span className="text-red-500">*</span>
                 </label>
-                <Input
-                  {...register("address")}
-                  type="text"
+                <AddressAutocomplete
+                  control={control}
+                  name="address"
                   placeholder="123 Main St, City, State ZIP"
-                  className={errors.address ? "border-red-500 focus-visible:ring-red-500" : ""}
+                  error={errors.address?.message}
+                  required
                 />
-                {errors.address && (
-                  <p className="text-red-500 text-sm mt-1">
-                    {errors.address.message}
-                  </p>
-                )}
               </div>
 
               <div className="space-y-2">
@@ -918,14 +916,14 @@ export default function CreateServicePage() {
                       >
                         + Add Time Slot
                       </Button>
-                      <Button
-                        type="button"
-                        onClick={() => setShowDatePicker(true)}
-                        variant="outline"
-                        className="h-9 px-4 rounded-lg border border-[#E5E5E5] bg-white hover:bg-[#F5F5F5] text-sm font-medium text-[#3A3A3A] transition-colors"
-                      >
-                        + Add Date
-                      </Button>
+                    <Button
+                      type="button"
+                      onClick={() => setShowDatePicker(true)}
+                      variant="outline"
+                      className="h-9 px-4 rounded-lg border border-[#E5E5E5] bg-white hover:bg-[#F5F5F5] text-sm font-medium text-[#3A3A3A] transition-colors"
+                    >
+                      + Add Date
+                    </Button>
                     </div>
                 </div>
 
@@ -968,7 +966,7 @@ export default function CreateServicePage() {
                       <div>
                         <h3 className="text-xl font-bold text-[#3A3A3A]">
                           {selectedDate ? `Add Time Slot` : "Add Time Slot"}
-                        </h3>
+                      </h3>
                         {selectedDate && (
                           <p className="text-sm text-gray-500 mt-1">
                             {new Date(selectedDate).toLocaleDateString("en-GB", {
@@ -1022,7 +1020,7 @@ export default function CreateServicePage() {
                                 <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                                 </svg>
-                              </div>
+                      </div>
                             </div>
                             <span className="text-[#3A3A3A] font-semibold text-lg">:</span>
                             <div className="flex-1 relative">
@@ -1078,9 +1076,9 @@ export default function CreateServicePage() {
                                 PM
                               </button>
                             </div>
-                          </div>
-                        </div>
-                        
+                      </div>
+                    </div>
+
                         {/* End Time Display - Elegant */}
                         {newTimeSlot.endTime && (
                           <div className="flex items-center gap-2 text-sm">
@@ -1093,8 +1091,8 @@ export default function CreateServicePage() {
                       </div>
                     </div>
 
-                    <div className="space-y-2">
-                      <label className="text-sm font-semibold text-[#3A3A3A]">Assign Staff <span className="text-[#888888] text-xs font-normal">(Optional)</span></label>
+                      <div className="space-y-2">
+                        <label className="text-sm font-semibold text-[#3A3A3A]">Assign Staff <span className="text-[#888888] text-xs font-normal">(Optional)</span></label>
                       <div className={`border border-[#E5E5E5] rounded-lg p-3 bg-white max-h-40 overflow-y-auto space-y-2 ${!selectedDate ? 'opacity-60 pointer-events-none' : ''}`}>
                         {staff.length > 0 ? (
                           staff.map((member) => (
@@ -1121,8 +1119,8 @@ export default function CreateServicePage() {
                         ) : (
                           <p className="text-sm text-[#888888] text-center py-2">No staff members available</p>
                         )}
+                        </div>
                       </div>
-                    </div>
 
                     <div className="flex gap-3 pt-2">
                       <Button

@@ -7,6 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { businessUpdateSchema, type BusinessUpdateInput } from "@/lib/validation";
 import PageLayout from "@/components/layout/PageLayout";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AddressAutocomplete } from "@/components/ui/address-autocomplete";
 
 export default function BusinessProfileEditPage() {
   const router = useRouter();
@@ -20,6 +21,7 @@ export default function BusinessProfileEditPage() {
   const {
     register,
     handleSubmit,
+    control,
     formState: { errors },
     reset,
   } = useForm<BusinessUpdateInput>({
@@ -291,17 +293,13 @@ export default function BusinessProfileEditPage() {
                 <label className="block text-sm font-semibold text-[#3A3A3A] mb-2.5">
                   Address *
                 </label>
-                <input
-                  {...register("address")}
-                  type="text"
-                  className="input-polished"
+                <AddressAutocomplete
+                  control={control}
+                  name="address"
                   placeholder="123 Main St, City, State"
+                  error={errors.address?.message}
+                  required
                 />
-                {errors.address && (
-                  <p className="text-red-500 text-sm mt-1.5">
-                    {errors.address.message}
-                  </p>
-                )}
               </div>
 
               <div>

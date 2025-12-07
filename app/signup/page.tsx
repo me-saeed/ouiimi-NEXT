@@ -8,6 +8,7 @@ import { signupSchema, type SignupInput } from "@/lib/validation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AddressAutocomplete } from "@/components/ui/address-autocomplete";
 import { signIn } from "next-auth/react";
 
 export default function SignupPage() {
@@ -21,6 +22,7 @@ export default function SignupPage() {
   const {
     register,
     handleSubmit,
+    control,
     formState: { errors },
   } = useForm<SignupInput>({
     resolver: zodResolver(signupSchema),
@@ -201,11 +203,11 @@ export default function SignupPage() {
             >
               Address <span className="text-[#888888] font-normal">(optional)</span>
             </label>
-            <Input
-              type="text"
-              id="address"
+            <AddressAutocomplete
+              control={control}
+              name="address"
               placeholder="Enter your address"
-              {...register("address")}
+              error={errors.address?.message}
             />
           </div>
 
