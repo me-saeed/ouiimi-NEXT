@@ -134,7 +134,7 @@ export default function EditServicePage() {
         
         // Handle address - could be string (old) or object (new)
         if (typeof data.service.address === 'object' && data.service.address?.street) {
-          setValue("address", data.service.address);
+        setValue("address", data.service.address);
         } else if (typeof data.service.address === 'string') {
           // Legacy: convert string address to object format (will need geocoding on save)
           setValue("address", {
@@ -759,30 +759,30 @@ export default function EditServicePage() {
                       <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                       </svg>
-                    </div>
-                  </div>
+              </div>
+                </div>
                   {errors.subCategory && (
-                  <p className="text-red-500 text-sm mt-1.5">
+                    <p className="text-red-500 text-sm mt-1.5">
                       {errors.subCategory.message}
-                  </p>
-                )}
+                    </p>
+                  )}
               </div>
 
 
-                <div>
+              <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
                     Address <span className="text-red-500">*</span>
-                  </label>
+                </label>
                   <AddressAutocomplete
                     control={control}
                     name="address"
-                    placeholder="123 Main St, City"
+                  placeholder="123 Main St, City"
                     error={errors.address?.message}
                     required
                     returnObject={true}
                     setValue={setValue}
-                  />
-                </div>
+                />
+              </div>
 
               <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
@@ -1074,9 +1074,9 @@ export default function EditServicePage() {
                                 PM
                               </button>
                             </div>
-                          </div>
-                        </div>
-                        
+                      </div>
+                    </div>
+
                         {/* Duration Display - Calculated */}
                         {newTimeSlot.startTime && newTimeSlot.endTime && (
                           <div className="flex items-center gap-2 text-sm">

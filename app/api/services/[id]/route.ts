@@ -209,8 +209,12 @@ async function updateServiceHandler(
       });
     }
 
-    // Update other fields (excluding baseCost and duration)
-    const { baseCost, duration, ...fieldsToUpdate } = validatedData;
+    // Update other fields (excluding duration which is computed)
+    // Duration is computed from time slots, so we don't update it directly
+    const fieldsToUpdate = { ...validatedData };
+    if ('duration' in fieldsToUpdate) {
+      delete fieldsToUpdate.duration;
+    }
     Object.assign(service, fieldsToUpdate);
     
     // Handle address update if provided

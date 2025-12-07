@@ -117,6 +117,24 @@ export function AddressAutocomplete<T extends FieldValues>({
                 placeholder,
                 isDisabled: disabled,
                 isClearable: true,
+                isSearchable: true,
+                filterOption: null, // Allow any input
+                onInputChange: (inputValue: string) => {
+                  // Allow manual typing - update value as user types
+                  if (returnObject && setValue && inputValue) {
+                    const addressObject = {
+                      street: inputValue,
+                      location: {
+                        type: "Point" as const,
+                        coordinates: [0, 0] as [number, number],
+                      },
+                    };
+                    onChange(addressObject);
+                    setValue(name, addressObject as any);
+                  } else if (!returnObject && inputValue) {
+                    onChange(inputValue);
+                  }
+                },
                 styles: {
                   control: (provided, state) => ({
                     ...provided,

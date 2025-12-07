@@ -192,7 +192,7 @@ export default function HomePage() {
     return {
       id: service.id,
       name: service.serviceName,
-      price: earliestSlot?.price || 0,
+      price: earliestSlot?.price ?? 0,
       image: business?.logo || "/placeholder-logo.png",
       category: service.category,
       subCategory: service.subCategory,

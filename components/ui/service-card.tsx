@@ -61,7 +61,7 @@ export function ServiceCard({
                         {duration && (
                             <span className="text-[14px] text-[#3A3A3A] leading-none">{duration}</span>
                         )}
-                        <span className="text-[14px] text-[#3A3A3A] leading-none">${price.toFixed(2)}</span>
+                        <span className="text-[14px] text-[#3A3A3A] leading-none">${(price || 0).toFixed(2)}</span>
                     </div>
 
                     {/* Line 3: Date + Time - Smallest, lighter gray, normal weight */}

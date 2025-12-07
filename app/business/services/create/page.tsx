@@ -36,6 +36,11 @@ export default function CreateServicePage() {
   const router = useRouter();
   const { toast } = useToast();
   const [user, setUser] = useState<any>(null);
+  const [isClient, setIsClient] = useState(false);
+  
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
   const [businessId, setBusinessId] = useState<string>("");
   const [error, setError] = useState<string>("");
   const [success, setSuccess] = useState<string>("");
@@ -69,7 +74,7 @@ export default function CreateServicePage() {
   // Form schema without businessId (we add it dynamically)
   // Make serviceName optional since we use subCategory instead, and make subCategory required
   // Remove baseCost and duration from schema since they're no longer needed
-  const formSchema = serviceCreateSchema.omit({ businessId: true, baseCost: true, duration: true }).extend({
+  const formSchema = serviceCreateSchema.omit({ businessId: true }).extend({
     serviceName: z.string().optional(),
     subCategory: z.string().min(1, "Service name is required"),
   });
@@ -97,13 +102,19 @@ export default function CreateServicePage() {
 
 
   useEffect(() => {
+    if (!isClient || typeof window === 'undefined') return;
+    
     const token = localStorage.getItem("token");
     const userData = localStorage.getItem("user");
     if (token && userData) {
       try {
-        const parsedUser = JSON.parse(userData);
-        setUser(parsedUser);
-        loadStaff(parsedUser);
+        const parsedUser = typeof userData === 'string' ? JSON.parse(userData) : userData;
+        if (parsedUser && typeof parsedUser === 'object') {
+          setUser(parsedUser);
+          loadStaff(parsedUser);
+        } else {
+          router.push("/signin");
+        }
       } catch (e) {
         console.error("Error parsing user data:", e);
         router.push("/signin");
@@ -114,9 +125,14 @@ export default function CreateServicePage() {
   }, [router]);
 
   const loadStaff = async (userData: any) => {
+    if (typeof window === 'undefined') return;
+    
     try {
       const token = localStorage.getItem("token");
-      const userId = userData.id || userData._id;
+      if (!token) return;
+      
+      const userId = userData?.id || userData?._id;
+      if (!userId) return;
 
       // Find business
       const businessResponse = await fetch(`/api/business/search?userId=${userId}`, {
@@ -234,56 +250,108 @@ export default function CreateServicePage() {
     }
 
     const startTime24 = convertTo24Hour(startHour, startMinute, startPeriod);
-    // Use default 30 minutes for preview - actual duration calculated on save
-    const endTime24 = calculateEndTimeFromStart(startTime24, 30);
     
-    if (!endTime24) {
-      setError("Invalid time selection");
-      return;
-    }
-
-    // Check for conflicts with existing slots
-    const selectedStaffIds = newTimeSlot.staffIds.length > 0 ? newTimeSlot.staffIds : defaultStaffIds;
-    const hasConflict = checkTimeConflict(startTime24, endTime24, selectedStaffIds);
-
-    if (hasConflict) {
-      setError(`This time slot (${startHour}:${startMinute} ${startPeriod} - ${formatTime12Hour(endTime24)}) conflicts with an existing booking for the selected staff on this date. Please select a different time.`);
-      return;
-    }
-
+    // Only set start time - end time must be explicitly selected
     setNewTimeSlot({
       ...newTimeSlot,
       startTime: startTime24,
-      endTime: endTime24,
     });
+    
+    // If end time is set, validate it
+    if (newTimeSlot.endTime) {
+      const start = new Date(`2000-01-01T${startTime24}`);
+      const end = new Date(`2000-01-01T${newTimeSlot.endTime}`);
+      if (end <= start) {
+        setError("End time must be after start time.");
+        return;
+      }
+
+      // Check for conflicts
+      const selectedStaffIds = newTimeSlot.staffIds.length > 0 ? newTimeSlot.staffIds : defaultStaffIds;
+      const hasConflict = checkTimeConflict(startTime24, newTimeSlot.endTime, selectedStaffIds);
+
+      if (hasConflict) {
+        setError(`This time slot conflicts with an existing booking for the selected staff on this date.`);
+        return;
+      }
+    }
+    
     setError("");
   };
 
   useEffect(() => {
     if (startHour && startMinute && startPeriod) {
       const startTime24 = convertTo24Hour(startHour, startMinute, startPeriod);
-      // Use default 30 minutes for preview
-      const endTime24 = calculateEndTimeFromStart(startTime24, 30);
       
-      if (endTime24) {
+      // Only update start time - end time must be explicitly selected by user
+      setNewTimeSlot(prev => ({
+        ...prev,
+        startTime: startTime24,
+      }));
+      
+      // Clear any existing error when start time changes
+      if (newTimeSlot.endTime) {
+        // If end time is already set, validate it
+        const start = new Date(`2000-01-01T${startTime24}`);
+        const end = new Date(`2000-01-01T${newTimeSlot.endTime}`);
+        if (end <= start) {
+          setError("End time must be after start time.");
+        } else {
+          const selectedStaffIds = newTimeSlot.staffIds.length > 0 ? newTimeSlot.staffIds : defaultStaffIds;
+          const hasConflict = checkTimeConflict(startTime24, newTimeSlot.endTime, selectedStaffIds);
+          if (hasConflict) {
+            setError(`This time slot conflicts with an existing booking for the selected staff on this date.`);
+          } else {
+            setError("");
+          }
+        }
+      } else {
+        setError("");
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [startHour, startMinute, startPeriod]);
+
+  // Update endTime when end time fields change
+  useEffect(() => {
+    if (endHour && endMinute && endPeriod) {
+      const endTime24 = convertTo24Hour(endHour, endMinute, endPeriod);
+      
+      // Only validate if start time is set
+      if (newTimeSlot.startTime) {
+        // Validate end time is after start time
+        const start = new Date(`2000-01-01T${newTimeSlot.startTime}`);
+        const end = new Date(`2000-01-01T${endTime24}`);
+        if (end <= start) {
+          setError("End time must be after start time.");
+          setNewTimeSlot(prev => ({ ...prev, endTime: "" }));
+          return;
+        }
+
+        // Check for conflicts
         const selectedStaffIds = newTimeSlot.staffIds.length > 0 ? newTimeSlot.staffIds : defaultStaffIds;
-        const hasConflict = checkTimeConflict(startTime24, endTime24, selectedStaffIds);
+        const hasConflict = checkTimeConflict(newTimeSlot.startTime, endTime24, selectedStaffIds);
 
         if (hasConflict) {
           setError(`This time slot conflicts with an existing booking for the selected staff on this date.`);
         } else {
           setError("");
         }
-
-        setNewTimeSlot({
-          ...newTimeSlot,
-          startTime: startTime24,
-          endTime: endTime24,
-        });
       }
+
+      setNewTimeSlot(prev => ({
+        ...prev,
+        endTime: endTime24,
+      }));
+    } else if (!endHour && newTimeSlot.endTime) {
+      // Clear endTime if endHour is cleared
+      setNewTimeSlot(prev => ({
+        ...prev,
+        endTime: "",
+      }));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [startHour, startMinute, startPeriod]);
+  }, [endHour, endMinute, endPeriod, newTimeSlot.startTime]);
 
   useEffect(() => {
     if (newTimeSlot.startTime && newTimeSlot.endTime && selectedDate) {
@@ -310,10 +378,25 @@ export default function CreateServicePage() {
       return;
     }
 
+    // Validate price
+    if (!newTimeSlot.price || newTimeSlot.price === "" || (typeof newTimeSlot.price === 'number' && newTimeSlot.price <= 0)) {
+      setError("Price is required for this time slot");
+      return;
+    }
+
+    // Calculate duration
+    const duration = calculateDuration(newTimeSlot.startTime, newTimeSlot.endTime);
+    if (duration <= 0) {
+      setError("End time must be after start time");
+      return;
+    }
+
     // Final check for conflicts (in case staff was changed after time selection)
     const slot = {
       startTime: newTimeSlot.startTime,
       endTime: newTimeSlot.endTime,
+      price: typeof newTimeSlot.price === "number" ? newTimeSlot.price : parseFloat(String(newTimeSlot.price)),
+      duration,
       staffIds: newTimeSlot.staffIds.length > 0 ? newTimeSlot.staffIds : defaultStaffIds,
     };
 
@@ -325,7 +408,13 @@ export default function CreateServicePage() {
     }
 
     // Add slot to the selected date
-    const existingSlots = datesWithSlots[selectedDate] || [];
+    const existingSlots: Array<{
+      startTime: string;
+      endTime: string;
+      price: number;
+      duration: number;
+      staffIds: string[];
+    }> = datesWithSlots[selectedDate] || [];
     setDatesWithSlots({
       ...datesWithSlots,
       [selectedDate]: [...existingSlots, slot],
@@ -389,9 +478,24 @@ export default function CreateServicePage() {
     }
   };
 
+  // Calculate duration in minutes from start and end time
+  const calculateDuration = (startTime: string, endTime: string): number => {
+    if (!startTime || !endTime) return 0;
+    const [startHours, startMinutes] = startTime.split(":").map(Number);
+    const [endHours, endMinutes] = endTime.split(":").map(Number);
+    const startTotal = startHours * 60 + startMinutes;
+    const endTotal = endHours * 60 + endMinutes;
+    let duration = endTotal - startTotal;
+    // Handle case where end time is next day (e.g., 23:00 to 01:00)
+    if (duration < 0) {
+      duration += 24 * 60; // Add 24 hours
+    }
+    return duration > 0 ? duration : 0;
+  };
+
   // Convert duration minutes to string format
   const formatDuration = (minutes: number | ""): string => {
-    if (minutes === "" || typeof minutes !== "number") return "";
+    if (minutes === "" || typeof minutes !== "number" || minutes === 0) return "";
     const hours = Math.floor(minutes / 60);
     const mins = minutes % 60;
     if (hours > 0 && mins > 0) {
@@ -472,7 +576,22 @@ export default function CreateServicePage() {
         return;
       }
 
-      const parsedUser = JSON.parse(userData);
+      let parsedUser;
+      try {
+        parsedUser = typeof userData === 'string' ? JSON.parse(userData) : userData;
+        if (!parsedUser || typeof parsedUser !== 'object') {
+          setError("Invalid user data. Please sign in again.");
+          setIsLoading(false);
+          router.push("/signin");
+          return;
+        }
+      } catch (e) {
+        setError("Error parsing user data. Please sign in again.");
+        setIsLoading(false);
+        router.push("/signin");
+        return;
+      }
+      
       const userId = parsedUser.id || parsedUser._id;
 
       if (!userId) {
@@ -529,25 +648,30 @@ export default function CreateServicePage() {
       }
 
       // Validate all time slots have price
-      const slotsWithoutPrice = timeSlotsForSubmission.filter(slot => !slot.price || slot.price === "");
+      const slotsWithoutPrice = timeSlotsForSubmission.filter(slot => !slot.price || slot.price === 0 || typeof slot.price !== 'number');
       if (slotsWithoutPrice.length > 0) {
         setError("All time slots must have a price");
         setIsLoading(false);
         return;
       }
 
+      // Ensure all data is serializable
       const requestBody = {
-        ...data,
+        category: data.category,
+        subCategory: data.subCategory,
         serviceName: data.subCategory, // Use subCategory as serviceName
+        description: data.description || "",
+        address: data.address,
         businessId: foundBusinessId,
-        defaultStaffIds: defaultStaffIds,
+        defaultStaffIds: defaultStaffIds || [],
+        addOns: data.addOns || [],
         timeSlots: timeSlotsForSubmission.map(slot => ({
-          date: slot.date,
-          startTime: slot.startTime,
-          endTime: slot.endTime,
-          price: slot.price, // Required price for this time slot
-          duration: slot.duration, // Calculated duration in minutes
-          staffIds: slot.staffIds || [],
+          date: typeof slot.date === 'string' ? slot.date : new Date(slot.date).toISOString().split('T')[0],
+          startTime: String(slot.startTime),
+          endTime: String(slot.endTime),
+          price: Number(slot.price), // Required price for this time slot
+          duration: Number(slot.duration), // Calculated duration in minutes
+          staffIds: (slot.staffIds || []).map(id => String(id)),
         })),
       };
 
@@ -562,7 +686,19 @@ export default function CreateServicePage() {
         body: JSON.stringify(requestBody),
       });
 
-      const result = await response.json();
+      let result;
+      try {
+        const responseText = await response.text();
+        if (!responseText) {
+          throw new Error("Empty response from server");
+        }
+        result = JSON.parse(responseText);
+      } catch (parseError) {
+        console.error("Error parsing response:", parseError);
+        setError("Invalid response from server. Please try again.");
+        setIsLoading(false);
+        return;
+      }
 
       if (!response.ok) {
         const errorMsg = result.error || result.details || "Failed to create service";
@@ -612,7 +748,7 @@ export default function CreateServicePage() {
     }
   };
 
-  if (!user) {
+  if (!isClient || !user) {
     return (
       <PageLayout user={null}>
         <div className="bg-white min-h-screen py-12">
@@ -667,7 +803,6 @@ export default function CreateServicePage() {
                     const fieldLabels: Record<string, string> = {
                       category: "Category",
                       subCategory: "Service Name",
-                      baseCost: "Base Cost",
                       address: "Address",
                       description: "Description",
                     };
@@ -684,8 +819,6 @@ export default function CreateServicePage() {
               )}
               className="space-y-6"
             >
-              {/* Hidden duration field */}
-              <input type="hidden" {...register("duration")} />
 
               {/* 2-column grid for desktop */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -740,7 +873,7 @@ export default function CreateServicePage() {
                     </p>
                   )}
                 </div>
-                </div>
+              </div>
 
 
               <div className="space-y-2">
@@ -1007,7 +1140,6 @@ export default function CreateServicePage() {
                                 value={endHour}
                                 onChange={(e) => {
                                   setEndHour(e.target.value);
-                                  setNewTimeSlot({ ...newTimeSlot, endTime: "" });
                                 }}
                                 disabled={!selectedDate || !newTimeSlot.startTime}
                                 className="w-full px-4 py-3 pr-8 bg-transparent border-0 text-[#3A3A3A] font-medium text-base focus:outline-none focus:ring-0 disabled:opacity-50 disabled:cursor-not-allowed appearance-none cursor-pointer"
@@ -1029,7 +1161,6 @@ export default function CreateServicePage() {
                                 value={endMinute}
                                 onChange={(e) => {
                                   setEndMinute(e.target.value);
-                                  setNewTimeSlot({ ...newTimeSlot, endTime: "" });
                                 }}
                                 disabled={!selectedDate || !newTimeSlot.startTime || !endHour}
                                 className="w-full px-4 py-3 pr-8 bg-transparent border-0 text-[#3A3A3A] font-medium text-base focus:outline-none focus:ring-0 disabled:opacity-50 disabled:cursor-not-allowed appearance-none cursor-pointer"
@@ -1050,7 +1181,6 @@ export default function CreateServicePage() {
                                 type="button"
                                 onClick={() => {
                                   setEndPeriod("AM");
-                                  setNewTimeSlot({ ...newTimeSlot, endTime: "" });
                                 }}
                                 disabled={!selectedDate || !newTimeSlot.startTime || !endHour}
                                 className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
@@ -1065,7 +1195,6 @@ export default function CreateServicePage() {
                                 type="button"
                                 onClick={() => {
                                   setEndPeriod("PM");
-                                  setNewTimeSlot({ ...newTimeSlot, endTime: "" });
                                 }}
                                 disabled={!selectedDate || !newTimeSlot.startTime || !endHour}
                                 className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
@@ -1077,30 +1206,33 @@ export default function CreateServicePage() {
                                 PM
                               </button>
                             </div>
-                          </div>
-                        </div>
-                        
+                      </div>
+                    </div>
+
                         {/* Duration Display - Calculated */}
-                        {newTimeSlot.startTime && newTimeSlot.endTime && (
-                          <div className="flex items-center gap-2 text-sm">
-                            <span className="text-gray-500">Duration:</span>
-                            <span className="font-semibold text-[#3A3A3A] px-3 py-1.5 bg-[#EECFD1]/10 rounded-lg">
-                              {formatDuration(calculateDuration(newTimeSlot.startTime, newTimeSlot.endTime))}
-                            </span>
-                          </div>
-                        )}
+                        {newTimeSlot.startTime && newTimeSlot.endTime && (() => {
+                          const duration = calculateDuration(newTimeSlot.startTime, newTimeSlot.endTime);
+                          return duration > 0 ? (
+                            <div className="flex items-center gap-2 text-sm">
+                              <span className="text-gray-500">Duration:</span>
+                              <span className="font-semibold text-[#3A3A3A] px-3 py-1.5 bg-[#EECFD1]/10 rounded-lg">
+                                {formatDuration(duration)}
+                              </span>
+                            </div>
+                          ) : null;
+                        })()}
                       </div>
 
                       {/* Price Field for Time Slot */}
-                      <div className="space-y-2">
+                    <div className="space-y-2">
                         <label className="block text-sm font-semibold text-[#3A3A3A]">
                           Price ($) <span className="text-red-500">*</span>
-                        </label>
-                        <div className="relative">
-                          <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[#888888]">$</span>
-                          <input
-                            type="number"
-                            step="0.01"
+                      </label>
+                      <div className="relative">
+                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[#888888]">$</span>
+                        <input
+                          type="number"
+                          step="0.01"
                             min="0"
                             value={newTimeSlot.price === "" ? "" : newTimeSlot.price}
                             onChange={(e) => {
