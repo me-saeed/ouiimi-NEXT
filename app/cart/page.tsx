@@ -17,7 +17,7 @@ interface CartItem {
   time: string;
   staffId?: string;
   staffName?: string;
-  baseCost: number;
+  baseCost: number; // Now from time slot price
   addOns: Array<{ name: string; cost: number }>;
   totalCost: number;
   address: string;

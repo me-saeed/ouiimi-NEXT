@@ -53,7 +53,7 @@ export async function GET(req: NextRequest) {
     })
       .populate("userId", "fname lname email")
       .populate("businessId", "businessName logo address")
-      .populate("serviceId", "serviceName category baseCost duration")
+      .populate("serviceId", "serviceName category")
       .populate("staffId", "name")
       .lean();
 
@@ -90,7 +90,7 @@ export async function GET(req: NextRequest) {
           id: b.serviceId._id?.toString(),
           serviceName: b.serviceId.serviceName,
           category: b.serviceId.category,
-          baseCost: b.serviceId.baseCost,
+          baseCost: 0, // Price is now in time slots
           duration: b.serviceId.duration,
         } : b.serviceId?.toString(),
         staffId: b.staffId ? (typeof b.staffId === 'object' ? {
