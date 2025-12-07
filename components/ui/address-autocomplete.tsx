@@ -1,6 +1,6 @@
 "use client";
 
-import { Controller, Control, FieldValues, Path } from "react-hook-form";
+import { Controller, Control, FieldValues, Path, UseFormSetValue } from "react-hook-form";
 import GooglePlacesAutocomplete, {
   geocodeByAddress,
   getLatLng,
@@ -16,6 +16,9 @@ interface AddressAutocompleteProps<T extends FieldValues> {
   disabled?: boolean;
   required?: boolean;
   onSelect?: (address: string, coordinates?: { lat: number; lng: number }) => void;
+  // For service forms that need object format with coordinates
+  returnObject?: boolean; // If true, returns { street, location: { type: "Point", coordinates: [lng, lat] } }
+  setValue?: UseFormSetValue<T>; // Required if returnObject is true
 }
 
 export function AddressAutocomplete<T extends FieldValues>({
@@ -26,6 +29,9 @@ export function AddressAutocomplete<T extends FieldValues>({
   error,
   disabled = false,
   required = false,
+  onSelect,
+  returnObject = false,
+  setValue,
 }: AddressAutocompleteProps<T>) {
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
@@ -37,35 +43,76 @@ export function AddressAutocomplete<T extends FieldValues>({
     <Controller
       control={control}
       name={name}
-      render={({ field: { onChange, value, onBlur } }) => (
-        <div className="w-full">
-          {apiKey ? (
-            <GooglePlacesAutocomplete
-              apiKey={apiKey}
-              selectProps={{
-                value: value
-                  ? {
-                      label: value,
-                      value: value,
+      render={({ field: { onChange, value, onBlur } }) => {
+        // Determine current display value
+        const displayValue = returnObject 
+          ? (value?.street ? { label: value.street, value: value.street } : null)
+          : (typeof value === 'string' && value ? { label: value, value: value } : null);
+        
+        return (
+          <div className="w-full">
+            {apiKey ? (
+              <GooglePlacesAutocomplete
+                apiKey={apiKey}
+                selectProps={{
+                  value: displayValue,
+                  onChange: async (place: any) => {
+                    if (place) {
+                      const address = place.label || place.description || place.formatted_address;
+                      
+                      // Get coordinates
+                      try {
+                        const results = await geocodeByAddress(address);
+                        const coordinates = await getLatLng(results[0]);
+                        
+                        // Set address value - either string or object with street and location
+                        if (returnObject && setValue) {
+                          // For service forms, set as object with coordinates
+                          const addressObject = {
+                            street: address,
+                            location: {
+                              type: "Point" as const,
+                              coordinates: [coordinates.lng, coordinates.lat] as [number, number], // [longitude, latitude]
+                            },
+                          };
+                          onChange(addressObject);
+                          setValue(name, addressObject as any);
+                        } else {
+                          // For other forms, set as string
+                          onChange(address);
+                        }
+                        
+                        // Call onSelect callback if provided
+                        if (onSelect) {
+                          onSelect(address, coordinates);
+                        }
+                      } catch (err) {
+                        console.error("Error getting coordinates:", err);
+                        // Still set address even if geocoding fails
+                        if (returnObject && setValue) {
+                          const addressObject = {
+                            street: address,
+                            location: {
+                              type: "Point" as const,
+                              coordinates: [0, 0] as [number, number], // Default fallback
+                            },
+                          };
+                          onChange(addressObject);
+                          setValue(name, addressObject as any);
+                        } else {
+                          onChange(address);
+                        }
+                      }
+                    } else {
+                      if (returnObject && setValue) {
+                        const emptyAddress = { street: "", location: { type: "Point" as const, coordinates: [0, 0] as [number, number] } };
+                        onChange(emptyAddress);
+                        setValue(name, emptyAddress as any);
+                      } else {
+                        onChange("");
+                      }
                     }
-                  : null,
-                onChange: async (place: any) => {
-                  if (place) {
-                    const address = place.label || place.description || place.formatted_address;
-                    onChange(address);
-                    
-                    // Optionally get coordinates
-                    try {
-                      const results = await geocodeByAddress(address);
-                      const coordinates = await getLatLng(results[0]);
-                      // You can emit coordinates via a callback if needed
-                    } catch (err) {
-                      console.error("Error getting coordinates:", err);
-                    }
-                  } else {
-                    onChange("");
-                  }
-                },
+                  },
                 onBlur,
                 placeholder,
                 isDisabled: disabled,
@@ -129,8 +176,22 @@ export function AddressAutocomplete<T extends FieldValues>({
           ) : (
             <input
               type="text"
-              value={value || ""}
-              onChange={(e) => onChange(e.target.value)}
+              value={returnObject ? (value?.street || "") : (typeof value === 'string' ? value : "")}
+              onChange={(e) => {
+                if (returnObject && setValue) {
+                  const addressObject = {
+                    street: e.target.value,
+                    location: {
+                      type: "Point" as const,
+                      coordinates: [0, 0] as [number, number],
+                    },
+                  };
+                  onChange(addressObject);
+                  setValue(name, addressObject as any);
+                } else {
+                  onChange(e.target.value);
+                }
+              }}
               onBlur={onBlur}
               placeholder={placeholder}
               disabled={disabled}
@@ -153,7 +214,8 @@ export function AddressAutocomplete<T extends FieldValues>({
             <p className="text-red-500 text-sm mt-1.5">{error}</p>
           )}
         </div>
-      )}
+      );
+      }}
     />
   );
 }

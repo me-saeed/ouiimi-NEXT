@@ -4,7 +4,8 @@ export interface ITimeSlot {
   date: Date;
   startTime: string;
   endTime: string;
-  cost?: number;
+  price: number; // Required price for this time slot
+  duration: number; // Computed duration in minutes (endTime - startTime)
   staffIds: mongoose.Types.ObjectId[];
   isBooked: boolean;
   bookingId?: mongoose.Types.ObjectId;
@@ -20,10 +21,14 @@ export interface IService extends Document {
   category: string;
   subCategory?: string;
   serviceName: string;
-  duration: string;
-  baseCost: number;
   description?: string;
-  address: string;
+  address: {
+    street: string; // Full address string
+    location: {
+      type: "Point";
+      coordinates: [number, number]; // [longitude, latitude] for 2dsphere
+    };
+  };
   addOns: IAddOn[];
   timeSlots: ITimeSlot[];
   defaultStaffIds: mongoose.Types.ObjectId[];
@@ -37,7 +42,8 @@ const timeSlotSchema = new Schema<ITimeSlot>(
     date: { type: Date, required: true },
     startTime: { type: String, required: true },
     endTime: { type: String, required: true },
-    cost: { type: Number },
+    price: { type: Number, required: true, min: 0 }, // Required price for this time slot
+    duration: { type: Number, required: true, min: 0 }, // Computed duration in minutes
     staffIds: [{ type: Schema.Types.ObjectId, ref: "Staff" }],
     isBooked: { type: Boolean, default: false },
     bookingId: { type: Schema.Types.ObjectId, ref: "Booking", default: null },
@@ -74,23 +80,33 @@ const serviceSchema = new Schema<IService>(
       required: true,
       trim: true,
     },
-    duration: {
-      type: String,
-      required: true,
-    },
-    baseCost: {
-      type: Number,
-      required: true,
-      min: 0,
-    },
     description: {
       type: String,
       default: null,
     },
     address: {
-      type: String,
-      required: true,
-      trim: true,
+      street: {
+        type: String,
+        required: true,
+        trim: true,
+      },
+      location: {
+        type: {
+          type: String,
+          enum: ["Point"],
+          required: true,
+        },
+        coordinates: {
+          type: [Number],
+          required: true,
+          validate: {
+            validator: function (v: number[]) {
+              return v.length === 2 && v[0] >= -180 && v[0] <= 180 && v[1] >= -90 && v[1] <= 90;
+            },
+            message: "Coordinates must be [longitude, latitude] with valid ranges",
+          },
+        },
+      },
     },
     addOns: {
       type: [addOnSchema],
@@ -118,6 +134,8 @@ const serviceSchema = new Schema<IService>(
 serviceSchema.index({ businessId: 1, status: 1 });
 serviceSchema.index({ category: 1, subCategory: 1 });
 serviceSchema.index({ status: 1 });
+// 2dsphere index for geospatial queries
+serviceSchema.index({ "address.location": "2dsphere" });
 
 const Service: Model<IService> =
   mongoose.models.Service || mongoose.model<IService>("Service", serviceSchema);
