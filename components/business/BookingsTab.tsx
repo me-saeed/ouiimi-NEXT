@@ -129,11 +129,12 @@ export function BookingsTab({ business }: BookingsTabProps) {
               
               // Handle date format - could be Date object, ISO string, or date string
               let bookingDate: Date;
-              if (b.timeSlot.date instanceof Date) {
-                bookingDate = b.timeSlot.date;
-              } else if (typeof b.timeSlot.date === 'string') {
+              const dateValue = b.timeSlot.date as any;
+              if (dateValue && typeof dateValue === 'object' && dateValue instanceof Date) {
+                bookingDate = dateValue;
+              } else if (typeof dateValue === 'string') {
                 // Parse the date string - could be ISO format or just date
-                bookingDate = new Date(b.timeSlot.date);
+                bookingDate = new Date(dateValue);
               } else {
                 return false;
               }
@@ -188,10 +189,11 @@ export function BookingsTab({ business }: BookingsTabProps) {
             try {
               // Handle date format - could be Date object, ISO string, or date string
               let bookingDate: Date;
-              if (b.timeSlot.date instanceof Date) {
-                bookingDate = b.timeSlot.date;
-              } else if (typeof b.timeSlot.date === 'string') {
-                bookingDate = new Date(b.timeSlot.date);
+              const dateValue = b.timeSlot.date as any;
+              if (dateValue && typeof dateValue === 'object' && dateValue instanceof Date) {
+                bookingDate = dateValue;
+              } else if (typeof dateValue === 'string') {
+                bookingDate = new Date(dateValue);
               } else {
                 return false;
               }
@@ -330,10 +332,11 @@ export function BookingsTab({ business }: BookingsTabProps) {
     bookings.forEach((booking) => {
       try {
         let dateKey: string;
-        if (booking.timeSlot.date instanceof Date) {
-          dateKey = booking.timeSlot.date.toISOString().split('T')[0];
-        } else if (typeof booking.timeSlot.date === 'string') {
-          dateKey = booking.timeSlot.date.split('T')[0];
+        const dateValue = booking.timeSlot.date as any;
+        if (dateValue && typeof dateValue === 'object' && dateValue instanceof Date) {
+          dateKey = dateValue.toISOString().split('T')[0];
+        } else if (typeof dateValue === 'string') {
+          dateKey = dateValue.split('T')[0];
         } else {
           console.warn('Invalid date format in bookingsByDate:', booking.timeSlot.date);
           return;
