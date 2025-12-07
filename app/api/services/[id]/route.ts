@@ -122,16 +122,20 @@ async function getServiceHandler(
           category: service.category,
           subCategory: service.subCategory,
           serviceName: service.serviceName,
-          duration: service.duration,
-          baseCost: service.baseCost,
           description: service.description,
-          address: service.address,
+          address: typeof service.address === 'object' && service.address?.street 
+            ? service.address.street 
+            : (typeof service.address === 'string' ? service.address : ""),
+          addressLocation: typeof service.address === 'object' && service.address?.location 
+            ? service.address.location 
+            : null,
           addOns: service.addOns || [],
           timeSlots: availableTimeSlots.map((ts: any) => ({
             date: ts.date,
             startTime: ts.startTime,
             endTime: ts.endTime,
-            cost: ts.cost,
+            price: ts.price,
+            duration: ts.duration,
             isBooked: ts.isBooked,
             staffIds: ts.staffIds || [],
           })),
@@ -169,21 +173,56 @@ async function updateServiceHandler(
       );
     }
 
+    // Calculate duration helper function
+    const calculateDuration = (startTime: string, endTime: string): number => {
+      const [startHours, startMinutes] = startTime.split(":").map(Number);
+      const [endHours, endMinutes] = endTime.split(":").map(Number);
+      
+      const startTotalMinutes = startHours * 60 + startMinutes;
+      const endTotalMinutes = endHours * 60 + endMinutes;
+      
+      // Handle case where end time is next day (e.g., 23:00 to 01:00)
+      let duration = endTotalMinutes - startTotalMinutes;
+      if (duration < 0) {
+        duration += 24 * 60; // Add 24 hours
+      }
+      
+      return duration;
+    };
+
     // Handle timeSlots update separately if provided
     if (body.timeSlots && Array.isArray(body.timeSlots)) {
-      service.timeSlots = body.timeSlots.map((slot: any) => ({
-        date: new Date(slot.date),
-        startTime: slot.startTime,
-        endTime: slot.endTime,
-        cost: slot.cost || service.baseCost,
-        staffIds: slot.staffIds ? slot.staffIds.map((id: string) => new mongoose.Types.ObjectId(id)) : [],
-        isBooked: slot.isBooked || false,
-        bookingId: slot.bookingId || null,
-      }));
+      service.timeSlots = body.timeSlots.map((slot: any) => {
+        // Calculate duration from start and end time
+        const duration = slot.duration || calculateDuration(slot.startTime, slot.endTime);
+        
+        return {
+          date: new Date(slot.date),
+          startTime: slot.startTime,
+          endTime: slot.endTime,
+          price: slot.price, // Required price for this time slot
+          duration, // Computed duration in minutes
+          staffIds: slot.staffIds ? slot.staffIds.map((id: string) => new mongoose.Types.ObjectId(id)) : [],
+          isBooked: slot.isBooked || false,
+          bookingId: slot.bookingId || null,
+        };
+      });
     }
 
-    // Update other fields
-    Object.assign(service, validatedData);
+    // Update other fields (excluding baseCost and duration)
+    const { baseCost, duration, ...fieldsToUpdate } = validatedData;
+    Object.assign(service, fieldsToUpdate);
+    
+    // Handle address update if provided
+    if (validatedData.address) {
+      service.address = {
+        street: validatedData.address.street,
+        location: {
+          type: "Point",
+          coordinates: validatedData.address.location.coordinates, // [longitude, latitude]
+        },
+      };
+    }
     await service.save();
 
     // Verify service was saved

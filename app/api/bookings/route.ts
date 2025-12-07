@@ -149,18 +149,15 @@ async function createBookingHandler(req: NextRequest) {
     }
 
     // Ignore validatedData.totalCost from client
-    let calculatedTotalCost = service.baseCost;
-
-    // Check if time slot has specific cost
+    // Find the time slot to get its price
     const targetSlot = service.timeSlots.find((slot: any) =>
       new Date(slot.date).getTime() === new Date(bookingDate).setHours(0, 0, 0, 0) &&
       slot.startTime === bookingStartTime &&
       slot.endTime === bookingEndTime
     );
 
-    if (targetSlot && targetSlot.cost) {
-      calculatedTotalCost = targetSlot.cost;
-    }
+    // Use time slot price, default to 0 if not found
+    let calculatedTotalCost = targetSlot?.price || 0;
 
     // Add Add-ons cost
     if (validatedData.addOns && validatedData.addOns.length > 0) {
@@ -266,7 +263,7 @@ async function createBookingHandler(req: NextRequest) {
     const savedBooking = await Booking.findById(booking._id)
       .populate("userId", "fname lname email")
       .populate("businessId", "businessName logo address email phone")
-      .populate("serviceId", "serviceName category baseCost")
+      .populate("serviceId", "serviceName category")
       .populate("staffId", "name photo")
       .lean();
 
@@ -470,7 +467,7 @@ async function getBookingsHandler(req: NextRequest) {
     const bookings = await Booking.find(filter)
       .populate("userId", "fname lname email contactNo")
       .populate("businessId", "businessName logo address email phone")
-      .populate("serviceId", "serviceName category baseCost duration")
+      .populate("serviceId", "serviceName category")
       .populate("staffId", "name photo")
       .sort({ "timeSlot.date": 1, "timeSlot.startTime": 1 })
       .lean();
@@ -501,8 +498,7 @@ async function getBookingsHandler(req: NextRequest) {
             id: b.serviceId._id?.toString(),
             serviceName: b.serviceId.serviceName,
             category: b.serviceId.category,
-            baseCost: b.serviceId.baseCost,
-            duration: b.serviceId.duration,
+            baseCost: 0, // Price is now in time slots
           } : b.serviceId?.toString(),
           staffId: b.staffId ? (typeof b.staffId === 'object' ? {
             id: b.staffId._id?.toString(),

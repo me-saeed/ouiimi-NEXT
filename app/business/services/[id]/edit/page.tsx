@@ -40,13 +40,13 @@ export default function EditServicePage() {
   const [service, setService] = useState<any>(null);
   const [business, setBusiness] = useState<any>(null);
   const [staff, setStaff] = useState<any[]>([]);
-  // Group time slots by date: { "2025-10-30": [{ startTime, endTime, cost, staffIds, duration }] }
+  // Group time slots by date: { "2025-10-30": [{ startTime, endTime, price, duration, staffIds }] }
   const [datesWithSlots, setDatesWithSlots] = useState<Record<string, Array<{
     startTime: string;
     endTime: string;
-    cost?: number;
+    price: number;
+    duration: number;
     staffIds: string[];
-    duration?: string;
   }>>>({});
   const [selectedDate, setSelectedDate] = useState<string>("");
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -54,11 +54,15 @@ export default function EditServicePage() {
   const [newTimeSlot, setNewTimeSlot] = useState({
     startTime: "",
     endTime: "",
+    price: "" as string | number,
     staffIds: [] as string[],
   });
   const [startHour, setStartHour] = useState<string>("");
   const [startMinute, setStartMinute] = useState<string>("00");
   const [startPeriod, setStartPeriod] = useState<"AM" | "PM">("AM");
+  const [endHour, setEndHour] = useState<string>("");
+  const [endMinute, setEndMinute] = useState<string>("00");
+  const [endPeriod, setEndPeriod] = useState<"AM" | "PM">("AM");
 
   const {
     register,
@@ -126,19 +130,41 @@ export default function EditServicePage() {
         const subCategoryValue = data.service.subCategory || data.service.serviceName || "";
         setValue("subCategory", subCategoryValue);
         setValue("serviceName", data.service.serviceName); // Keep for API but will be replaced with subCategory
-        setValue("duration", data.service.duration);
-        setValue("baseCost", data.service.baseCost);
         setValue("description", data.service.description || "");
-        setValue("address", data.service.address);
+        
+        // Handle address - could be string (old) or object (new)
+        if (typeof data.service.address === 'object' && data.service.address?.street) {
+          setValue("address", data.service.address);
+        } else if (typeof data.service.address === 'string') {
+          // Legacy: convert string address to object format (will need geocoding on save)
+          setValue("address", {
+            street: data.service.address,
+            location: {
+              type: "Point",
+              coordinates: [0, 0], // Will need to be geocoded
+            },
+          });
+        }
         
         // Group time slots by date
         const grouped: Record<string, Array<{
           startTime: string;
           endTime: string;
-          cost?: number;
+          price: number;
+          duration: number;
           staffIds: string[];
-          duration?: string;
         }>> = {};
+        
+        // Calculate duration helper
+        const calculateDuration = (startTime: string, endTime: string): number => {
+          const [startHours, startMinutes] = startTime.split(":").map(Number);
+          const [endHours, endMinutes] = endTime.split(":").map(Number);
+          const startTotal = startHours * 60 + startMinutes;
+          const endTotal = endHours * 60 + endMinutes;
+          let duration = endTotal - startTotal;
+          if (duration < 0) duration += 24 * 60;
+          return duration;
+        };
         
         if (data.service.timeSlots && Array.isArray(data.service.timeSlots)) {
           data.service.timeSlots.forEach((slot: any) => {
@@ -147,20 +173,17 @@ export default function EditServicePage() {
               grouped[date] = [];
             }
             
-            // Calculate duration
-            const start = new Date(`2000-01-01T${slot.startTime}`);
-            const end = new Date(`2000-01-01T${slot.endTime}`);
-            const durationMs = end.getTime() - start.getTime();
-            const hours = Math.floor(durationMs / (1000 * 60 * 60));
-            const minutes = Math.floor((durationMs % (1000 * 60 * 60)) / (1000 * 60));
-            const duration = hours > 0 ? `${hours}Hr${minutes > 0 ? ` ${minutes}mins` : ''}` : `${minutes}mins`;
+            // Use price if available, fallback to cost for backward compatibility
+            const price = slot.price !== undefined ? slot.price : (slot.cost || 0);
+            // Use duration if available, otherwise calculate
+            const duration = slot.duration !== undefined ? slot.duration : calculateDuration(slot.startTime, slot.endTime);
             
             grouped[date].push({
               startTime: slot.startTime,
               endTime: slot.endTime,
-              cost: slot.cost,
-              staffIds: (slot.staffIds || []).map((id: any) => String(id)),
+              price,
               duration,
+              staffIds: (slot.staffIds || []).map((id: any) => String(id)),
             });
           });
         }
@@ -215,9 +238,20 @@ export default function EditServicePage() {
 
     try {
       const token = localStorage.getItem("token");
+      // Get all time slots with calculated duration
+      const timeSlotsForSubmission = getTimeSlotsForSubmission(datesWithSlots);
+      
       const requestData = {
         ...data,
         serviceName: data.subCategory, // Use subCategory as serviceName
+        timeSlots: timeSlotsForSubmission.map(slot => ({
+          date: slot.date,
+          startTime: slot.startTime,
+          endTime: slot.endTime,
+          price: slot.price,
+          duration: slot.duration,
+          staffIds: slot.staffIds || [],
+        })),
       };
       
       const response = await fetch(`/api/services/${serviceId}`, {
@@ -244,6 +278,20 @@ export default function EditServicePage() {
     } catch (err: any) {
       setError("Something went wrong. Please try again.");
       setIsLoading(false);
+    }
+  };
+
+  // Convert duration minutes to string format
+  const formatDuration = (minutes: number): string => {
+    if (typeof minutes !== "number" || minutes <= 0) return "";
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    if (hours > 0 && mins > 0) {
+      return `${hours}Hr ${mins}mins`;
+    } else if (hours > 0) {
+      return `${hours}Hr`;
+    } else {
+      return `${mins}mins`;
     }
   };
 
@@ -309,24 +357,24 @@ export default function EditServicePage() {
 
     const startTime24 = convertTo24Hour(startHour, startMinute, startPeriod);
     
-    // Calculate end time based on duration from service
-    const serviceDuration = service?.duration || "30mins";
-    const durationMatch = serviceDuration.match(/(\d+)\s*[Hh][Rr]/);
-    const minutesMatch = serviceDuration.match(/(\d+)\s*[Mm][Ii][Nn][Ss]/);
-    let totalMinutes = 30; // default
-    if (durationMatch) {
-      totalMinutes = parseInt(durationMatch[1]) * 60;
-    }
-    if (minutesMatch) {
-      totalMinutes += parseInt(minutesMatch[1]);
+    if (!endHour) {
+      setNewTimeSlot({
+        ...newTimeSlot,
+        startTime: startTime24,
+      });
+      setError("");
+      return;
     }
 
-    const [hours, minutes] = startTime24.split(":").map(Number);
-    const startDate = new Date(`2000-01-01T${hours}:${minutes}:00`);
-    const endDate = new Date(startDate.getTime() + totalMinutes * 60000);
-    const endHours = String(endDate.getHours()).padStart(2, "0");
-    const endMins = String(endDate.getMinutes()).padStart(2, "0");
-    const endTime24 = `${endHours}:${endMins}`;
+    const endTime24 = convertTo24Hour(endHour, endMinute, endPeriod);
+    
+    // Validate end time is after start time
+    const start = new Date(`2000-01-01T${startTime24}`);
+    const end = new Date(`2000-01-01T${endTime24}`);
+    if (end <= start) {
+      setError("End time must be after start time.");
+      return;
+    }
 
     // Check for conflicts with existing slots
     const selectedStaffIds = newTimeSlot.staffIds.length > 0 ? newTimeSlot.staffIds : [];
@@ -346,11 +394,11 @@ export default function EditServicePage() {
   };
 
   useEffect(() => {
-    if (startHour && startMinute && startPeriod) {
+    if (startHour && startMinute && startPeriod && endHour && endMinute && endPeriod) {
       handleTimeChange();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [startHour, startMinute, startPeriod]);
+  }, [startHour, startMinute, startPeriod, endHour, endMinute, endPeriod]);
 
   useEffect(() => {
     if (newTimeSlot.startTime && newTimeSlot.endTime && selectedDate) {
@@ -375,11 +423,32 @@ export default function EditServicePage() {
     setNewTimeSlot({
       startTime: "",
       endTime: "",
+      price: "",
       staffIds: [],
     });
     setStartHour("");
     setStartMinute("00");
     setStartPeriod("AM");
+    setEndHour("");
+    setEndMinute("00");
+    setEndPeriod("AM");
+  };
+
+  // Calculate duration in minutes from start and end time
+  const calculateDuration = (startTime: string, endTime: string): number => {
+    const [startHours, startMinutes] = startTime.split(":").map(Number);
+    const [endHours, endMinutes] = endTime.split(":").map(Number);
+    
+    const startTotalMinutes = startHours * 60 + startMinutes;
+    const endTotalMinutes = endHours * 60 + endMinutes;
+    
+    // Handle case where end time is next day (e.g., 23:00 to 01:00)
+    let duration = endTotalMinutes - startTotalMinutes;
+    if (duration < 0) {
+      duration += 24 * 60; // Add 24 hours
+    }
+    
+    return duration;
   };
 
   const handleAddTimeSlot = async () => {
@@ -388,20 +457,21 @@ export default function EditServicePage() {
       return;
     }
 
+    if (!newTimeSlot.price || newTimeSlot.price === "") {
+      setError("Price is required for this time slot");
+      return;
+    }
+
     try {
-      // Calculate duration
-      const start = new Date(`2000-01-01T${newTimeSlot.startTime}`);
-      const end = new Date(`2000-01-01T${newTimeSlot.endTime}`);
-      const durationMs = end.getTime() - start.getTime();
-      const hours = Math.floor(durationMs / (1000 * 60 * 60));
-      const minutes = Math.floor((durationMs % (1000 * 60 * 60)) / (1000 * 60));
-      const duration = hours > 0 ? `${hours}Hr${minutes > 0 ? ` ${minutes}mins` : ''}` : `${minutes}mins`;
+      // Calculate duration from start and end time
+      const duration = calculateDuration(newTimeSlot.startTime, newTimeSlot.endTime);
 
       const slot = {
         startTime: newTimeSlot.startTime,
         endTime: newTimeSlot.endTime,
+        price: typeof newTimeSlot.price === "number" ? newTimeSlot.price : parseFloat(String(newTimeSlot.price)),
+        duration, // Computed duration in minutes
         staffIds: newTimeSlot.staffIds,
-        duration,
       };
 
       // Check for duplicate time slots (same start time, end time, and staff for the same date)
@@ -442,6 +512,7 @@ export default function EditServicePage() {
         setNewTimeSlot({
           startTime: "",
           endTime: "",
+          price: "",
           staffIds: [],
         });
         setError("");
@@ -570,25 +641,30 @@ export default function EditServicePage() {
   const getTimeSlotsForSubmission = (dates: Record<string, Array<{
     startTime: string;
     endTime: string;
-    cost?: number;
+    price: number;
+    duration: number;
     staffIds: string[];
   }>>) => {
     const slots: Array<{
       date: string;
       startTime: string;
       endTime: string;
-      cost?: number;
+      price: number;
+      duration: number;
       staffIds: string[];
       isBooked?: boolean;
       bookingId?: any;
     }> = [];
     Object.entries(dates).forEach(([date, timeSlots]) => {
       timeSlots.forEach(slot => {
+        // Calculate duration if not provided
+        const duration = slot.duration || calculateDuration(slot.startTime, slot.endTime);
         slots.push({
           date,
           startTime: slot.startTime,
           endTime: slot.endTime,
-          cost: slot.cost,
+          price: slot.price,
+          duration,
           staffIds: slot.staffIds,
         });
       });
@@ -692,102 +768,21 @@ export default function EditServicePage() {
                 )}
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
-                      Duration <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                      {...register("duration", { 
-                        required: "Duration is required",
-                        validate: (value) => {
-                          if (!value || value.trim() === "") {
-                            return "Duration cannot be empty";
-                          }
-                          // Parse duration string to minutes
-                          const parseDurationToMinutes = (durationStr: string): number => {
-                            let totalMinutes = 0;
-                            const hourMatch = durationStr.match(/(\d+)\s*[Hh][Rr]/);
-                            const minuteMatch = durationStr.match(/(\d+)\s*[Mm][Ii][Nn][Ss]/);
-                            
-                            if (hourMatch) {
-                              totalMinutes += parseInt(hourMatch[1], 10) * 60;
-                            }
-                            if (minuteMatch) {
-                              totalMinutes += parseInt(minuteMatch[1], 10);
-                            }
-                            
-                            // If no matches found, try to parse as just a number (assume minutes)
-                            if (!hourMatch && !minuteMatch) {
-                              const numMatch = durationStr.match(/(\d+)/);
-                              if (numMatch) {
-                                totalMinutes = parseInt(numMatch[1], 10);
-                              }
-                            }
-                            
-                            return totalMinutes;
-                          };
-                          
-                          const minutes = parseDurationToMinutes(value);
-                          if (minutes === 0) {
-                            return "Please enter a valid duration format";
-                          }
-                          if (minutes < 15) {
-                            return "Duration must be at least 15 minutes";
-                          }
-                          if (minutes > 180) {
-                            return "Duration cannot exceed 3 hours (180 minutes)";
-                          }
-                          return true;
-                        }
-                      })}
-                    type="text"
-                      className={`w-full px-4 py-3 rounded-xl border ${
-                        errors.duration ? "border-red-500" : "border-gray-200"
-                      } bg-white text-gray-900 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#EECFD1] focus:border-[#EECFD1] transition-all hover:border-gray-300`}
-                      placeholder="e.g., 30mins or 1Hr 30mins"
-                  />
-                  {errors.duration && (
-                    <p className="text-red-500 text-sm mt-1.5">
-                      {errors.duration.message}
-                    </p>
-                  )}
-                    <p className="text-xs text-gray-500 mt-1">
-                      Format: e.g., &quot;30mins&quot; or &quot;1Hr 30mins&quot;. Minimum 15 minutes, maximum 3 hours (180 minutes).
-                    </p>
-                </div>
 
                 <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
-                      Base Cost ($) <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    {...register("baseCost", { valueAsNumber: true })}
-                    type="number"
-                    step="0.01"
-                      className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-[#EECFD1] focus:border-[#EECFD1] transition-all hover:border-gray-300"
-                    placeholder="50.00"
-                  />
-                  {errors.baseCost && (
-                    <p className="text-red-500 text-sm mt-1.5">
-                      {errors.baseCost.message}
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
                     Address <span className="text-red-500">*</span>
-                </label>
+                  </label>
                   <AddressAutocomplete
                     control={control}
                     name="address"
-                  placeholder="123 Main St, City"
+                    placeholder="123 Main St, City"
                     error={errors.address?.message}
                     required
-                />
-              </div>
+                    returnObject={true}
+                    setValue={setValue}
+                  />
+                </div>
 
               <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
@@ -807,7 +802,7 @@ export default function EditServicePage() {
               </div>
 
               {/* Dates and Time Slots Management Section */}
-                <div className="space-y-4 pt-6 border-t border-gray-200">
+              <div className="space-y-4 pt-6 border-t border-gray-200">
                   <div className="bg-gray-50 rounded-xl p-5 border border-gray-200">
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1">
@@ -910,8 +905,8 @@ export default function EditServicePage() {
                       </button>
                     </div>
                     
-                      {/* Time Selection - Clean and Professional */}
-                      <div className="space-y-3">
+                    {/* Time Selection - Clean and Professional */}
+                    <div className="space-y-3">
                         <label className="block text-sm font-semibold text-gray-700">
                           Start Time <span className="text-red-500">*</span>
                         </label>
@@ -996,15 +991,136 @@ export default function EditServicePage() {
                       </div>
                     </div>
 
-                        {/* End Time Display - Elegant */}
-                        {newTimeSlot.endTime && (
+                    {/* End Time Selection */}
+                    <div className="space-y-3">
+                        <label className="block text-sm font-semibold text-gray-700">
+                          End Time <span className="text-red-500">*</span>
+                        </label>
+                        <div className="flex items-center gap-3">
+                          {/* Unified Time Picker */}
+                          <div className="flex-1 flex items-center gap-2 bg-gray-50 rounded-xl p-1 border border-gray-200">
+                            <div className="flex-1 relative">
+                              <select
+                                value={endHour}
+                                onChange={(e) => {
+                                  setEndHour(e.target.value);
+                                  setNewTimeSlot({ ...newTimeSlot, endTime: "" });
+                                }}
+                                disabled={!selectedDate || !newTimeSlot.startTime}
+                                className="w-full px-4 py-3 pr-8 bg-transparent border-0 text-gray-900 font-medium text-base focus:outline-none focus:ring-0 disabled:opacity-50 disabled:cursor-not-allowed appearance-none cursor-pointer"
+                              >
+                                <option value="">--</option>
+                                {Array.from({ length: 12 }, (_, i) => i + 1).map((h) => (
+                                  <option key={h} value={String(h)}>{String(h).padStart(2, '0')}</option>
+                                ))}
+                              </select>
+                              <div className="absolute inset-y-0 right-2 flex items-center pointer-events-none">
+                                <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                </svg>
+                              </div>
+                            </div>
+                            <span className="text-gray-900 font-semibold text-lg">:</span>
+                            <div className="flex-1 relative">
+                              <select
+                                value={endMinute}
+                                onChange={(e) => {
+                                  setEndMinute(e.target.value);
+                                  setNewTimeSlot({ ...newTimeSlot, endTime: "" });
+                                }}
+                                disabled={!selectedDate || !newTimeSlot.startTime || !endHour}
+                                className="w-full px-4 py-3 pr-8 bg-transparent border-0 text-gray-900 font-medium text-base focus:outline-none focus:ring-0 disabled:opacity-50 disabled:cursor-not-allowed appearance-none cursor-pointer"
+                              >
+                                {Array.from({ length: 12 }, (_, i) => {
+                                  const minute = String(i * 5).padStart(2, '0');
+                                  return <option key={minute} value={minute}>{minute}</option>;
+                                })}
+                              </select>
+                              <div className="absolute inset-y-0 right-2 flex items-center pointer-events-none">
+                                <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                </svg>
+                              </div>
+                            </div>
+                            <div className="flex gap-1 bg-white rounded-lg p-1 border border-gray-200">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setEndPeriod("AM");
+                                  setNewTimeSlot({ ...newTimeSlot, endTime: "" });
+                                }}
+                                disabled={!selectedDate || !newTimeSlot.startTime || !endHour}
+                                className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
+                                  endPeriod === "AM"
+                                    ? "bg-[#EECFD1] text-[#3A3A3A] shadow-sm"
+                                    : "text-gray-500 hover:text-[#3A3A3A] hover:bg-gray-50"
+                                } disabled:opacity-50 disabled:cursor-not-allowed`}
+                              >
+                                AM
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setEndPeriod("PM");
+                                  setNewTimeSlot({ ...newTimeSlot, endTime: "" });
+                                }}
+                                disabled={!selectedDate || !newTimeSlot.startTime || !endHour}
+                                className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
+                                  endPeriod === "PM"
+                                    ? "bg-[#EECFD1] text-[#3A3A3A] shadow-sm"
+                                    : "text-gray-500 hover:text-[#3A3A3A] hover:bg-gray-50"
+                                } disabled:opacity-50 disabled:cursor-not-allowed`}
+                              >
+                                PM
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        {/* Duration Display - Calculated */}
+                        {newTimeSlot.startTime && newTimeSlot.endTime && (
                           <div className="flex items-center gap-2 text-sm">
-                            <span className="text-gray-500">Ends at</span>
+                            <span className="text-gray-500">Duration:</span>
                             <span className="font-semibold text-[#3A3A3A] px-3 py-1.5 bg-[#EECFD1]/10 rounded-lg">
-                              {formatTime12Hour(newTimeSlot.endTime)}
+                              {formatDuration(calculateDuration(newTimeSlot.startTime, newTimeSlot.endTime))}
                             </span>
-                      </div>
+                          </div>
                         )}
+                      </div>
+                    </div>
+
+                    {/* Price Field for Time Slot */}
+                    <div className="space-y-2">
+                      <label className="block text-sm font-semibold text-gray-700">
+                        Price ($) <span className="text-red-500">*</span>
+                      </label>
+                      <div className="relative">
+                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500">$</span>
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          value={newTimeSlot.price === "" ? "" : newTimeSlot.price}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            if (value === "") {
+                              setNewTimeSlot({ ...newTimeSlot, price: "" });
+                            } else {
+                              const price = parseFloat(value);
+                              if (!isNaN(price) && price >= 0) {
+                                setNewTimeSlot({ ...newTimeSlot, price });
+                              }
+                            }
+                          }}
+                          disabled={!selectedDate || !newTimeSlot.startTime || !newTimeSlot.endTime}
+                          className="w-full pl-8 pr-4 py-3 rounded-lg border border-gray-200 bg-white text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#EECFD1] focus:border-[#EECFD1] transition-all disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed disabled:opacity-60"
+                          placeholder="50.00"
+                          required
+                        />
+                      </div>
+                      <p className="text-xs text-gray-500">
+                        Price for this specific time slot
+                      </p>
                     </div>
 
                     {staff.length > 0 && (
@@ -1037,11 +1153,11 @@ export default function EditServicePage() {
                       </div>
                     )}
 
-                      <div className="flex gap-3 pt-2">
+                    <div className="flex gap-3 pt-2">
                       <Button
                         type="button"
                         onClick={handleAddTimeSlot}
-                          className="flex-1 h-11 rounded-xl bg-[#EECFD1] hover:bg-[#EECFD1]/90 text-[#3A3A3A] font-semibold"
+                        className="flex-1 h-11 rounded-xl bg-[#EECFD1] hover:bg-[#EECFD1]/90 text-[#3A3A3A] font-semibold"
                       >
                         Add Time Slot
                       </Button>
@@ -1052,7 +1168,7 @@ export default function EditServicePage() {
                           setSelectedDate("");
                         }}
                         variant="outline"
-                          className="flex-1 h-11 rounded-xl border-gray-300 bg-white hover:bg-gray-50 text-gray-700 font-semibold"
+                        className="flex-1 h-11 rounded-xl border-gray-300 bg-white hover:bg-gray-50 text-gray-700 font-semibold"
                       >
                         Cancel
                       </Button>
@@ -1119,7 +1235,7 @@ export default function EditServicePage() {
                                 >
                                   <div className="flex-1">
                                     <p className="text-sm font-semibold text-[#3A3A3A]">
-                                      Time Slot: {formatTime12Hour(slot.startTime)} To {formatTime12Hour(slot.endTime)} {slot.duration}
+                                      {formatTime12Hour(slot.startTime)} - {formatTime12Hour(slot.endTime)} • ${slot.price?.toFixed(2) || "0.00"} • {formatDuration(slot.duration || calculateDuration(slot.startTime, slot.endTime))}
                                     </p>
                                       {assignedStaff.length > 0 && (
                                       <div className="mt-1 text-xs text-gray-600">
@@ -1157,22 +1273,22 @@ export default function EditServicePage() {
                 )}
               </div>
 
-                <div className="flex gap-4 pt-4 border-t border-gray-200">
+              <div className="flex gap-4 pt-4 border-t border-gray-200">
                 <Button
                   type="submit"
                   disabled={isLoading}
-                    className="flex-1 h-12 rounded-xl bg-[#EECFD1] hover:bg-[#EECFD1]/90 text-[#3A3A3A] font-semibold shadow-lg hover:shadow-xl transition-all disabled:opacity-50"
+                  className="flex-1 h-12 rounded-xl bg-[#EECFD1] hover:bg-[#EECFD1]/90 text-[#3A3A3A] font-semibold shadow-lg hover:shadow-xl transition-all disabled:opacity-50"
                 >
                   {isLoading ? "Updating..." : "Update Service"}
                 </Button>
                 <Button
                   type="button"
                   onClick={() => router.back()}
-                    className="flex-1 h-12 rounded-xl bg-gray-100 text-gray-700 hover:bg-gray-200 font-semibold transition-all"
+                  className="flex-1 h-12 rounded-xl bg-gray-100 text-gray-700 hover:bg-gray-200 font-semibold transition-all"
                 >
                   Cancel
                 </Button>
-                </div>
+              </div>
               </div>
             </form>
           </div>

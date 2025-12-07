@@ -23,16 +23,16 @@ const SERVICE_CATEGORIES = [
 interface Service {
   id: string;
   serviceName: string;
-  baseCost: number;
-  duration: string;
   category: string;
   subCategory?: string;
   businessId: any;
   timeSlots?: Array<{
-    date: string;
+    date: string | Date;
     startTime: string;
     endTime: string;
-    cost?: number;
+    price: number;
+    duration: number;
+    isBooked?: boolean;
   }>;
 }
 
@@ -44,6 +44,12 @@ export default function HomePage() {
 
   useEffect(() => {
     loadServices();
+    // Set up interval to refresh services every 30 seconds for real-time updates
+    const interval = setInterval(() => {
+      loadServices();
+    }, 30000); // 30 seconds
+
+    return () => clearInterval(interval);
   }, []);
 
   const loadServices = async () => {
@@ -85,51 +91,116 @@ export default function HomePage() {
     }
   };
 
-  const getNextAvailableTimeSlot = (service: Service) => {
+  // Format time to 12-hour AM/PM format
+  const formatTime12Hour = (time24: string): string => {
+    if (!time24) return "";
+    const [hours, minutes] = time24.split(":").map(Number);
+    const period = hours >= 12 ? "PM" : "AM";
+    const hours12 = hours % 12 || 12;
+    return `${hours12}:${String(minutes).padStart(2, "0")} ${period.toLowerCase()}`;
+  };
+
+  const getEarliestAvailableTimeSlot = (service: Service) => {
     if (!service.timeSlots || service.timeSlots.length === 0) {
-      return { date: null, time: null };
+      return null;
     }
 
     const now = new Date();
+    
+    // Find all available (not booked) future slots
     const availableSlots = service.timeSlots
       .filter((slot) => {
-        const slotDate = new Date(slot.date);
-        return slotDate >= now;
+        if (slot.isBooked) return false;
+        
+        const slotDate = typeof slot.date === 'string' ? new Date(slot.date) : new Date(slot.date);
+        const slotDateOnly = new Date(slotDate.getFullYear(), slotDate.getMonth(), slotDate.getDate());
+        const nowDateOnly = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        
+        // If slot date is today, check if end time has passed
+        if (slotDateOnly.getTime() === nowDateOnly.getTime()) {
+          const [endHours, endMinutes] = slot.endTime.split(":").map(Number);
+          const slotEndDateTime = new Date(slotDate);
+          slotEndDateTime.setHours(endHours, endMinutes, 0, 0);
+          return slotEndDateTime > now;
+        }
+        
+        // If slot date is in the future
+        return slotDateOnly > nowDateOnly;
       })
-      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+      .sort((a, b) => {
+        const dateA = typeof a.date === 'string' ? new Date(a.date) : new Date(a.date);
+        const dateB = typeof b.date === 'string' ? new Date(b.date) : new Date(b.date);
+        
+        // Sort by date first
+        if (dateA.getTime() !== dateB.getTime()) {
+          return dateA.getTime() - dateB.getTime();
+        }
+        
+        // If same date, sort by start time
+        const [hoursA, minsA] = a.startTime.split(":").map(Number);
+        const [hoursB, minsB] = b.startTime.split(":").map(Number);
+        const timeA = hoursA * 60 + minsA;
+        const timeB = hoursB * 60 + minsB;
+        return timeA - timeB;
+      });
 
     if (availableSlots.length === 0) {
-      return { date: null, time: null };
+      return null;
     }
 
-    const nextSlot = availableSlots[0];
-    const date = new Date(nextSlot.date);
-    const formattedDate = date.toLocaleDateString("en-GB", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "2-digit",
-    });
-    const time = `${nextSlot.startTime} - ${nextSlot.endTime}`;
+    const earliestSlot = availableSlots[0];
+    const slotDate = typeof earliestSlot.date === 'string' ? new Date(earliestSlot.date) : new Date(earliestSlot.date);
+    
+    // Format date as DD.MM.YY (06.06.26)
+    const formattedDate = `${String(slotDate.getDate()).padStart(2, "0")}.${String(slotDate.getMonth() + 1).padStart(2, "0")}.${String(slotDate.getFullYear()).slice(-2)}`;
+    
+    // Format time as "10:00 am - 12:00pm"
+    const formattedTime = `${formatTime12Hour(earliestSlot.startTime)} - ${formatTime12Hour(earliestSlot.endTime)}`;
 
-    return { date: formattedDate, time };
+    return { 
+      date: formattedDate, 
+      time: formattedTime,
+      price: earliestSlot.price 
+    };
   };
 
   const formatServiceForCard = (service: Service) => {
-    const { date, time } = getNextAvailableTimeSlot(service);
+    const earliestSlot = getEarliestAvailableTimeSlot(service);
     const business = typeof service.businessId === 'object' ? service.businessId : null;
+
+    // Calculate duration from earliest slot if available
+    let duration = "";
+    if (earliestSlot && service.timeSlots && service.timeSlots.length > 0) {
+      const slot = service.timeSlots.find(s => {
+        const slotDate = typeof s.date === 'string' ? new Date(s.date) : new Date(s.date);
+        const formattedDate = `${String(slotDate.getDate()).padStart(2, "0")}.${String(slotDate.getMonth() + 1).padStart(2, "0")}.${String(slotDate.getFullYear()).slice(-2)}`;
+        return formattedDate === earliestSlot.date;
+      });
+      if (slot && slot.duration) {
+        const hours = Math.floor(slot.duration / 60);
+        const mins = slot.duration % 60;
+        if (hours > 0 && mins > 0) {
+          duration = `${hours}Hr ${mins}mins`;
+        } else if (hours > 0) {
+          duration = `${hours}Hr`;
+        } else {
+          duration = `${mins}mins`;
+        }
+      }
+    }
 
     return {
       id: service.id,
       name: service.serviceName,
-      price: service.baseCost,
+      price: earliestSlot?.price || 0,
       image: business?.logo || "/placeholder-logo.png",
       category: service.category,
       subCategory: service.subCategory,
       businessName: business?.businessName || "Business",
       location: business?.address || "",
-      duration: service.duration,
-      date: date,
-      time: time,
+      duration: duration,
+      date: earliestSlot?.date || null,
+      time: earliestSlot?.time || null,
     };
   };
 

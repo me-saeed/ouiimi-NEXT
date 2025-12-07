@@ -98,7 +98,8 @@ export const timeSlotSchema = z.object({
   date: z.string().or(z.date()),
   startTime: z.string().min(1, "Start time is required"),
   endTime: z.string().min(1, "End time is required"),
-  cost: z.number().min(0).optional(),
+  price: z.number().min(0, "Price is required and must be 0 or greater"), // Required price for this time slot
+  duration: z.number().min(0).optional(), // Computed duration in minutes (will be calculated)
   staffIds: z.array(z.string()).optional(),
 });
 
@@ -112,10 +113,14 @@ export const serviceCreateSchema = z.object({
   category: z.string().min(1, "Category is required"),
   subCategory: z.string().optional(),
   serviceName: z.string().min(1, "Service name is required"),
-  duration: z.string().optional(), // Auto-calculated from first time slot
-  baseCost: z.number().min(0, "Base cost must be 0 or greater"),
   description: z.string().optional(),
-  address: z.string().min(5, "Address must be at least 5 characters"),
+  address: z.object({
+    street: z.string().min(5, "Address must be at least 5 characters"),
+    location: z.object({
+      type: z.literal("Point"),
+      coordinates: z.tuple([z.number(), z.number()]), // [longitude, latitude]
+    }),
+  }),
   defaultStaffIds: z.array(z.string()).optional(),
   addOns: z.array(
     z.object({
@@ -130,10 +135,14 @@ export const serviceUpdateSchema = z.object({
   category: z.string().optional(),
   subCategory: z.string().optional(),
   serviceName: z.string().optional(),
-  duration: z.string().optional(),
-  baseCost: z.number().min(0).optional(),
   description: z.string().optional(),
-  address: z.string().min(5).optional(),
+  address: z.object({
+    street: z.string().min(5),
+    location: z.object({
+      type: z.literal("Point"),
+      coordinates: z.tuple([z.number(), z.number()]), // [longitude, latitude]
+    }),
+  }).optional(),
   addOns: z.array(addOnSchema).optional(),
   status: z.enum(["listed", "booked", "completed", "cancelled"]).optional(),
 });
