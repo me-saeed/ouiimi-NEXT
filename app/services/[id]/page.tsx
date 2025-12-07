@@ -396,16 +396,16 @@ function BookingForm({ service, business, user }: { service: any; business: any;
             Date
           </label>
           <div className="relative">
-            <select
-              value={selectedDate}
-              onChange={(e) => {
-                setSelectedDate(e.target.value);
-                setSelectedTimeSlot(null);
-                setSelectedStaff("");
-              }}
+          <select
+            value={selectedDate}
+            onChange={(e) => {
+              setSelectedDate(e.target.value);
+              setSelectedTimeSlot(null);
+              setSelectedStaff("");
+            }}
               className="w-full px-4 py-3.5 pr-10 rounded-xl border border-gray-200 bg-white text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-[#EECFD1] focus:border-[#EECFD1] transition-all appearance-none hover:border-gray-300"
-            >
-              <option value="">Select Date</option>
+          >
+            <option value="">Select Date</option>
             {availableDates.map((date: string) => {
               const dateObj = new Date(date);
               return (
@@ -439,10 +439,10 @@ function BookingForm({ service, business, user }: { service: any; business: any;
           )}
         </div>
 
-        <div className="space-y-2">
+          <div className="space-y-2">
           <label className="text-sm font-semibold text-gray-700 mb-2 block">
             Time
-          </label>
+            </label>
           <div className="relative">
             <select
               value={selectedTimeSlot ? `${selectedTimeSlot.startTime}-${selectedTimeSlot.endTime}` : ""}
@@ -483,12 +483,12 @@ function BookingForm({ service, business, user }: { service: any; business: any;
               </svg>
             </div>
           </div>
-        </div>
+          </div>
 
-        <div className="space-y-2">
+          <div className="space-y-2">
           <label className="text-sm font-semibold text-gray-700 mb-2 block">
             Staff
-          </label>
+            </label>
           <div className="relative">
             <select
               value={selectedStaff}
@@ -519,24 +519,24 @@ function BookingForm({ service, business, user }: { service: any; business: any;
           <div>
             <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 block">
               SERVICE
-            </label>
+          </label>
             <p className="text-base font-bold text-[#3A3A3A]">{service.serviceName || ""}</p>
-          </div>
+        </div>
 
           <div>
             <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 block">
               ADDRESS
-            </label>
+          </label>
             <p className="text-sm text-[#3A3A3A]">
               {service.address || (typeof service.businessId === 'object' ? service.businessId.address : business?.address) || ""}
             </p>
-          </div>
+        </div>
 
           {service.description && (
             <div>
               <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 block">
                 DESCRIPTION
-              </label>
+          </label>
               <p className="text-sm text-[#3A3A3A] leading-relaxed">{service.description}</p>
             </div>
           )}
@@ -588,17 +588,17 @@ function BookingForm({ service, business, user }: { service: any; business: any;
             <div className="flex justify-between items-center text-sm">
               <span className="text-gray-600">Base Cost</span>
               <span className="font-medium text-[#3A3A3A]">${service.baseCost?.toFixed(2) || "0.00"}</span>
-            </div>
-            {selectedAddOns.length > 0 && (
+          </div>
+          {selectedAddOns.length > 0 && (
               <div className="space-y-2 pt-2 border-t border-gray-200">
-                {selectedAddOns.map((addon, idx) => (
+              {selectedAddOns.map((addon, idx) => (
                   <div key={idx} className="flex justify-between items-center text-sm">
                     <span className="text-gray-600">{addon.name}</span>
                     <span className="font-medium text-[#3A3A3A]">+${addon.cost.toFixed(2)}</span>
-                  </div>
-                ))}
-              </div>
-            )}
+                </div>
+              ))}
+            </div>
+          )}
             <div className="flex justify-between items-center pt-4 border-t border-gray-300">
               <span className="text-base font-bold text-[#3A3A3A]">Total</span>
               <span className="text-2xl font-bold text-[#3A3A3A]">${calculateTotal().toFixed(2)}</span>

@@ -144,11 +144,11 @@ export function StaffTab({ business }: StaffTabProps) {
                   />
                 ) : (
                   <span className="text-lg font-bold text-[#3A3A3A]">
-                    {member.name?.charAt(0)?.toUpperCase() || "S"}
-                  </span>
+                      {member.name?.charAt(0)?.toUpperCase() || "S"}
+                    </span>
                 )}
               </div>
-              
+
               {/* Name */}
               <div className="flex-1">
                 <h3 className="text-base font-semibold text-[#3A3A3A]">{member.name}</h3>

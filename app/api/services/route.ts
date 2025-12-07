@@ -75,15 +75,15 @@ async function createServiceHandler(req: NextRequest) {
       const duration = slot.duration || calculateDuration(slot.startTime, slot.endTime);
       
       return {
-        date: new Date(slot.date),
-        startTime: slot.startTime,
-        endTime: slot.endTime,
+      date: new Date(slot.date),
+      startTime: slot.startTime,
+      endTime: slot.endTime,
         price: slot.price, // Required price for this time slot
         duration, // Computed duration in minutes
-        staffIds: slot.staffIds
-          ? slot.staffIds.map((id) => new mongoose.Types.ObjectId(id))
-          : [],
-        isBooked: false,
+      staffIds: slot.staffIds
+        ? slot.staffIds.map((id) => new mongoose.Types.ObjectId(id))
+        : [],
+      isBooked: false,
       };
     });
 
