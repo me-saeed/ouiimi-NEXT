@@ -8,6 +8,7 @@ import { serviceUpdateSchema, type ServiceUpdateInput } from "@/lib/validation";
 import PageLayout from "@/components/layout/PageLayout";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AddressAutocomplete } from "@/components/ui/address-autocomplete";
 
 const CATEGORIES = [
   "Hair Services",
@@ -62,6 +63,7 @@ export default function EditServicePage() {
   const {
     register,
     handleSubmit,
+    control,
     watch,
     formState: { errors },
     setValue,
@@ -751,7 +753,7 @@ export default function EditServicePage() {
                       </p>
                     )}
                     <p className="text-xs text-gray-500 mt-1">
-                      Format: e.g., "30mins" or "1Hr 30mins". Minimum 15 minutes, maximum 3 hours (180 minutes).
+                      Format: e.g., &quot;30mins&quot; or &quot;1Hr 30mins&quot;. Minimum 15 minutes, maximum 3 hours (180 minutes).
                     </p>
                   </div>
 
@@ -778,17 +780,13 @@ export default function EditServicePage() {
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
                     Address <span className="text-red-500">*</span>
                   </label>
-                  <input
-                    {...register("address")}
-                    type="text"
-                    className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-[#EECFD1] focus:border-[#EECFD1] transition-all hover:border-gray-300"
+                  <AddressAutocomplete
+                    control={control}
+                    name="address"
                     placeholder="123 Main St, City"
+                    error={errors.address?.message}
+                    required
                   />
-                  {errors.address && (
-                    <p className="text-red-500 text-sm mt-1.5">
-                      {errors.address.message}
-                    </p>
-                  )}
                 </div>
 
                 <div>
