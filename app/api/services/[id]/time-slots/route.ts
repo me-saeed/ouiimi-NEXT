@@ -36,6 +36,7 @@ async function updateTimeSlotsHandler(
       startTime: slot.startTime,
       endTime: slot.endTime,
       price: slot.price || 0, // Price from time slot
+      duration: slot.duration || 0, // Duration in minutes
       staffIds: slot.staffIds
         ? slot.staffIds.map((id) => new mongoose.Types.ObjectId(id))
         : [],

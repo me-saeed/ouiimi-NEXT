@@ -73,18 +73,19 @@ function ServicesContent() {
           },
           async () => {
             // If denied, try user account location (Priority 2)
-            if (user?.address) {
+            if (user && (user as any).address) {
               try {
                 // Geocode user account address
                 const { geocodeByAddress, getLatLng } = await import("react-google-places-autocomplete");
-                const results = await geocodeByAddress(user.address);
-                const coordinates = await getLatLng(results[0]);
-                setUserLocation({
-                  lat: coordinates.lat,
-                  lng: coordinates.lng,
-                });
-                setLocationAddress(user.address);
-                setValue("location", user.address);
+            const userAddress = (user as any).address;
+            const results = await geocodeByAddress(userAddress);
+            const coordinates = await getLatLng(results[0]);
+            setUserLocation({
+              lat: coordinates.lat,
+              lng: coordinates.lng,
+            });
+            setLocationAddress(userAddress);
+            setValue("location", userAddress);
               } catch (err) {
                 console.error("Error geocoding user address:", err);
                 setUserLocation(null);
@@ -97,17 +98,18 @@ function ServicesContent() {
         );
       } else {
         // Fallback to user account location or manual input
-        if (user?.address) {
+        if (user && (user as any).address) {
           try {
             const { geocodeByAddress, getLatLng } = await import("react-google-places-autocomplete");
-            const results = await geocodeByAddress(user.address);
+            const userAddress = (user as any).address;
+            const results = await geocodeByAddress(userAddress);
             const coordinates = await getLatLng(results[0]);
             setUserLocation({
               lat: coordinates.lat,
               lng: coordinates.lng,
             });
-            setLocationAddress(user.address);
-            setValue("location", user.address);
+            setLocationAddress(userAddress);
+            setValue("location", userAddress);
           } catch (err) {
             console.error("Error geocoding user address:", err);
             setUserLocation(null);
