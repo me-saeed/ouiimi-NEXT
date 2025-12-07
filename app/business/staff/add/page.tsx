@@ -266,25 +266,25 @@ export default function AddStaffPage() {
               )}
 
               <form 
-                onSubmit={handleSubmit(
-                  (data) => {
-                    console.log("Form validation passed, calling onSubmit");
-                    onSubmit(data);
-                  },
-                  (errors) => {
-                    console.log("Form validation failed:", errors);
-                    const firstError = Object.values(errors)[0];
-                    if (firstError) {
-                      const errorMsg = firstError.message || "Please fix the form errors";
-                      setError(errorMsg);
-                      toast({
-                        variant: "destructive",
-                        title: "Validation Error",
-                        description: errorMsg,
-                      });
-                    }
+              onSubmit={handleSubmit(
+                (data) => {
+                  console.log("Form validation passed, calling onSubmit");
+                  onSubmit(data);
+                },
+                (errors) => {
+                  console.log("Form validation failed:", errors);
+                  const firstError = Object.values(errors)[0];
+                  if (firstError) {
+                    const errorMsg = firstError.message || "Please fix the form errors";
+                    setError(errorMsg);
+                    toast({
+                      variant: "destructive",
+                      title: "Validation Error",
+                      description: errorMsg,
+                    });
                   }
-                )} 
+                }
+              )} 
                 className="space-y-6"
               >
                 {/* Image Upload - Centered */}
@@ -322,18 +322,18 @@ export default function AddStaffPage() {
 
                 {/* Name Input - Light grey background, centered text */}
                 <div>
-                  <input
-                    {...register("name")}
-                    type="text"
+                <input
+                  {...register("name")}
+                  type="text"
                     className="w-full px-4 py-3 rounded-xl border-0 bg-gray-100 text-[#3A3A3A] placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:bg-white transition-all text-center"
                     placeholder="Name"
-                  />
-                  {errors.name && (
+                />
+                {errors.name && (
                     <p className="text-red-500 text-xs mt-1.5 text-center">
-                      {errors.name.message}
-                    </p>
-                  )}
-                </div>
+                    {errors.name.message}
+                  </p>
+                )}
+              </div>
 
                 {/* About/Qualifications Textarea - Light grey background, left-aligned */}
                 <div>
@@ -346,9 +346,9 @@ export default function AddStaffPage() {
                   {errors.about && (
                     <p className="text-red-500 text-xs mt-1.5 text-left">
                       {errors.about.message}
-                    </p>
-                  )}
-                </div>
+                  </p>
+                )}
+              </div>
 
                 {/* Qualifications (hidden but still in form data) */}
                 <input
@@ -356,7 +356,7 @@ export default function AddStaffPage() {
                   type="hidden"
                 />
               </form>
-            </div>
+              </div>
 
             {/* ADD Button - Below the card, centered */}
             <div className="mt-4 flex justify-center">
@@ -381,17 +381,17 @@ export default function AddStaffPage() {
                     }
                   }
                 )}
-                disabled={isLoading}
+                  disabled={isLoading}
                 className="px-8 py-2.5 text-[#3A3A3A] hover:text-[#2a2a2a] font-semibold transition-colors disabled:opacity-50"
-              >
-                {isLoading ? (
-                  <>
+                >
+                  {isLoading ? (
+                    <>
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-[#3A3A3A] mr-2 inline-block" />
-                    Adding...
-                  </>
-                ) : (
+                      Adding...
+                    </>
+                  ) : (
                   "ADD"
-                )}
+                  )}
               </button>
             </div>
           </div>

@@ -175,17 +175,17 @@ export default function EditStaffPage() {
 
             {/* Form Card - No border, smooth white background */}
             <div className="bg-white rounded-2xl shadow-sm p-8">
-              {error && (
+            {error && (
                 <Alert className="mb-4 border-red-200 bg-red-50">
                   <AlertDescription className="text-red-800 text-sm">{error}</AlertDescription>
-                </Alert>
-              )}
+              </Alert>
+            )}
 
-              {success && (
+            {success && (
                 <Alert className="mb-4 border-green-200 bg-green-50">
                   <AlertDescription className="text-green-800 text-sm">{success}</AlertDescription>
-                </Alert>
-              )}
+              </Alert>
+            )}
 
               <form 
                 onSubmit={handleSubmit(onSubmit)} 
@@ -225,34 +225,34 @@ export default function EditStaffPage() {
                 </div>
 
                 {/* Name Input - Light grey background, centered text */}
-                <div>
-                  <input
-                    {...register("name")}
-                    type="text"
+              <div>
+                <input
+                  {...register("name")}
+                  type="text"
                     className="w-full px-4 py-3 rounded-xl border-0 bg-gray-100 text-[#3A3A3A] placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:bg-white transition-all text-center"
                     placeholder="Name"
-                  />
-                  {errors.name && (
+                />
+                {errors.name && (
                     <p className="text-red-500 text-xs mt-1.5 text-center">
-                      {errors.name.message}
-                    </p>
-                  )}
-                </div>
+                    {errors.name.message}
+                  </p>
+                )}
+              </div>
 
                 {/* About/Qualifications Textarea - Light grey background, left-aligned */}
-                <div>
+              <div>
                   <textarea
                     {...register("about")}
                     rows={5}
                     className="w-full px-4 py-3 rounded-xl border-0 bg-gray-100 text-[#3A3A3A] placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:bg-white transition-all resize-none text-left leading-relaxed"
                     placeholder="About staff member and qualifications"
-                  />
+                />
                   {errors.about && (
                     <p className="text-red-500 text-xs mt-1.5 text-left">
                       {errors.about.message}
-                    </p>
-                  )}
-                </div>
+                  </p>
+                )}
+              </div>
 
                 {/* Qualifications - Store in hidden field, combine with about for display */}
                 <input
@@ -260,7 +260,7 @@ export default function EditStaffPage() {
                   type="hidden"
                 />
               </form>
-            </div>
+              </div>
 
             {/* UPDATE Button - Below the card, centered */}
             <div className="mt-4 flex justify-center gap-3">
@@ -280,13 +280,13 @@ export default function EditStaffPage() {
                 )}
               </button>
               <button
-                type="button"
-                onClick={() => router.back()}
+                  type="button"
+                  onClick={() => router.back()}
                 className="px-8 py-2.5 rounded-lg bg-gray-200 text-[#3A3A3A] hover:bg-gray-300 font-semibold transition-all"
-              >
-                Cancel
+                >
+                  Cancel
               </button>
-            </div>
+              </div>
           </div>
         </div>
       </div>

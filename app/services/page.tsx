@@ -382,11 +382,11 @@ function ServicesContent() {
                 return earliestSlot !== null;
               })
               .map((service) => (
-                <ServiceCard
-                  key={service.id}
-                  {...formatServiceForCard(service)}
-                />
-              ))}
+              <ServiceCard
+                key={service.id}
+                {...formatServiceForCard(service)}
+              />
+            ))}
           </div>
         )}
       </div>
