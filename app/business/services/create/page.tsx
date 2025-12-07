@@ -322,6 +322,7 @@ export default function CreateServicePage() {
     }
 
     // Add slot to the selected date
+    const existingSlots = datesWithSlots[selectedDate] || [];
     setDatesWithSlots({
       ...datesWithSlots,
       [selectedDate]: [...existingSlots, slot],

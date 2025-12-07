@@ -508,7 +508,6 @@ async function getBookingsHandler(req: NextRequest) {
             id: b.staffId._id?.toString(),
             name: b.staffId.name,
             photo: b.staffId.photo,
-            photo: b.staffId.photo,
           } : b.staffId.toString()) : null,
           timeSlot: b.timeSlot,
           addOns: b.addOns || [],
