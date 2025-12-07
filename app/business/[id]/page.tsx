@@ -133,7 +133,7 @@ function BusinessProfileContent() {
     return {
       id: service.id,
       name: service.serviceName,
-      price: service.baseCost,
+      price: service.timeSlots && service.timeSlots.length > 0 ? (service.timeSlots[0]?.price || 0) : 0,
       image: business?.logo || "/placeholder-logo.png",
       category: service.category,
       subCategory: service.subCategory,

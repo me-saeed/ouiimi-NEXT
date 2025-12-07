@@ -205,7 +205,9 @@ export default function ServiceDetailsPage() {
                     <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 block">
                       Base Cost
                     </label>
-                    <p className="text-base font-semibold text-[#3A3A3A]">${service?.baseCost?.toFixed(2) || "0.00"}</p>
+                    <p className="text-base font-semibold text-[#3A3A3A]">
+                      ${service?.timeSlots && service.timeSlots.length > 0 ? (service.timeSlots[0]?.price?.toFixed(2) || "0.00") : "0.00"}
+                    </p>
                   </div>
 
                   <div>

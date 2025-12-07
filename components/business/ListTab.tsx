@@ -132,50 +132,95 @@ export function ListTab({ business }: ListTabProps) {
     return acc;
   }, {} as Record<string, Service[]>);
 
+  const formatTime12Hour = (time24: string): string => {
+    if (!time24) return "";
+    const [hours, minutes] = time24.split(":").map(Number);
+    const period = hours >= 12 ? "pm" : "am";
+    const hours12 = hours % 12 || 12;
+    return `${hours12}:${String(minutes).padStart(2, "0")} ${period}`;
+  };
+
   const getNextAvailableTimeSlot = (service: Service) => {
     if (!service.timeSlots || service.timeSlots.length === 0) {
-      return { date: null, time: null };
+      return { date: null, time: null, price: 0, duration: null };
     }
 
     const now = new Date();
     const availableSlots = service.timeSlots
+      .filter((slot: any) => !slot.isBooked)
       .filter((slot: any) => {
         const slotDate = new Date(slot.date);
-        return slotDate >= now;
+        const slotDateOnly = new Date(slotDate.getFullYear(), slotDate.getMonth(), slotDate.getDate());
+        const nowDateOnly = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        
+        // If slot date is today, check if end time has passed
+        if (slotDateOnly.getTime() === nowDateOnly.getTime()) {
+          const [endHours, endMinutes] = slot.endTime.split(":").map(Number);
+          const slotEndDateTime = new Date(slotDate);
+          slotEndDateTime.setHours(endHours, endMinutes, 0, 0);
+          return slotEndDateTime > now;
+        }
+        
+        // If slot date is in the future
+        return slotDateOnly > nowDateOnly;
       })
-      .sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime());
+      .sort((a: any, b: any) => {
+        const dateA = new Date(a.date);
+        const dateB = new Date(b.date);
+        if (dateA.getTime() !== dateB.getTime()) {
+          return dateA.getTime() - dateB.getTime();
+        }
+        // If same date, sort by start time
+        const [hoursA, minsA] = a.startTime.split(":").map(Number);
+        const [hoursB, minsB] = b.startTime.split(":").map(Number);
+        return (hoursA * 60 + minsA) - (hoursB * 60 + minsB);
+      });
 
     if (availableSlots.length === 0) {
-      return { date: null, time: null };
+      return { date: null, time: null, price: 0, duration: null };
     }
 
     const nextSlot = availableSlots[0];
     const date = new Date(nextSlot.date);
-    const formattedDate = date.toLocaleDateString("en-GB", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "2-digit",
-    });
-    const time = `${nextSlot.startTime} - ${nextSlot.endTime}`;
+    // Format date as DD.MM.YY
+    const formattedDate = `${String(date.getDate()).padStart(2, "0")}.${String(date.getMonth() + 1).padStart(2, "0")}.${String(date.getFullYear()).slice(-2)}`;
+    // Format time as "10:00 am - 12:00 pm"
+    const time = `${formatTime12Hour(nextSlot.startTime)} - ${formatTime12Hour(nextSlot.endTime)}`;
+    const price = nextSlot.price || 0;
+    const duration = nextSlot.duration;
 
-    return { date: formattedDate, time };
+    return { date: formattedDate, time, price, duration };
   };
 
   const formatServiceForCard = (service: Service) => {
-    const { date, time } = getNextAvailableTimeSlot(service);
+    const { date, time, price, duration } = getNextAvailableTimeSlot(service);
     const serviceBusiness = typeof service.businessId === 'object' ? service.businessId : null;
     const businessData = serviceBusiness || (typeof business === 'object' ? business : null);
+
+    // Format duration string
+    let durationStr = "";
+    if (duration) {
+      const hours = Math.floor(duration / 60);
+      const mins = duration % 60;
+      if (hours > 0 && mins > 0) {
+        durationStr = `${hours}Hr ${mins}mins`;
+      } else if (hours > 0) {
+        durationStr = `${hours}Hr`;
+      } else {
+        durationStr = `${mins}mins`;
+      }
+    }
 
     return {
       id: service.id || service._id,
       name: service.serviceName,
-      price: service.baseCost,
+      price: price || 0,
       image: businessData?.logo || "/placeholder-logo.png",
       category: service.category,
       subCategory: service.subCategory,
       businessName: businessData?.businessName || "Business",
       location: businessData?.address || "",
-      duration: service.duration,
+      duration: durationStr,
       date: date,
       time: time,
     };

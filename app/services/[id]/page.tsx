@@ -291,9 +291,10 @@ function BookingForm({ service, business, user }: { service: any; business: any;
   }, [selectedDate, selectedTimeSlot]);
 
   const calculateTotal = () => {
-    const baseCost = service.baseCost || 0;
+    // Get price from selected time slot
+    const slotPrice = selectedTimeSlot?.price || 0;
     const addOnsCost = selectedAddOns.reduce((sum, addon) => sum + addon.cost, 0);
-    return baseCost + addOnsCost;
+    return slotPrice + addOnsCost;
   };
 
   const handleAddToCart = () => {
@@ -318,7 +319,7 @@ function BookingForm({ service, business, user }: { service: any; business: any;
       time: `${formatTime12Hour(selectedTimeSlot.startTime)} - ${formatTime12Hour(selectedTimeSlot.endTime)}`,
       staffId: selectedStaff || undefined,
       staffName: availableStaff.find((s: any) => s.id === selectedStaff)?.name,
-      baseCost: service.baseCost,
+      baseCost: selectedTimeSlot?.price || 0, // Price from selected time slot
       addOns: selectedAddOns,
       totalCost: calculateTotal(),
       address: service.address || (typeof service.businessId === 'object' ? service.businessId.address : business?.address),
@@ -587,8 +588,8 @@ function BookingForm({ service, business, user }: { service: any; business: any;
           <div className="space-y-3">
             <div className="flex justify-between items-center text-sm">
               <span className="text-gray-600">Base Cost</span>
-              <span className="font-medium text-[#3A3A3A]">${service.baseCost?.toFixed(2) || "0.00"}</span>
-          </div>
+              <span className="font-medium text-[#3A3A3A]">${(selectedTimeSlot?.price || 0).toFixed(2)}</span>
+            </div>
           {selectedAddOns.length > 0 && (
               <div className="space-y-2 pt-2 border-t border-gray-200">
               {selectedAddOns.map((addon, idx) => (
