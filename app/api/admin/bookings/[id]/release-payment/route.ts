@@ -64,7 +64,7 @@ export async function PUT(
     return NextResponse.json({
       message: "Payment released successfully",
       booking: {
-        id: booking._id.toString(),
+        id: String(booking._id),
         adminPaymentStatus: booking.adminPaymentStatus,
       },
     });
