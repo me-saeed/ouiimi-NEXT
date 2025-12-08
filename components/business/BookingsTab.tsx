@@ -44,7 +44,8 @@ export function BookingsTab({ business }: BookingsTabProps) {
   const [error, setError] = useState<string>("");
   const [success, setSuccess] = useState<string>("");
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
-  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [currentMonth, setCurrentMonth] = useState(new Date().getMonth());
+  const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
 
   useEffect(() => {
     if (business?.id || business?._id) {
@@ -63,20 +64,57 @@ export function BookingsTab({ business }: BookingsTabProps) {
   useEffect(() => {
     setSelectedDate(null);
     setSelectedBooking(null);
+    // Reset to current month when switching tabs
+    const now = new Date();
+    setCurrentMonth(now.getMonth());
+    setCurrentYear(now.getFullYear());
   }, [activeSubTab]);
 
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      const target = event.target as HTMLElement;
-      if (showDatePicker && !target.closest('.date-picker-container')) {
-        setShowDatePicker(false);
-      }
-    };
-    if (showDatePicker) {
-      document.addEventListener('mousedown', handleClickOutside);
-      return () => document.removeEventListener('mousedown', handleClickOutside);
+  // Generate all dates for current month
+  const monthDates = useMemo(() => {
+    const dates: Array<{ date: Date; dateStr: string; day: number; weekday: string }> = [];
+    const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+    
+    for (let day = 1; day <= daysInMonth; day++) {
+      const date = new Date(currentYear, currentMonth, day);
+      const dateStr = date.toISOString().split('T')[0];
+      dates.push({
+        date,
+        dateStr,
+        day,
+        weekday: date.toLocaleDateString('en-US', { weekday: 'short' })
+      });
     }
-  }, [showDatePicker]);
+    return dates;
+  }, [currentMonth, currentYear]);
+
+  // Navigate months
+  const goToPreviousMonth = () => {
+    if (currentMonth === 0) {
+      setCurrentMonth(11);
+      setCurrentYear(currentYear - 1);
+    } else {
+      setCurrentMonth(currentMonth - 1);
+    }
+    setSelectedDate(null);
+  };
+
+  const goToNextMonth = () => {
+    if (currentMonth === 11) {
+      setCurrentMonth(0);
+      setCurrentYear(currentYear + 1);
+    } else {
+      setCurrentMonth(currentMonth + 1);
+    }
+    setSelectedDate(null);
+  };
+
+  const goToCurrentMonth = () => {
+    const now = new Date();
+    setCurrentMonth(now.getMonth());
+    setCurrentYear(now.getFullYear());
+    setSelectedDate(null);
+  };
 
   const loadBookings = async () => {
     if (!business?.id && !business?._id) return;
@@ -361,10 +399,10 @@ export function BookingsTab({ business }: BookingsTabProps) {
     });
   }, [bookings, selectedDate]);
 
-  const upcomingDates = useMemo(() => {
-    const dates = Object.keys(bookingsByDate).sort();
-    return dates.slice(0, 7);
-  }, [bookingsByDate]);
+  // Get booking count for each date
+  const getBookingCountForDate = (dateStr: string) => {
+    return bookingsByDate[dateStr]?.length || 0;
+  };
 
   const formatBookingForServiceCard = (booking: Booking) => {
     const service = typeof booking.serviceId === 'object' ? booking.serviceId : null;
@@ -445,78 +483,94 @@ export function BookingsTab({ business }: BookingsTabProps) {
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-semibold">Up-coming</h3>
-            <div className="relative date-picker-container">
+            <div className="flex items-center gap-2">
               <Button
                 variant="outline"
-                onClick={() => setShowDatePicker(!showDatePicker)}
-                className="h-10 px-4 rounded-xl border-gray-200 text-[#3A3A3A] font-medium bg-white hover:bg-gray-50 flex items-center gap-2"
+                size="sm"
+                onClick={goToPreviousMonth}
+                className="h-8 w-8 p-0"
               >
-                <Calendar className="w-4 h-4" />
-                {selectedDate ? formatDateForDisplay(selectedDate) : "Select Date"}
+                ←
               </Button>
-              {showDatePicker && (
-                <div className="absolute right-0 top-full mt-2 bg-white border rounded-lg shadow-lg z-10 p-4">
-                  <input
-                    type="date"
-                    value={selectedDate || ''}
-                    onChange={(e) => {
-                      setSelectedDate(e.target.value || null);
-                      setShowDatePicker(false);
-                    }}
-                    className="w-full p-2 border rounded"
-                    min={new Date().toISOString().split('T')[0]}
-                  />
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
-                      setSelectedDate(null);
-                      setShowDatePicker(false);
-                    }}
-                    className="w-full mt-2"
-                  >
-                    Clear Filter
-                  </Button>
-                </div>
-              )}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={goToCurrentMonth}
+                className="h-8 px-3 text-xs"
+              >
+                {new Date(currentYear, currentMonth).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={goToNextMonth}
+                className="h-8 w-8 p-0"
+              >
+                →
+              </Button>
             </div>
           </div>
 
-          {/* Date Quick Select with Counts */}
-          {!selectedDate && upcomingDates.length > 0 && (
-            <div className="flex gap-2 overflow-x-auto pb-2">
-              {upcomingDates.map((date) => {
-                const count = bookingsByDate[date]?.length || 0;
+          {/* Swipeable Date Picker - All dates of month */}
+          <div className="relative">
+            <div 
+              className="flex gap-1.5 overflow-x-auto pb-2 scrollbar-hide" 
+              style={{ 
+                scrollbarWidth: 'none', 
+                msOverflowStyle: 'none',
+                WebkitOverflowScrolling: 'touch'
+              }}
+            >
+              {monthDates.map(({ date, dateStr, day, weekday }) => {
+                const count = getBookingCountForDate(dateStr);
+                const isSelected = selectedDate === dateStr;
+                const isToday = dateStr === new Date().toISOString().split('T')[0];
+                const isPast = date < new Date() && !isToday;
+                
                 return (
                   <button
-                    key={date}
-                    onClick={() => setSelectedDate(date)}
-                    className="flex flex-col items-center justify-center min-w-[60px] px-3 py-2 rounded-lg border border-gray-200 hover:border-primary hover:bg-primary/5 transition-colors"
+                    key={dateStr}
+                    onClick={() => setSelectedDate(isSelected ? null : dateStr)}
+                    className={`flex flex-col items-center justify-center min-w-[55px] px-2 py-2 rounded-lg border transition-all ${
+                      isSelected
+                        ? "border-[#EECFD1] bg-[#EECFD1] text-[#3A3A3A] shadow-sm"
+                        : isPast
+                        ? "border-gray-100 bg-gray-50 text-gray-400"
+                        : "border-gray-200 bg-white text-[#3A3A3A] hover:border-[#EECFD1] hover:bg-[#EECFD1]/10"
+                    }`}
                   >
-                    <span className="text-xs text-muted-foreground">
-                      {new Date(date).toLocaleDateString('en-US', { weekday: 'short' })}
+                    <span className={`text-[10px] font-medium mb-0.5 ${isPast ? 'text-gray-400' : 'text-gray-600'}`}>
+                      {weekday}
                     </span>
-                    <span className="text-lg font-semibold">
-                      {new Date(date).getDate()}
+                    <span className={`text-base font-bold mb-0.5 ${isPast ? 'text-gray-400' : 'text-[#3A3A3A]'}`}>
+                      {day}
                     </span>
-                    <span className="text-xs text-primary font-medium">{count}</span>
+                    {count > 0 && (
+                      <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${
+                        isSelected 
+                          ? "bg-white text-[#EECFD1]" 
+                          : "bg-[#EECFD1] text-white"
+                      }`}>
+                        {count}
+                      </span>
+                    )}
                   </button>
                 );
               })}
             </div>
-          )}
+          </div>
 
           {/* Selected Date Info */}
           {selectedDate && (
-            <div className="flex items-center justify-between p-3 bg-primary/5 rounded-lg">
-              <span className="text-sm font-medium">
+            <div className="flex items-center justify-between p-3 bg-[#EECFD1]/10 rounded-xl border border-[#EECFD1]">
+              <span className="text-sm font-medium text-[#3A3A3A]">
                 {formatDateForDisplay(selectedDate)}: {filteredBookings.length} {filteredBookings.length === 1 ? 'booking' : 'bookings'}
               </span>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => setSelectedDate(null)}
-                className="text-xs"
+                className="text-xs text-gray-600 hover:text-[#3A3A3A]"
               >
                 Clear
               </Button>

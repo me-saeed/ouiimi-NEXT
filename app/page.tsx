@@ -67,9 +67,14 @@ export default function HomePage() {
             );
             if (response.ok) {
               const data = await response.json();
-              servicesData[category] = data.services || [];
-              // Get total count from pagination
-              countsData[category] = data.pagination?.total || data.services?.length || 0;
+              // Filter out services with no available slots (check if earliest slot exists)
+              const servicesWithSlots = (data.services || []).filter((service: Service) => {
+                const earliestSlot = getEarliestAvailableTimeSlot(service);
+                return earliestSlot !== null;
+              });
+              servicesData[category] = servicesWithSlots;
+              // Get total count from pagination (but only count services with available slots)
+              countsData[category] = servicesWithSlots.length;
             } else {
               servicesData[category] = [];
               countsData[category] = 0;

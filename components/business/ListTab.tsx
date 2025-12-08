@@ -50,7 +50,7 @@ export function ListTab({ business }: ListTabProps) {
 
     console.log("[ListTab] Loading services for business:", business.id || business._id);
     console.time("[ListTab] loadServices execution");
-    
+
     setIsLoading(true);
     setError("");
     try {
