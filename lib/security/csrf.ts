@@ -2,8 +2,15 @@ import { randomBytes, createHmac } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 
 // Use JWT_SECRET for CSRF to ensure consistency
-// If JWT_SECRET is not set, use a fallback (should not happen in production)
-const CSRF_SECRET = process.env.JWT_SECRET || process.env.CSRF_SECRET || "csrf-secret-key";
+const CSRF_SECRET_ENV = process.env.JWT_SECRET || process.env.CSRF_SECRET;
+
+if (!CSRF_SECRET_ENV) {
+  throw new Error(
+    "Please define the JWT_SECRET or CSRF_SECRET environment variable inside .env.local"
+  );
+}
+
+const CSRF_SECRET: string = CSRF_SECRET_ENV;
 
 export function generateCSRFToken(): string {
   const token = randomBytes(32).toString("hex");
@@ -25,11 +32,7 @@ export function validateCSRFToken(token: string): boolean {
     return false;
   }
 
-  // Check if CSRF_SECRET is set
-  if (!CSRF_SECRET || CSRF_SECRET === "csrf-secret-key") {
-    console.error("CSRF token validation: CSRF_SECRET not properly configured");
-    return false;
-  }
+  // CSRF_SECRET is validated at module load time, so we can proceed
 
   const hmac = createHmac("sha256", CSRF_SECRET);
   hmac.update(tokenPart);
