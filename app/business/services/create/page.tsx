@@ -677,6 +677,9 @@ export default function CreateServicePage() {
 
 
 
+      console.log("[Create Service] Sending request to /api/services");
+      console.time("[Create Service] API Request");
+      
       const response = await fetch("/api/services", {
         method: "POST",
         headers: {
@@ -685,6 +688,9 @@ export default function CreateServicePage() {
         },
         body: JSON.stringify(requestBody),
       });
+      
+      console.timeEnd("[Create Service] API Request");
+      console.log("[Create Service] Response status:", response.status);
 
       let result;
       try {

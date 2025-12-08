@@ -39,13 +39,17 @@ export default function BusinessDashboardPage() {
 
   useEffect(() => {
     const loadDashboardData = async () => {
+      console.log("[Dashboard] loadDashboardData started, isAuthenticated:", isAuthenticated);
+      
       if (!isAuthenticated) {
+        console.log("[Dashboard] Not authenticated, redirecting to signin");
         router.push("/signin");
         return;
       }
 
       const token = localStorage.getItem("token");
       if (!token) {
+        console.log("[Dashboard] No token found, redirecting to signin");
         router.push("/signin");
         return;
       }
@@ -54,22 +58,30 @@ export default function BusinessDashboardPage() {
         const userId = user?.id || user?._id;
 
         if (!userId) {
-          console.error("User ID not found");
+          console.error("[Dashboard] User ID not found");
           setIsLoading(false);
           return;
         }
+        
+        console.log("[Dashboard] Loading business data for userId:", userId);
 
         // Fetch business by userId
+        console.log("[Dashboard] Fetching business data...");
         const businessResponse = await fetch(`/api/business/search?userId=${userId}`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
         });
 
+        console.log("[Dashboard] Business API response status:", businessResponse.status);
+
         if (businessResponse.ok) {
           const businessData = await businessResponse.json();
+          console.log("[Dashboard] Business data received:", businessData.businesses?.length || 0, "businesses");
+          
           if (businessData.businesses && businessData.businesses.length > 0) {
             const businessItem = businessData.businesses[0];
+            console.log("[Dashboard] Setting business:", businessItem._id || businessItem.id);
             setBusiness(businessItem);
 
             const businessId = businessItem._id || businessItem.id;
@@ -105,13 +117,19 @@ export default function BusinessDashboardPage() {
           console.log("No business found for user");
         }
       } catch (e) {
-        console.error("Error loading dashboard data:", e);
+        console.error("[Dashboard] Error loading dashboard data:", e);
+        console.error("[Dashboard] Error stack:", (e as Error).stack);
       } finally {
+        console.log("[Dashboard] Setting isLoading to false");
         setIsLoading(false);
       }
     };
 
-    loadDashboardData();
+    if (user) {
+      loadDashboardData();
+    } else {
+      console.log("[Dashboard] No user, skipping loadDashboardData");
+    }
   }, [router, user, isAuthenticated]);
 
   if (!user) {
