@@ -15,19 +15,19 @@ function getMailjetClient() {
   }
   
   if (!mailjet) {
-    // Validate environment variables
-    if (!process.env.MAILJET_API_KEY || !process.env.MAILJET_SECRET_KEY) {
-      throw new Error(
-        "Please define MAILJET_API_KEY and MAILJET_SECRET_KEY environment variables inside .env.local"
-      );
+    // Validate environment variables (only when actually sending email, not during build)
+    const apiKey = process.env.MAILJET_API_KEY;
+    const secretKey = process.env.MAILJET_SECRET_KEY;
+    
+    if (!apiKey || !secretKey) {
+      console.warn("MAILJET_API_KEY and MAILJET_SECRET_KEY not configured. Email functionality will not work.");
+      // Return a mock client during build, will throw at runtime if actually used
+      return null;
     }
     
     // Use the modern node-mailjet v6 API
     const Mailjet = require("node-mailjet");
-    mailjet = Mailjet.Client.apiConnect(
-      process.env.MAILJET_API_KEY,
-      process.env.MAILJET_SECRET_KEY
-    );
+    mailjet = Mailjet.Client.apiConnect(apiKey, secretKey);
   }
   return mailjet;
 }
@@ -66,13 +66,18 @@ export async function sendEmail(
   templateType: EmailTemplateType
 ): Promise<boolean> {
   try {
+    const mailjetClient = getMailjetClient();
+    
+    if (!mailjetClient) {
+      console.error("Mailjet client not configured. Cannot send email.");
+      return false;
+    }
+
     // Import template dynamically
     const { getEmailTemplate } = await import("./email/templates");
     const htmlContent = await getEmailTemplate(templateType, data);
 
     const recipients = emailToSend.map((email) => ({ Email: email }));
-
-    const mailjetClient = getMailjetClient();
     const request = mailjetClient.post("send", { version: "v3.1" }).request({
       Messages: [
         {

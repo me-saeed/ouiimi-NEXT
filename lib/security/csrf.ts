@@ -2,19 +2,19 @@ import { randomBytes, createHmac } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 
 // Use JWT_SECRET for CSRF to ensure consistency
-const CSRF_SECRET_ENV = process.env.JWT_SECRET || process.env.CSRF_SECRET;
-
-if (!CSRF_SECRET_ENV) {
-  throw new Error(
-    "Please define the JWT_SECRET or CSRF_SECRET environment variable inside .env.local"
-  );
+function getCSRFSecret(): string {
+  const secret = process.env.JWT_SECRET || process.env.CSRF_SECRET;
+  if (!secret) {
+    throw new Error(
+      "Please define the JWT_SECRET or CSRF_SECRET environment variable inside .env.local"
+    );
+  }
+  return secret;
 }
-
-const CSRF_SECRET: string = CSRF_SECRET_ENV;
 
 export function generateCSRFToken(): string {
   const token = randomBytes(32).toString("hex");
-  const hmac = createHmac("sha256", CSRF_SECRET);
+  const hmac = createHmac("sha256", getCSRFSecret());
   hmac.update(token);
   const signature = hmac.digest("hex");
   return `${token}.${signature}`;
@@ -32,9 +32,7 @@ export function validateCSRFToken(token: string): boolean {
     return false;
   }
 
-  // CSRF_SECRET is validated at module load time, so we can proceed
-
-  const hmac = createHmac("sha256", CSRF_SECRET);
+  const hmac = createHmac("sha256", getCSRFSecret());
   hmac.update(tokenPart);
   const expectedSignature = hmac.digest("hex");
 
@@ -42,7 +40,6 @@ export function validateCSRFToken(token: string): boolean {
   if (!isValid) {
     console.error("CSRF token validation: Signature mismatch");
     console.error("Token part length:", tokenPart.length);
-    console.error("CSRF_SECRET length:", CSRF_SECRET.length);
   }
 
   return isValid;
