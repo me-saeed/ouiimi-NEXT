@@ -217,7 +217,7 @@ export default function BusinessRegisterPage() {
           setError("");
           setIsLoading(false);
           alert("You already have a business registered. Redirecting to dashboard...");
-          router.push("/business/dashboard");
+            router.push("/business/dashboard");
           return;
         }
         
@@ -234,7 +234,7 @@ export default function BusinessRegisterPage() {
       alert("Business registered successfully! Redirecting to dashboard...");
       
       // Immediate redirect
-      router.push("/business/dashboard");
+        router.push("/business/dashboard");
       
     } catch (err: any) {
       console.error("Business registration error:", err);

@@ -117,8 +117,8 @@ export default function CreateServicePage() {
         const parsedUser = typeof userData === 'string' ? JSON.parse(userData) : userData;
         if (parsedUser && typeof parsedUser === 'object') {
           console.log("[Create Service] User data loaded:", parsedUser.email || parsedUser.username);
-          setUser(parsedUser);
-          loadStaff(parsedUser);
+        setUser(parsedUser);
+        loadStaff(parsedUser);
         } else {
           console.warn("[Create Service] Invalid user data format, redirecting to signin");
           router.push("/signin");
@@ -260,11 +260,11 @@ export default function CreateServicePage() {
 
   const handleTimeChange = () => {
     if (!startHour) {
-      setNewTimeSlot({
+    setNewTimeSlot({
         ...newTimeSlot,
-        startTime: "",
-        endTime: "",
-      });
+      startTime: "",
+      endTime: "",
+    });
       setError("");
       return;
     }
@@ -699,7 +699,7 @@ export default function CreateServicePage() {
 
       console.log("[Create Service] Sending request to /api/services");
       console.time("[Create Service] API Request");
-      
+
       const response = await fetch("/api/services", {
         method: "POST",
         headers: {
@@ -708,7 +708,7 @@ export default function CreateServicePage() {
         },
         body: JSON.stringify(requestBody),
       });
-      
+
       console.timeEnd("[Create Service] API Request");
       console.log("[Create Service] Response status:", response.status);
 
@@ -789,7 +789,7 @@ export default function CreateServicePage() {
       </PageLayout>
     );
   }
-  
+
   if (!user) {
     console.log("[Create Service] Rendering loading state - waiting for user data");
     return (

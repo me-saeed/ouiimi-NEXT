@@ -126,7 +126,7 @@ export default function BusinessDashboardPage() {
     };
 
     if (user) {
-      loadDashboardData();
+    loadDashboardData();
     } else {
       console.log("[Dashboard] No user, skipping loadDashboardData");
     }

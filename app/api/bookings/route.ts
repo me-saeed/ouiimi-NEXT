@@ -199,7 +199,7 @@ async function createBookingHandler(req: NextRequest) {
       const dateMatch = slotDateTimestamp === bookingDateTimestamp;
       const startMatch = slot.startTime === bookingStartTime;
       const endMatch = slot.endTime === bookingEndTime;
-      
+
       if (dateMatch && startMatch && endMatch) {
         console.log("[Booking API] Found matching slot:", {
           date: slot.date,
@@ -257,7 +257,7 @@ async function createBookingHandler(req: NextRequest) {
       startTime: bookingStartTime,
       endTime: bookingEndTime
     });
-    
+
     const updatedService = await Service.findOneAndUpdate(
       {
         _id: new mongoose.Types.ObjectId(validatedData.serviceId),

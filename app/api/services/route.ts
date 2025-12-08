@@ -117,7 +117,7 @@ async function createServiceHandler(req: NextRequest) {
       businessId: String(savedService.businessId),
       userId: decoded.userId,
     });
-    
+
     console.log("[API /api/services POST] Service created successfully:", String(savedService._id));
     console.timeEnd("[API /api/services POST] Total execution time");
 
@@ -372,7 +372,7 @@ async function getServicesHandler(req: NextRequest) {
     const filteredServices = services.filter((s: any) => s.businessId);
     console.log(`[API /api/services GET] After filtering null businessId: ${filteredServices.length} [${requestId}]`);
     console.timeEnd(`[API /api/services GET] Execution time [${requestId}]`);
-    
+
     return NextResponse.json(
       {
         services: filteredServices.map((s: any) => ({
