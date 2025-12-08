@@ -246,4 +246,14 @@
   .text-mobile-xl {
     @apply text-xl md:text-2xl;
   }
+
+  /* Side Panel Animation */
+  @keyframes slideInRight {
+    from {
+      transform: translateX(100%);
+    }
+    to {
+      transform: translateX(0);
+    }
+  }
 }

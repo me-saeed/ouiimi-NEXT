@@ -1,8 +1,8 @@
 "use client";
 
-import { useRef, useState, useEffect } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import Link from "next/link";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface ServiceCarouselProps {
@@ -11,9 +11,11 @@ interface ServiceCarouselProps {
   viewAllHref?: string;
   totalCount?: number;
   showMoreHref?: string;
+  onShowMore?: (category: string) => void;
+  category?: string;
 }
 
-export function ServiceCarousel({ children, title, viewAllHref, totalCount = 0, showMoreHref }: ServiceCarouselProps) {
+export function ServiceCarousel({ children, title, viewAllHref, totalCount = 0, showMoreHref, onShowMore, category }: ServiceCarouselProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
@@ -28,8 +30,9 @@ export function ServiceCarousel({ children, title, viewAllHref, totalCount = 0, 
 
   useEffect(() => {
     checkScrollability();
-    // Show "Show more" button when there are more than 6 services
-    if (totalCount > 6) {
+    // Show "See More" button when there are exactly 6 services
+    const childCount = Array.isArray(children) ? children.length : React.Children.count(children);
+    if (childCount >= 6) {
       setShowShowMore(true);
     } else {
       setShowShowMore(false);
@@ -94,17 +97,26 @@ export function ServiceCarousel({ children, title, viewAllHref, totalCount = 0, 
           }}
         >
           {children}
-          {/* Show More Button - Appears when there are more than 6 services */}
-          {showShowMore && showMoreHref && (
+          {/* See More Button - Appears when there are 6 services */}
+          {showShowMore && (onShowMore && category ? (
+            <div className="flex-shrink-0 flex items-center min-w-[100px]">
+              <button
+                onClick={() => onShowMore(category)}
+                className="text-xs sm:text-sm text-[#3A3A3A] hover:text-[#EECFD1] font-medium inline-flex items-center gap-1 transition-colors underline whitespace-nowrap px-2"
+              >
+                See more
+              </button>
+            </div>
+          ) : showMoreHref ? (
             <div className="flex-shrink-0 flex items-center min-w-[100px]">
               <Link
                 href={showMoreHref}
                 className="text-xs sm:text-sm text-[#3A3A3A] hover:text-[#EECFD1] font-medium inline-flex items-center gap-1 transition-colors underline whitespace-nowrap px-2"
               >
-                Show more
+                See more
               </Link>
             </div>
-          )}
+          ) : null)}
           {/* Spacer to show peek of next card on mobile */}
           <div className="flex-shrink-0 w-4 md:w-0" />
         </div>

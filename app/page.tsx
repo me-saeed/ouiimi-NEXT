@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ServiceCard } from "@/components/ui/service-card";
 import { ServiceCarousel } from "@/components/ui/service-carousel";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, X } from "lucide-react";
 import { useAuth } from "@/lib/contexts/AuthContext";
 
 const SERVICE_CATEGORIES = [
@@ -41,6 +41,10 @@ export default function HomePage() {
   const [services, setServices] = useState<Record<string, Service[]>>({});
   const [serviceCounts, setServiceCounts] = useState<Record<string, number>>({});
   const [isLoading, setIsLoading] = useState(true);
+  const [sidePanelOpen, setSidePanelOpen] = useState(false);
+  const [sidePanelCategory, setSidePanelCategory] = useState<string>("");
+  const [sidePanelServices, setSidePanelServices] = useState<Service[]>([]);
+  const [expandedSubcategories, setExpandedSubcategories] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     loadServices();
@@ -169,6 +173,66 @@ export default function HomePage() {
     };
   };
 
+  const handleShowMore = async (category: string) => {
+    setSidePanelCategory(category);
+    setSidePanelOpen(true);
+    setExpandedSubcategories({});
+    
+    // Fetch all services for this category
+    try {
+      const response = await fetch(
+        `/api/services?category=${encodeURIComponent(category)}&status=listed`
+      );
+      if (response.ok) {
+        const data = await response.json();
+        const servicesWithSlots = (data.services || []).filter((service: Service) => {
+          const earliestSlot = getEarliestAvailableTimeSlot(service);
+          return earliestSlot !== null;
+        });
+        setSidePanelServices(servicesWithSlots);
+      }
+    } catch (error) {
+      console.error(`Error loading services for ${category}:`, error);
+      setSidePanelServices([]);
+    }
+  };
+
+  const handleExpandSubcategory = (subcategory: string) => {
+    setExpandedSubcategories(prev => ({
+      ...prev,
+      [subcategory]: !prev[subcategory]
+    }));
+  };
+
+  // const groupServicesBySubcategory = (services: Service[]) => {
+  //   const grouped: Record<string, Service[]> = {};
+  //   services.forEach(service => {
+  //     const subcategory = service.subCategory || "Other";
+  //     if (!grouped[subcategory]) {
+  //       grouped[subcategory] = [];
+  //     }
+  //     grouped[subcategory].push(service);
+  //   });
+  //   return grouped;
+  // };
+
+  // Group services by subcategory for specific categories
+  const groupServicesBySubcategory = (services: Service[]) => {
+    const grouped: Record<string, Service[]> = {};
+    services.forEach((service) => {
+      const subCategory = service.subCategory || "Other";
+      if (!grouped[subCategory]) {
+        grouped[subCategory] = [];
+      }
+      grouped[subCategory].push(service);
+    });
+    return grouped;
+  };
+
+  const shouldGroupBySubcategory = (category: string) => {
+    return category === "Hair Services" || category === "Dog Grooming";
+  };
+
   const formatServiceForCard = (service: Service) => {
     const earliestSlot = getEarliestAvailableTimeSlot(service);
     const business = typeof service.businessId === 'object' ? service.businessId : null;
@@ -283,6 +347,8 @@ export default function HomePage() {
                     title={category}
                     totalCount={serviceCounts[category] || 0}
                     showMoreHref={`/services?category=${encodeURIComponent(category)}`}
+                    onShowMore={handleShowMore}
+                    category={category}
                   >
                     {categoryServices.map((service) => (
                       <ServiceCard
@@ -296,6 +362,99 @@ export default function HomePage() {
             </div>
           </div>
         </section>
+
+        {/* Side Panel for See More */}
+        {sidePanelOpen && (
+          <div className="fixed inset-0 z-50 flex">
+            {/* Backdrop */}
+            <div 
+              className="flex-1 bg-black/50 backdrop-blur-sm"
+              onClick={() => setSidePanelOpen(false)}
+            />
+            {/* Side Panel */}
+            <div className="w-full sm:w-[400px] md:w-[500px] bg-white shadow-2xl overflow-y-auto" style={{ animation: 'slideInRight 0.3s ease-out' }}>
+              <div className="sticky top-0 bg-white border-b border-gray-200 px-4 py-4 flex items-center justify-between z-10">
+                <h2 className="text-xl font-bold text-[#3A3A3A]">{sidePanelCategory}</h2>
+                <button
+                  onClick={() => setSidePanelOpen(false)}
+                  className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                  aria-label="Close"
+                >
+                  <X className="w-5 h-5 text-[#3A3A3A]" />
+                </button>
+              </div>
+              <div className="p-4">
+                {sidePanelServices.length === 0 ? (
+                  <div className="text-center py-12 text-muted-foreground">
+                    <p>No services available</p>
+                  </div>
+                ) : (sidePanelCategory === "Hair Services" || sidePanelCategory === "Dog Grooming") ? (
+                  // Group by subcategory for Hair Services and Dog Grooming
+                  (() => {
+                    const grouped = groupServicesBySubcategory(sidePanelServices);
+                    const subcategories = Object.keys(grouped).sort();
+                    
+                    return (
+                      <div className="space-y-6">
+                        {subcategories.map((subcategory) => {
+                          const subcategoryServices = grouped[subcategory];
+                          const isExpanded = expandedSubcategories[subcategory];
+                          const displayServices = isExpanded ? subcategoryServices : subcategoryServices.slice(0, 6);
+                          const hasMore = subcategoryServices.length > 6;
+                          
+                          return (
+                            <div key={subcategory} className="space-y-3">
+                              {/* Subcategory Heading */}
+                              <h3 className="text-lg font-bold text-[#3A3A3A]">{subcategory}</h3>
+                              
+                              {/* Services for this subcategory */}
+                              <div className="space-y-3">
+                                {displayServices.map((service) => (
+                                  <ServiceCard
+                                    key={service.id}
+                                    {...formatServiceForCard(service)}
+                                  />
+                                ))}
+                              </div>
+                              
+                              {/* See More button if there are more than 6 services */}
+                              {hasMore && !isExpanded && (
+                                <button
+                                  onClick={() => handleExpandSubcategory(subcategory)}
+                                  className="text-sm text-[#3A3A3A] hover:text-[#EECFD1] font-medium underline"
+                                >
+                                  See more
+                                </button>
+                              )}
+                              {hasMore && isExpanded && (
+                                <button
+                                  onClick={() => handleExpandSubcategory(subcategory)}
+                                  className="text-sm text-[#3A3A3A] hover:text-[#EECFD1] font-medium underline"
+                                >
+                                  Show less
+                                </button>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    );
+                  })()
+                ) : (
+                  // Horizontal scroll for other categories
+                  <div className="flex gap-3 sm:gap-4 overflow-x-auto scrollbar-hide scroll-smooth pb-4">
+                    {sidePanelServices.map((service) => (
+                      <ServiceCard
+                        key={service.id}
+                        {...formatServiceForCard(service)}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </PageLayout>
   );
