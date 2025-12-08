@@ -148,8 +148,9 @@ async function createServiceHandler(req: NextRequest) {
 }
 
 async function getServicesHandler(req: NextRequest) {
-  console.log("[API /api/services GET] Request received");
-  console.time("[API /api/services GET] Execution time");
+  const requestId = Math.random().toString(36).substring(7);
+  console.log(`[API /api/services GET] Request received [${requestId}]`);
+  console.time(`[API /api/services GET] Execution time [${requestId}]`);
   
   try {
     await dbConnect();
@@ -350,6 +351,7 @@ async function getServicesHandler(req: NextRequest) {
             pages: Math.ceil(total / limit),
           },
         });
+        console.timeEnd(`[API /api/services GET] Execution time [${requestId}]`);
       }
     }
 
@@ -368,9 +370,8 @@ async function getServicesHandler(req: NextRequest) {
     console.log("[API /api/services GET] Query results - Total:", total, "Returned:", services.length);
 
     const filteredServices = services.filter((s: any) => s.businessId);
-    console.log("[API /api/services GET] After filtering null businessId:", filteredServices.length);
-    console.log("[API /api/services GET] Execution time completed");
-    console.timeEnd("[API /api/services GET] Execution time");
+    console.log(`[API /api/services GET] After filtering null businessId: ${filteredServices.length} [${requestId}]`);
+    console.timeEnd(`[API /api/services GET] Execution time [${requestId}]`);
     
     return NextResponse.json(
       {

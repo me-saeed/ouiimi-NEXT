@@ -5,6 +5,7 @@ import Booking from "@/lib/models/Booking";
 import User from "@/lib/models/User";
 import Business from "@/lib/models/Business";
 import Service from "@/lib/models/Service";
+import Staff from "@/lib/models/Staff";
 import { verifyToken } from "@/lib/jwt";
 import { withRateLimit } from "@/lib/security/rate-limit";
 import { sendEmail } from "@/lib/services/mailjet";
@@ -73,8 +74,40 @@ async function createBookingHandler(req: NextRequest) {
 
     const mongoose = (await import("mongoose")).default;
     const bookingDate = new Date(validatedData.timeSlot.date);
-    const bookingStartTime = validatedData.timeSlot.startTime.trim();
-    const bookingEndTime = validatedData.timeSlot.endTime.trim();
+    // Convert 12-hour format (e.g., "11:00 AM") to 24-hour format (e.g., "11:00")
+    const convertTo24Hour = (time12: string): string => {
+      const trimmed = time12.trim();
+      const match = trimmed.match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i);
+      if (!match) {
+        // Already in 24-hour format or invalid
+        return trimmed;
+      }
+      let hours = parseInt(match[1], 10);
+      const minutes = match[2];
+      const period = match[3].toUpperCase();
+      
+      if (period === "PM" && hours !== 12) {
+        hours += 12;
+      } else if (period === "AM" && hours === 12) {
+        hours = 0;
+      }
+      
+      return `${String(hours).padStart(2, "0")}:${minutes}`;
+    };
+    
+    let bookingStartTime = validatedData.timeSlot.startTime.trim();
+    let bookingEndTime = validatedData.timeSlot.endTime.trim();
+    
+    // Convert to 24-hour format if needed
+    if (bookingStartTime.includes("AM") || bookingStartTime.includes("PM")) {
+      bookingStartTime = convertTo24Hour(bookingStartTime);
+    }
+    if (bookingEndTime.includes("AM") || bookingEndTime.includes("PM")) {
+      bookingEndTime = convertTo24Hour(bookingEndTime);
+    }
+    
+    console.log("[Booking API] Time conversion - Original:", validatedData.timeSlot.startTime, "->", bookingStartTime);
+    console.log("[Booking API] Time conversion - Original:", validatedData.timeSlot.endTime, "->", bookingEndTime);
 
     // Check if staff is already booked at this time (across ALL services)
     if (validatedData.staffId) {
@@ -150,14 +183,55 @@ async function createBookingHandler(req: NextRequest) {
 
     // Ignore validatedData.totalCost from client
     // Find the time slot to get its price
-    const targetSlot = service.timeSlots.find((slot: any) =>
-      new Date(slot.date).getTime() === new Date(bookingDate).setHours(0, 0, 0, 0) &&
-      slot.startTime === bookingStartTime &&
-      slot.endTime === bookingEndTime
-    );
+    console.log("[Booking API] Searching for slot - Date:", bookingDate, "Start:", bookingStartTime, "End:", bookingEndTime);
+    console.log("[Booking API] Service has", service.timeSlots?.length || 0, "time slots");
+    
+    // Normalize dates for comparison
+    const bookingDateObj = new Date(bookingDate);
+    bookingDateObj.setHours(0, 0, 0, 0);
+    const bookingDateTimestamp = bookingDateObj.getTime();
+    
+    const targetSlot = service.timeSlots.find((slot: any) => {
+      const slotDate = new Date(slot.date);
+      slotDate.setHours(0, 0, 0, 0);
+      const slotDateTimestamp = slotDate.getTime();
+      
+      const dateMatch = slotDateTimestamp === bookingDateTimestamp;
+      const startMatch = slot.startTime === bookingStartTime;
+      const endMatch = slot.endTime === bookingEndTime;
+      
+      if (dateMatch && startMatch && endMatch) {
+        console.log("[Booking API] Found matching slot:", {
+          date: slot.date,
+          startTime: slot.startTime,
+          endTime: slot.endTime,
+          price: slot.price
+        });
+      }
+      
+      return dateMatch && startMatch && endMatch;
+    });
+
+    if (!targetSlot) {
+      console.error("[Booking API] Slot not found! Available slots for date:", 
+        service.timeSlots
+          .filter((s: any) => {
+            const sd = new Date(s.date);
+            sd.setHours(0, 0, 0, 0);
+            return sd.getTime() === bookingDateTimestamp;
+          })
+          .map((s: any) => ({
+            startTime: s.startTime,
+            endTime: s.endTime,
+            price: s.price,
+            isBooked: s.isBooked
+          }))
+      );
+    }
 
     // Use time slot price, default to 0 if not found
     let calculatedTotalCost = targetSlot?.price || 0;
+    console.log("[Booking API] Target slot price:", targetSlot?.price, "Calculated total:", calculatedTotalCost);
 
     // Add Add-ons cost
     if (validatedData.addOns && validatedData.addOns.length > 0) {
@@ -177,6 +251,13 @@ async function createBookingHandler(req: NextRequest) {
 
     const bookingId = new mongoose.Types.ObjectId();
 
+    console.log("[Booking API] Attempting atomic update with:", {
+      serviceId: validatedData.serviceId,
+      date: bookingDate,
+      startTime: bookingStartTime,
+      endTime: bookingEndTime
+    });
+    
     const updatedService = await Service.findOneAndUpdate(
       {
         _id: new mongoose.Types.ObjectId(validatedData.serviceId),
@@ -199,7 +280,25 @@ async function createBookingHandler(req: NextRequest) {
     );
 
     if (!updatedService) {
-      console.log("Atomic update failed - Slot likely already booked or not found");
+      console.error("[Booking API] Atomic update failed - Checking why...");
+      // Check if slot exists but is already booked
+      const serviceCheck = await Service.findById(validatedData.serviceId);
+      if (serviceCheck) {
+        const slotCheck = serviceCheck.timeSlots.find((slot: any) => {
+          const slotDate = new Date(slot.date);
+          slotDate.setHours(0, 0, 0, 0);
+          return slotDate.getTime() === bookingDateTimestamp &&
+                 slot.startTime === bookingStartTime &&
+                 slot.endTime === bookingEndTime;
+        });
+        
+        if (slotCheck) {
+          console.error("[Booking API] Slot found but isBooked:", slotCheck.isBooked);
+        } else {
+          console.error("[Booking API] Slot not found in database at all");
+        }
+      }
+      
       return NextResponse.json(
         { error: "This time slot is no longer available. Please select another time." },
         { status: 409 }
@@ -255,11 +354,25 @@ async function createBookingHandler(req: NextRequest) {
 
     // Time slot was already marked as booked in the atomic update step above
 
-    // Ensure Business model is registered before populate
+    // Ensure all models are registered before populate (Staff is already imported at top)
+    // Models are auto-registered when imported, but double-check for safety
     if (!mongoose.models.Business) {
       await import("@/lib/models/Business");
     }
+    if (!mongoose.models.Service) {
+      await import("@/lib/models/Service");
+    }
+    if (!mongoose.models.User) {
+      await import("@/lib/models/User");
+    }
+    
+    // Staff model should be registered from import, but verify
+    if (!mongoose.models.Staff) {
+      console.warn("[Booking API] Staff model not registered, importing...");
+      await import("@/lib/models/Staff");
+    }
 
+    console.log("[Booking API] Populating booking with related data...");
     const savedBooking = await Booking.findById(booking._id)
       .populate("userId", "fname lname email")
       .populate("businessId", "businessName logo address email phone")
@@ -459,9 +572,20 @@ async function getBookingsHandler(req: NextRequest) {
 
     console.log("Fetching bookings with filter:", filter);
 
-    // Ensure Business model is registered before populate
+    // Ensure all models are registered before populate
+    const mongoose = (await import("mongoose")).default;
     if (!mongoose.models.Business) {
       await import("@/lib/models/Business");
+    }
+    if (!mongoose.models.Service) {
+      await import("@/lib/models/Service");
+    }
+    if (!mongoose.models.User) {
+      await import("@/lib/models/User");
+    }
+    if (!mongoose.models.Staff) {
+      console.warn("[Booking API GET] Staff model not registered, importing...");
+      await import("@/lib/models/Staff");
     }
 
     const bookings = await Booking.find(filter)
