@@ -4,6 +4,7 @@ import Booking from "@/lib/models/Booking";
 import User from "@/lib/models/User";
 import Business from "@/lib/models/Business";
 import Service from "@/lib/models/Service";
+import Staff from "@/lib/models/Staff";
 import { verifyToken } from "@/lib/jwt";
 import { withRateLimitDynamic } from "@/lib/security/rate-limit";
 import { sendEmail } from "@/lib/services/mailjet";
@@ -47,6 +48,21 @@ async function getBookingHandler(
     }
 
     await dbConnect();
+
+    // Ensure all models are registered before populate
+    const mongoose = (await import("mongoose")).default;
+    if (!mongoose.models.Business) {
+      await import("@/lib/models/Business");
+    }
+    if (!mongoose.models.Service) {
+      await import("@/lib/models/Service");
+    }
+    if (!mongoose.models.User) {
+      await import("@/lib/models/User");
+    }
+    if (!mongoose.models.Staff) {
+      await import("@/lib/models/Staff");
+    }
 
     const booking = await Booking.findById(params.id)
       .populate("userId", "fname lname email contactNo")
@@ -247,6 +263,18 @@ async function updateBookingHandler(
 
     // Send email notifications for status changes
     try {
+      // Ensure models are registered before populate
+      const mongooseForEmail = (await import("mongoose")).default;
+      if (!mongooseForEmail.models.User) {
+        await import("@/lib/models/User");
+      }
+      if (!mongooseForEmail.models.Business) {
+        await import("@/lib/models/Business");
+      }
+      if (!mongooseForEmail.models.Service) {
+        await import("@/lib/models/Service");
+      }
+      
       const populatedBooking = await Booking.findById(booking._id)
         .populate("userId", "fname lname email")
         .populate("businessId", "businessName")
@@ -304,6 +332,21 @@ async function updateBookingHandler(
     }
 
     await booking.save();
+
+    // Ensure models are registered (already done above, but ensure for safety)
+    const mongooseForPopulate = (await import("mongoose")).default;
+    if (!mongooseForPopulate.models.User) {
+      await import("@/lib/models/User");
+    }
+    if (!mongooseForPopulate.models.Business) {
+      await import("@/lib/models/Business");
+    }
+    if (!mongooseForPopulate.models.Service) {
+      await import("@/lib/models/Service");
+    }
+    if (!mongooseForPopulate.models.Staff) {
+      await import("@/lib/models/Staff");
+    }
 
     const savedBooking = await Booking.findById(booking._id)
       .populate("userId", "fname lname email contactNo")
