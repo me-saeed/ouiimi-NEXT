@@ -589,7 +589,7 @@ function BookingForm({ service, business, user }: { service: any; business: any;
             <div className="flex justify-between items-center text-sm">
               <span className="text-gray-600">Base Cost</span>
               <span className="font-medium text-[#3A3A3A]">${(selectedTimeSlot?.price || 0).toFixed(2)}</span>
-            </div>
+          </div>
           {selectedAddOns.length > 0 && (
               <div className="space-y-2 pt-2 border-t border-gray-200">
               {selectedAddOns.map((addon, idx) => (

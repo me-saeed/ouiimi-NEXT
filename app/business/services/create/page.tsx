@@ -39,6 +39,7 @@ export default function CreateServicePage() {
   const [isClient, setIsClient] = useState(false);
   
   useEffect(() => {
+    console.log("[Create Service] Component mounted, setting isClient to true");
     setIsClient(true);
   }, []);
   const [businessId, setBusinessId] = useState<string>("");
@@ -102,44 +103,63 @@ export default function CreateServicePage() {
 
 
   useEffect(() => {
-    if (!isClient || typeof window === 'undefined') return;
+    if (!isClient || typeof window === 'undefined') {
+      console.log("[Create Service] Waiting for client-side hydration...");
+      return;
+    }
     
+    console.log("[Create Service] Client-side ready, loading user data...");
     const token = localStorage.getItem("token");
     const userData = localStorage.getItem("user");
+    
     if (token && userData) {
       try {
         const parsedUser = typeof userData === 'string' ? JSON.parse(userData) : userData;
         if (parsedUser && typeof parsedUser === 'object') {
+          console.log("[Create Service] User data loaded:", parsedUser.email || parsedUser.username);
           setUser(parsedUser);
           loadStaff(parsedUser);
         } else {
+          console.warn("[Create Service] Invalid user data format, redirecting to signin");
           router.push("/signin");
         }
       } catch (e) {
-        console.error("Error parsing user data:", e);
+        console.error("[Create Service] Error parsing user data:", e);
         router.push("/signin");
       }
     } else {
+      console.warn("[Create Service] No token or user data found, redirecting to signin");
       router.push("/signin");
     }
-  }, [router]);
+  }, [router, isClient]);
 
   const loadStaff = async (userData: any) => {
     if (typeof window === 'undefined') return;
     
+    console.log("[Create Service] loadStaff called for user:", userData?.id || userData?._id);
+    
     try {
       const token = localStorage.getItem("token");
-      if (!token) return;
+      if (!token) {
+        console.warn("[Create Service] No token found in loadStaff");
+        return;
+      }
       
       const userId = userData?.id || userData?._id;
-      if (!userId) return;
+      if (!userId) {
+        console.warn("[Create Service] No userId found in loadStaff");
+        return;
+      }
 
+      console.log("[Create Service] Fetching business for userId:", userId);
       // Find business
       const businessResponse = await fetch(`/api/business/search?userId=${userId}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
+
+      console.log("[Create Service] Business API response:", businessResponse.status);
 
       if (businessResponse.ok) {
         const businessData = await businessResponse.json();
@@ -754,19 +774,39 @@ export default function CreateServicePage() {
     }
   };
 
-  if (!isClient || !user) {
+  if (!isClient) {
+    console.log("[Create Service] Rendering loading state - waiting for client hydration");
     return (
       <PageLayout user={null}>
         <div className="bg-white min-h-screen py-12">
           <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex items-center justify-center py-20">
+            <div className="flex flex-col items-center justify-center py-20">
               <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#EECFD1]"></div>
+              <p className="mt-4 text-gray-600">Initializing...</p>
             </div>
           </div>
         </div>
       </PageLayout>
     );
   }
+  
+  if (!user) {
+    console.log("[Create Service] Rendering loading state - waiting for user data");
+    return (
+      <PageLayout user={null}>
+        <div className="bg-white min-h-screen py-12">
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex flex-col items-center justify-center py-20">
+              <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#EECFD1]"></div>
+              <p className="mt-4 text-gray-600">Loading user data...</p>
+            </div>
+          </div>
+        </div>
+      </PageLayout>
+    );
+  }
+  
+  console.log("[Create Service] Rendering form - user:", user.email || user.username);
 
   return (
     <PageLayout user={user}>
