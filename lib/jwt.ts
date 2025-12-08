@@ -1,7 +1,13 @@
 import jwt, { SignOptions } from "jsonwebtoken";
 
-const JWT_SECRET: string = process.env.JWT_SECRET || "your-secret-key-change-in-production";
+const JWT_SECRET: string = process.env.JWT_SECRET as string;
 const JWT_EXPIRES_IN: string = process.env.JWT_EXPIRES_IN || "7d";
+
+if (!JWT_SECRET) {
+  throw new Error(
+    "Please define the JWT_SECRET environment variable inside .env.local"
+  );
+}
 
 export interface JWTPayload {
   userId: string;

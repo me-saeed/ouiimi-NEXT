@@ -15,11 +15,18 @@ function getMailjetClient() {
   }
   
   if (!mailjet) {
+    // Validate environment variables
+    if (!process.env.MAILJET_API_KEY || !process.env.MAILJET_SECRET_KEY) {
+      throw new Error(
+        "Please define MAILJET_API_KEY and MAILJET_SECRET_KEY environment variables inside .env.local"
+      );
+    }
+    
     // Use the modern node-mailjet v6 API
     const Mailjet = require("node-mailjet");
     mailjet = Mailjet.Client.apiConnect(
-      process.env.MAILJET_API_KEY || "",
-      process.env.MAILJET_SECRET_KEY || ""
+      process.env.MAILJET_API_KEY,
+      process.env.MAILJET_SECRET_KEY
     );
   }
   return mailjet;
