@@ -117,7 +117,9 @@ async function createServiceHandler(req: NextRequest) {
       businessId: String(savedService.businessId),
       userId: decoded.userId,
     });
-
+    
+    console.log("[API /api/services POST] Service created successfully:", String(savedService._id));
+    console.timeEnd("[API /api/services POST] Total execution time");
 
     return NextResponse.json(
       {
@@ -133,6 +135,11 @@ async function createServiceHandler(req: NextRequest) {
       { status: 201 }
     );
   } catch (error: any) {
+    console.error("[API /api/services POST] Error occurred:", error);
+    console.error("[API /api/services POST] Error stack:", error.stack);
+    console.error("[API /api/services POST] Error name:", error.name);
+    console.timeEnd("[API /api/services POST] Total execution time");
+    
     return handleError(error, {
       endpoint: '/api/services',
       method: 'POST',
@@ -141,14 +148,25 @@ async function createServiceHandler(req: NextRequest) {
 }
 
 async function getServicesHandler(req: NextRequest) {
+  console.log("[API /api/services GET] Request received");
+  console.time("[API /api/services GET] Execution time");
+  
   try {
     await dbConnect();
 
     const { searchParams } = new URL(req.url);
     const category = searchParams.get("category");
     const subCategory = searchParams.get("subCategory");
+    
+    console.log("[API /api/services GET] Query params:", {
+      category,
+      subCategory,
+      businessId: searchParams.get("businessId"),
+      status: searchParams.get("status"),
+      limit: searchParams.get("limit"),
+    });
     const businessId = searchParams.get("businessId");
-    const status = searchParams.get("status") || "listed";
+    const status = searchParams.get("status");
     const limit = parseInt(searchParams.get("limit") || "20");
     const page = parseInt(searchParams.get("page") || "1");
     const skip = (page - 1) * limit;
@@ -157,11 +175,31 @@ async function getServicesHandler(req: NextRequest) {
     const radius = parseFloat(searchParams.get("radius") || "15"); // Default 15km
     const date = searchParams.get("date"); // Filter by specific date
 
-    const filter: any = { status };
+    console.log("[API /api/services GET] Building filter with businessId:", businessId);
 
-    if (category) filter.category = category;
-    if (subCategory) filter.subCategory = subCategory;
-    if (businessId) filter.businessId = businessId;
+    const filter: any = {};
+    
+    // Only apply status filter if explicitly provided OR if no businessId (public listing)
+    if (status) {
+      filter.status = status;
+    } else if (!businessId) {
+      filter.status = "listed"; // Default for public listings
+    }
+
+    if (category) {
+      console.log("[API /api/services GET] Filtering by category:", category);
+      filter.category = category;
+    }
+    if (subCategory) {
+      console.log("[API /api/services GET] Filtering by subCategory:", subCategory);
+      filter.subCategory = subCategory;
+    }
+    if (businessId) {
+      console.log("[API /api/services GET] Filtering by businessId:", businessId);
+      filter.businessId = new mongoose.Types.ObjectId(businessId);
+    }
+    
+    console.log("[API /api/services GET] Final filter:", JSON.stringify(filter));
 
     // Helper function to filter time slots by date
     const filterTimeSlotsByDate = (timeSlots: any[], filterDate: string | null) => {
@@ -277,10 +315,10 @@ async function getServicesHandler(req: NextRequest) {
         });
 
         return NextResponse.json({
-          services: services.map((s: any) => ({
+          services: services.filter((s: any) => s.businessId).map((s: any) => ({
             id: s._id?.toString() || s._id,
             _id: s._id?.toString() || s._id,
-            businessId: s.businessId || null,
+            businessId: s.businessId,
             category: s.category,
             subCategory: s.subCategory,
             serviceName: s.serviceName,
@@ -316,6 +354,7 @@ async function getServicesHandler(req: NextRequest) {
     }
 
     // Non-geospatial query (regular query)
+    console.log("[API /api/services GET] Executing database query with filter:", filter);
     const [services, total] = await Promise.all([
       Service.find(filter)
         .populate("businessId", "businessName logo address")
@@ -325,10 +364,17 @@ async function getServicesHandler(req: NextRequest) {
         .lean(),
       Service.countDocuments(filter),
     ]);
+    
+    console.log("[API /api/services GET] Query results - Total:", total, "Returned:", services.length);
 
+    const filteredServices = services.filter((s: any) => s.businessId);
+    console.log("[API /api/services GET] After filtering null businessId:", filteredServices.length);
+    console.log("[API /api/services GET] Execution time completed");
+    console.timeEnd("[API /api/services GET] Execution time");
+    
     return NextResponse.json(
       {
-        services: services.map((s: any) => ({
+        services: filteredServices.map((s: any) => ({
           id: s._id?.toString() || s._id,
           _id: s._id?.toString() || s._id,
           businessId: typeof s.businessId === 'object' ? {

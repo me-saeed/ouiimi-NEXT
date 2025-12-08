@@ -215,10 +215,9 @@ export default function BusinessRegisterPage() {
         // If business already exists, redirect to dashboard instead of showing error
         if (result.error && result.error.includes("already have a business")) {
           setError("");
+          setIsLoading(false);
           alert("You already have a business registered. Redirecting to dashboard...");
-          setTimeout(() => {
-            router.push("/business/dashboard");
-          }, 1000);
+          router.push("/business/dashboard");
           return;
         }
         
@@ -229,14 +228,13 @@ export default function BusinessRegisterPage() {
 
       console.log("Business created successfully:", result);
       setError(""); // Clear any previous errors
+      setIsLoading(false);
       
       // Show success message
       alert("Business registered successfully! Redirecting to dashboard...");
       
-      // Redirect after a short delay
-      setTimeout(() => {
-        router.push("/business/dashboard");
-      }, 500);
+      // Immediate redirect
+      router.push("/business/dashboard");
       
     } catch (err: any) {
       console.error("Business registration error:", err);

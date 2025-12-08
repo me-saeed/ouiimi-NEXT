@@ -43,29 +43,46 @@ export function ListTab({ business }: ListTabProps) {
   }, [business]);
 
   const loadServices = async () => {
-    if (!business?.id && !business?._id) return;
+    if (!business?.id && !business?._id) {
+      console.warn("[ListTab] No business ID available, skipping service load");
+      return;
+    }
 
+    console.log("[ListTab] Loading services for business:", business.id || business._id);
+    console.time("[ListTab] loadServices execution");
+    
     setIsLoading(true);
     setError("");
     try {
       const token = localStorage.getItem("token");
       const businessId = business.id || business._id;
 
+      console.log("[ListTab] Fetching services from API...");
       const response = await fetch(`/api/services?businessId=${businessId}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
 
+      console.log("[ListTab] API response status:", response.status);
+
       if (response.ok) {
         const data = await response.json();
+        console.log("[ListTab] Services received:", data.services?.length || 0);
+        console.log("[ListTab] Services data:", data.services);
         setServices(data.services || []);
+        console.timeEnd("[ListTab] loadServices execution");
       } else {
+        const errorText = await response.text();
+        console.error("[ListTab] Failed to load services:", response.status, errorText);
         setError("Failed to load services");
+        console.timeEnd("[ListTab] loadServices execution");
       }
     } catch (e) {
-      console.error("Error loading services:", e);
+      console.error("[ListTab] Error loading services:", e);
+      console.error("[ListTab] Error stack:", (e as Error).stack);
       setError("Failed to load services");
+      console.timeEnd("[ListTab] loadServices execution");
     } finally {
       setIsLoading(false);
     }
