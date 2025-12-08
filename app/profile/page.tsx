@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Calendar } from "lucide-react";
+import { ServiceCard } from "@/components/ui/service-card";
 
 interface Booking {
   id: string;
@@ -311,6 +312,57 @@ export default function ShopperProfilePage() {
     return time;
   };
 
+  const formatTime12Hour = (time24: string): string => {
+    if (!time24) return "";
+    const [hours, minutes] = time24.split(":").map(Number);
+    const period = hours >= 12 ? "PM" : "AM";
+    const hours12 = hours % 12 || 12;
+    return `${hours12}:${String(minutes).padStart(2, "0")} ${period.toLowerCase()}`;
+  };
+
+  const formatDateForDisplay = (dateString: string) => {
+    const date = new Date(dateString);
+    return `${String(date.getDate()).padStart(2, "0")}.${String(date.getMonth() + 1).padStart(2, "0")}.${String(date.getFullYear()).slice(-2)}`;
+  };
+
+  const formatBookingForServiceCard = (booking: Booking) => {
+    const service = typeof booking.serviceId === 'object' ? booking.serviceId : null;
+    const businessData = typeof booking.businessId === 'object' ? booking.businessId : null;
+    
+    // Calculate duration from time slot
+    const startTime = booking.timeSlot.startTime;
+    const endTime = booking.timeSlot.endTime;
+    let duration = "";
+    if (startTime && endTime) {
+      const [startHours, startMins] = startTime.split(":").map(Number);
+      const [endHours, endMins] = endTime.split(":").map(Number);
+      const startTotal = startHours * 60 + startMins;
+      const endTotal = endHours * 60 + endMins;
+      const diffMins = endTotal - startTotal;
+      const hours = Math.floor(diffMins / 60);
+      const mins = diffMins % 60;
+      if (hours > 0) {
+        duration = `${hours}Hr${mins > 0 ? ` ${mins}mins` : ''}`;
+      } else {
+        duration = `${mins}mins`;
+      }
+    }
+    
+    return {
+      id: booking.id,
+      name: service?.serviceName || 'Service',
+      price: booking.totalCost,
+      image: businessData?.logo || "/placeholder-logo.png",
+      category: service?.category || '',
+      businessName: businessData?.businessName || 'Business',
+      location: businessData?.address || '',
+      duration: duration || undefined,
+      date: formatDateForDisplay(booking.timeSlot.date),
+      time: `${formatTime12Hour(booking.timeSlot.startTime)} - ${formatTime12Hour(booking.timeSlot.endTime)}`,
+      bookingId: booking.id,
+    };
+  };
+
   const getFilteredBookings = () => {
     let bookingsToFilter: Booking[] = [];
 
@@ -466,54 +518,19 @@ export default function ShopperProfilePage() {
               ) : (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   {/* Booking Cards */}
-                  <div className="space-y-4">
-                    {getFilteredBookings().map((booking) => (
-                      <div
-                        key={booking.id}
-                        onClick={() => setSelectedBooking(booking)}
-                        className={`card-polished p-4 cursor-pointer transition-colors ${selectedBooking?.id === booking.id
-                          ? "border-primary border-2"
-                          : "hover:border-primary/50"
-                          }`}
-                      >
-                        <div className="flex items-start gap-4">
-                          {typeof booking.businessId === 'object' && booking.businessId.logo ? (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img
-                              src={booking.businessId.logo}
-                              alt={booking.businessId.businessName}
-                              className="w-16 h-16 rounded-full object-cover"
-                            />
-                          ) : (
-                            <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
-                              <span className="text-xl font-bold text-primary">
-                                {typeof booking.businessId === 'object'
-                                  ? booking.businessId.businessName?.charAt(0) || "B"
-                                  : "B"}
-                              </span>
-                            </div>
-                          )}
-                          <div className="flex-1">
-                            <h3 className="font-semibold">
-                              {typeof booking.businessId === 'object'
-                                ? booking.businessId.businessName
-                                : "Business"}
-                            </h3>
-                            <p className="text-sm text-muted-foreground">
-                              {typeof booking.serviceId === 'object'
-                                ? booking.serviceId.serviceName
-                                : "Service"}
-                            </p>
-                            <p className="text-xs text-muted-foreground mt-1">
-                              {formatDate(booking.timeSlot.date)} • {formatTime(booking.timeSlot.startTime)} - {formatTime(booking.timeSlot.endTime)}
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              Booking ID: {booking.id.slice(-4)}
-                            </p>
-                          </div>
+                  <div className="space-y-3">
+                    {getFilteredBookings().map((booking) => {
+                      const cardData = formatBookingForServiceCard(booking);
+                      return (
+                        <div
+                          key={booking.id}
+                          onClick={() => setSelectedBooking(booking)}
+                          className="cursor-pointer [&_a]:pointer-events-none"
+                        >
+                          <ServiceCard {...cardData} />
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
 
                   {/* Booking Details */}
@@ -545,58 +562,19 @@ export default function ShopperProfilePage() {
                 </div>
               ) : (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  <div className="space-y-4">
-                    {finishedBookings.map((booking) => (
-                      <div
-                        key={booking.id}
-                        onClick={() => setSelectedBooking(booking)}
-                        className={`card-polished p-4 cursor-pointer transition-colors ${selectedBooking?.id === booking.id
-                          ? "border-primary border-2"
-                          : "hover:border-primary/50"
-                          }`}
-                      >
-                        <div className="flex items-start gap-4">
-                          {typeof booking.businessId === 'object' && booking.businessId.logo ? (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img
-                              src={booking.businessId.logo}
-                              alt={booking.businessId.businessName}
-                              className="w-16 h-16 rounded-full object-cover"
-                            />
-                          ) : (
-                            <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
-                              <span className="text-xl font-bold text-primary">
-                                {typeof booking.businessId === 'object'
-                                  ? booking.businessId.businessName?.charAt(0) || "B"
-                                  : "B"}
-                              </span>
-                            </div>
-                          )}
-                          <div className="flex-1">
-                            <h3 className="font-semibold">
-                              {typeof booking.businessId === 'object'
-                                ? booking.businessId.businessName
-                                : "Business"}
-                            </h3>
-                            <p className="text-sm text-muted-foreground">
-                              {typeof booking.serviceId === 'object'
-                                ? booking.serviceId.serviceName
-                                : "Service"}
-                            </p>
-                            <p className="text-xs text-muted-foreground mt-1">
-                              {formatDate(booking.timeSlot.date)} • {formatTime(booking.timeSlot.startTime)} - {formatTime(booking.timeSlot.endTime)}
-                            </p>
-                            <p className="text-xs font-medium mt-2">
-                              {booking.status === "cancelled" ? (
-                                <span className="text-red-600">Cancelled</span>
-                              ) : (
-                                <span className="text-green-600">Finished</span>
-                              )}
-                            </p>
-                          </div>
+                  <div className="space-y-3">
+                    {finishedBookings.map((booking) => {
+                      const cardData = formatBookingForServiceCard(booking);
+                      return (
+                        <div
+                          key={booking.id}
+                          onClick={() => setSelectedBooking(booking)}
+                          className="cursor-pointer [&_a]:pointer-events-none"
+                        >
+                          <ServiceCard {...cardData} />
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
 
                   {selectedBooking && (

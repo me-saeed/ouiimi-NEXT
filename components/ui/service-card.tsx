@@ -12,6 +12,7 @@ interface ServiceCardProps {
     duration?: string;
     date?: string | null;
     time?: string | null;
+    bookingId?: string;
 }
 
 export function ServiceCard({
@@ -24,7 +25,8 @@ export function ServiceCard({
     location,
     duration,
     date,
-    time
+    time,
+    bookingId
 }: ServiceCardProps) {
     return (
         <Link
@@ -73,6 +75,12 @@ export function ServiceCard({
                             {time && (
                                 <span className="text-[12px] text-[#888888] leading-none">{time}</span>
                             )}
+                        </div>
+                    )}
+                    {/* Line 4: Booking ID - Only shown if provided */}
+                    {bookingId && (
+                        <div className="flex items-center gap-2.5">
+                            <span className="text-[12px] text-[#888888] leading-none">Booking ID: {bookingId.slice(-4)}</span>
                         </div>
                     )}
                 </div>
