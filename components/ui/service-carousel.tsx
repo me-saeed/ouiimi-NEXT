@@ -30,14 +30,14 @@ export function ServiceCarousel({ children, title, viewAllHref, totalCount = 0, 
 
   useEffect(() => {
     checkScrollability();
-    // Show "See More" button when there are exactly 6 services
+    // Show "See More" button when total count exceeds displayed count
     const childCount = Array.isArray(children) ? children.length : React.Children.count(children);
-    if (childCount >= 6) {
+    if (totalCount > childCount) {
       setShowShowMore(true);
     } else {
       setShowShowMore(false);
     }
-    
+
     const container = scrollContainerRef.current;
     if (container) {
       container.addEventListener("scroll", checkScrollability);
