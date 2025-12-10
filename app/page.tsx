@@ -65,42 +65,23 @@ export default function HomePage() {
       await Promise.all(
         SERVICE_CATEGORIES.map(async (category) => {
           try {
-            // Fetch first 6 services for display
+            // Fetch first 6 services - API now returns only available slots
             const response = await fetch(
               `/api/services?category=${encodeURIComponent(category)}&status=listed&limit=6`
             );
 
-            // Also fetch total count without limit
-            const countResponse = await fetch(
-              `/api/services?category=${encodeURIComponent(category)}&status=listed`
-            );
-
             if (response.ok) {
               const data = await response.json();
-              // Filter out services with no available slots (check if earliest slot exists)
-              const servicesWithSlots = (data.services || []).filter((service: Service) => {
-                const earliestSlot = getEarliestAvailableTimeSlot(service);
-                return earliestSlot !== null;
-              });
-              servicesData[category] = servicesWithSlots;
-
-              // Get total count from the count response
-              if (countResponse.ok) {
-                const countData = await countResponse.json();
-                const totalWithSlots = (countData.services || []).filter((service: Service) => {
-                  const earliestSlot = getEarliestAvailableTimeSlot(service);
-                  return earliestSlot !== null;
-                });
-                countsData[category] = totalWithSlots.length;
-              } else {
-                countsData[category] = servicesWithSlots.length;
-              }
+              // Services already filtered for available slots by API
+              servicesData[category] = data.services || [];
+              // Use pagination total from API
+              countsData[category] = data.pagination?.total || data.services?.length || 0;
             } else {
               servicesData[category] = [];
               countsData[category] = 0;
             }
           } catch (error) {
-            console.error(`Error loading services for ${category}:`, error);
+            console.error(`Error fetching ${category} services:`, error);
             servicesData[category] = [];
             countsData[category] = 0;
           }

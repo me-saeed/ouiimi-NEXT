@@ -1,4 +1,5 @@
 import Link from "next/link";
+import React from "react";
 
 interface ServiceCardProps {
     id: string;
@@ -15,7 +16,7 @@ interface ServiceCardProps {
     bookingId?: string;
 }
 
-export function ServiceCard({
+export const ServiceCard = React.memo(function ServiceCard({
     id,
     name,
     price,
@@ -87,4 +88,4 @@ export function ServiceCard({
             </div>
         </Link>
     );
-}
+});
