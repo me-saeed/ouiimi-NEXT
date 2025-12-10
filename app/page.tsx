@@ -69,6 +69,12 @@ export default function HomePage() {
             const response = await fetch(
               `/api/services?category=${encodeURIComponent(category)}&status=listed&limit=6`
             );
+
+            // Also fetch total count without limit
+            const countResponse = await fetch(
+              `/api/services?category=${encodeURIComponent(category)}&status=listed`
+            );
+
             if (response.ok) {
               const data = await response.json();
               // Filter out services with no available slots (check if earliest slot exists)
@@ -77,8 +83,18 @@ export default function HomePage() {
                 return earliestSlot !== null;
               });
               servicesData[category] = servicesWithSlots;
-              // Get total count from pagination (but only count services with available slots)
-              countsData[category] = servicesWithSlots.length;
+
+              // Get total count from the count response
+              if (countResponse.ok) {
+                const countData = await countResponse.json();
+                const totalWithSlots = (countData.services || []).filter((service: Service) => {
+                  const earliestSlot = getEarliestAvailableTimeSlot(service);
+                  return earliestSlot !== null;
+                });
+                countsData[category] = totalWithSlots.length;
+              } else {
+                countsData[category] = servicesWithSlots.length;
+              }
             } else {
               servicesData[category] = [];
               countsData[category] = 0;
@@ -115,16 +131,16 @@ export default function HomePage() {
     }
 
     const now = new Date();
-    
+
     // Find all available (not booked) future slots
     const availableSlots = service.timeSlots
       .filter((slot) => {
         if (slot.isBooked) return false;
-        
+
         const slotDate = typeof slot.date === 'string' ? new Date(slot.date) : new Date(slot.date);
         const slotDateOnly = new Date(slotDate.getFullYear(), slotDate.getMonth(), slotDate.getDate());
         const nowDateOnly = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        
+
         // If slot date is today, check if end time has passed
         if (slotDateOnly.getTime() === nowDateOnly.getTime()) {
           const [endHours, endMinutes] = slot.endTime.split(":").map(Number);
@@ -132,19 +148,19 @@ export default function HomePage() {
           slotEndDateTime.setHours(endHours, endMinutes, 0, 0);
           return slotEndDateTime > now;
         }
-        
+
         // If slot date is in the future
         return slotDateOnly > nowDateOnly;
       })
       .sort((a, b) => {
         const dateA = typeof a.date === 'string' ? new Date(a.date) : new Date(a.date);
         const dateB = typeof b.date === 'string' ? new Date(b.date) : new Date(b.date);
-        
+
         // Sort by date first
         if (dateA.getTime() !== dateB.getTime()) {
           return dateA.getTime() - dateB.getTime();
         }
-        
+
         // If same date, sort by start time
         const [hoursA, minsA] = a.startTime.split(":").map(Number);
         const [hoursB, minsB] = b.startTime.split(":").map(Number);
@@ -159,17 +175,17 @@ export default function HomePage() {
 
     const earliestSlot = availableSlots[0];
     const slotDate = typeof earliestSlot.date === 'string' ? new Date(earliestSlot.date) : new Date(earliestSlot.date);
-    
+
     // Format date as DD.MM.YY (06.06.26)
     const formattedDate = `${String(slotDate.getDate()).padStart(2, "0")}.${String(slotDate.getMonth() + 1).padStart(2, "0")}.${String(slotDate.getFullYear()).slice(-2)}`;
-    
+
     // Format time as "10:00 am - 12:00pm"
     const formattedTime = `${formatTime12Hour(earliestSlot.startTime)} - ${formatTime12Hour(earliestSlot.endTime)}`;
 
-    return { 
-      date: formattedDate, 
+    return {
+      date: formattedDate,
       time: formattedTime,
-      price: earliestSlot.price 
+      price: earliestSlot.price
     };
   };
 
@@ -177,7 +193,7 @@ export default function HomePage() {
     setSidePanelCategory(category);
     setSidePanelOpen(true);
     setExpandedSubcategories({});
-    
+
     // Fetch all services for this category
     try {
       const response = await fetch(
@@ -273,7 +289,7 @@ export default function HomePage() {
     };
   };
 
-// Removed: No longer grouping by subcategory
+  // Removed: No longer grouping by subcategory
 
   return (
     <PageLayout user={user}>
@@ -367,7 +383,7 @@ export default function HomePage() {
         {sidePanelOpen && (
           <div className="fixed inset-0 z-50 flex">
             {/* Backdrop */}
-            <div 
+            <div
               className="flex-1 bg-black/50 backdrop-blur-sm"
               onClick={() => setSidePanelOpen(false)}
             />
@@ -393,7 +409,7 @@ export default function HomePage() {
                   (() => {
                     const grouped = groupServicesBySubcategory(sidePanelServices);
                     const subcategories = Object.keys(grouped).sort();
-                    
+
                     return (
                       <div className="space-y-6">
                         {subcategories.map((subcategory) => {
@@ -401,12 +417,12 @@ export default function HomePage() {
                           const isExpanded = expandedSubcategories[subcategory];
                           const displayServices = isExpanded ? subcategoryServices : subcategoryServices.slice(0, 6);
                           const hasMore = subcategoryServices.length > 6;
-                          
+
                           return (
                             <div key={subcategory} className="space-y-3">
                               {/* Subcategory Heading */}
                               <h3 className="text-lg font-bold text-[#3A3A3A]">{subcategory}</h3>
-                              
+
                               {/* Services for this subcategory */}
                               <div className="space-y-3">
                                 {displayServices.map((service) => (
@@ -416,7 +432,7 @@ export default function HomePage() {
                                   />
                                 ))}
                               </div>
-                              
+
                               {/* See More button if there are more than 6 services */}
                               {hasMore && !isExpanded && (
                                 <button

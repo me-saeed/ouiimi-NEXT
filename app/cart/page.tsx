@@ -112,71 +112,61 @@ export default function CartPage() {
         return;
       }
 
-      // Create bookings for all items
+      // For multiple items, we'll only handle the first booking for now
+      // Future: Support multi-booking checkout
+      const firstItem = cartItems[0];
 
-      const bookings = await Promise.all(
-        cartItems.map(async (item, index) => {
+      // Parse time - format is "HH:MM - HH:MM" or "HH:MM-HH:MM"
+      const timeRange = firstItem.time.trim();
+      const [startTime, endTime] = timeRange.includes(" - ")
+        ? timeRange.split(" - ")
+        : timeRange.split("-");
 
+      const bookingPayload = {
+        userId: userId,
+        businessId: firstItem.businessId,
+        serviceId: firstItem.serviceId,
+        staffId: firstItem.staffId || undefined,
+        timeSlot: {
+          date: firstItem.date,
+          startTime: startTime.trim(),
+          endTime: endTime.trim(),
+        },
+        addOns: firstItem.addOns || [],
+        totalCost: firstItem.totalCost,
+        customerNotes: firstItem.description || undefined,
+      };
 
-          // Parse time - format is "HH:MM - HH:MM" or "HH:MM-HH:MM"
-          const timeRange = item.time.trim();
-          const [startTime, endTime] = timeRange.includes(" - ")
-            ? timeRange.split(" - ")
-            : timeRange.split("-");
+      const response = await fetch("/api/bookings", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(bookingPayload),
+      });
 
-          const bookingPayload = {
-            userId: userId,
-            businessId: item.businessId,
-            serviceId: item.serviceId,
-            staffId: item.staffId || undefined,
-            timeSlot: {
-              date: item.date,
-              startTime: startTime.trim(),
-              endTime: endTime.trim(),
-            },
-            addOns: item.addOns || [],
-            totalCost: item.totalCost,
-            customerNotes: item.description || undefined,
-          };
+      const responseData = await response.json();
 
-
-
-          const response = await fetch("/api/bookings", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify(bookingPayload),
-          });
-
-          const responseData = await response.json();
-
-          if (!response.ok) {
-            console.error(`Failed to create booking ${index + 1}:`, responseData);
-            throw new Error(responseData.error || responseData.details || "Failed to create booking");
-          }
-
-          return responseData;
-        })
-      );
-
-
+      if (!response.ok) {
+        console.error("Failed to create booking:", responseData);
+        throw new Error(responseData.error || responseData.details || "Failed to create booking");
+      }
 
       // Clear cart
       localStorage.removeItem("cart");
       setCartItems([]);
 
-      // Redirect to first booking confirmation page
-      if (bookings.length > 0 && bookings[0].booking?.id) {
-        router.push(`/bookings/${bookings[0].booking.id}/confirm`);
+      // Redirect to checkout page for payment
+      const bookingId = responseData.booking?.id || responseData.booking?._id;
+      if (bookingId) {
+        router.push(`/bookings/${bookingId}/checkout`);
       } else {
-        router.push("/profile?success=true");
+        throw new Error("No booking ID returned");
       }
     } catch (err: any) {
-      console.error("Error creating bookings:", err);
+      console.error("Error creating booking:", err);
       setError(err.message || "Failed to complete booking. Please try again.");
-    } finally {
       setIsProcessing(false);
     }
   };
@@ -325,7 +315,7 @@ export default function CartPage() {
                 <div className="card-polished p-6 space-y-4 sticky top-4">
                   <h2 className="text-xl font-semibold mb-4">Complete Booking</h2>
                   <p className="text-sm text-muted-foreground mb-4">
-                    For now, bookings can be made without payment. Payment integration will be added in production.
+                    You&apos;ll be redirected to secure payment to complete your booking.
                   </p>
                   <Button
                     onClick={handleBookNow}

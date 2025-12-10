@@ -74,7 +74,7 @@ export function BookingsTab({ business }: BookingsTabProps) {
   const monthDates = useMemo(() => {
     const dates: Array<{ date: Date; dateStr: string; day: number; weekday: string }> = [];
     const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
-    
+
     for (let day = 1; day <= daysInMonth; day++) {
       const date = new Date(currentYear, currentMonth, day);
       const dateStr = date.toISOString().split('T')[0];
@@ -124,7 +124,7 @@ export function BookingsTab({ business }: BookingsTabProps) {
     try {
       const token = localStorage.getItem("token");
       const businessId = business.id || business._id;
-      
+
       // For upcoming, get ALL bookings (no status filter) to check dates client-side
       // For pending/finished, we can filter by status on server
       let statusFilter = "";
@@ -156,15 +156,15 @@ export function BookingsTab({ business }: BookingsTabProps) {
         // Pending: Past bookings where admin hasn't released payment yet
         // Finished: Bookings where admin has released payment
         const now = new Date();
-        
+
         if (activeSubTab === "up-coming") {
           filteredBookings = filteredBookings.filter((b: Booking) => {
             try {
-              // Must be confirmed status
-              if (b.status !== "confirmed") {
+              // Show both confirmed AND pending bookings (pending = awaiting payment)
+              if (b.status !== "confirmed" && b.status !== "pending") {
                 return false;
               }
-              
+
               // Handle date format - could be Date object, ISO string, or date string
               let bookingDate: Date;
               const dateValue = b.timeSlot.date as any;
@@ -176,30 +176,30 @@ export function BookingsTab({ business }: BookingsTabProps) {
               } else {
                 return false;
               }
-              
+
               // Check if date is valid
               if (isNaN(bookingDate.getTime())) {
                 return false;
               }
-              
+
               // Extract date part only (YYYY-MM-DD) from the booking date
               const dateStr = bookingDate.toISOString().split('T')[0];
-              
+
               // Combine date with endTime (handle time format - might be HH:MM or HH:MM:SS)
               const endTime = (b.timeSlot.endTime || '').trim();
               if (!endTime) {
                 return false;
               }
-              
+
               // Ensure time is in HH:MM format
               const timeParts = endTime.split(':');
               const formattedTime = `${timeParts[0].padStart(2, '0')}:${timeParts[1] || '00'}`;
-              
+
               // Create datetime string in local timezone and parse it
               // Use the date from the booking and combine with time
               const bookingDateTimeStr = `${dateStr}T${formattedTime}`;
               const bookingDateTime = new Date(bookingDateTimeStr);
-              
+
               // If the date string doesn't include timezone, it's interpreted as local time
               // We need to compare in the same timezone context
               // Get the date components in local timezone
@@ -207,15 +207,15 @@ export function BookingsTab({ business }: BookingsTabProps) {
               const localMonth = bookingDate.getMonth();
               const localDay = bookingDate.getDate();
               const [hours, minutes] = formattedTime.split(':').map(Number);
-              
+
               // Create date in local timezone
               const localBookingDateTime = new Date(localYear, localMonth, localDay, hours, minutes);
-              
+
               // Check if datetime is valid
               if (isNaN(localBookingDateTime.getTime())) {
                 return false;
               }
-              
+
               return localBookingDateTime > now;
             } catch (error) {
               console.error('Error filtering booking:', error, b);
@@ -235,33 +235,33 @@ export function BookingsTab({ business }: BookingsTabProps) {
               } else {
                 return false;
               }
-              
+
               if (isNaN(bookingDate.getTime())) {
                 return false;
               }
-              
+
               // Extract date part only (YYYY-MM-DD)
               const dateStr = bookingDate.toISOString().split('T')[0];
-              
+
               // Combine date with endTime
               const endTime = b.timeSlot.endTime || '';
               const bookingDateTime = new Date(`${dateStr}T${endTime}`);
-              
+
               if (isNaN(bookingDateTime.getTime())) {
                 return false;
               }
-              
+
               // Past bookings where admin payment is still pending
-              return bookingDateTime <= now && 
-                     b.status === "confirmed" && 
-                     (b.adminPaymentStatus === "pending" || !b.adminPaymentStatus);
+              return bookingDateTime <= now &&
+                b.status === "confirmed" &&
+                (b.adminPaymentStatus === "pending" || !b.adminPaymentStatus);
             } catch (error) {
               console.error('Error filtering booking:', error, b);
               return false;
             }
           });
         } else if (activeSubTab === "finished") {
-          filteredBookings = filteredBookings.filter((b: Booking) => 
+          filteredBookings = filteredBookings.filter((b: Booking) =>
             b.adminPaymentStatus === "released"
           );
         }
@@ -407,7 +407,7 @@ export function BookingsTab({ business }: BookingsTabProps) {
   const formatBookingForServiceCard = (booking: Booking) => {
     const service = typeof booking.serviceId === 'object' ? booking.serviceId : null;
     const businessData = typeof booking.businessId === 'object' ? booking.businessId : null;
-    
+
     return {
       id: booking.id,
       name: service?.serviceName || 'Service',
@@ -439,11 +439,10 @@ export function BookingsTab({ business }: BookingsTabProps) {
       <div className="flex border-b border-border/50">
         <button
           onClick={() => setActiveSubTab("up-coming")}
-          className={`px-6 py-3 text-sm font-medium transition-colors relative ${
-            activeSubTab === "up-coming"
+          className={`px-6 py-3 text-sm font-medium transition-colors relative ${activeSubTab === "up-coming"
               ? "text-foreground"
               : "text-muted-foreground hover:text-foreground"
-          }`}
+            }`}
         >
           Up-coming
           {activeSubTab === "up-coming" && (
@@ -452,11 +451,10 @@ export function BookingsTab({ business }: BookingsTabProps) {
         </button>
         <button
           onClick={() => setActiveSubTab("pending")}
-          className={`px-6 py-3 text-sm font-medium transition-colors relative ${
-            activeSubTab === "pending"
+          className={`px-6 py-3 text-sm font-medium transition-colors relative ${activeSubTab === "pending"
               ? "text-red-500"
               : "text-muted-foreground hover:text-red-500"
-          }`}
+            }`}
         >
           Pending
           {activeSubTab === "pending" && (
@@ -465,11 +463,10 @@ export function BookingsTab({ business }: BookingsTabProps) {
         </button>
         <button
           onClick={() => setActiveSubTab("finished")}
-          className={`px-6 py-3 text-sm font-medium transition-colors relative ${
-            activeSubTab === "finished"
+          className={`px-6 py-3 text-sm font-medium transition-colors relative ${activeSubTab === "finished"
               ? "text-green-600"
               : "text-muted-foreground hover:text-green-600"
-          }`}
+            }`}
         >
           Finished
           {activeSubTab === "finished" && (
@@ -513,10 +510,10 @@ export function BookingsTab({ business }: BookingsTabProps) {
 
           {/* Swipeable Date Picker - All dates of month */}
           <div className="relative">
-            <div 
-              className="flex gap-1.5 overflow-x-auto pb-2 scrollbar-hide" 
-              style={{ 
-                scrollbarWidth: 'none', 
+            <div
+              className="flex gap-1.5 overflow-x-auto pb-2 scrollbar-hide"
+              style={{
+                scrollbarWidth: 'none',
                 msOverflowStyle: 'none',
                 WebkitOverflowScrolling: 'touch'
               }}
@@ -526,18 +523,17 @@ export function BookingsTab({ business }: BookingsTabProps) {
                 const isSelected = selectedDate === dateStr;
                 const isToday = dateStr === new Date().toISOString().split('T')[0];
                 const isPast = date < new Date() && !isToday;
-                
+
                 return (
                   <button
                     key={dateStr}
                     onClick={() => setSelectedDate(isSelected ? null : dateStr)}
-                    className={`flex flex-col items-center justify-center min-w-[55px] px-2 py-2 rounded-lg border transition-all ${
-                      isSelected
+                    className={`flex flex-col items-center justify-center min-w-[55px] px-2 py-2 rounded-lg border transition-all ${isSelected
                         ? "border-[#EECFD1] bg-[#EECFD1] text-[#3A3A3A] shadow-sm"
                         : isPast
-                        ? "border-gray-100 bg-gray-50 text-gray-400"
-                        : "border-gray-200 bg-white text-[#3A3A3A] hover:border-[#EECFD1] hover:bg-[#EECFD1]/10"
-                    }`}
+                          ? "border-gray-100 bg-gray-50 text-gray-400"
+                          : "border-gray-200 bg-white text-[#3A3A3A] hover:border-[#EECFD1] hover:bg-[#EECFD1]/10"
+                      }`}
                   >
                     <span className={`text-[10px] font-medium mb-0.5 ${isPast ? 'text-gray-400' : 'text-gray-600'}`}>
                       {weekday}
@@ -546,11 +542,10 @@ export function BookingsTab({ business }: BookingsTabProps) {
                       {day}
                     </span>
                     {count > 0 && (
-                      <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${
-                        isSelected 
-                          ? "bg-white text-[#EECFD1]" 
+                      <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${isSelected
+                          ? "bg-white text-[#EECFD1]"
                           : "bg-[#EECFD1] text-white"
-                      }`}>
+                        }`}>
                         {count}
                       </span>
                     )}
@@ -611,17 +606,16 @@ export function BookingsTab({ business }: BookingsTabProps) {
               <div
                 key={booking.id}
                 onClick={() => setSelectedBooking(booking)}
-                className={`p-4 border rounded-lg cursor-pointer transition-colors ${
-                  selectedBooking?.id === booking.id
+                className={`p-4 border rounded-lg cursor-pointer transition-colors ${selectedBooking?.id === booking.id
                     ? "border-primary bg-primary/5"
                     : "border-border hover:border-primary/50"
-                }`}
+                  }`}
               >
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <p className="font-medium">
-                      {typeof booking.serviceId === 'object' 
-                        ? booking.serviceId.serviceName 
+                      {typeof booking.serviceId === 'object'
+                        ? booking.serviceId.serviceName
                         : 'Service'}
                     </p>
                     <p className="text-sm text-muted-foreground">
@@ -647,8 +641,8 @@ export function BookingsTab({ business }: BookingsTabProps) {
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-lg font-semibold">
-                  {typeof selectedBooking.serviceId === 'object' 
-                    ? selectedBooking.serviceId.serviceName 
+                  {typeof selectedBooking.serviceId === 'object'
+                    ? selectedBooking.serviceId.serviceName
                     : 'Service'}
                 </h3>
                 <p className="text-sm text-muted-foreground">

@@ -207,44 +207,44 @@ async function updateBookingHandler(
     }
 
     const oldStatus = booking.status;
-    
-        if (validatedData.status) {
-          const oldStatus = booking.status;
-          booking.status = validatedData.status;
-          if (validatedData.status === "cancelled") {
-            booking.cancelledAt = new Date();
-            if (validatedData.cancellationReason) {
-              booking.cancellationReason = validatedData.cancellationReason;
+
+    if (validatedData.status) {
+      const oldStatus = booking.status;
+      booking.status = validatedData.status;
+      if (validatedData.status === "cancelled") {
+        booking.cancelledAt = new Date();
+        if (validatedData.cancellationReason) {
+          booking.cancellationReason = validatedData.cancellationReason;
+        }
+        booking.paymentStatus = "refunded";
+
+        // Free up the time slot in the service when booking is cancelled
+        if (oldStatus !== "cancelled") {
+          const service = await Service.findById(booking.serviceId);
+          if (service) {
+            const timeSlot = service.timeSlots.find((ts: any) => {
+              const tsDate = new Date(ts.date);
+              tsDate.setHours(0, 0, 0, 0);
+              const bookingDate = new Date(booking.timeSlot.date);
+              bookingDate.setHours(0, 0, 0, 0);
+              return (
+                tsDate.getTime() === bookingDate.getTime() &&
+                ts.startTime === booking.timeSlot.startTime &&
+                ts.endTime === booking.timeSlot.endTime &&
+                String(ts.bookingId) === String(booking._id)
+              );
+            });
+            if (timeSlot) {
+              timeSlot.isBooked = false;
+              timeSlot.bookingId = undefined;
+              await service.save();
             }
-            booking.paymentStatus = "refunded";
-            
-            // Free up the time slot in the service when booking is cancelled
-            if (oldStatus !== "cancelled") {
-              const service = await Service.findById(booking.serviceId);
-              if (service) {
-                const timeSlot = service.timeSlots.find((ts: any) => {
-                  const tsDate = new Date(ts.date);
-                  tsDate.setHours(0, 0, 0, 0);
-                  const bookingDate = new Date(booking.timeSlot.date);
-                  bookingDate.setHours(0, 0, 0, 0);
-                  return (
-                    tsDate.getTime() === bookingDate.getTime() &&
-                    ts.startTime === booking.timeSlot.startTime &&
-                    ts.endTime === booking.timeSlot.endTime &&
-                    String(ts.bookingId) === String(booking._id)
-                  );
-                });
-                if (timeSlot) {
-                  timeSlot.isBooked = false;
-                  timeSlot.bookingId = undefined;
-                  await service.save();
-                }
-              }
-            }
-          } else if (validatedData.status === "completed") {
-            booking.paymentStatus = "fully_paid";
           }
         }
+      } else if (validatedData.status === "completed") {
+        booking.paymentStatus = "fully_paid";
+      }
+    }
 
     if (validatedData.paymentStatus) {
       booking.paymentStatus = validatedData.paymentStatus;
@@ -274,7 +274,7 @@ async function updateBookingHandler(
       if (!mongooseForEmail.models.Service) {
         await import("@/lib/models/Service");
       }
-      
+
       const populatedBooking = await Booking.findById(booking._id)
         .populate("userId", "fname lname email")
         .populate("businessId", "businessName")
@@ -423,7 +423,7 @@ async function deleteBookingHandler(
     // Check if user owns the booking or is the business owner
     const userId = String(decoded.userId);
     const bookingUserId = String(booking.userId);
-    
+
     if (userId !== bookingUserId) {
       // Check if user is the business owner
       const business = await Business.findById(booking.businessId);
@@ -432,6 +432,29 @@ async function deleteBookingHandler(
           { error: "Unauthorized - You can only delete your own bookings" },
           { status: 403 }
         );
+      }
+    }
+
+    // Free up the time slot in the service before deleting
+    const service = await Service.findById(booking.serviceId);
+    if (service) {
+      const timeSlot = service.timeSlots.find((ts: any) => {
+        const tsDate = new Date(ts.date);
+        tsDate.setHours(0, 0, 0, 0);
+        const bookingDate = new Date(booking.timeSlot.date);
+        bookingDate.setHours(0, 0, 0, 0);
+        return (
+          tsDate.getTime() === bookingDate.getTime() &&
+          ts.startTime === booking.timeSlot.startTime &&
+          ts.endTime === booking.timeSlot.endTime &&
+          String(ts.bookingId) === String(booking._id)
+        );
+      });
+      if (timeSlot) {
+        timeSlot.isBooked = false;
+        timeSlot.bookingId = undefined;
+        await service.save();
+        console.log(`[Delete Booking] Released time slot for service ${service._id}`);
       }
     }
 

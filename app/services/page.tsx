@@ -77,15 +77,15 @@ function ServicesContent() {
               try {
                 // Geocode user account address
                 const { geocodeByAddress, getLatLng } = await import("react-google-places-autocomplete");
-            const userAddress = (user as any).address;
-            const results = await geocodeByAddress(userAddress);
-            const coordinates = await getLatLng(results[0]);
-            setUserLocation({
-              lat: coordinates.lat,
-              lng: coordinates.lng,
-            });
-            setLocationAddress(userAddress);
-            setValue("location", userAddress);
+                const userAddress = (user as any).address;
+                const results = await geocodeByAddress(userAddress);
+                const coordinates = await getLatLng(results[0]);
+                setUserLocation({
+                  lat: coordinates.lat,
+                  lng: coordinates.lng,
+                });
+                setLocationAddress(userAddress);
+                setValue("location", userAddress);
               } catch (err) {
                 console.error("Error geocoding user address:", err);
                 setUserLocation(null);
@@ -139,7 +139,7 @@ function ServicesContent() {
       let url = "/api/services?status=listed";
       if (category) url += `&category=${encodeURIComponent(category)}`;
       if (selectedDate) url += `&date=${encodeURIComponent(selectedDate)}`;
-      
+
       // Add location parameters for geospatial query
       if (userLocation) {
         url += `&latitude=${userLocation.lat}&longitude=${userLocation.lng}&radius=15`;
@@ -193,16 +193,16 @@ function ServicesContent() {
 
     const now = new Date();
     const filterDate = selectedDate ? new Date(selectedDate) : null;
-    
+
     // Find all available (not booked) future slots
     const availableSlots = service.timeSlots
       .filter((slot: any) => {
         if (slot.isBooked) return false;
-        
+
         const slotDate = typeof slot.date === 'string' ? new Date(slot.date) : new Date(slot.date);
         const slotDateOnly = new Date(slotDate.getFullYear(), slotDate.getMonth(), slotDate.getDate());
         const nowDateOnly = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        
+
         // If date filter is set, only show slots for that date
         if (filterDate) {
           const filterDateOnly = new Date(filterDate.getFullYear(), filterDate.getMonth(), filterDate.getDate());
@@ -210,7 +210,7 @@ function ServicesContent() {
             return false;
           }
         }
-        
+
         // If slot date is today, check if end time has passed
         if (slotDateOnly.getTime() === nowDateOnly.getTime()) {
           const [endHours, endMinutes] = slot.endTime.split(":").map(Number);
@@ -218,19 +218,19 @@ function ServicesContent() {
           slotEndDateTime.setHours(endHours, endMinutes, 0, 0);
           return slotEndDateTime > now;
         }
-        
+
         // If slot date is in the future
         return slotDateOnly > nowDateOnly;
       })
       .sort((a: any, b: any) => {
         const dateA = typeof a.date === 'string' ? new Date(a.date) : new Date(a.date);
         const dateB = typeof b.date === 'string' ? new Date(b.date) : new Date(b.date);
-        
+
         // Sort by date first
         if (dateA.getTime() !== dateB.getTime()) {
           return dateA.getTime() - dateB.getTime();
         }
-        
+
         // If same date, sort by start time
         const [hoursA, minsA] = a.startTime.split(":").map(Number);
         const [hoursB, minsB] = b.startTime.split(":").map(Number);
@@ -245,25 +245,25 @@ function ServicesContent() {
 
     const earliestSlot = availableSlots[0];
     const slotDate = typeof earliestSlot.date === 'string' ? new Date(earliestSlot.date) : new Date(earliestSlot.date);
-    
+
     // Format date as DD.MM.YY (06.06.26)
     const formattedDate = `${String(slotDate.getDate()).padStart(2, "0")}.${String(slotDate.getMonth() + 1).padStart(2, "0")}.${String(slotDate.getFullYear()).slice(-2)}`;
-    
+
     // Format time as "10:00 am - 12:00pm"
     const formattedTime = `${formatTime12Hour(earliestSlot.startTime)} - ${formatTime12Hour(earliestSlot.endTime)}`;
 
-    return { 
-      date: formattedDate, 
+    return {
+      date: formattedDate,
       time: formattedTime,
       price: earliestSlot.price,
-      duration: earliestSlot.duration 
+      duration: earliestSlot.duration
     };
   };
 
   const formatServiceForCard = (service: any) => {
     const earliestSlot = getEarliestAvailableTimeSlot(service);
     const business = typeof service.businessId === 'object' ? service.businessId : null;
-    
+
     // Calculate duration string
     let duration = "";
     if (earliestSlot && earliestSlot.duration) {
@@ -384,11 +384,11 @@ function ServicesContent() {
                 return earliestSlot !== null;
               })
               .map((service) => (
-              <ServiceCard
-                key={service.id}
-                {...formatServiceForCard(service)}
-              />
-            ))}
+                <ServiceCard
+                  key={service.id}
+                  {...formatServiceForCard(service)}
+                />
+              ))}
           </div>
         )}
       </div>

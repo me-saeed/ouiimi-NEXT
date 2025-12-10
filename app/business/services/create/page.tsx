@@ -1,4 +1,5 @@
 "use client";
+// Force rebuild
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
@@ -32,12 +33,109 @@ const SUB_CATEGORIES: Record<string, string[]> = {
   "Dog Grooming": ["Wash", "Cut", "Nails", "Full Groom", "Puppy Groom", "De-shedding"],
 };
 
+const SUB_CATEGORY_ADDONS: Record<string, Array<{ name: string; cost: number }>> = {
+  // Hair Services Add-Ons
+  "Haircut": [
+    { name: "Scalp Massage", cost: 30 },
+    { name: "Hydration/Repair", cost: 10 },
+    { name: "Toner", cost: 20 },
+    { name: "Extra Blow-Dry", cost: 50 },
+  ],
+  "Colouring": [
+    { name: "Extra Colour Bowl", cost: 30 },
+    { name: "Root Shadow/Blend", cost: 40 },
+    { name: "Gloss Refresh", cost: 40 },
+    { name: "Colour Lock Treatment", cost: 25 },
+  ],
+  "Blow-Dry & Styling": [
+    { name: "Hot Tool Styling", cost: 20 },
+    { name: "Braiding", cost: 30 },
+    { name: "Occasion Finish", cost: 40 },
+  ],
+  "Treatment": [
+    { name: "Scalp Massage", cost: 30 },
+    { name: "Deep Conditioning", cost: 20 },
+  ],
+  "Extensions": [
+    { name: "Cut & Blend", cost: 50 },
+    { name: "Style Finish", cost: 30 },
+  ],
+  "Men's Cut": [
+    { name: "Beard Trim", cost: 15 },
+    { name: "Scalp Massage", cost: 20 },
+  ],
+  "Women's Cut": [
+    { name: "Scalp Massage", cost: 30 },
+    { name: "Hydration/Repair", cost: 10 },
+  ],
+  "Kids Cut": [
+    { name: "Detangling", cost: 15 },
+    { name: "Braiding", cost: 20 },
+  ],
+
+  // Nails Add-Ons
+  "Manicure": [
+    { name: "French Tip", cost: 10 },
+    { name: "Gel Polish Upgrade", cost: 15 },
+    { name: "Cuticle Treatment", cost: 10 },
+    { name: "Paraffin Wax", cost: 20 },
+  ],
+  "Pedicure": [
+    { name: "French Tip", cost: 10 },
+    { name: "Gel Polish Upgrade", cost: 15 },
+    { name: "Callus Removal", cost: 15 },
+    { name: "Paraffin Wax", cost: 20 },
+  ],
+  "Gel": [
+    { name: "Nail Art (per nail)", cost: 5 },
+    { name: "French Tip", cost: 10 },
+  ],
+  "Acrylic": [
+    { name: "Nail Art (per nail)", cost: 5 },
+    { name: "French Tip", cost: 10 },
+    { name: "Length Upgrade", cost: 10 },
+  ],
+  "Nail Art": [], // Typically custom
+  "Removal": [{ name: "Hydrating Oil", cost: 5 }],
+
+  // Beauty & Brows Add-Ons
+  "Brows": [
+    { name: "Brow Tint", cost: 15 },
+    { name: "Lash Tint", cost: 20 },
+    { name: "Quick Facial", cost: 30 },
+    { name: "Lip Wax", cost: 10 },
+    { name: "Chin Wax", cost: 10 },
+  ],
+  "Lashes": [
+    { name: "Lash Tint", cost: 20 },
+    { name: "Brow Wax", cost: 20 },
+  ],
+  "Makeup": [
+    { name: "False Lashes", cost: 15 },
+    { name: "Airbrush Upgrade", cost: 30 },
+  ],
+  "Facial": [
+    { name: "LED Light Therapy", cost: 30 },
+    { name: "Extractions", cost: 20 },
+    { name: "Eye Treatment", cost: 15 },
+  ],
+  "Waxing": [
+    { name: "Soothing Gel", cost: 5 },
+  ],
+  "Threading": [
+    { name: "Soothing Gel", cost: 5 },
+  ],
+  "Tinting": [
+    { name: "Brow Wax", cost: 20 },
+  ],
+};
+
 export default function CreateServicePage() {
   const router = useRouter();
   const { toast } = useToast();
   const [user, setUser] = useState<any>(null);
   const [isClient, setIsClient] = useState(false);
-  
+
   useEffect(() => {
     console.log("[Create Service] Component mounted, setting isClient to true");
     setIsClient(true);
@@ -72,6 +170,10 @@ export default function CreateServicePage() {
   const [startMinute, setStartMinute] = useState<string>("00");
   const [startPeriod, setStartPeriod] = useState<"AM" | "PM">("AM");
 
+  // Add-ons state
+  const [selectedAddOns, setSelectedAddOns] = useState<Array<{ name: string; cost: number }>>([]);
+  const [isAddOnsDropdownOpen, setIsAddOnsDropdownOpen] = useState(false);
+
   // Form schema without businessId (we add it dynamically)
   // Make serviceName optional since we use subCategory instead, and make subCategory required
   // Remove baseCost and duration from schema since they're no longer needed
@@ -95,11 +197,18 @@ export default function CreateServicePage() {
   const selectedCategory = watch("category");
 
   useEffect(() => {
-    // Reset subCategory when category changes
+    // Reset subCategory and addOns when category changes
     if (selectedCategory) {
       setValue("subCategory", "");
+      setSelectedAddOns([]);
     }
   }, [selectedCategory, setValue]);
+
+  // Reset addOns when subCategory changes
+  const selectedSubCategory = watch("subCategory");
+  useEffect(() => {
+    setSelectedAddOns([]);
+  }, [selectedSubCategory]);
 
 
   useEffect(() => {
@@ -107,18 +216,18 @@ export default function CreateServicePage() {
       console.log("[Create Service] Waiting for client-side hydration...");
       return;
     }
-    
+
     console.log("[Create Service] Client-side ready, loading user data...");
     const token = localStorage.getItem("token");
     const userData = localStorage.getItem("user");
-    
+
     if (token && userData) {
       try {
         const parsedUser = typeof userData === 'string' ? JSON.parse(userData) : userData;
         if (parsedUser && typeof parsedUser === 'object') {
           console.log("[Create Service] User data loaded:", parsedUser.email || parsedUser.username);
-        setUser(parsedUser);
-        loadStaff(parsedUser);
+          setUser(parsedUser);
+          loadStaff(parsedUser);
         } else {
           console.warn("[Create Service] Invalid user data format, redirecting to signin");
           router.push("/signin");
@@ -135,16 +244,16 @@ export default function CreateServicePage() {
 
   const loadStaff = async (userData: any) => {
     if (typeof window === 'undefined') return;
-    
+
     console.log("[Create Service] loadStaff called for user:", userData?.id || userData?._id);
-    
+
     try {
       const token = localStorage.getItem("token");
       if (!token) {
         console.warn("[Create Service] No token found in loadStaff");
         return;
       }
-      
+
       const userId = userData?.id || userData?._id;
       if (!userId) {
         console.warn("[Create Service] No userId found in loadStaff");
@@ -189,13 +298,13 @@ export default function CreateServicePage() {
     if (!hour) return "";
     let h = parseInt(hour, 10);
     const m = parseInt(minute, 10) || 0;
-    
+
     if (period === "AM") {
       if (h === 12) h = 0;
     } else {
       if (h !== 12) h += 12;
     }
-    
+
     return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
   };
 
@@ -204,7 +313,7 @@ export default function CreateServicePage() {
     setSelectedDate(date);
     setShowDatePicker(false);
     if (!showTimeSlotForm) {
-    setShowTimeSlotForm(true);
+      setShowTimeSlotForm(true);
     }
     setNewTimeSlot({
       startTime: "",
@@ -223,23 +332,23 @@ export default function CreateServicePage() {
   // Check for time conflicts (overlapping time ranges)
   const checkTimeConflict = (startTime24: string, endTime24: string, staffIds: string[]): boolean => {
     if (!selectedDate || !startTime24 || !endTime24) return false;
-    
+
     const existingSlots = datesWithSlots[selectedDate] || [];
     const start = new Date(`2000-01-01T${startTime24}`);
     const end = new Date(`2000-01-01T${endTime24}`);
-    
+
     return existingSlots.some((existingSlot: any) => {
       const existingStart = new Date(`2000-01-01T${existingSlot.startTime}`);
       const existingEnd = new Date(`2000-01-01T${existingSlot.endTime}`);
       const existingStaff = (existingSlot.staffIds || []).sort();
       const selectedStaff = staffIds.sort();
-      
+
       // Check if staff overlap
-      const staffOverlap = selectedStaff.length === 0 || existingStaff.length === 0 || 
+      const staffOverlap = selectedStaff.length === 0 || existingStaff.length === 0 ||
         selectedStaff.some(id => existingStaff.includes(id));
-      
+
       if (!staffOverlap) return false;
-      
+
       // Check if time ranges overlap
       return (start < existingEnd && end > existingStart);
     });
@@ -260,23 +369,23 @@ export default function CreateServicePage() {
 
   const handleTimeChange = () => {
     if (!startHour) {
-    setNewTimeSlot({
+      setNewTimeSlot({
         ...newTimeSlot,
-      startTime: "",
-      endTime: "",
-    });
+        startTime: "",
+        endTime: "",
+      });
       setError("");
       return;
     }
 
     const startTime24 = convertTo24Hour(startHour, startMinute, startPeriod);
-    
+
     // Only set start time - end time must be explicitly selected
     setNewTimeSlot({
       ...newTimeSlot,
       startTime: startTime24,
     });
-    
+
     // If end time is set, validate it
     if (newTimeSlot.endTime) {
       const start = new Date(`2000-01-01T${startTime24}`);
@@ -295,20 +404,20 @@ export default function CreateServicePage() {
         return;
       }
     }
-    
+
     setError("");
   };
 
   useEffect(() => {
     if (startHour && startMinute && startPeriod) {
       const startTime24 = convertTo24Hour(startHour, startMinute, startPeriod);
-      
+
       // Only update start time - end time must be explicitly selected by user
       setNewTimeSlot(prev => ({
         ...prev,
         startTime: startTime24,
       }));
-      
+
       // Clear any existing error when start time changes
       if (newTimeSlot.endTime) {
         // If end time is already set, validate it
@@ -336,7 +445,7 @@ export default function CreateServicePage() {
   useEffect(() => {
     if (endHour && endMinute && endPeriod) {
       const endTime24 = convertTo24Hour(endHour, endMinute, endPeriod);
-      
+
       // Only validate if start time is set
       if (newTimeSlot.startTime) {
         // Validate end time is after start time
@@ -489,13 +598,24 @@ export default function CreateServicePage() {
           : [...prev, staffId]
       );
     } else {
-    setNewTimeSlot({
-      ...newTimeSlot,
-      staffIds: newTimeSlot.staffIds.includes(staffId)
-        ? newTimeSlot.staffIds.filter(id => id !== staffId)
-        : [...newTimeSlot.staffIds, staffId],
-    });
+      setNewTimeSlot({
+        ...newTimeSlot,
+        staffIds: newTimeSlot.staffIds.includes(staffId)
+          ? newTimeSlot.staffIds.filter(id => id !== staffId)
+          : [...newTimeSlot.staffIds, staffId],
+      });
     }
+  };
+
+  const handleToggleAddOn = (addOn: { name: string; cost: number }) => {
+    setSelectedAddOns(prev => {
+      const exists = prev.some(item => item.name === addOn.name);
+      if (exists) {
+        return prev.filter(item => item.name !== addOn.name);
+      } else {
+        return [...prev, addOn];
+      }
+    });
   };
 
   // Calculate duration in minutes from start and end time
@@ -611,7 +731,7 @@ export default function CreateServicePage() {
         router.push("/signin");
         return;
       }
-      
+
       const userId = parsedUser.id || parsedUser._id;
 
       if (!userId) {
@@ -619,9 +739,6 @@ export default function CreateServicePage() {
         setIsLoading(false);
         return;
       }
-
-
-
       // First, find the business for this user
       const businessResponse = await fetch(`/api/business/search?userId=${userId}`, {
         headers: {
@@ -649,8 +766,6 @@ export default function CreateServicePage() {
         setIsLoading(false);
         return;
       }
-
-
 
       // Validate subCategory is selected (it will be used as serviceName)
       if (!data.subCategory) {
@@ -684,7 +799,7 @@ export default function CreateServicePage() {
         address: data.address,
         businessId: foundBusinessId,
         defaultStaffIds: defaultStaffIds || [],
-        addOns: data.addOns || [],
+        addOns: selectedAddOns, // Include selected add-ons
         timeSlots: timeSlotsForSubmission.map(slot => ({
           date: typeof slot.date === 'string' ? slot.date : new Date(slot.date).toISOString().split('T')[0],
           startTime: String(slot.startTime),
@@ -694,8 +809,6 @@ export default function CreateServicePage() {
           staffIds: (slot.staffIds || []).map(id => String(id)),
         })),
       };
-
-
 
       console.log("[Create Service] Sending request to /api/services");
       console.time("[Create Service] API Request");
@@ -746,8 +859,6 @@ export default function CreateServicePage() {
         setIsLoading(false);
         return;
       }
-
-
 
       toast({
         variant: "success",
@@ -805,7 +916,7 @@ export default function CreateServicePage() {
       </PageLayout>
     );
   }
-  
+
   console.log("[Create Service] Rendering form - user:", user.email || user.username);
 
   return (
@@ -890,10 +1001,10 @@ export default function CreateServicePage() {
                   )}
                 </div>
 
-                  <div className="space-y-2">
-                    <label className="block text-sm font-semibold text-[#3A3A3A] mb-2">
+                <div className="space-y-2">
+                  <label className="block text-sm font-semibold text-[#3A3A3A] mb-2">
                     Service Name <span className="text-red-500">*</span>
-                    </label>
+                  </label>
                   <div className="relative">
                     <select
                       {...register("subCategory", { required: "Service name is required" })}
@@ -911,14 +1022,83 @@ export default function CreateServicePage() {
                       <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                       </svg>
+                    </div>
                   </div>
-              </div>
                   {errors.subCategory && (
                     <p className="text-red-500 text-sm mt-1">
                       {errors.subCategory.message}
                     </p>
                   )}
                 </div>
+
+                {/* Add-Ons Section */}
+                {selectedSubCategory && SUB_CATEGORY_ADDONS[selectedSubCategory] && SUB_CATEGORY_ADDONS[selectedSubCategory].length > 0 && (
+                  <div className="space-y-2">
+                    <label className="block text-sm font-semibold text-[#3A3A3A] mb-2">
+                      Add-Ons
+                    </label>
+                    <div className="relative">
+                      <button
+                        type="button"
+                        onClick={() => setIsAddOnsDropdownOpen(!isAddOnsDropdownOpen)}
+                        className="w-full px-4 py-2.5 bg-white border border-[#E5E5E5] rounded-lg text-left text-[#3A3A3A] focus:outline-none focus:ring-2 focus:ring-[#EECFD1]/20 focus:border-[#EECFD1] transition-all flex justify-between items-center"
+                      >
+                        <span className={selectedAddOns.length > 0 ? "text-[#3A3A3A]" : "text-[#888888]"}>
+                          {selectedAddOns.length > 0
+                            ? `${selectedAddOns.length} Add-on${selectedAddOns.length > 1 ? 's' : ''} Selected`
+                            : "Select Add-Ons"}
+                        </span>
+                        <svg className={`w-5 h-5 text-gray-400 transition-transform ${isAddOnsDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </button>
+
+                      {isAddOnsDropdownOpen && (
+                        <div className="absolute z-10 w-full mt-1 bg-white border border-[#E5E5E5] rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                          {SUB_CATEGORY_ADDONS[selectedSubCategory].map((addOn, index) => {
+                            const isSelected = selectedAddOns.some(item => item.name === addOn.name);
+                            return (
+                              <div
+                                key={index}
+                                className="flex items-center justify-between p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-0"
+                                onClick={() => handleToggleAddOn(addOn)}
+                              >
+                                <div className="flex items-center gap-3">
+                                  <div className={`w-5 h-5 rounded border flex items-center justify-center transition-colors ${isSelected ? 'bg-[#EECFD1] border-[#EECFD1]' : 'border-gray-300 bg-white'}`}>
+                                    {isSelected && (
+                                      <svg className="w-3.5 h-3.5 text-[#3A3A3A]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                                      </svg>
+                                    )}
+                                  </div>
+                                  <span className="text-sm text-[#3A3A3A]">{addOn.name}</span>
+                                </div>
+                                <span className="text-sm font-medium text-[#3A3A3A]">${addOn.cost}</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                    {/* Selected Add-ons Badges */}
+                    {selectedAddOns.length > 0 && (
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        {selectedAddOns.map((addOn, idx) => (
+                          <div key={idx} className="bg-[#EECFD1]/20 border border-[#EECFD1] rounded-full px-3 py-1 flex items-center gap-2">
+                            <span className="text-sm font-medium text-[#3A3A3A]">{addOn.name} (${addOn.cost})</span>
+                            <button
+                              type="button"
+                              onClick={() => handleToggleAddOn(addOn)}
+                              className="text-[#3A3A3A]/60 hover:text-[#3A3A3A]"
+                            >
+                              ×
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
 
@@ -990,24 +1170,11 @@ export default function CreateServicePage() {
 
               {/* Dates and Time Slots Section */}
               <div className="space-y-4 pt-6 border-t border-[#E5E5E5]">
-                  <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center justify-between mb-4">
                   <label className="block text-base font-bold text-[#3A3A3A]">
                     Dates & Time Slots <span className="text-red-500">*</span>
-                      </label>
-                    <div className="flex gap-2">
-                      <Button
-                        type="button"
-                        onClick={() => {
-                          setShowTimeSlotForm(true);
-                          if (!selectedDate) {
-                            setShowDatePicker(true);
-                          }
-                        }}
-                        variant="outline"
-                        className="h-9 px-4 rounded-lg border border-[#E5E5E5] bg-white hover:bg-[#F5F5F5] text-sm font-medium text-[#3A3A3A] transition-colors"
-                      >
-                        + Add Time Slot
-                      </Button>
+                  </label>
+                  <div className="flex gap-2">
                     <Button
                       type="button"
                       onClick={() => setShowDatePicker(true)}
@@ -1016,7 +1183,7 @@ export default function CreateServicePage() {
                     >
                       + Add Date
                     </Button>
-                    </div>
+                  </div>
                 </div>
 
                 {/* Date Picker Modal */}
@@ -1058,7 +1225,7 @@ export default function CreateServicePage() {
                       <div>
                         <h3 className="text-xl font-bold text-[#3A3A3A]">
                           {selectedDate ? `Add Time Slot` : "Add Time Slot"}
-                      </h3>
+                        </h3>
                         {selectedDate && (
                           <p className="text-sm text-gray-500 mt-1">
                             {new Date(selectedDate).toLocaleDateString("en-GB", {
@@ -1112,7 +1279,7 @@ export default function CreateServicePage() {
                                 <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                                 </svg>
-                      </div>
+                              </div>
                             </div>
                             <span className="text-[#3A3A3A] font-semibold text-lg">:</span>
                             <div className="flex-1 relative">
@@ -1144,11 +1311,10 @@ export default function CreateServicePage() {
                                   setNewTimeSlot({ ...newTimeSlot, startTime: "", endTime: "" });
                                 }}
                                 disabled={!selectedDate || !startHour}
-                                className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
-                                  startPeriod === "AM"
-                                    ? "bg-[#EECFD1] text-[#3A3A3A] shadow-sm"
-                                    : "text-gray-500 hover:text-[#3A3A3A] hover:bg-gray-50"
-                                } disabled:opacity-50 disabled:cursor-not-allowed`}
+                                className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${startPeriod === "AM"
+                                  ? "bg-[#EECFD1] text-[#3A3A3A] shadow-sm"
+                                  : "text-gray-500 hover:text-[#3A3A3A] hover:bg-gray-50"
+                                  } disabled:opacity-50 disabled:cursor-not-allowed`}
                               >
                                 AM
                               </button>
@@ -1159,17 +1325,16 @@ export default function CreateServicePage() {
                                   setNewTimeSlot({ ...newTimeSlot, startTime: "", endTime: "" });
                                 }}
                                 disabled={!selectedDate || !startHour}
-                                className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
-                                  startPeriod === "PM"
-                                    ? "bg-[#EECFD1] text-[#3A3A3A] shadow-sm"
-                                    : "text-gray-500 hover:text-[#3A3A3A] hover:bg-gray-50"
-                                } disabled:opacity-50 disabled:cursor-not-allowed`}
+                                className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${startPeriod === "PM"
+                                  ? "bg-[#EECFD1] text-[#3A3A3A] shadow-sm"
+                                  : "text-gray-500 hover:text-[#3A3A3A] hover:bg-gray-50"
+                                  } disabled:opacity-50 disabled:cursor-not-allowed`}
                               >
                                 PM
                               </button>
                             </div>
-                      </div>
-                    </div>
+                          </div>
+                        </div>
 
                       </div>
 
@@ -1229,11 +1394,10 @@ export default function CreateServicePage() {
                                   setEndPeriod("AM");
                                 }}
                                 disabled={!selectedDate || !newTimeSlot.startTime || !endHour}
-                                className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
-                                  endPeriod === "AM"
-                                    ? "bg-[#EECFD1] text-[#3A3A3A] shadow-sm"
-                                    : "text-gray-500 hover:text-[#3A3A3A] hover:bg-gray-50"
-                                } disabled:opacity-50 disabled:cursor-not-allowed`}
+                                className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${endPeriod === "AM"
+                                  ? "bg-[#EECFD1] text-[#3A3A3A] shadow-sm"
+                                  : "text-gray-500 hover:text-[#3A3A3A] hover:bg-gray-50"
+                                  } disabled:opacity-50 disabled:cursor-not-allowed`}
                               >
                                 AM
                               </button>
@@ -1243,17 +1407,16 @@ export default function CreateServicePage() {
                                   setEndPeriod("PM");
                                 }}
                                 disabled={!selectedDate || !newTimeSlot.startTime || !endHour}
-                                className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
-                                  endPeriod === "PM"
-                                    ? "bg-[#EECFD1] text-[#3A3A3A] shadow-sm"
-                                    : "text-gray-500 hover:text-[#3A3A3A] hover:bg-gray-50"
-                                } disabled:opacity-50 disabled:cursor-not-allowed`}
+                                className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${endPeriod === "PM"
+                                  ? "bg-[#EECFD1] text-[#3A3A3A] shadow-sm"
+                                  : "text-gray-500 hover:text-[#3A3A3A] hover:bg-gray-50"
+                                  } disabled:opacity-50 disabled:cursor-not-allowed`}
                               >
                                 PM
                               </button>
                             </div>
-                      </div>
-                    </div>
+                          </div>
+                        </div>
 
                         {/* Duration Display - Calculated */}
                         {newTimeSlot.startTime && newTimeSlot.endTime && (() => {
@@ -1270,15 +1433,15 @@ export default function CreateServicePage() {
                       </div>
 
                       {/* Price Field for Time Slot */}
-                    <div className="space-y-2">
+                      <div className="space-y-2">
                         <label className="block text-sm font-semibold text-[#3A3A3A]">
                           Price ($) <span className="text-red-500">*</span>
-                      </label>
-                      <div className="relative">
-                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[#888888]">$</span>
-                        <input
-                          type="number"
-                          step="0.01"
+                        </label>
+                        <div className="relative">
+                          <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[#888888]">$</span>
+                          <input
+                            type="number"
+                            step="0.01"
                             min="0"
                             value={newTimeSlot.price === "" ? "" : newTimeSlot.price}
                             onChange={(e) => {
@@ -1304,8 +1467,8 @@ export default function CreateServicePage() {
                       </div>
                     </div>
 
-                      <div className="space-y-2">
-                        <label className="text-sm font-semibold text-[#3A3A3A]">Assign Staff <span className="text-[#888888] text-xs font-normal">(Optional)</span></label>
+                    <div className="space-y-2">
+                      <label className="text-sm font-semibold text-[#3A3A3A]">Assign Staff <span className="text-[#888888] text-xs font-normal">(Optional)</span></label>
                       <div className={`border border-[#E5E5E5] rounded-lg p-3 bg-white max-h-40 overflow-y-auto space-y-2 ${!selectedDate ? 'opacity-60 pointer-events-none' : ''}`}>
                         {staff.length > 0 ? (
                           staff.map((member) => (
@@ -1332,8 +1495,8 @@ export default function CreateServicePage() {
                         ) : (
                           <p className="text-sm text-[#888888] text-center py-2">No staff members available</p>
                         )}
-                        </div>
                       </div>
+                    </div>
 
                     <div className="flex gap-3 pt-2">
                       <Button
@@ -1459,10 +1622,10 @@ export default function CreateServicePage() {
                   className="flex-1 h-11 rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isLoading ? (
-                    <>
+                    <div className="flex items-center justify-center">
                       <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
                       Creating...
-                    </>
+                    </div>
                   ) : (
                     "Create Service"
                   )}
