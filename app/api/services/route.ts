@@ -57,33 +57,33 @@ async function createServiceHandler(req: NextRequest) {
     const calculateDuration = (startTime: string, endTime: string): number => {
       const [startHours, startMinutes] = startTime.split(":").map(Number);
       const [endHours, endMinutes] = endTime.split(":").map(Number);
-      
+
       const startTotalMinutes = startHours * 60 + startMinutes;
       const endTotalMinutes = endHours * 60 + endMinutes;
-      
+
       // Handle case where end time is next day (e.g., 23:00 to 01:00)
       let duration = endTotalMinutes - startTotalMinutes;
       if (duration < 0) {
         duration += 24 * 60; // Add 24 hours
       }
-      
+
       return duration;
     };
 
     const timeSlots = (validatedData.timeSlots || []).map((slot) => {
       // Calculate duration from start and end time
       const duration = slot.duration || calculateDuration(slot.startTime, slot.endTime);
-      
+
       return {
-      date: new Date(slot.date),
-      startTime: slot.startTime,
-      endTime: slot.endTime,
+        date: new Date(slot.date),
+        startTime: slot.startTime,
+        endTime: slot.endTime,
         price: slot.price, // Required price for this time slot
         duration, // Computed duration in minutes
-      staffIds: slot.staffIds
-        ? slot.staffIds.map((id) => new mongoose.Types.ObjectId(id))
-        : [],
-      isBooked: false,
+        staffIds: slot.staffIds
+          ? slot.staffIds.map((id) => new mongoose.Types.ObjectId(id))
+          : [],
+        isBooked: false,
       };
     });
 
@@ -139,7 +139,7 @@ async function createServiceHandler(req: NextRequest) {
     console.error("[API /api/services POST] Error stack:", error.stack);
     console.error("[API /api/services POST] Error name:", error.name);
     console.timeEnd("[API /api/services POST] Total execution time");
-    
+
     return handleError(error, {
       endpoint: '/api/services',
       method: 'POST',
@@ -151,14 +151,14 @@ async function getServicesHandler(req: NextRequest) {
   const requestId = Math.random().toString(36).substring(7);
   console.log(`[API /api/services GET] Request received [${requestId}]`);
   console.time(`[API /api/services GET] Execution time [${requestId}]`);
-  
+
   try {
     await dbConnect();
 
     const { searchParams } = new URL(req.url);
     const category = searchParams.get("category");
     const subCategory = searchParams.get("subCategory");
-    
+
     console.log("[API /api/services GET] Query params:", {
       category,
       subCategory,
@@ -179,7 +179,7 @@ async function getServicesHandler(req: NextRequest) {
     console.log("[API /api/services GET] Building filter with businessId:", businessId);
 
     const filter: any = {};
-    
+
     // Only apply status filter if explicitly provided OR if no businessId (public listing)
     if (status) {
       filter.status = status;
@@ -199,7 +199,7 @@ async function getServicesHandler(req: NextRequest) {
       console.log("[API /api/services GET] Filtering by businessId:", businessId);
       filter.businessId = new mongoose.Types.ObjectId(businessId);
     }
-    
+
     console.log("[API /api/services GET] Final filter:", JSON.stringify(filter));
 
     // Helper function to filter time slots by date
@@ -212,21 +212,21 @@ async function getServicesHandler(req: NextRequest) {
           const slotDate = typeof ts.date === 'string' ? new Date(ts.date) : new Date(ts.date);
           const slotDateOnly = new Date(slotDate.getFullYear(), slotDate.getMonth(), slotDate.getDate());
           const nowDateOnly = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-          
+
           if (slotDateOnly.getTime() === nowDateOnly.getTime()) {
             const [endHours, endMinutes] = ts.endTime.split(":").map(Number);
             const slotEndDateTime = new Date(slotDate);
             slotEndDateTime.setHours(endHours, endMinutes, 0, 0);
             return slotEndDateTime > now;
           }
-          
+
           return slotDateOnly > nowDateOnly;
         });
       } else {
         // Filter by specific date
         const filterDateObj = new Date(filterDate);
         const filterDateOnly = new Date(filterDateObj.getFullYear(), filterDateObj.getMonth(), filterDateObj.getDate());
-        
+
         return timeSlots.filter((ts: any) => {
           if (ts.isBooked) return false;
           const slotDate = typeof ts.date === 'string' ? new Date(ts.date) : new Date(ts.date);
@@ -240,7 +240,7 @@ async function getServicesHandler(req: NextRequest) {
     if (latitude && longitude) {
       const lat = parseFloat(latitude);
       const lng = parseFloat(longitude);
-      
+
       if (!isNaN(lat) && !isNaN(lng)) {
         // Use $geoNear for geospatial queries with distance sorting
         const services = await Service.aggregate([
@@ -324,11 +324,11 @@ async function getServicesHandler(req: NextRequest) {
             subCategory: s.subCategory,
             serviceName: s.serviceName,
             description: s.description,
-            address: typeof s.address === 'object' && s.address?.street 
-              ? s.address.street 
+            address: typeof s.address === 'object' && s.address?.street
+              ? s.address.street
               : (typeof s.address === 'string' ? s.address : ""),
-            addressLocation: typeof s.address === 'object' && s.address?.location 
-              ? s.address.location 
+            addressLocation: typeof s.address === 'object' && s.address?.location
+              ? s.address.location
               : null,
             addOns: s.addOns || [],
             timeSlots: filterTimeSlotsByDate(s.timeSlots || [], date).map((ts: any) => ({
@@ -355,63 +355,154 @@ async function getServicesHandler(req: NextRequest) {
       }
     }
 
-    // Non-geospatial query (regular query)
+    // Non-geospatial query - Use aggregation for server-side filtering
     console.log("[API /api/services GET] Executing database query with filter:", filter);
-    const [services, total] = await Promise.all([
-      Service.find(filter)
-        .populate("businessId", "businessName logo address")
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(limit)
-        .lean(),
+
+    const now = new Date();
+    const filterDateObj = date ? new Date(date) : null;
+
+    // Build aggregation pipeline for server-side slot filtering
+    const aggregationPipeline: any[] = [
+      { $match: filter },
+      {
+        $addFields: {
+          availableTimeSlots: {
+            $filter: {
+              input: "$timeSlots",
+              as: "slot",
+              cond: {
+                $and: [
+                  { $eq: ["$$slot.isBooked", false] },
+                  // Date filtering
+                  filterDateObj
+                    ? {
+                      $eq: [
+                        {
+                          $dateToString: {
+                            format: "%Y-%m-%d",
+                            date: "$$slot.date",
+                          },
+                        },
+                        {
+                          $dateToString: {
+                            format: "%Y-%m-%d",
+                            date: filterDateObj,
+                          },
+                        },
+                      ],
+                    }
+                    : {
+                      $gte: [
+                        "$$slot.date",
+                        {
+                          $dateFromString: {
+                            dateString: {
+                              $dateToString: {
+                                format: "%Y-%m-%d",
+                                date: now,
+                              },
+                            },
+                          },
+                        },
+                      ],
+                    },
+                ],
+              },
+            },
+          },
+        },
+      },
+      {
+        $lookup: {
+          from: "businesses",
+          localField: "businessId",
+          foreignField: "_id",
+          as: "businessData",
+        },
+      },
+      {
+        $unwind: {
+          path: "$businessData",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $project: {
+          _id: 1,
+          businessId: {
+            id: "$businessData._id",
+            businessName: "$businessData.businessName",
+            logo: "$businessData.logo",
+            address: "$businessData.address",
+          },
+          category: 1,
+          subCategory: 1,
+          serviceName: 1,
+          description: 1,
+          address: 1,
+          addOns: 1,
+          timeSlots: "$availableTimeSlots",
+          status: 1,
+          createdAt: 1,
+        },
+      },
+      { $sort: { createdAt: -1 } },
+      { $skip: skip },
+      { $limit: limit },
+    ];
+
+    const [services, totalResult] = await Promise.all([
+      Service.aggregate(aggregationPipeline),
       Service.countDocuments(filter),
     ]);
-    
-    console.log("[API /api/services GET] Query results - Total:", total, "Returned:", services.length);
 
-    const filteredServices = services.filter((s: any) => s.businessId);
-    console.log(`[API /api/services GET] After filtering null businessId: ${filteredServices.length} [${requestId}]`);
+    const total = totalResult || 0;
+
+    console.log("[API /api/services GET] Query results - Total:", total, "Returned:", services.length);
+    console.log(`[API /api/services GET] Server-filtered available slots [${requestId}]`);
     console.timeEnd(`[API /api/services GET] Execution time [${requestId}]`);
 
     return NextResponse.json(
       {
-        services: filteredServices.map((s: any) => ({
-          id: s._id?.toString() || s._id,
-          _id: s._id?.toString() || s._id,
-          businessId: typeof s.businessId === 'object' ? {
-            id: s.businessId._id?.toString() || s.businessId._id,
-            businessName: s.businessId.businessName,
-            logo: s.businessId.logo,
-            address: s.businessId.address,
-          } : s.businessId?.toString() || s.businessId,
-          category: s.category,
-          subCategory: s.subCategory,
-          serviceName: s.serviceName,
-          description: s.description,
-          address: typeof s.address === 'object' && s.address?.street 
-            ? s.address.street 
-            : (typeof s.address === 'string' ? s.address : ""),
-          addressLocation: typeof s.address === 'object' && s.address?.location 
-            ? s.address.location 
-            : null,
-          addOns: s.addOns || [],
-          timeSlots: filterTimeSlotsByDate(s.timeSlots || [], date).map((ts: any) => ({
-            date: ts.date,
-            startTime: ts.startTime,
-            endTime: ts.endTime,
-            price: ts.price,
-            duration: ts.duration,
-            staffIds: ts.staffIds,
-            isBooked: ts.isBooked,
+        services: services
+          .filter((s: any) => s.businessId?.id)
+          .map((s: any) => ({
+            id: s._id?.toString() || s._id,
+            _id: s._id?.toString() || s._id,
+            businessId: s.businessId,
+            category: s.category,
+            subCategory: s.subCategory,
+            serviceName: s.serviceName,
+            description: s.description,
+            address:
+              typeof s.address === "object" && s.address?.street
+                ? s.address.street
+                : typeof s.address === "string"
+                  ? s.address
+                  : "",
+            addressLocation:
+              typeof s.address === "object" && s.address?.location
+                ? s.address.location
+                : null,
+            addOns: s.addOns || [],
+            timeSlots: (s.timeSlots || []).map((ts: any) => ({
+              date: ts.date,
+              startTime: ts.startTime,
+              endTime: ts.endTime,
+              price: ts.price,
+              duration: ts.duration,
+              staffIds: ts.staffIds,
+              isBooked: ts.isBooked,
+            })),
+            status: s.status,
+            createdAt: s.createdAt,
           })),
-          status: s.status,
-          createdAt: s.createdAt,
-        })),
         pagination: {
           total,
           page,
           limit,
           pages: Math.ceil(total / limit),
+          hasMore: page < Math.ceil(total / limit),
         },
       },
       { status: 200 }
