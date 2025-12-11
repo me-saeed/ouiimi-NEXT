@@ -256,12 +256,12 @@ export default function BusinessServicesPage() {
                 }, {} as Record<string, any[]>);
 
                 return (
-                  <div key={category} className="space-y-8">
+                  <div key={category} className="space-y-6 pb-8 mb-8 border-b-4 border-gray-100 last:border-b-0">
                     {/* Category Header */}
-                    <div className="flex items-center gap-3 pb-3 border-b-2 border-[#F5F5F5]">
-                      <Tag className="w-5 h-5 text-[#EECFD1]" />
+                    <div className="flex items-center gap-3 pb-4 border-b-2 border-[#EECFD1]/30 bg-gradient-to-r from-[#EECFD1]/5 to-transparent px-4 py-3 rounded-lg">
+                      <Tag className="w-6 h-6 text-[#EECFD1]" />
                       <h2 className="text-2xl font-bold text-[#3A3A3A]">{category}</h2>
-                      <span className="ml-auto bg-[#EECFD1]/10 text-[#EECFD1] px-3 py-1 rounded-full text-sm font-semibold">
+                      <span className="ml-auto bg-[#EECFD1]/20 text-[#EECFD1] px-4 py-1.5 rounded-full text-sm font-semibold">
                         {categoryServices.length} {categoryServices.length === 1 ? 'service' : 'services'}
                       </span>
                     </div>
@@ -269,14 +269,14 @@ export default function BusinessServicesPage() {
                     {/* Subcategories */}
                     <div className="space-y-8">
                       {(Object.entries(groupedBySubcategory) as [string, any[]][]).map(([subCategory, subCategoryServices]) => (
-                        <div key={subCategory} className="space-y-4">
+                        <div key={subCategory} className="space-y-3 pl-4">
                           {/* Subcategory Header */}
-                          <h3 className="text-lg font-bold text-[#3A3A3A] pl-2 border-l-4 border-[#EECFD1]">
+                          <h3 className="text-lg font-semibold text-[#5A5A5A] pl-3 border-l-4 border-[#EECFD1] bg-gray-50 py-2 rounded-r">
                             {subCategory}
                           </h3>
 
-                          {/* Services Grid for this subcategory */}
-                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                          {/* Services List for this subcategory */}
+                          <div className="flex flex-col gap-3">
                             {subCategoryServices.map((service) => {
                               const serviceId = service.id || service._id;
                               const cardData = formatServiceForCard(service);
@@ -284,7 +284,7 @@ export default function BusinessServicesPage() {
                                 <div
                                   key={serviceId}
                                   onClick={() => router.push(`/business/services/${serviceId}`)}
-                                  className="relative cursor-pointer [&_a]:pointer-events-none group"
+                                  className="relative cursor-pointer [&_a]:pointer-events-none group w-full"
                                 >
                                   <ServiceCard {...cardData} />
                                   {/* Edit Button - Top Right Corner */}

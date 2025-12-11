@@ -169,7 +169,7 @@ export function ListTab({ business }: ListTabProps) {
         const slotDate = new Date(slot.date);
         const slotDateOnly = new Date(slotDate.getFullYear(), slotDate.getMonth(), slotDate.getDate());
         const nowDateOnly = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        
+
         // If slot date is today, check if end time has passed
         if (slotDateOnly.getTime() === nowDateOnly.getTime()) {
           const [endHours, endMinutes] = slot.endTime.split(":").map(Number);
@@ -177,7 +177,7 @@ export function ListTab({ business }: ListTabProps) {
           slotEndDateTime.setHours(endHours, endMinutes, 0, 0);
           return slotEndDateTime > now;
         }
-        
+
         // If slot date is in the future
         return slotDateOnly > nowDateOnly;
       })
@@ -284,53 +284,85 @@ export function ListTab({ business }: ListTabProps) {
           </Link>
         </div>
       ) : (
-        <div className="space-y-8">
-          {Object.entries(groupedServices).map(([category, categoryServices]) => (
-            <div key={category} className="space-y-4">
-              <h3 className="text-lg font-bold text-[#3A3A3A] pb-2 border-b border-[#F5F5F5]">{category}</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                {categoryServices.map((service) => {
-                  const serviceId = service.id || service._id;
-                  const cardData = formatServiceForCard(service);
-                  return (
-                    <div
-                      key={serviceId}
-                      className="relative"
-                    >
-                      <div
-                        onClick={() => router.push(`/business/services/${serviceId}`)}
-                        className="cursor-pointer [&_a]:pointer-events-none"
-                      >
-                        <ServiceCard {...cardData} />
-                      </div>
-                      {/* Action Buttons - Top Right Corner of Service Card */}
-                      <div className="absolute top-2 right-2 flex gap-3 z-20 pointer-events-none">
-                        {/* Edit Button */}
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            router.push(`/business/services/${serviceId}/edit`);
-                          }}
-                          className="p-2 hover:bg-gray-100 rounded-lg transition-colors pointer-events-auto bg-white/90 backdrop-blur-sm"
-                          title="Edit Service"
-                        >
-                          <Pencil className="w-5 h-5 text-gray-500" strokeWidth={2} />
-                        </button>
-                        {/* Delete Button */}
-                        <button
-                          onClick={(e) => handleDeleteClick(serviceId, e)}
-                          className="p-2 hover:bg-red-100/50 rounded-lg transition-colors pointer-events-auto bg-white/90 backdrop-blur-sm"
-                          title="Delete Service"
-                        >
-                          <Trash2 className="w-5 h-5 text-red-400" strokeWidth={2} />
-                        </button>
+        <div className="space-y-10">
+          {Object.entries(groupedServices).map(([category, categoryServices]) => {
+            // Group services by subcategory within this category
+            const groupedBySubcategory = categoryServices.reduce((acc, service) => {
+              const subCategory = service.subCategory || "Other";
+              if (!acc[subCategory]) {
+                acc[subCategory] = [];
+              }
+              acc[subCategory].push(service);
+              return acc;
+            }, {} as Record<string, Service[]>);
+
+            return (
+              <div key={category} className="space-y-6 pb-8 border-b-2 border-gray-100 last:border-b-0">
+                {/* Category Header */}
+                <div className="flex items-center gap-3 pb-3 border-b-2 border-[#EECFD1]/30 bg-gradient-to-r from-[#EECFD1]/5 to-transparent px-4 py-3 rounded-lg">
+                  <h2 className="text-2xl font-bold text-[#3A3A3A]">{category}</h2>
+                  <span className="ml-auto bg-gray-100 text-gray-700 px-4 py-1.5 rounded-full text-sm font-medium">
+                    {categoryServices.length} {categoryServices.length === 1 ? 'service' : 'services'}
+                  </span>
+                </div>
+
+                {/* Subcategories */}
+                <div className="space-y-6">
+                  {Object.entries(groupedBySubcategory).map(([subCategory, subCategoryServices]) => (
+                    <div key={subCategory} className="space-y-3 pl-4">
+                      {/* Subcategory Header */}
+                      <h3 className="text-lg font-semibold text-[#5A5A5A] pl-3 border-l-4 border-[#EECFD1] bg-gray-50 py-2 rounded-r">
+                        {subCategory}
+                      </h3>
+
+                      {/* Services List for this subcategory */}
+                      <div className="flex flex-col gap-3 pl-2">
+                        {subCategoryServices.map((service) => {
+                          const serviceId = service.id || service._id;
+                          const cardData = formatServiceForCard(service);
+                          return (
+                            <div
+                              key={serviceId}
+                              className="relative"
+                            >
+                              <div
+                                onClick={() => router.push(`/business/services/${serviceId}`)}
+                                className="cursor-pointer [&_a]:pointer-events-none"
+                              >
+                                <ServiceCard {...cardData} />
+                              </div>
+                              {/* Action Buttons - Top Right Corner of Service Card */}
+                              <div className="absolute top-2 right-2 flex gap-3 z-20 pointer-events-none">
+                                {/* Edit Button */}
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    router.push(`/business/services/${serviceId}/edit`);
+                                  }}
+                                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors pointer-events-auto bg-white/90 backdrop-blur-sm"
+                                  title="Edit Service"
+                                >
+                                  <Pencil className="w-5 h-5 text-gray-500" strokeWidth={2} />
+                                </button>
+                                {/* Delete Button */}
+                                <button
+                                  onClick={(e) => handleDeleteClick(serviceId, e)}
+                                  className="p-2 hover:bg-red-100/50 rounded-lg transition-colors pointer-events-auto bg-white/90 backdrop-blur-sm"
+                                  title="Delete Service"
+                                >
+                                  <Trash2 className="w-5 h-5 text-red-400" strokeWidth={2} />
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
-                  );
-                })}
+                  ))}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 

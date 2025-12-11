@@ -307,6 +307,11 @@ async function createBookingHandler(req: NextRequest) {
 
     console.log("Atomic slot reservation successful");
 
+    // Generate sequential booking number starting from 5000
+    const lastBooking = await Booking.findOne().sort({ bookingNumber: -1 }).select('bookingNumber');
+    const bookingNumber = lastBooking?.bookingNumber ? lastBooking.bookingNumber + 1 : 5000;
+    console.log("Generated booking number:", bookingNumber);
+
     // Calculate platform fee (e.g., 1.99) and service amount
     const PLATFORM_FEE = 1.99;
     const platformFee = PLATFORM_FEE;
@@ -314,6 +319,7 @@ async function createBookingHandler(req: NextRequest) {
 
     const bookingData: any = {
       _id: bookingId,
+      bookingNumber: bookingNumber,
       userId: new mongoose.Types.ObjectId(validatedData.userId),
       businessId: new mongoose.Types.ObjectId(validatedData.businessId),
       serviceId: new mongoose.Types.ObjectId(validatedData.serviceId),
@@ -603,32 +609,33 @@ async function getBookingsHandler(req: NextRequest) {
         bookings: bookings.map((b: any) => ({
           id: b._id?.toString() || b._id,
           _id: b._id?.toString() || b._id,
-          userId: typeof b.userId === 'object' ? {
+          userId: (b.userId && typeof b.userId === 'object') ? {
             id: b.userId._id?.toString(),
             fname: b.userId.fname,
             lname: b.userId.lname,
             email: b.userId.email,
             contactNo: b.userId.contactNo,
-          } : b.userId?.toString(),
-          businessId: typeof b.businessId === 'object' ? {
+          } : b.userId?.toString() || null,
+          businessId: (b.businessId && typeof b.businessId === 'object') ? {
             id: b.businessId._id?.toString(),
             businessName: b.businessId.businessName,
             logo: b.businessId.logo,
             address: b.businessId.address,
             email: b.businessId.email,
             phone: b.businessId.phone,
-          } : b.businessId?.toString(),
-          serviceId: typeof b.serviceId === 'object' ? {
+          } : b.businessId?.toString() || null,
+          serviceId: (b.serviceId && typeof b.serviceId === 'object') ? {
             id: b.serviceId._id?.toString(),
             serviceName: b.serviceId.serviceName,
             category: b.serviceId.category,
             baseCost: 0, // Price is now in time slots
-          } : b.serviceId?.toString(),
+          } : b.serviceId?.toString() || null,
           staffId: b.staffId ? (typeof b.staffId === 'object' ? {
             id: b.staffId._id?.toString(),
             name: b.staffId.name,
             photo: b.staffId.photo,
           } : b.staffId.toString()) : null,
+          bookingNumber: b.bookingNumber || null, // Fallback for old bookings without bookingNumber
           timeSlot: b.timeSlot,
           addOns: b.addOns || [],
           totalCost: b.totalCost,

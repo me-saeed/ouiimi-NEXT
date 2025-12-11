@@ -52,19 +52,19 @@ export const ServiceCard = React.memo(function ServiceCard({
                 </div>
 
                 {/* Right: Content Area - Three lines, all left-aligned */}
-                <div className="flex-1 min-w-0 flex flex-col justify-center gap-1.5">
-                    {/* Line 1: Business/Staff Name - Largest, bold, dark gray */}
-                    <p className="text-[16px] font-semibold text-[#3A3A3A] truncate leading-none">
+                <div className="flex-1 min-w-0 flex flex-col justify-center gap-2">
+                    {/* Line 1: Business/Staff Name - 10% smaller, 15% lighter color */}
+                    <p className="text-[14px] font-semibold text-[#4a4a4a] truncate leading-none">
                         {businessName || "Business Name"}
                     </p>
 
-                    {/* Line 2: Service Name + Duration + Price - Same line, normal weight, dark gray */}
+                    {/* Line 2: Service Name + Duration + Price - Same line, normal weight, lighter */}
                     <div className="flex items-baseline gap-2.5 flex-wrap">
-                        <span className="text-[14px] text-[#3A3A3A] leading-none">{name}</span>
+                        <span className="text-[14px] text-[#5a5a5a] leading-none">{name}</span>
                         {duration && (
-                            <span className="text-[14px] text-[#3A3A3A] leading-none">{duration}</span>
+                            <span className="text-[14px] text-[#5a5a5a] leading-none">{duration}</span>
                         )}
-                        <span className="text-[14px] text-[#3A3A3A] leading-none">${(price || 0).toFixed(2)}</span>
+                        <span className="text-[14px] text-[#5a5a5a] leading-none">${(price || 0).toFixed(2)}</span>
                     </div>
 
                     {/* Line 3: Date + Time - Smallest, lighter gray, normal weight */}

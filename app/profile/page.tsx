@@ -198,64 +198,6 @@ export default function ShopperProfilePage() {
     }
   };
 
-  const handleDeleteBooking = async (bookingId: string) => {
-    if (!confirm("Are you sure you want to delete this booking? This action cannot be undone.")) {
-      return;
-    }
-
-    try {
-      const token = localStorage.getItem("token");
-      const response = await fetch(`/api/bookings/${bookingId}`, {
-        method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (response.ok) {
-        setSuccess("Booking deleted successfully");
-        setSelectedBooking(null);
-        if (user) loadBookings(user);
-        setTimeout(() => setSuccess(""), 3000);
-      } else {
-        const data = await response.json();
-        setError(data.error || "Failed to delete booking");
-      }
-    } catch (e) {
-      console.error("Error deleting booking:", e);
-      setError("Failed to delete booking");
-    }
-  };
-
-  const handleRescheduleBooking = async (bookingId: string, newTimeSlot: { date: string; startTime: string; endTime: string }) => {
-    try {
-      const token = localStorage.getItem("token");
-      const response = await fetch(`/api/bookings/${bookingId}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          timeSlot: newTimeSlot,
-        }),
-      });
-
-      if (response.ok) {
-        setSuccess("Booking rescheduled successfully");
-        setSelectedBooking(null);
-        if (user) loadBookings(user);
-        setTimeout(() => setSuccess(""), 3000);
-      } else {
-        const data = await response.json();
-        setError(data.error || "Failed to reschedule booking");
-      }
-    } catch (e) {
-      console.error("Error rescheduling booking:", e);
-      setError("Failed to reschedule booking");
-    }
-  };
-
   const handleRebook = (booking: Booking) => {
     const businessId = typeof booking.businessId === 'object'
       ? booking.businessId.id || booking.businessId._id
@@ -328,7 +270,7 @@ export default function ShopperProfilePage() {
   const formatBookingForServiceCard = (booking: Booking) => {
     const service = typeof booking.serviceId === 'object' ? booking.serviceId : null;
     const businessData = typeof booking.businessId === 'object' ? booking.businessId : null;
-    
+
     // Calculate duration from time slot
     const startTime = booking.timeSlot.startTime;
     const endTime = booking.timeSlot.endTime;
@@ -347,7 +289,7 @@ export default function ShopperProfilePage() {
         duration = `${mins}mins`;
       }
     }
-    
+
     return {
       id: booking.id,
       name: service?.serviceName || 'Service',
@@ -538,8 +480,7 @@ export default function ShopperProfilePage() {
                     <BookingDetailView
                       booking={selectedBooking}
                       onCancel={() => handleCancelBooking(selectedBooking.id)}
-                      onDelete={() => handleDeleteBooking(selectedBooking.id)}
-                      onReschedule={(newTimeSlot) => handleRescheduleBooking(selectedBooking.id, newTimeSlot)}
+                      onReschedule={() => handleRebook(selectedBooking)}
                       onContact={() => setShowContact(true)}
                       showContact={showContact}
                       onCloseContact={() => setShowContact(false)}
@@ -635,7 +576,6 @@ export default function ShopperProfilePage() {
 function BookingDetailView({
   booking,
   onCancel,
-  onDelete,
   onReschedule,
   onContact,
   showContact,
@@ -643,16 +583,11 @@ function BookingDetailView({
 }: {
   booking: Booking;
   onCancel: () => void;
-  onDelete: () => void;
-  onReschedule: (newTimeSlot: { date: string; startTime: string; endTime: string }) => void;
+  onReschedule: () => void;
   onContact: () => void;
   showContact: boolean;
   onCloseContact: () => void;
 }) {
-  const [showReschedule, setShowReschedule] = useState(false);
-  const [newDate, setNewDate] = useState("");
-  const [newStartTime, setNewStartTime] = useState("");
-  const [newEndTime, setNewEndTime] = useState("");
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -763,11 +698,11 @@ function BookingDetailView({
       <div className="flex flex-col gap-3">
         <div className="flex gap-3">
           <Button
-            onClick={() => setShowReschedule(!showReschedule)}
+            onClick={onReschedule}
             variant="outline"
             className="flex-1"
           >
-            {showReschedule ? "Cancel Reschedule" : "Reschedule"}
+            Reschedule
           </Button>
           <Button
             onClick={onContact}
@@ -777,74 +712,14 @@ function BookingDetailView({
             Contact
           </Button>
         </div>
-        <div className="flex gap-3">
-          <Button
-            onClick={onCancel}
-            variant="outline"
-            className="flex-1 border-red-500 text-red-500 hover:bg-red-50"
-          >
-            Cancel Booking
-          </Button>
-          <Button
-            onClick={onDelete}
-            className="flex-1 bg-red-600 hover:bg-red-700 text-white"
-          >
-            Delete
-          </Button>
-        </div>
+        <Button
+          onClick={onCancel}
+          variant="outline"
+          className="w-full border-red-500 text-red-500 hover:bg-red-50"
+        >
+          Cancel Booking
+        </Button>
       </div>
-
-      {showReschedule && (
-        <div className="border-t pt-4 mt-4 space-y-4">
-          <h4 className="font-semibold">Reschedule Booking</h4>
-          <div className="grid grid-cols-3 gap-4">
-            <div>
-              <label className="block text-sm font-medium mb-1">New Date</label>
-              <input
-                type="date"
-                value={newDate}
-                onChange={(e) => setNewDate(e.target.value)}
-                min={new Date().toISOString().split('T')[0]}
-                className="w-full px-3 py-2 border rounded-lg"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">Start Time</label>
-              <input
-                type="time"
-                value={newStartTime}
-                onChange={(e) => setNewStartTime(e.target.value)}
-                className="w-full px-3 py-2 border rounded-lg"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">End Time</label>
-              <input
-                type="time"
-                value={newEndTime}
-                onChange={(e) => setNewEndTime(e.target.value)}
-                className="w-full px-3 py-2 border rounded-lg"
-              />
-            </div>
-          </div>
-          <Button
-            onClick={() => {
-              if (newDate && newStartTime && newEndTime) {
-                onReschedule({
-                  date: newDate,
-                  startTime: newStartTime,
-                  endTime: newEndTime,
-                });
-                setShowReschedule(false);
-              }
-            }}
-            disabled={!newDate || !newStartTime || !newEndTime}
-            className="w-full btn-polished-primary"
-          >
-            Confirm Reschedule
-          </Button>
-        </div>
-      )}
 
       {showContact && (
         <ContactView

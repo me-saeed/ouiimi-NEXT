@@ -11,7 +11,7 @@ interface RateLimitStore {
 const store: RateLimitStore = {};
 
 const WINDOW_MS = parseInt(process.env.RATE_LIMIT_WINDOW_MS || "900000", 10); // 15 minutes default
-const MAX_REQUESTS = parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || "100", 10);
+const MAX_REQUESTS = parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || "10000", 10); // 10000 for development, set lower in production
 
 // Cleanup interval to prevent memory leaks
 setInterval(() => {
