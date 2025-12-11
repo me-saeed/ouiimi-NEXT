@@ -21,6 +21,7 @@ export default function BookingConfirmPage() {
   const [error, setError] = useState("");
   const [paymentVerified, setPaymentVerified] = useState(false);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (bookingId && sessionId) {
       verifyPaymentAndLoadBooking();
