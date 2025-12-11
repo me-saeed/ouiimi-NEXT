@@ -511,6 +511,22 @@ export function BookingsTab({ business }: BookingsTabProps) {
           {/* Swipeable Date Picker - All dates of month */}
           <div className="relative">
             <div
+              ref={(el) => {
+                if (el) {
+                  // Auto-scroll to today
+                  const today = new Date();
+                  const isCurrentMonth = today.getMonth() === currentMonth && today.getFullYear() === currentYear;
+
+                  if (isCurrentMonth) {
+                    const day = today.getDate();
+                    // Calculate position: (Day - 1) * (ItemWidth + Gap)
+                    // Item width is approx 55px padding + borders, gap is 6px (1.5rem/4)
+                    // Adjusting to ensure it is the first visible block (align left)
+                    const scrollPos = (day - 1) * 65; // Approx width + gap
+                    el.scrollLeft = scrollPos;
+                  }
+                }
+              }}
               className="flex gap-1.5 overflow-x-auto pb-2 scrollbar-hide"
               style={{
                 scrollbarWidth: 'none',

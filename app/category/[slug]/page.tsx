@@ -1,14 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation";
 import PageLayout from "@/components/layout/PageLayout";
 import { ServiceCard } from "@/components/ui/service-card";
 import { useAuth } from "@/lib/contexts/AuthContext";
 
-export default function CategoryPage() {
-    const searchParams = useSearchParams();
-    const category = searchParams.get("category") || "Hair Services";
+export default function CategoryPage({ params }: { params: { slug: string } }) {
+    const category = decodeURIComponent(params.slug);
     const { user } = useAuth();
 
     const [services, setServices] = useState<any[]>([]);
@@ -141,11 +139,13 @@ export default function CategoryPage() {
     return (
         <PageLayout user={user}>
             <div className="bg-white min-h-screen py-8 md:py-12">
-                <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-6xl">
+                <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl">
                     {/* Category Title */}
-                    <h1 className="text-2xl md:text-3xl font-bold text-[#3A3A3A] mb-8 text-center">
-                        {category}
-                    </h1>
+                    <div className="flex items-center justify-center mb-8 md:mb-12">
+                        <h1 className="text-2xl md:text-3xl font-bold text-[#3A3A3A]">
+                            {category}
+                        </h1>
+                    </div>
 
                     {isLoading ? (
                         <div className="flex justify-center py-12">
@@ -156,21 +156,22 @@ export default function CategoryPage() {
                             No services available in this category.
                         </div>
                     ) : (
-                        <div className="space-y-10">
+                        <div className="space-y-12">
                             {(Object.entries(servicesBySubcategory) as [string, any[]][]).map(([subCat, subCatServices]) => (
-                                <div key={subCat} className="space-y-4">
+                                <div key={subCat} className="space-y-6">
                                     {/* Subcategory Title */}
-                                    <h2 className="text-lg md:text-xl font-bold text-[#3A3A3A]">
+                                    <h2 className="text-xl md:text-2xl font-bold text-[#3A3A3A] border-b border-gray-100 pb-2">
                                         {subCat}
                                     </h2>
 
-                                    {/* Services for this subcategory */}
-                                    <div className="space-y-3">
+                                    {/* Services List (Vertical) */}
+                                    <div className="flex flex-col space-y-4">
                                         {subCatServices.map((service) => (
-                                            <ServiceCard
-                                                key={service.id}
-                                                {...formatServiceForCard(service)}
-                                            />
+                                            <div key={service.id} className="w-full">
+                                                <ServiceCard
+                                                    {...formatServiceForCard(service)}
+                                                />
+                                            </div>
                                         ))}
                                     </div>
                                 </div>
