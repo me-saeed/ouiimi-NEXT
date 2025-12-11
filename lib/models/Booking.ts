@@ -55,6 +55,7 @@ export interface IBooking extends Document {
   businessId: mongoose.Types.ObjectId;       // Business receiving the booking
   serviceId: mongoose.Types.ObjectId;        // Service being booked
   staffId?: mongoose.Types.ObjectId;         // Optional: specific staff assigned
+  bookingNumber: number;                     // Sequential numeric booking ID (e.g., 5000)
   timeSlot: {                                // The booked time slot
     date: Date;
     startTime: string;
@@ -116,6 +117,16 @@ const bookingSchema = new Schema<IBooking>(
       type: Schema.Types.ObjectId,
       ref: "Staff",
       default: null,
+    },
+
+    // Sequential numeric booking number (starts at 5000)
+    // This is user-facing, while _id remains for internal use
+    // Optional to support existing bookings created before this field was added
+    bookingNumber: {
+      type: Number,
+      unique: true,
+      sparse: true, // Allows multiple null values
+      index: true,
     },
 
     // The time slot that was booked

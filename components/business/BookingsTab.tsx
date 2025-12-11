@@ -440,8 +440,8 @@ export function BookingsTab({ business }: BookingsTabProps) {
         <button
           onClick={() => setActiveSubTab("up-coming")}
           className={`px-6 py-3 text-sm font-medium transition-colors relative ${activeSubTab === "up-coming"
-              ? "text-foreground"
-              : "text-muted-foreground hover:text-foreground"
+            ? "text-foreground"
+            : "text-muted-foreground hover:text-foreground"
             }`}
         >
           Up-coming
@@ -452,8 +452,8 @@ export function BookingsTab({ business }: BookingsTabProps) {
         <button
           onClick={() => setActiveSubTab("pending")}
           className={`px-6 py-3 text-sm font-medium transition-colors relative ${activeSubTab === "pending"
-              ? "text-red-500"
-              : "text-muted-foreground hover:text-red-500"
+            ? "text-red-500"
+            : "text-muted-foreground hover:text-red-500"
             }`}
         >
           Pending
@@ -464,8 +464,8 @@ export function BookingsTab({ business }: BookingsTabProps) {
         <button
           onClick={() => setActiveSubTab("finished")}
           className={`px-6 py-3 text-sm font-medium transition-colors relative ${activeSubTab === "finished"
-              ? "text-green-600"
-              : "text-muted-foreground hover:text-green-600"
+            ? "text-green-600"
+            : "text-muted-foreground hover:text-green-600"
             }`}
         >
           Finished
@@ -529,10 +529,10 @@ export function BookingsTab({ business }: BookingsTabProps) {
                     key={dateStr}
                     onClick={() => setSelectedDate(isSelected ? null : dateStr)}
                     className={`flex flex-col items-center justify-center min-w-[55px] px-2 py-2 rounded-lg border transition-all ${isSelected
-                        ? "border-[#EECFD1] bg-[#EECFD1] text-[#3A3A3A] shadow-sm"
-                        : isPast
-                          ? "border-gray-100 bg-gray-50 text-gray-400"
-                          : "border-gray-200 bg-white text-[#3A3A3A] hover:border-[#EECFD1] hover:bg-[#EECFD1]/10"
+                      ? "border-[#EECFD1] bg-[#EECFD1] text-[#3A3A3A] shadow-sm"
+                      : isPast
+                        ? "border-gray-100 bg-gray-50 text-gray-400"
+                        : "border-gray-200 bg-white text-[#3A3A3A] hover:border-[#EECFD1] hover:bg-[#EECFD1]/10"
                       }`}
                   >
                     <span className={`text-[10px] font-medium mb-0.5 ${isPast ? 'text-gray-400' : 'text-gray-600'}`}>
@@ -543,8 +543,8 @@ export function BookingsTab({ business }: BookingsTabProps) {
                     </span>
                     {count > 0 && (
                       <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${isSelected
-                          ? "bg-white text-[#EECFD1]"
-                          : "bg-[#EECFD1] text-white"
+                        ? "bg-white text-[#EECFD1]"
+                        : "bg-[#EECFD1] text-white"
                         }`}>
                         {count}
                       </span>
@@ -607,8 +607,8 @@ export function BookingsTab({ business }: BookingsTabProps) {
                 key={booking.id}
                 onClick={() => setSelectedBooking(booking)}
                 className={`p-4 border rounded-lg cursor-pointer transition-colors ${selectedBooking?.id === booking.id
-                    ? "border-primary bg-primary/5"
-                    : "border-border hover:border-primary/50"
+                  ? "border-primary bg-primary/5"
+                  : "border-border hover:border-primary/50"
                   }`}
               >
                 <div className="flex items-start justify-between">
@@ -676,7 +676,18 @@ export function BookingsTab({ business }: BookingsTabProps) {
                   <p>{typeof selectedBooking.staffId === 'object' ? selectedBooking.staffId.name : 'N/A'}</p>
                 </div>
               )}
-              {typeof selectedBooking.userId === 'object' && (
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Service</p>
+                <p>
+                  {(selectedBooking.serviceId && typeof selectedBooking.serviceId === 'object')
+                    ? selectedBooking.serviceId.serviceName
+                    : selectedBooking.serviceId || 'Service deleted'}
+                </p>
+                {(selectedBooking.serviceId && typeof selectedBooking.serviceId === 'object') && (
+                  <p className="text-sm text-muted-foreground">{selectedBooking.serviceId.category}</p>
+                )}
+              </div>
+              {(selectedBooking.userId && typeof selectedBooking.userId === 'object') && (
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Customer</p>
                   <p>{selectedBooking.userId.fname} {selectedBooking.userId.lname}</p>
@@ -684,6 +695,12 @@ export function BookingsTab({ business }: BookingsTabProps) {
                   {selectedBooking.userId.contactNo && (
                     <p className="text-sm text-muted-foreground">{selectedBooking.userId.contactNo}</p>
                   )}
+                </div>
+              )}
+              {!selectedBooking.userId && (
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Customer</p>
+                  <p className="text-sm text-red-500">Account deleted</p>
                 </div>
               )}
             </div>
