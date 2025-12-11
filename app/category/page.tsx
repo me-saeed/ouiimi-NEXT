@@ -14,6 +14,7 @@ export default function CategoryPage() {
     const [services, setServices] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     useEffect(() => {
         loadCategoryServices();
     }, [category]);

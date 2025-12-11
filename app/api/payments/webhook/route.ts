@@ -1,14 +1,44 @@
+/**
+ * =============================================================================
+ * STRIPE WEBHOOK API ROUTE - /api/payments/webhook
+ * =============================================================================
+ * 
+ * This endpoint handles Stripe webhook events for async payment updates.
+ * Stripe sends events here when payment status changes.
+ * 
+ * HTTP METHOD: POST
+ * AUTHENTICATION: Stripe signature verification
+ */
+
 import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
 import dbConnect from "@/lib/db";
 import Booking from "@/lib/models/Booking";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-    apiVersion: "2025-11-17.clover",
-});
+// =============================================================================
+// LAZY STRIPE INITIALIZATION
+// =============================================================================
+// Initialize Stripe lazily to avoid build-time errors in CI/CD
+let stripeInstance: Stripe | null = null;
 
-// Webhook secret for signature verification
-const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
+function getStripe(): Stripe {
+    if (!stripeInstance) {
+        if (!process.env.STRIPE_SECRET_KEY) {
+            throw new Error("STRIPE_SECRET_KEY environment variable is not set");
+        }
+        stripeInstance = new Stripe(process.env.STRIPE_SECRET_KEY, {
+            apiVersion: "2025-11-17.clover",
+        });
+    }
+    return stripeInstance;
+}
+
+function getWebhookSecret(): string {
+    if (!process.env.STRIPE_WEBHOOK_SECRET) {
+        throw new Error("STRIPE_WEBHOOK_SECRET environment variable is not set");
+    }
+    return process.env.STRIPE_WEBHOOK_SECRET;
+}
 
 export async function POST(request: NextRequest) {
     try {
@@ -26,7 +56,8 @@ export async function POST(request: NextRequest) {
 
         try {
             // Verify webhook signature
-            event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
+            const stripe = getStripe();
+            event = stripe.webhooks.constructEvent(body, signature, getWebhookSecret());
         } catch (err: any) {
             console.error("⚠️  Webhook signature verification failed:", err.message);
             return NextResponse.json(

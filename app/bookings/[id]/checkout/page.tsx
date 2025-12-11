@@ -18,6 +18,7 @@ export default function CheckoutPage() {
     const [isProcessing, setIsProcessing] = useState(false);
     const [error, setError] = useState("");
 
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     useEffect(() => {
         loadBooking();
     }, [bookingId]);
