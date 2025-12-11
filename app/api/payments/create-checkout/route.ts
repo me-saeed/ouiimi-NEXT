@@ -44,13 +44,23 @@ import dbConnect from "@/lib/db";
 import Booking from "@/lib/models/Booking";
 
 // =============================================================================
-// STRIPE CLIENT INITIALIZATION
+// LAZY STRIPE INITIALIZATION
 // =============================================================================
-// Initialize Stripe with secret key from environment variables
-// apiVersion ensures we're using a specific, tested API version
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-    apiVersion: "2025-11-17.clover",
-});
+// Initialize Stripe lazily to avoid build-time errors in CI/CD
+// when environment variables aren't available
+let stripeInstance: Stripe | null = null;
+
+function getStripe(): Stripe {
+    if (!stripeInstance) {
+        if (!process.env.STRIPE_SECRET_KEY) {
+            throw new Error("STRIPE_SECRET_KEY environment variable is not set");
+        }
+        stripeInstance = new Stripe(process.env.STRIPE_SECRET_KEY, {
+            apiVersion: "2025-11-17.clover",
+        });
+    }
+    return stripeInstance;
+}
 
 /**
  * POST handler - Creates Stripe Checkout Session
@@ -107,7 +117,7 @@ export async function POST(request: NextRequest) {
         // =====================================================================
         // stripe.checkout.sessions.create() returns a session with a URL
         // User is redirected to this URL to complete payment on Stripe's page
-        const session = await stripe.checkout.sessions.create({
+        const session = await getStripe().checkout.sessions.create({
             // Payment methods accepted
             payment_method_types: ["card"],
 
