@@ -1,3 +1,20 @@
+/**
+ * =============================================================================
+ * STAFF API ROUTES - /api/staff
+ * =============================================================================
+ * 
+ * This file handles staff member management for businesses.
+ * Staff can be assigned to time slots when creating services.
+ * 
+ * ENDPOINTS:
+ * - POST /api/staff  - Create a new staff member
+ * - GET /api/staff   - List staff members for a business
+ * 
+ * AUTHENTICATION: Required (JWT Bearer token) for POST
+ * 
+ * =============================================================================
+ */
+
 import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/db";
 import Staff from "@/lib/models/Staff";
@@ -6,11 +23,47 @@ import { staffCreateSchema } from "@/lib/validation";
 import { withRateLimit } from "@/lib/security/rate-limit";
 import { verifyToken } from "@/lib/jwt";
 
+// Force dynamic rendering (no caching)
 export const dynamic = 'force-dynamic';
 
+/**
+ * =============================================================================
+ * POST /api/staff - Create Staff Member
+ * =============================================================================
+ * 
+ * REQUEST HEADERS:
+ * {
+ *   "Authorization": "Bearer <jwt_token>"
+ * }
+ * 
+ * REQUEST BODY:
+ * {
+ *   "businessId": "business_id",      // Required - which business
+ *   "name": "Jane Smith",             // Required - staff name
+ *   "photo": "https://...",           // Optional - profile photo URL
+ *   "qualifications": "Licensed...",  // Optional - certifications
+ *   "about": "5 years experience..."  // Optional - bio text
+ * }
+ * 
+ * RESPONSE (Success - 201):
+ * {
+ *   "message": "Staff member added successfully",
+ *   "staff": { id, name, photo, qualifications, about, isActive, businessId }
+ * }
+ * 
+ * FLOW:
+ * 1. Verify JWT token
+ * 2. Validate request body
+ * 3. Check business exists
+ * 4. Verify user owns the business
+ * 5. Create staff member
+ * 6. Return staff details
+ */
 async function createStaffHandler(req: NextRequest) {
   try {
-    // Verify authentication
+    // =========================================================================
+    // STEP 1: Verify authentication
+    // =========================================================================
     const authHeader = req.headers.get("authorization");
     if (!authHeader?.startsWith("Bearer ")) {
       return NextResponse.json(
@@ -28,12 +81,20 @@ async function createStaffHandler(req: NextRequest) {
       );
     }
 
+    // =========================================================================
+    // STEP 2: Parse and validate request body
+    // =========================================================================
     const body = await req.json();
     const validatedData = staffCreateSchema.parse(body);
 
+    // =========================================================================
+    // STEP 3: Connect to database
+    // =========================================================================
     await dbConnect();
 
-    // Verify user owns the business
+    // =========================================================================
+    // STEP 4: Verify business exists
+    // =========================================================================
     const business = await Business.findById(validatedData.businessId);
     if (!business) {
       return NextResponse.json(
@@ -42,7 +103,10 @@ async function createStaffHandler(req: NextRequest) {
       );
     }
 
-    // Check if user owns this business
+    // =========================================================================
+    // STEP 5: Verify user owns this business
+    // =========================================================================
+    // Only business owner can add staff to their business
     if (String(business.userId) !== String(decoded.userId)) {
       return NextResponse.json(
         { error: "Unauthorized - You can only add staff to your own business" },
@@ -50,8 +114,8 @@ async function createStaffHandler(req: NextRequest) {
       );
     }
 
-    // Allow staff to be added to pending or approved businesses
-    // (For testing, we allow pending businesses to add staff)
+    // Allow staff to be added to pending or approved businesses (for testing)
+    // In production, you might want to require business approval first
     if (business.status === "rejected") {
       return NextResponse.json(
         { error: "Cannot add staff to a rejected business" },
@@ -68,6 +132,9 @@ async function createStaffHandler(req: NextRequest) {
       about: validatedData.about || null,
     });
 
+    // =========================================================================
+    // STEP 6: Create staff member in database
+    // =========================================================================
     const staff = await Staff.create({
       businessId: validatedData.businessId,
       name: validatedData.name.trim(),
@@ -78,7 +145,7 @@ async function createStaffHandler(req: NextRequest) {
 
     console.log("Staff created, ID:", String(staff._id));
 
-    // Verify staff was saved
+    // Verify staff was saved (paranoid check)
     const savedStaff = await Staff.findById(staff._id);
     if (!savedStaff) {
       console.error("Staff was not saved to database!");
@@ -99,12 +166,15 @@ async function createStaffHandler(req: NextRequest) {
       about: savedStaff.about,
     });
 
+    // =========================================================================
+    // STEP 7: Return success response
+    // =========================================================================
     return NextResponse.json(
       {
         message: "Staff member added successfully",
         staff: {
           id: String(savedStaff._id),
-          _id: String(savedStaff._id),
+          _id: String(savedStaff._id),  // Include both formats for compatibility
           name: savedStaff.name,
           photo: savedStaff.photo,
           qualifications: savedStaff.qualifications,
@@ -113,7 +183,7 @@ async function createStaffHandler(req: NextRequest) {
           businessId: String(savedStaff.businessId),
         },
       },
-      { status: 201 }
+      { status: 201 }  // 201 = Created
     );
   } catch (error: any) {
     console.error("Create staff error:", error);
@@ -122,7 +192,7 @@ async function createStaffHandler(req: NextRequest) {
       stack: error.stack,
       name: error.name,
     });
-    
+
     if (error.name === "ZodError") {
       return NextResponse.json(
         { error: "Validation error", details: error.errors },
@@ -131,7 +201,7 @@ async function createStaffHandler(req: NextRequest) {
     }
 
     return NextResponse.json(
-      { 
+      {
         error: "Failed to add staff member",
         details: error.message || "Unknown error occurred"
       },
@@ -140,14 +210,43 @@ async function createStaffHandler(req: NextRequest) {
   }
 }
 
+/**
+ * =============================================================================
+ * GET /api/staff - List Staff Members
+ * =============================================================================
+ * 
+ * QUERY PARAMETERS:
+ * - businessId (required): Which business to list staff for
+ * - isActive (optional): Filter by active status ("true" or "false")
+ * 
+ * EXAMPLE:
+ *   GET /api/staff?businessId=abc123&isActive=true
+ * 
+ * RESPONSE (Success - 200):
+ * {
+ *   "staff": [
+ *     { id, name, photo, qualifications, about, bio, isActive, createdAt },
+ *     ...
+ *   ]
+ * }
+ * 
+ * NOTE: This endpoint is public (no auth required) so customers can see staff
+ */
 async function getStaffListHandler(req: NextRequest) {
   try {
+    // =========================================================================
+    // STEP 1: Connect to database
+    // =========================================================================
     await dbConnect();
 
+    // =========================================================================
+    // STEP 2: Extract query parameters
+    // =========================================================================
     const { searchParams } = new URL(req.url);
     const businessId = searchParams.get("businessId");
     const isActive = searchParams.get("isActive");
 
+    // businessId is required - must know which business to list staff for
     if (!businessId) {
       return NextResponse.json(
         { error: "Business ID is required" },
@@ -155,15 +254,28 @@ async function getStaffListHandler(req: NextRequest) {
       );
     }
 
+    // =========================================================================
+    // STEP 3: Build filter query
+    // =========================================================================
     const filter: any = { businessId };
+
+    // Optionally filter by active status
     if (isActive !== null) {
       filter.isActive = isActive === "true";
     }
 
+    // =========================================================================
+    // STEP 4: Query database for staff
+    // =========================================================================
+    // .sort({ createdAt: -1 }) = newest first
+    // .lean() = return plain JavaScript objects (faster)
     const staff = await Staff.find(filter)
       .sort({ createdAt: -1 })
       .lean();
 
+    // =========================================================================
+    // STEP 5: Return staff list
+    // =========================================================================
     return NextResponse.json(
       {
         staff: staff.map((s: any) => ({
@@ -173,7 +285,7 @@ async function getStaffListHandler(req: NextRequest) {
           photo: s.photo,
           qualifications: s.qualifications,
           about: s.about,
-          bio: s.about, // Map 'about' to 'bio' for compatibility
+          bio: s.about, // Map 'about' to 'bio' for frontend compatibility
           isActive: s.isActive,
           createdAt: s.createdAt,
         })),
@@ -189,6 +301,8 @@ async function getStaffListHandler(req: NextRequest) {
   }
 }
 
+// =============================================================================
+// EXPORTS: Wrap handlers with rate limiting
+// =============================================================================
 export const POST = withRateLimit(createStaffHandler);
 export const GET = withRateLimit(getStaffListHandler);
-
