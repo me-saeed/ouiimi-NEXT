@@ -41,10 +41,7 @@ export default function HomePage() {
   const [services, setServices] = useState<Record<string, Service[]>>({});
   const [serviceCounts, setServiceCounts] = useState<Record<string, number>>({});
   const [isLoading, setIsLoading] = useState(true);
-  const [sidePanelOpen, setSidePanelOpen] = useState(false);
-  const [sidePanelCategory, setSidePanelCategory] = useState<string>("");
-  const [sidePanelServices, setSidePanelServices] = useState<Service[]>([]);
-  const [expandedSubcategories, setExpandedSubcategories] = useState<Record<string, boolean>>({});
+
 
   useEffect(() => {
     loadServices();
@@ -65,9 +62,9 @@ export default function HomePage() {
       await Promise.all(
         SERVICE_CATEGORIES.map(async (category) => {
           try {
-            // Fetch first 6 services - API now returns only available slots
+            // Fetch more than 6 services to ensure we have enough after potential server-side filtering
             const response = await fetch(
-              `/api/services?category=${encodeURIComponent(category)}&status=listed&limit=6`
+              `/api/services?category=${encodeURIComponent(category)}&status=listed&limit=12`
             );
 
             if (response.ok) {
@@ -170,66 +167,6 @@ export default function HomePage() {
     };
   };
 
-  const handleShowMore = async (category: string) => {
-    setSidePanelCategory(category);
-    setSidePanelOpen(true);
-    setExpandedSubcategories({});
-
-    // Fetch all services for this category
-    try {
-      const response = await fetch(
-        `/api/services?category=${encodeURIComponent(category)}&status=listed`
-      );
-      if (response.ok) {
-        const data = await response.json();
-        const servicesWithSlots = (data.services || []).filter((service: Service) => {
-          const earliestSlot = getEarliestAvailableTimeSlot(service);
-          return earliestSlot !== null;
-        });
-        setSidePanelServices(servicesWithSlots);
-      }
-    } catch (error) {
-      console.error(`Error loading services for ${category}:`, error);
-      setSidePanelServices([]);
-    }
-  };
-
-  const handleExpandSubcategory = (subcategory: string) => {
-    setExpandedSubcategories(prev => ({
-      ...prev,
-      [subcategory]: !prev[subcategory]
-    }));
-  };
-
-  // const groupServicesBySubcategory = (services: Service[]) => {
-  //   const grouped: Record<string, Service[]> = {};
-  //   services.forEach(service => {
-  //     const subcategory = service.subCategory || "Other";
-  //     if (!grouped[subcategory]) {
-  //       grouped[subcategory] = [];
-  //     }
-  //     grouped[subcategory].push(service);
-  //   });
-  //   return grouped;
-  // };
-
-  // Group services by subcategory for specific categories
-  const groupServicesBySubcategory = (services: Service[]) => {
-    const grouped: Record<string, Service[]> = {};
-    services.forEach((service) => {
-      const subCategory = service.subCategory || "Other";
-      if (!grouped[subCategory]) {
-        grouped[subCategory] = [];
-      }
-      grouped[subCategory].push(service);
-    });
-    return grouped;
-  };
-
-  const shouldGroupBySubcategory = (category: string) => {
-    return category === "Hair Services" || category === "Dog Grooming";
-  };
-
   const formatServiceForCard = (service: Service) => {
     const earliestSlot = getEarliestAvailableTimeSlot(service);
     const business = typeof service.businessId === 'object' ? service.businessId : null;
@@ -277,15 +214,14 @@ export default function HomePage() {
       <div className="bg-white min-h-screen">
         {/* Book Button - Below Nav */}
         <div className="bg-white py-3 sm:py-4">
-          <div className="container mx-auto px-4 max-w-7xl">
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl">
             <div className="flex justify-center">
-              <Button
-                variant="pink"
-                asChild
-                className="h-10 px-6 text-sm font-normal rounded-lg bg-[#EECFD1] text-[#3A3A3A] hover:bg-[#EECFD1]/90 shadow-none hover:shadow-none active:scale-100"
+              <Link
+                href="/services"
+                className="text-[18px] font-medium text-[#3A3A3A] border-b border-[#3A3A3A] pb-0.5 hover:opacity-70 transition-opacity"
               >
-                <Link href="/services">Book</Link>
-              </Button>
+                Book
+              </Link>
             </div>
           </div>
         </div>
@@ -297,161 +233,51 @@ export default function HomePage() {
               Discover
             </h1>
 
-            {/* Service Categories */}
-            <div className="space-y-8 sm:space-y-10 md:space-y-12">
-              {SERVICE_CATEGORIES.map((category, categoryIndex) => {
-                const categoryServices = services[category] || [];
+            {SERVICE_CATEGORIES.map((category, categoryIndex) => {
+              const categoryServices = services[category] || [];
+              const totalCount = serviceCounts[category] || 0;
 
-                if (isLoading) {
-                  return (
-                    <div key={category} className="mb-0">
-                      <div className="flex items-center justify-between mb-5 md:mb-6 px-4 md:px-0">
-                        <h2 className="text-2xl md:text-3xl font-bold text-[#3A3A3A]">{category}</h2>
-                      </div>
-                      <div className="flex gap-3 sm:gap-4 overflow-x-auto scrollbar-hide pl-4 pr-4 sm:pl-6 sm:pr-6 lg:pl-8 lg:pr-8 md:pl-6 md:pr-6">
-                        {Array.from({ length: 6 }).map((_, i) => (
-                          <div
-                            key={i}
-                            className="bg-white border border-[#E5E5E5] rounded-[12px] w-[320px] sm:w-[320px] md:w-[340px] lg:w-[360px] h-[100px] flex-shrink-0 animate-pulse overflow-hidden"
+              if (isLoading) return null; // Or skeleton
+              if (categoryServices.length === 0) return null;
+
+              return (
+                <div key={category}>
+                  <div className="flex items-center justify-between mb-4 sm:mb-6">
+                    <h2 className="text-[20px] md:text-[24px] font-bold text-[#3A3A3A]">{category}</h2>
+                  </div>
+
+                  {/* Horizontal Scroll Container */}
+                  <div className="relative">
+                    <div className="flex gap-4 overflow-x-auto scrollbar-hide pb-4 -mx-4 px-4 sm:mx-0 sm:px-0">
+                      {categoryServices.slice(0, 6).map((service) => (
+                        <div key={service.id} className="min-w-[300px] sm:min-w-[320px] flex-shrink-0">
+                          <ServiceCard
+                            {...formatServiceForCard(service)}
+                          />
+                        </div>
+                      ))}
+
+                      {/* "See More" Card at the end of scroll */}
+                      {totalCount > 6 && (
+                        <div className="min-w-[120px] flex items-center justify-center flex-shrink-0">
+                          <Link
+                            href={`/category/${encodeURIComponent(category)}`}
+                            className="flex flex-col items-center gap-2 text-sm font-medium text-[#3A3A3A] hover:text-[#EECFD1] transition-colors group"
                           >
-                            <div className="p-4 flex gap-4 h-full">
-                              {/* Logo skeleton */}
-                              <div className="w-16 h-16 rounded-full bg-gray-200 flex-shrink-0" />
-                              {/* Content skeleton */}
-                              <div className="flex-1 min-w-0 flex flex-col justify-center gap-1.5">
-                                <div className="h-4 bg-gray-200 rounded w-3/4" />
-                                <div className="h-3 bg-gray-200 rounded w-full" />
-                                <div className="h-3 bg-gray-200 rounded w-2/3" />
-                              </div>
+                            <div className="w-10 h-10 rounded-full bg-[#EECFD1]/20 group-hover:bg-[#EECFD1]/30 flex items-center justify-center transition-colors">
+                              <ArrowRight className="w-5 h-5 text-[#3A3A3A]" />
                             </div>
-                          </div>
-                        ))}
-                        {/* Spacer to show peek of next card on mobile */}
-                        <div className="flex-shrink-0 w-4 md:w-0" />
-                      </div>
+                            See more
+                          </Link>
+                        </div>
+                      )}
                     </div>
-                  );
-                }
-
-                if (categoryServices.length === 0) {
-                  return null;
-                }
-
-                // Display all services under the main category (no subcategory grouping)
-                return (
-                  <ServiceCarousel
-                    key={category}
-                    title={category}
-                    totalCount={serviceCounts[category] || 0}
-                    showMoreHref={`/services?category=${encodeURIComponent(category)}`}
-                    onShowMore={handleShowMore}
-                    category={category}
-                  >
-                    {categoryServices.map((service) => (
-                      <ServiceCard
-                        key={service.id}
-                        {...formatServiceForCard(service)}
-                      />
-                    ))}
-                  </ServiceCarousel>
-                );
-              })}
-            </div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </section>
-
-        {/* Side Panel for See More */}
-        {sidePanelOpen && (
-          <div className="fixed inset-0 z-50 flex">
-            {/* Backdrop */}
-            <div
-              className="flex-1 bg-black/50 backdrop-blur-sm"
-              onClick={() => setSidePanelOpen(false)}
-            />
-            {/* Side Panel */}
-            <div className="w-full sm:w-[400px] md:w-[500px] bg-white shadow-2xl overflow-y-auto" style={{ animation: 'slideInRight 0.3s ease-out' }}>
-              <div className="sticky top-0 bg-white border-b border-gray-200 px-4 py-4 flex items-center justify-between z-10">
-                <h2 className="text-xl font-bold text-[#3A3A3A]">{sidePanelCategory}</h2>
-                <button
-                  onClick={() => setSidePanelOpen(false)}
-                  className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-                  aria-label="Close"
-                >
-                  <X className="w-5 h-5 text-[#3A3A3A]" />
-                </button>
-              </div>
-              <div className="p-4">
-                {sidePanelServices.length === 0 ? (
-                  <div className="text-center py-12 text-muted-foreground">
-                    <p>No services available</p>
-                  </div>
-                ) : (sidePanelCategory === "Hair Services" || sidePanelCategory === "Dog Grooming") ? (
-                  // Group by subcategory for Hair Services and Dog Grooming
-                  (() => {
-                    const grouped = groupServicesBySubcategory(sidePanelServices);
-                    const subcategories = Object.keys(grouped).sort();
-
-                    return (
-                      <div className="space-y-6">
-                        {subcategories.map((subcategory) => {
-                          const subcategoryServices = grouped[subcategory];
-                          const isExpanded = expandedSubcategories[subcategory];
-                          const displayServices = isExpanded ? subcategoryServices : subcategoryServices.slice(0, 6);
-                          const hasMore = subcategoryServices.length > 6;
-
-                          return (
-                            <div key={subcategory} className="space-y-3">
-                              {/* Subcategory Heading */}
-                              <h3 className="text-lg font-bold text-[#3A3A3A]">{subcategory}</h3>
-
-                              {/* Services for this subcategory */}
-                              <div className="space-y-3">
-                                {displayServices.map((service) => (
-                                  <ServiceCard
-                                    key={service.id}
-                                    {...formatServiceForCard(service)}
-                                  />
-                                ))}
-                              </div>
-
-                              {/* See More button if there are more than 6 services */}
-                              {hasMore && !isExpanded && (
-                                <button
-                                  onClick={() => handleExpandSubcategory(subcategory)}
-                                  className="text-sm text-[#3A3A3A] hover:text-[#EECFD1] font-medium underline"
-                                >
-                                  See more
-                                </button>
-                              )}
-                              {hasMore && isExpanded && (
-                                <button
-                                  onClick={() => handleExpandSubcategory(subcategory)}
-                                  className="text-sm text-[#3A3A3A] hover:text-[#EECFD1] font-medium underline"
-                                >
-                                  Show less
-                                </button>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    );
-                  })()
-                ) : (
-                  // Horizontal scroll for other categories
-                  <div className="flex gap-3 sm:gap-4 overflow-x-auto scrollbar-hide scroll-smooth pb-4">
-                    {sidePanelServices.map((service) => (
-                      <ServiceCard
-                        key={service.id}
-                        {...formatServiceForCard(service)}
-                      />
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
       </div>
     </PageLayout>
   );

@@ -376,7 +376,7 @@ function ServicesContent() {
             No services found for this category.
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+          <div className="flex flex-col space-y-4">
             {services
               .filter((service) => {
                 // Filter out services with no available future slots
@@ -384,10 +384,11 @@ function ServicesContent() {
                 return earliestSlot !== null;
               })
               .map((service) => (
-                <ServiceCard
-                  key={service.id}
-                  {...formatServiceForCard(service)}
-                />
+                <div key={service.id} className="w-full">
+                  <ServiceCard
+                    {...formatServiceForCard(service)}
+                  />
+                </div>
               ))}
           </div>
         )}
