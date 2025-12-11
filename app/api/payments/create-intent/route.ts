@@ -1,11 +1,36 @@
+/**
+ * =============================================================================
+ * CREATE PAYMENT INTENT API ROUTE - /api/payments/create-intent
+ * =============================================================================
+ * 
+ * This endpoint creates a Stripe PaymentIntent for embedded payment flow.
+ * Used for custom payment UIs (not Checkout Sessions).
+ * 
+ * HTTP METHOD: POST
+ */
+
 import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
 import dbConnect from "@/lib/db";
 import Booking from "@/lib/models/Booking";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-    apiVersion: "2025-11-17.clover",
-});
+// =============================================================================
+// LAZY STRIPE INITIALIZATION
+// =============================================================================
+// Initialize Stripe lazily to avoid build-time errors in CI/CD
+let stripeInstance: Stripe | null = null;
+
+function getStripe(): Stripe {
+    if (!stripeInstance) {
+        if (!process.env.STRIPE_SECRET_KEY) {
+            throw new Error("STRIPE_SECRET_KEY environment variable is not set");
+        }
+        stripeInstance = new Stripe(process.env.STRIPE_SECRET_KEY, {
+            apiVersion: "2025-11-17.clover",
+        });
+    }
+    return stripeInstance;
+}
 
 export async function POST(request: NextRequest) {
     try {
@@ -32,6 +57,8 @@ export async function POST(request: NextRequest) {
                 { status: 404 }
             );
         }
+
+        const stripe = getStripe();
 
         // Check if payment already exists - if so, return the existing clientSecret
         if (booking.paymentIntentId) {
