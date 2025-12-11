@@ -460,7 +460,7 @@ async function createBookingHandler(req: NextRequest) {
             depositAmount: savedBooking.depositAmount,
             bookingId: String(savedBooking._id).slice(-8),
           },
-          "booking_confirmation"
+          "booking_confirmation_shopper"
         );
       }
     } catch (emailError) {

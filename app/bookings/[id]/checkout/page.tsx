@@ -175,7 +175,7 @@ export default function CheckoutPage() {
                                     <span>${booking.remainingAmount.toFixed(2)}</span>
                                 </div>
                                 <p className="text-xs text-gray-500 pt-2">
-                                    💡 You'll pay the remaining ${booking.remainingAmount.toFixed(2)} at the venue after service
+                                    💡 You&apos;ll pay the remaining ${booking.remainingAmount.toFixed(2)} at the venue after service
                                 </p>
                             </div>
                         </div>
@@ -188,8 +188,8 @@ export default function CheckoutPage() {
                                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                                     <p className="text-sm font-medium text-blue-900 mb-2">Secure Payment by Stripe</p>
                                     <p className="text-xs text-blue-700">
-                                        You'll be redirected to Stripe's secure checkout page to complete your payment.
-                                        We don't store your card details.
+                                        You&apos;ll be redirected to Stripe&apos;s secure checkout page to complete your payment.
+                                        We don&apos;t store your card details.
                                     </p>
                                 </div>
 

@@ -318,7 +318,7 @@ async function updateBookingHandler(
               totalCost: populatedBooking.totalCost,
               paymentAmount: populatedBooking.totalCost,
             },
-            "booking_completion"
+            "booking_complete"
           );
         }
       }
