@@ -48,11 +48,23 @@ import dbConnect from "@/lib/db";
 import Booking from "@/lib/models/Booking";
 
 // =============================================================================
-// STRIPE CLIENT
+// LAZY STRIPE INITIALIZATION
 // =============================================================================
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-    apiVersion: "2025-11-17.clover",
-});
+// Initialize Stripe lazily to avoid build-time errors in CI/CD
+// when environment variables aren't available
+let stripeInstance: Stripe | null = null;
+
+function getStripe(): Stripe {
+    if (!stripeInstance) {
+        if (!process.env.STRIPE_SECRET_KEY) {
+            throw new Error("STRIPE_SECRET_KEY environment variable is not set");
+        }
+        stripeInstance = new Stripe(process.env.STRIPE_SECRET_KEY, {
+            apiVersion: "2025-11-17.clover",
+        });
+    }
+    return stripeInstance;
+}
 
 /**
  * POST handler - Verifies Stripe payment and confirms booking
@@ -76,7 +88,7 @@ export async function POST(request: NextRequest) {
         // =====================================================================
         // This is the authoritative source of payment status
         // We call Stripe's API to verify the session is actually paid
-        const session = await stripe.checkout.sessions.retrieve(sessionId);
+        const session = await getStripe().checkout.sessions.retrieve(sessionId);
 
         // =====================================================================
         // STEP 3: Verify payment was completed
