@@ -242,80 +242,81 @@ export default function BusinessServicesPage() {
                 Create Your First Service
               </Link>
             </div>
-          ) : (\n            <div className="space-y-10">
-            {(Object.entries(groupedServices) as [string, any[]][]).map(([category, categoryServices]) => {
-              // Group services by subcategory within this category
-              const groupedBySubcategory = categoryServices.reduce((acc, service) => {
-                const subCategory = service.subCategory || "Other";
-                if (!acc[subCategory]) {
-                  acc[subCategory] = [];
-                }
-                acc[subCategory].push(service);
-                return acc;
-              }, {} as Record<string, any[]>);
+          ) : (
+            <div className="space-y-10">
+              {(Object.entries(groupedServices) as [string, any[]][]).map(([category, categoryServices]) => {
+                // Group services by subcategory within this category
+                const groupedBySubcategory = categoryServices.reduce((acc, service) => {
+                  const subCategory = service.subCategory || "Other";
+                  if (!acc[subCategory]) {
+                    acc[subCategory] = [];
+                  }
+                  acc[subCategory].push(service);
+                  return acc;
+                }, {} as Record<string, any[]>);
 
-              return (
-                <div key={category} className="space-y-8">
-                  {/* Category Header */}
-                  <div className="flex items-center gap-3 pb-3 border-b-2 border-[#F5F5F5]">
-                    <Tag className="w-5 h-5 text-[#EECFD1]" />
-                    <h2 className="text-2xl font-bold text-[#3A3A3A]">{category}</h2>
-                    <span className="ml-auto bg-[#EECFD1]/10 text-[#EECFD1] px-3 py-1 rounded-full text-sm font-semibold">
-                      {categoryServices.length} {categoryServices.length === 1 ? 'service' : 'services'}
-                    </span>
-                  </div>
+                return (
+                  <div key={category} className="space-y-8">
+                    {/* Category Header */}
+                    <div className="flex items-center gap-3 pb-3 border-b-2 border-[#F5F5F5]">
+                      <Tag className="w-5 h-5 text-[#EECFD1]" />
+                      <h2 className="text-2xl font-bold text-[#3A3A3A]">{category}</h2>
+                      <span className="ml-auto bg-[#EECFD1]/10 text-[#EECFD1] px-3 py-1 rounded-full text-sm font-semibold">
+                        {categoryServices.length} {categoryServices.length === 1 ? 'service' : 'services'}
+                      </span>
+                    </div>
 
-                  {/* Subcategories */}
-                  <div className="space-y-8">
-                    {Object.entries(groupedBySubcategory).map(([subCategory, subCategoryServices]) => (
-                      <div key={subCategory} className="space-y-4">
-                        {/* Subcategory Header */}
-                        <h3 className="text-lg font-bold text-[#3A3A3A] pl-2 border-l-4 border-[#EECFD1]">
-                          {subCategory}
-                        </h3>
+                    {/* Subcategories */}
+                    <div className="space-y-8">
+                      {(Object.entries(groupedBySubcategory) as [string, any[]][]).map(([subCategory, subCategoryServices]) => (
+                        <div key={subCategory} className="space-y-4">
+                          {/* Subcategory Header */}
+                          <h3 className="text-lg font-bold text-[#3A3A3A] pl-2 border-l-4 border-[#EECFD1]">
+                            {subCategory}
+                          </h3>
 
-                        {/* Services Grid for this subcategory */}
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                          {subCategoryServices.map((service) => {
-                            const serviceId = service.id || service._id;
-                            const cardData = formatServiceForCard(service);
-                            return (
-                              <div
-                                key={serviceId}
-                                onClick={() => router.push(`/business/services/${serviceId}`)}
-                                className="relative cursor-pointer [&_a]:pointer-events-none group"
-                              >
-                                <ServiceCard {...cardData} />
-                                {/* Edit Button - Top Right Corner */}
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    router.push(`/business/services/${serviceId}/edit`);
-                                  }}
-                                  className="absolute top-2 right-2 bg-white hover:bg-gray-50 rounded-lg p-2 shadow-md opacity-0 group-hover:opacity-100 transition-opacity z-10"
-                                  title="Edit Service"
+                          {/* Services Grid for this subcategory */}
+                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                            {subCategoryServices.map((service) => {
+                              const serviceId = service.id || service._id;
+                              const cardData = formatServiceForCard(service);
+                              return (
+                                <div
+                                  key={serviceId}
+                                  onClick={() => router.push(`/business/services/${serviceId}`)}
+                                  className="relative cursor-pointer [&_a]:pointer-events-none group"
                                 >
-                                  <Edit className="w-4 h-4 text-gray-700" />
-                                </button>
-                                {/* Delete Button - Top Left Corner */}
-                                <button
-                                  onClick={(e) => handleDelete(serviceId, e)}
-                                  className="absolute top-2 left-2 bg-white hover:bg-red-50 rounded-lg p-2 shadow-md opacity-0 group-hover:opacity-100 transition-opacity z-10"
-                                  title="Delete Service"
-                                >
-                                  <Trash2 className="w-4 h-4 text-red-600" />
-                                </button>
-                              </div>
-                            );
-                          })}
+                                  <ServiceCard {...cardData} />
+                                  {/* Edit Button - Top Right Corner */}
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      router.push(`/business/services/${serviceId}/edit`);
+                                    }}
+                                    className="absolute top-2 right-2 bg-white hover:bg-gray-50 rounded-lg p-2 shadow-md opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                                    title="Edit Service"
+                                  >
+                                    <Edit className="w-4 h-4 text-gray-700" />
+                                  </button>
+                                  {/* Delete Button - Top Left Corner */}
+                                  <button
+                                    onClick={(e) => handleDelete(serviceId, e)}
+                                    className="absolute top-2 left-2 bg-white hover:bg-red-50 rounded-lg p-2 shadow-md opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                                    title="Delete Service"
+                                  >
+                                    <Trash2 className="w-4 h-4 text-red-600" />
+                                  </button>
+                                </div>
+                              );
+                            })}
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
                   </div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
           )}
         </div>
       </div>
