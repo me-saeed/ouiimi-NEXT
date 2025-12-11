@@ -1,3 +1,60 @@
+/**
+ * =============================================================================
+ * CREATE BUSINESS API ROUTE - /api/business/create
+ * =============================================================================
+ * 
+ * This endpoint allows authenticated users to register a new business.
+ * Each user can only have ONE business (enforced by unique userId index).
+ * 
+ * HTTP METHOD: POST
+ * AUTHENTICATION: Required (JWT Bearer token)
+ * 
+ * REQUEST HEADERS:
+ * {
+ *   "Authorization": "Bearer <jwt_token>"
+ * }
+ * 
+ * REQUEST BODY:
+ * {
+ *   "userId": "user_id",              // Must match token userId
+ *   "businessName": "My Salon",       // Required, unique
+ *   "email": "salon@email.com",       // Required, unique
+ *   "address": "123 Main Street",     // Required
+ *   "phone": "+1234567890",           // Optional
+ *   "story": "About my business..."   // Optional
+ * }
+ * 
+ * RESPONSE (Success - 201):
+ * {
+ *   "message": "Business account created successfully",
+ *   "business": {
+ *     "id": "business_id",
+ *     "businessName": "My Salon",
+ *     "email": "salon@email.com",
+ *     "status": "approved",
+ *     "userId": "user_id"
+ *   }
+ * }
+ * 
+ * BUSINESS REGISTRATION FLOW:
+ * 1. Verify JWT token (user must be logged in)
+ * 2. Validate request body with Zod schema
+ * 3. Check userId from token matches userId in body (security)
+ * 4. Connect to database
+ * 5. Verify user exists in database
+ * 6. Check user doesn't already have a business
+ * 7. Check businessName and email are not taken
+ * 8. Create business with status "approved" (testing) or "pending" (production)
+ * 9. Return business details
+ * 
+ * ERROR CODES:
+ * - 400: Validation error, duplicate business name/email
+ * - 401: No token or invalid token
+ * - 403: User ID mismatch (trying to create business for another user)
+ * - 404: User not found
+ * - 503: Database connection failed
+ */
+
 import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/db";
 import Business from "@/lib/models/Business";
@@ -6,16 +63,21 @@ import { businessCreateSchema } from "@/lib/validation";
 import { withRateLimit } from "@/lib/security/rate-limit";
 import { verifyToken } from "@/lib/jwt";
 
+// Force dynamic rendering (no caching)
 export const dynamic = 'force-dynamic';
 
+/**
+ * createBusinessHandler - Main handler for business registration
+ */
 async function createBusinessHandler(req: NextRequest) {
   try {
-
-
-    // Verify authentication token
+    // =========================================================================
+    // STEP 1: Extract and verify JWT token
+    // =========================================================================
+    // Token format: "Bearer <jwt_token>"
     const authHeader = req.headers.get("authorization");
     const token = authHeader && authHeader.startsWith("Bearer ")
-      ? authHeader.substring(7)
+      ? authHeader.substring(7)  // Remove "Bearer " prefix
       : null;
 
     if (!token) {
@@ -26,6 +88,7 @@ async function createBusinessHandler(req: NextRequest) {
       );
     }
 
+    // verifyToken() returns { userId, email, username } or null if invalid
     const decoded = verifyToken(token);
     if (!decoded || !decoded.userId) {
       console.error("Invalid or expired token");
@@ -35,8 +98,9 @@ async function createBusinessHandler(req: NextRequest) {
       );
     }
 
-
-
+    // =========================================================================
+    // STEP 2: Parse request body
+    // =========================================================================
     let body;
     try {
       body = await req.json();
@@ -55,7 +119,10 @@ async function createBusinessHandler(req: NextRequest) {
       );
     }
 
-    // Verify userId from token matches userId in request body
+    // =========================================================================
+    // STEP 3: Security check - verify userId matches token
+    // =========================================================================
+    // This prevents users from creating businesses for other users
     if (body.userId && body.userId !== decoded.userId) {
       console.error("UserId mismatch. Token userId:", decoded.userId, "Body userId:", body.userId);
       return NextResponse.json(
@@ -69,6 +136,9 @@ async function createBusinessHandler(req: NextRequest) {
       body.userId = decoded.userId;
     }
 
+    // =========================================================================
+    // STEP 4: Validate request body with Zod schema
+    // =========================================================================
     let validatedData;
     try {
       validatedData = businessCreateSchema.parse(body);
@@ -89,6 +159,9 @@ async function createBusinessHandler(req: NextRequest) {
       throw validationError;
     }
 
+    // =========================================================================
+    // STEP 5: Connect to database
+    // =========================================================================
     try {
       const dbConnection = await dbConnect();
       // readyState: 0 = disconnected, 1 = connected, 2 = connecting, 3 = disconnecting
@@ -108,7 +181,9 @@ async function createBusinessHandler(req: NextRequest) {
       );
     }
 
-    // Convert userId to ObjectId
+    // =========================================================================
+    // STEP 6: Convert userId to MongoDB ObjectId
+    // =========================================================================
     const mongoose = (await import("mongoose")).default;
     let userId;
 
@@ -129,7 +204,9 @@ async function createBusinessHandler(req: NextRequest) {
       );
     }
 
-
+    // =========================================================================
+    // STEP 7: Verify user exists in database
+    // =========================================================================
     let user = await User.findById(userId);
     if (!user) {
       console.error("User not found with ObjectId, trying string ID:", validatedData.userId);
@@ -147,7 +224,11 @@ async function createBusinessHandler(req: NextRequest) {
     }
     console.log("User found:", user.email);
 
-    // Check for existing business
+    // =========================================================================
+    // STEP 8: Check for existing business
+    // =========================================================================
+    // Users can only have ONE business (userId is unique in Business model)
+    // Also check if businessName or email is already taken
     const existingBusiness = await Business.findOne({
       $or: [
         { userId: userId },
@@ -170,15 +251,17 @@ async function createBusinessHandler(req: NextRequest) {
       );
     }
 
-
-
-    // Prepare business data
+    // =========================================================================
+    // STEP 9: Prepare business data
+    // =========================================================================
     const businessData: any = {
       userId: userId,
       businessName: validatedData.businessName.trim(),
       email: validatedData.email.toLowerCase().trim(),
       address: validatedData.address.trim(),
-      status: "approved", // Auto-approve for testing. Change to "pending" for production with admin approval
+      // NOTE: "approved" for testing, change to "pending" for production
+      // "pending" requires admin approval before business can list services
+      status: "approved",
     };
 
     // Add optional fields only if they exist
@@ -189,13 +272,15 @@ async function createBusinessHandler(req: NextRequest) {
       businessData.story = validatedData.story.trim();
     }
 
-
-
+    // =========================================================================
+    // STEP 10: Create business in database
+    // =========================================================================
     let business;
     try {
+      // Business.create() inserts document into businesses collection
       business = await Business.create(businessData);
 
-      // Verify the business was actually saved to database
+      // Double-check that business was saved (paranoid check)
       const savedBusiness = await Business.findById(business._id);
       if (!savedBusiness) {
         console.error("Business was not saved to database!");
@@ -205,15 +290,14 @@ async function createBusinessHandler(req: NextRequest) {
         );
       }
 
-
     } catch (createError: any) {
       console.error("Error creating business:", createError);
       console.error("Error code:", createError.code);
       console.error("Error message:", createError.message);
       console.error("Error stack:", createError.stack);
 
+      // Handle MongoDB duplicate key error (code 11000)
       if (createError.code === 11000) {
-        // Duplicate key error
         const duplicateField = Object.keys(createError.keyPattern || {})[0];
         return NextResponse.json(
           { error: `${duplicateField} already exists` },
@@ -225,6 +309,9 @@ async function createBusinessHandler(req: NextRequest) {
       throw createError;
     }
 
+    // =========================================================================
+    // STEP 11: Return success response
+    // =========================================================================
     return NextResponse.json(
       {
         message: "Business account created successfully. Pending approval.",
@@ -236,7 +323,7 @@ async function createBusinessHandler(req: NextRequest) {
           userId: String(business.userId),
         },
       },
-      { status: 201 }
+      { status: 201 }  // 201 = Created
     );
   } catch (error: any) {
     console.error("Business creation error:", error);
@@ -270,5 +357,7 @@ async function createBusinessHandler(req: NextRequest) {
   }
 }
 
+// =============================================================================
+// EXPORT: Wrap with rate limiting
+// =============================================================================
 export const POST = withRateLimit(createBusinessHandler);
-

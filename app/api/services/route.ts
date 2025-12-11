@@ -9,6 +9,7 @@ import { verifyToken } from "@/lib/jwt";
 import { handleError } from "@/lib/errors/error-handler";
 import { AuthenticationError, AuthorizationError, NotFoundError, DatabaseError } from "@/lib/errors/api-error";
 import { logger } from "@/lib/logger";
+import { cache, MemoryCache } from "@/lib/cache";
 
 export const dynamic = 'force-dynamic';
 
@@ -153,19 +154,9 @@ async function getServicesHandler(req: NextRequest) {
   console.time(`[API /api/services GET] Execution time [${requestId}]`);
 
   try {
-    await dbConnect();
-
     const { searchParams } = new URL(req.url);
     const category = searchParams.get("category");
     const subCategory = searchParams.get("subCategory");
-
-    console.log("[API /api/services GET] Query params:", {
-      category,
-      subCategory,
-      businessId: searchParams.get("businessId"),
-      status: searchParams.get("status"),
-      limit: searchParams.get("limit"),
-    });
     const businessId = searchParams.get("businessId");
     const status = searchParams.get("status");
     const limit = parseInt(searchParams.get("limit") || "20");
@@ -175,6 +166,42 @@ async function getServicesHandler(req: NextRequest) {
     const longitude = searchParams.get("longitude");
     const radius = parseFloat(searchParams.get("radius") || "15"); // Default 15km
     const date = searchParams.get("date"); // Filter by specific date
+
+    // ==========================================================================
+    // CACHE CHECK: Cache public service listings for 30 seconds
+    // Only cache requests without businessId (public homepage/browse requests)
+    // Business dashboard requests (with businessId) always get fresh data
+    // ==========================================================================
+    const isCacheable = !businessId && !latitude && !longitude && !date;
+
+    if (isCacheable) {
+      const cacheKey = MemoryCache.generateKey('services', {
+        category,
+        subCategory,
+        status: status || 'listed',
+        limit,
+        page,
+      });
+
+      // Try to get from cache first (returns in <1ms if cached!)
+      const cachedData = cache.get<any>(cacheKey);
+      if (cachedData) {
+        console.log(`[Cache] HIT for ${cacheKey} - serving from memory`);
+        console.timeEnd(`[API /api/services GET] Execution time [${requestId}]`);
+        return NextResponse.json(cachedData, { status: 200 });
+      }
+    }
+    // ==========================================================================
+
+    await dbConnect();
+
+    console.log("[API /api/services GET] Query params:", {
+      category,
+      subCategory,
+      businessId,
+      status,
+      limit,
+    });
 
     console.log("[API /api/services GET] Building filter with businessId:", businessId);
 
@@ -462,51 +489,70 @@ async function getServicesHandler(req: NextRequest) {
     console.log(`[API /api/services GET] Server-filtered available slots [${requestId}]`);
     console.timeEnd(`[API /api/services GET] Execution time [${requestId}]`);
 
-    return NextResponse.json(
-      {
-        services: services
-          .filter((s: any) => s.businessId?.id)
-          .map((s: any) => ({
-            id: s._id?.toString() || s._id,
-            _id: s._id?.toString() || s._id,
-            businessId: s.businessId,
-            category: s.category,
-            subCategory: s.subCategory,
-            serviceName: s.serviceName,
-            description: s.description,
-            address:
-              typeof s.address === "object" && s.address?.street
-                ? s.address.street
-                : typeof s.address === "string"
-                  ? s.address
-                  : "",
-            addressLocation:
-              typeof s.address === "object" && s.address?.location
-                ? s.address.location
-                : null,
-            addOns: s.addOns || [],
-            timeSlots: (s.timeSlots || []).map((ts: any) => ({
-              date: ts.date,
-              startTime: ts.startTime,
-              endTime: ts.endTime,
-              price: ts.price,
-              duration: ts.duration,
-              staffIds: ts.staffIds,
-              isBooked: ts.isBooked,
-            })),
-            status: s.status,
-            createdAt: s.createdAt,
+    const responseData = {
+      services: services
+        .filter((s: any) => s.businessId?.id)
+        .map((s: any) => ({
+          id: s._id?.toString() || s._id,
+          _id: s._id?.toString() || s._id,
+          businessId: s.businessId,
+          category: s.category,
+          subCategory: s.subCategory,
+          serviceName: s.serviceName,
+          description: s.description,
+          address:
+            typeof s.address === "object" && s.address?.street
+              ? s.address.street
+              : typeof s.address === "string"
+                ? s.address
+                : "",
+          addressLocation:
+            typeof s.address === "object" && s.address?.location
+              ? s.address.location
+              : null,
+          addOns: s.addOns || [],
+          timeSlots: (s.timeSlots || []).map((ts: any) => ({
+            date: ts.date,
+            startTime: ts.startTime,
+            endTime: ts.endTime,
+            price: ts.price,
+            duration: ts.duration,
+            staffIds: ts.staffIds,
+            isBooked: ts.isBooked,
           })),
-        pagination: {
-          total,
-          page,
-          limit,
-          pages: Math.ceil(total / limit),
-          hasMore: page < Math.ceil(total / limit),
-        },
+          status: s.status,
+          createdAt: s.createdAt,
+        })),
+      pagination: {
+        total,
+        page,
+        limit,
+        pages: Math.ceil(total / limit),
+        hasMore: page < Math.ceil(total / limit),
       },
-      { status: 200 }
-    );
+    };
+
+    // ==========================================================================
+    // CACHE SET: Store results in memory for 30 seconds
+    // Only cache public requests (not business dashboard)
+    // ==========================================================================
+    const shouldCache = !businessId && !latitude && !longitude && !date;
+    if (shouldCache) {
+      const cacheKey = MemoryCache.generateKey('services', {
+        category,
+        subCategory,
+        status: status || 'listed',
+        limit,
+        page,
+      });
+      cache.set(cacheKey, responseData, 30); // Cache for 30 seconds
+      console.log(`[Cache] SET: ${cacheKey} - cached for 30 seconds`);
+    }
+    // ==========================================================================
+
+    console.timeEnd(`[API /api/services GET] Execution time [${requestId}]`);
+
+    return NextResponse.json(responseData, { status: 200 });
   } catch (error: any) {
     console.error("Get services error:", error);
     return NextResponse.json(
