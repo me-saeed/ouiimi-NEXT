@@ -415,6 +415,7 @@ async function createBookingHandler(req: NextRequest) {
       businessIdData = {
         id: business._id?.toString() || business._id,
         businessName: business.businessName,
+        email: business.email, // CRITICAL FIX: Ensure email is passed
       };
     } else {
       businessIdData = savedBooking.businessId?.toString() || savedBooking.businessId;
@@ -480,7 +481,7 @@ async function createBookingHandler(req: NextRequest) {
             bookingId: String(savedBooking._id).slice(-8)
           });
 
-          await sendEmail(
+          const sent = await sendEmail(
             [businessIdData.email],
             "New Booking Received - ouiimi",
             {
@@ -494,11 +495,17 @@ async function createBookingHandler(req: NextRequest) {
               time,
               bookingId: String(savedBooking._id).slice(-8),
               depositAmount: savedBooking.depositAmount,
+              totalCost: savedBooking.totalCost, // ADDED: Missing variable likely causing failure
               outstanding: savedBooking.remainingAmount
             },
             "booking_confirmation_business"
           );
-          console.log(`[Email] Business confirmation sent successfully.`);
+
+          if (sent) {
+            console.log(`[Email] Business confirmation result: SUCCESS`);
+          } else {
+            console.error(`[Email] Business confirmation result: FAILED (Check Mailjet logs)`);
+          }
         } else {
           console.warn(`[Email] Skipping business confirmation - No business email found for ID: ${businessIdData?.id || businessIdData}`);
         }
