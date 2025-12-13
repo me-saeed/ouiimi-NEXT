@@ -6,8 +6,8 @@ const apiKey = process.env.MAILJET_API_KEY;
 const secretKey = process.env.MAILJET_SECRET_KEY;
 
 if (!apiKey || !secretKey) {
-    console.error("Missing MAILJET keys");
-    process.exit(1);
+  console.error("Missing MAILJET keys");
+  process.exit(1);
 }
 
 const mailjet = Mailjet.Client.apiConnect(apiKey, secretKey);
@@ -32,7 +32,7 @@ const CSS = `
 `;
 
 function wrap(content: string, title: string) {
-    return `
+  return `
     <!DOCTYPE html>
     <html>
     <head>
@@ -59,9 +59,9 @@ function wrap(content: string, title: string) {
 
 // Template Definitions (using Mailjet syntax)
 const UPDATES = [
-    {
-        id: 7470194, // Welcome Shopper
-        html: wrap(`
+  {
+    id: 7470194, // Welcome Shopper
+    html: wrap(`
       <h1 class="h1">Welcome, {{var:fname:Friend}}!</h1>
       <p class="p">We're thrilled to have you join <strong>ouiimi</strong>.</p>
       <p class="p">Discover and book the best local services effortlessly.</p>
@@ -69,10 +69,10 @@ const UPDATES = [
         <a href="https://ouiimi.com/signin" class="btn">Explore Services</a>
       </div>
     `, "Welcome")
-    },
-    {
-        id: 7470222, // Welcome Business
-        html: wrap(`
+  },
+  {
+    id: 7470222, // Welcome Business
+    html: wrap(`
       <h1 class="h1">Welcome to Ouiimi Business!</h1>
       <p class="p">Hi {{var:fname}},</p>
       <p class="p">Congratulations on creating your business account. You can now reach more local customers.</p>
@@ -81,10 +81,10 @@ const UPDATES = [
         <a href="https://ouiimi.com/business/dashboard" class="btn">Go to Dashboard</a>
       </div>
     `, "Welcome Business")
-    },
-    {
-        id: 7470249, // Business Approved (Assumption: Standard Welcome or specific message)
-        html: wrap(`
+  },
+  {
+    id: 7470249, // Business Approved (Assumption: Standard Welcome or specific message)
+    html: wrap(`
       <h1 class="h1">Account Approved!</h1>
       <p class="p">Hi {{var:fname}},</p>
       <p class="p">Good news! Your business account has been approved.</p>
@@ -93,10 +93,10 @@ const UPDATES = [
         <a href="https://ouiimi.com/business/dashboard" class="btn">Manage Business</a>
       </div>
     `, "Approved")
-    },
-    {
-        id: 7568667, // Booking Confirmation Shopper
-        html: wrap(`
+  },
+  {
+    id: 7568667, // Booking Confirmation Shopper
+    html: wrap(`
       <h1 class="h1">Booking Confirmed!</h1>
       <p class="p">Hi {{var:fname}},</p>
       <p class="p">Your appointment with <strong>{{var:businessName}}</strong> is confirmed.</p>
@@ -113,10 +113,10 @@ const UPDATES = [
         <a href="https://ouiimi.com/profile" class="btn">Manage Booking</a>
       </div>
     `, "Booking Confirmed")
-    },
-    {
-        id: 7568585, // Booking Confirmation Business (Notification)
-        html: wrap(`
+  },
+  {
+    id: 7568585, // Booking Confirmation Business (Notification)
+    html: wrap(`
       <h1 class="h1">New Booking!</h1>
       <p class="p">Hi {{var:fname}},</p>
       <p class="p">You received a new booking for <strong>{{var:serviceName}}</strong>.</p>
@@ -128,10 +128,10 @@ const UPDATES = [
         <a href="https://ouiimi.com/business/dashboard" class="btn">View Booking</a>
       </div>
     `, "New Booking")
-    },
-    {
-        id: 7568563, // Appointment Reminder Shopper
-        html: wrap(`
+  },
+  {
+    id: 7568563, // Appointment Reminder Shopper
+    html: wrap(`
       <h1 class="h1">Appointment Reminder</h1>
       <p class="p">Hi {{var:fname}},</p>
       <p class="p">Reminder: You have an appointment tomorrow with <strong>{{var:businessName}}</strong>.</p>
@@ -143,10 +143,10 @@ const UPDATES = [
         <a href="https://ouiimi.com/profile" class="btn">View Details</a>
       </div>
     `, "Reminder")
-    },
-    {
-        id: 7568493, // Booking Complete Shopper
-        html: wrap(`
+  },
+  {
+    id: 7568493, // Booking Complete Shopper
+    html: wrap(`
       <h1 class="h1">Service Completed</h1>
       <p class="p">Hi {{var:fname}},</p>
       <p class="p">Your service with <strong>{{var:businessName}}</strong> is complete.</p>
@@ -158,10 +158,10 @@ const UPDATES = [
         <a href="https://ouiimi.com/profile" class="btn">Leave Review</a>
       </div>
     `, "Completed")
-    },
-    {
-        id: 7568471, // Payment Receipt Small Business
-        html: wrap(`
+  },
+  {
+    id: 7568471, // Payment Receipt Small Business
+    html: wrap(`
       <h1 class="h1">Payment Received</h1>
       <p class="p">Hi {{var:fname}},</p>
       <p class="p">You received a payment of <strong>$ {{var:paymentAmount}}</strong>.</p>
@@ -173,10 +173,10 @@ const UPDATES = [
         <a href="https://ouiimi.com/business/dashboard" class="btn">Dashboard</a>
       </div>
     `, "Receipt")
-    },
-    {
-        id: 7469418, // Forgot Password
-        html: wrap(`
+  },
+  {
+    id: 7469418, // Forgot Password
+    html: wrap(`
       <h1 class="h1">Reset Password</h1>
       <p class="p">Hi {{var:fname}},</p>
       <p class="p">Requested a password reset? Click below.</p>
@@ -185,21 +185,50 @@ const UPDATES = [
       </div>
       <p class="p" style="font-size: 12px; margin-top: 20px;">Link expires in 1 hour.</p>
     `, "Reset Password")
-    }
+  },
+  {
+    id: 7579254, // Booking Cancelled (Shopper) - Premium
+    html: wrap(`
+      <h1 class="h1">Booking Cancelled</h1>
+      <p class="p">Hi {{var:fname}},</p>
+      <p class="p">Your booking with <strong>{{var:businessName}}</strong> has been cancelled.</p>
+      <div class="card">
+        <div class="row"><span class="lbl">Service</span><span class="val">{{var:serviceName}}</span></div>
+        <div class="row"><span class="lbl">Date</span><span class="val">{{var:date}} at {{var:time}}</span></div>
+        <div class="row"><span class="lbl">Refund</span><span class="val">$ {{var:refundAmount}}</span></div>
+      </div>
+      <p class="p">We hope to see you again soon.</p>
+      <div style="text-align: center; margin-top: 35px;">
+        <a href="https://ouiimi.com" class="btn">Book New Service</a>
+      </div>
+    `, "Booking Cancelled")
+  }
 ];
 
 async function deploy() {
-    for (const update of UPDATES) {
+  for (const update of UPDATES) {
+    try {
+      console.log(`Updating Template ${update.id}...`);
+      await mailjet.put(`template/${update.id}/detailcontent`).request({
+        "Html-part": update.html
+      });
+      console.log("Success.");
+    } catch (e: any) {
+      if (e.statusCode === 404) {
+        console.log(`404 on PUT, retrying with POST for ${update.id}...`);
         try {
-            console.log(`Updating Template ${update.id}...`);
-            await mailjet.put(`template/${update.id}/detailcontent`).request({
-                "Html-part": update.html
-            });
-            console.log("Success.");
-        } catch (e: any) {
-            console.error(`Failed ${update.id}:`, e.message);
+          await mailjet.post(`template/${update.id}/detailcontent`).request({
+            "Html-part": update.html
+          });
+          console.log("Success (POST).");
+        } catch (e2: any) {
+          console.error(`Failed ${update.id} (POST):`, e2.message);
         }
+      } else {
+        console.error(`Failed ${update.id}:`, e.message);
+      }
     }
+  }
 }
 
 deploy();
