@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AddressAutocomplete } from "@/components/ui/address-autocomplete";
+import { TimePickerWheel } from "@/components/ui/time-picker-wheel";
 import { useToast } from "@/hooks/use-toast";
 import Image from "next/image";
 
@@ -149,13 +150,14 @@ export default function CreateServicePage() {
   const [endHour, setEndHour] = useState<string>("");
   const [endMinute, setEndMinute] = useState<string>("00");
   const [endPeriod, setEndPeriod] = useState<"AM" | "PM">("AM");
-  // Group time slots by date: { "2025-10-30": [{ startTime, endTime, price, duration, staffIds }] }
+  // Group time slots by date: { "2025-10-30": [{ startTime, endTime, price, duration, staffIds, addOns }] }
   const [datesWithSlots, setDatesWithSlots] = useState<Record<string, Array<{
     startTime: string;
     endTime: string;
     price: number;
     duration: number;
     staffIds: string[];
+    addOns: Array<{ name: string; cost: number }>;
   }>>>({});
   const [selectedDate, setSelectedDate] = useState<string>("");
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -327,6 +329,7 @@ export default function CreateServicePage() {
     setEndHour("");
     setEndMinute("00");
     setEndPeriod("AM");
+    setSelectedAddOns([]);
   };
 
   // Check for time conflicts (overlapping time ranges)
@@ -520,13 +523,21 @@ export default function CreateServicePage() {
       return;
     }
 
+    // Validate staff assignment
+    const finalStaffIds = newTimeSlot.staffIds.length > 0 ? newTimeSlot.staffIds : defaultStaffIds;
+    if (finalStaffIds.length === 0) {
+      setError("Please assign at least one staff member to this time slot");
+      return;
+    }
+
     // Final check for conflicts (in case staff was changed after time selection)
     const slot = {
       startTime: newTimeSlot.startTime,
       endTime: newTimeSlot.endTime,
       price: typeof newTimeSlot.price === "number" ? newTimeSlot.price : parseFloat(String(newTimeSlot.price)),
       duration,
-      staffIds: newTimeSlot.staffIds.length > 0 ? newTimeSlot.staffIds : defaultStaffIds,
+      staffIds: finalStaffIds,
+      addOns: [...selectedAddOns], // Copy current add-ons
     };
 
     const hasConflict = checkTimeConflict(slot.startTime, slot.endTime, slot.staffIds);
@@ -543,6 +554,7 @@ export default function CreateServicePage() {
       price: number;
       duration: number;
       staffIds: string[];
+      addOns: Array<{ name: string; cost: number }>;
     }> = datesWithSlots[selectedDate] || [];
     setDatesWithSlots({
       ...datesWithSlots,
@@ -665,6 +677,7 @@ export default function CreateServicePage() {
       price: number;
       duration: number; // Calculated duration in minutes
       staffIds: string[];
+      addOns?: Array<{ name: string; cost: number }>;
     }> = [];
     Object.entries(datesWithSlots).forEach(([date, timeSlots]) => {
       timeSlots.forEach(slot => {
@@ -677,6 +690,7 @@ export default function CreateServicePage() {
           price: slot.price,
           duration,
           staffIds: slot.staffIds,
+          addOns: slot.addOns || [],
         });
       });
     });
@@ -922,7 +936,7 @@ export default function CreateServicePage() {
   return (
     <PageLayout user={user}>
       <div className="bg-white min-h-screen py-8 md:py-12">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-6xl">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-[40rem]">
           {/* Header Section */}
           <div className="text-center mb-8">
             <h1 className="text-3xl md:text-4xl font-bold text-[#3A3A3A] mb-2">
@@ -978,22 +992,30 @@ export default function CreateServicePage() {
             >
 
               {/* 2-column grid for desktop */}
+              {/* 2-column grid for desktop */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <label className="block text-sm font-semibold text-[#3A3A3A] mb-2">
                     Category <span className="text-red-500">*</span>
                   </label>
-                  <select
-                    {...register("category")}
-                    className="w-full px-4 py-2.5 rounded-lg border border-[#E5E5E5] bg-white text-[#3A3A3A] focus:outline-none focus:ring-2 focus:ring-[#EECFD1]/20 focus:border-[#EECFD1] transition-all"
-                  >
-                    <option value="">Select Category</option>
-                    {CATEGORIES.map((cat) => (
-                      <option key={cat} value={cat}>
-                        {cat}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="relative">
+                    <select
+                      {...register("category")}
+                      className="w-full px-4 py-2.5 pr-10 rounded-lg border border-[#E5E5E5] bg-white text-[#3A3A3A] focus:outline-none focus:ring-2 focus:ring-[#EECFD1]/20 focus:border-[#EECFD1] transition-all appearance-none cursor-pointer disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed"
+                    >
+                      <option value="">Select Category</option>
+                      {CATEGORIES.map((cat) => (
+                        <option key={cat} value={cat}>
+                          {cat}
+                        </option>
+                      ))}
+                    </select>
+                    <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none">
+                      <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </div>
+                  </div>
                   {errors.category && (
                     <p className="text-red-500 text-sm mt-1">
                       {errors.category.message}
@@ -1009,7 +1031,7 @@ export default function CreateServicePage() {
                     <select
                       {...register("subCategory", { required: "Service name is required" })}
                       disabled={!selectedCategory || !SUB_CATEGORIES[selectedCategory]}
-                      className="w-full px-4 py-2.5 rounded-lg border border-[#E5E5E5] bg-white text-[#3A3A3A] focus:outline-none focus:ring-2 focus:ring-[#EECFD1]/20 focus:border-[#EECFD1] transition-all appearance-none bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2712%27 height=%278%27 viewBox=%270 0 12 8%27 fill=%27none%27%3E%3Cpath d=%27M1 1L6 6L11 1%27 stroke=%27%23666%27 stroke-width=%272%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27/%3E%3C/svg%3E')] bg-no-repeat bg-right-4 pr-10 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed disabled:opacity-60"
+                      className="w-full px-4 py-2.5 pr-10 rounded-lg border border-[#E5E5E5] bg-white text-[#3A3A3A] focus:outline-none focus:ring-2 focus:ring-[#EECFD1]/20 focus:border-[#EECFD1] transition-all appearance-none cursor-pointer disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed disabled:opacity-60"
                     >
                       <option value="">{selectedCategory && SUB_CATEGORIES[selectedCategory] ? "Select Service Name" : "Select Category First"}</option>
                       {selectedCategory && SUB_CATEGORIES[selectedCategory] && SUB_CATEGORIES[selectedCategory].map((subCat) => (
@@ -1018,8 +1040,8 @@ export default function CreateServicePage() {
                         </option>
                       ))}
                     </select>
-                    <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                      <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none">
+                      <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                       </svg>
                     </div>
@@ -1030,75 +1052,6 @@ export default function CreateServicePage() {
                     </p>
                   )}
                 </div>
-
-                {/* Add-Ons Section */}
-                {selectedSubCategory && SUB_CATEGORY_ADDONS[selectedSubCategory] && SUB_CATEGORY_ADDONS[selectedSubCategory].length > 0 && (
-                  <div className="space-y-2">
-                    <label className="block text-sm font-semibold text-[#3A3A3A] mb-2">
-                      Add-Ons
-                    </label>
-                    <div className="relative">
-                      <button
-                        type="button"
-                        onClick={() => setIsAddOnsDropdownOpen(!isAddOnsDropdownOpen)}
-                        className="w-full px-4 py-2.5 bg-white border border-[#E5E5E5] rounded-lg text-left text-[#3A3A3A] focus:outline-none focus:ring-2 focus:ring-[#EECFD1]/20 focus:border-[#EECFD1] transition-all flex justify-between items-center"
-                      >
-                        <span className={selectedAddOns.length > 0 ? "text-[#3A3A3A]" : "text-[#888888]"}>
-                          {selectedAddOns.length > 0
-                            ? `${selectedAddOns.length} Add-on${selectedAddOns.length > 1 ? 's' : ''} Selected`
-                            : "Select Add-Ons"}
-                        </span>
-                        <svg className={`w-5 h-5 text-gray-400 transition-transform ${isAddOnsDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                        </svg>
-                      </button>
-
-                      {isAddOnsDropdownOpen && (
-                        <div className="absolute z-10 w-full mt-1 bg-white border border-[#E5E5E5] rounded-lg shadow-lg max-h-60 overflow-y-auto">
-                          {SUB_CATEGORY_ADDONS[selectedSubCategory].map((addOn, index) => {
-                            const isSelected = selectedAddOns.some(item => item.name === addOn.name);
-                            return (
-                              <div
-                                key={index}
-                                className="flex items-center justify-between p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-0"
-                                onClick={() => handleToggleAddOn(addOn)}
-                              >
-                                <div className="flex items-center gap-3">
-                                  <div className={`w-5 h-5 rounded border flex items-center justify-center transition-colors ${isSelected ? 'bg-[#EECFD1] border-[#EECFD1]' : 'border-gray-300 bg-white'}`}>
-                                    {isSelected && (
-                                      <svg className="w-3.5 h-3.5 text-[#3A3A3A]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                                      </svg>
-                                    )}
-                                  </div>
-                                  <span className="text-sm text-[#3A3A3A]">{addOn.name}</span>
-                                </div>
-                                <span className="text-sm font-medium text-[#3A3A3A]">${addOn.cost}</span>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
-                    {/* Selected Add-ons Badges */}
-                    {selectedAddOns.length > 0 && (
-                      <div className="flex flex-wrap gap-2 mt-2">
-                        {selectedAddOns.map((addOn, idx) => (
-                          <div key={idx} className="bg-[#EECFD1]/20 border border-[#EECFD1] rounded-full px-3 py-1 flex items-center gap-2">
-                            <span className="text-sm font-medium text-[#3A3A3A]">{addOn.name} (${addOn.cost})</span>
-                            <button
-                              type="button"
-                              onClick={() => handleToggleAddOn(addOn)}
-                              className="text-[#3A3A3A]/60 hover:text-[#3A3A3A]"
-                            >
-                              ×
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )}
               </div>
 
 
@@ -1253,183 +1206,353 @@ export default function CreateServicePage() {
 
                     <div className="space-y-6">
                       {/* Time Selection - Clean and Professional */}
-                      <div className="space-y-3">
-                        <label className="block text-sm font-semibold text-[#3A3A3A]">
-                          Start Time <span className="text-red-500">*</span>
-                        </label>
-                        <div className="flex items-center gap-3">
-                          {/* Unified Time Picker */}
-                          <div className="flex-1 flex items-center gap-2 bg-gray-50 rounded-xl p-1 border border-gray-200">
-                            <div className="flex-1 relative">
-                              <select
-                                value={startHour}
-                                onChange={(e) => {
-                                  setStartHour(e.target.value);
-                                  setNewTimeSlot({ ...newTimeSlot, startTime: "", endTime: "" });
-                                }}
-                                disabled={!selectedDate}
-                                className="w-full px-4 py-3 pr-8 bg-transparent border-0 text-[#3A3A3A] font-medium text-base focus:outline-none focus:ring-0 disabled:opacity-50 disabled:cursor-not-allowed appearance-none cursor-pointer"
-                              >
-                                <option value="">--</option>
-                                {Array.from({ length: 12 }, (_, i) => i + 1).map((h) => (
-                                  <option key={h} value={String(h)}>{String(h).padStart(2, '0')}</option>
-                                ))}
-                              </select>
-                              <div className="absolute inset-y-0 right-2 flex items-center pointer-events-none">
-                                <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                                </svg>
+                      <div className="space-y-6">
+                        <div className="space-y-3">
+                          <label className="block text-sm font-semibold text-[#3A3A3A]">
+                            Start Time <span className="text-red-500">*</span>
+                          </label>
+                          <div className="flex justify-center bg-gray-50 rounded-xl p-4 border border-gray-200 md:hidden">
+                            <TimePickerWheel
+                              value={newTimeSlot.startTime || "09:00"}
+                              onChange={(val) => {
+                                const currentDuration = calculateDuration(newTimeSlot.startTime, newTimeSlot.endTime);
+                                const durationToKeep = currentDuration > 0 ? currentDuration : 60;
+                                const newEndTime = calculateEndTimeFromStart(val, durationToKeep);
+                                setNewTimeSlot(prev => ({ ...prev, startTime: val, endTime: newEndTime }));
+                              }}
+                            />
+                          </div>
+
+                          {/* Desktop Time Picker */}
+                          <div className="hidden md:flex items-center gap-3">
+                            <div className="flex-1 flex items-center gap-2 bg-gray-50 rounded-xl p-1 border border-gray-200">
+                              <div className="flex-1 relative">
+                                <select
+                                  value={startHour}
+                                  onChange={(e) => {
+                                    const newHour = e.target.value;
+                                    setStartHour(newHour);
+                                    if (newHour && startMinute) {
+                                      const time = convertTo24Hour(newHour, startMinute, startPeriod);
+                                      const currentDuration = calculateDuration(newTimeSlot.startTime, newTimeSlot.endTime);
+                                      const durationToKeep = currentDuration > 0 ? currentDuration : 60;
+                                      const newEndTime = calculateEndTimeFromStart(time, durationToKeep);
+
+                                      setNewTimeSlot(prev => ({ ...prev, startTime: time, endTime: newEndTime }));
+
+                                      // Update End Time Dropdowns
+                                      if (newEndTime) {
+                                        const [eh, em] = newEndTime.split(':').map(Number);
+                                        setEndHour(String(eh % 12 || 12));
+                                        setEndMinute(String(em).padStart(2, '0'));
+                                        setEndPeriod(eh >= 12 ? 'PM' : 'AM');
+                                      }
+                                    } else {
+                                      setNewTimeSlot(prev => ({ ...prev, startTime: "" }));
+                                    }
+                                  }}
+                                  disabled={!selectedDate}
+                                  className="w-full px-4 py-3 pr-8 bg-transparent border-0 text-[#3A3A3A] font-medium text-base focus:outline-none focus:ring-0 disabled:opacity-50 disabled:cursor-not-allowed appearance-none cursor-pointer"
+                                >
+                                  <option value="">--</option>
+                                  {Array.from({ length: 12 }, (_, i) => i + 1).map((h) => (
+                                    <option key={h} value={String(h)}>{String(h).padStart(2, '0')}</option>
+                                  ))}
+                                </select>
+                                <div className="absolute inset-y-0 right-2 flex items-center pointer-events-none">
+                                  <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                  </svg>
+                                </div>
                               </div>
-                            </div>
-                            <span className="text-[#3A3A3A] font-semibold text-lg">:</span>
-                            <div className="flex-1 relative">
-                              <select
-                                value={startMinute}
-                                onChange={(e) => {
-                                  setStartMinute(e.target.value);
-                                  setNewTimeSlot({ ...newTimeSlot, startTime: "", endTime: "" });
-                                }}
-                                disabled={!selectedDate || !startHour}
-                                className="w-full px-4 py-3 pr-8 bg-transparent border-0 text-[#3A3A3A] font-medium text-base focus:outline-none focus:ring-0 disabled:opacity-50 disabled:cursor-not-allowed appearance-none cursor-pointer"
-                              >
-                                {Array.from({ length: 12 }, (_, i) => {
-                                  const minute = String(i * 5).padStart(2, '0');
-                                  return <option key={minute} value={minute}>{minute}</option>;
-                                })}
-                              </select>
-                              <div className="absolute inset-y-0 right-2 flex items-center pointer-events-none">
-                                <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                                </svg>
+                              <span className="text-[#3A3A3A] font-semibold text-lg">:</span>
+                              <div className="flex-1 relative">
+                                <select
+                                  value={startMinute}
+                                  onChange={(e) => {
+                                    const newMinute = e.target.value;
+                                    setStartMinute(newMinute);
+                                    if (startHour && newMinute) {
+                                      const time = convertTo24Hour(startHour, newMinute, startPeriod);
+                                      const currentDuration = calculateDuration(newTimeSlot.startTime, newTimeSlot.endTime);
+                                      const durationToKeep = currentDuration > 0 ? currentDuration : 60;
+                                      const newEndTime = calculateEndTimeFromStart(time, durationToKeep);
+
+                                      setNewTimeSlot(prev => ({ ...prev, startTime: time, endTime: newEndTime }));
+
+                                      // Update End Time Dropdowns
+                                      if (newEndTime) {
+                                        const [eh, em] = newEndTime.split(':').map(Number);
+                                        setEndHour(String(eh % 12 || 12));
+                                        setEndMinute(String(em).padStart(2, '0'));
+                                        setEndPeriod(eh >= 12 ? 'PM' : 'AM');
+                                      }
+                                    } else {
+                                      setNewTimeSlot(prev => ({ ...prev, startTime: "" }));
+                                    }
+                                  }}
+                                  disabled={!selectedDate || !startHour}
+                                  className="w-full px-4 py-3 pr-8 bg-transparent border-0 text-[#3A3A3A] font-medium text-base focus:outline-none focus:ring-0 disabled:opacity-50 disabled:cursor-not-allowed appearance-none cursor-pointer"
+                                >
+                                  {Array.from({ length: 12 }, (_, i) => {
+                                    const minute = String(i * 5).padStart(2, '0');
+                                    return <option key={minute} value={minute}>{minute}</option>;
+                                  })}
+                                </select>
+                                <div className="absolute inset-y-0 right-2 flex items-center pointer-events-none">
+                                  <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                  </svg>
+                                </div>
                               </div>
-                            </div>
-                            <div className="flex gap-1 bg-white rounded-lg p-1 border border-gray-200">
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setStartPeriod("AM");
-                                  setNewTimeSlot({ ...newTimeSlot, startTime: "", endTime: "" });
-                                }}
-                                disabled={!selectedDate || !startHour}
-                                className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${startPeriod === "AM"
-                                  ? "bg-[#EECFD1] text-[#3A3A3A] shadow-sm"
-                                  : "text-gray-500 hover:text-[#3A3A3A] hover:bg-gray-50"
-                                  } disabled:opacity-50 disabled:cursor-not-allowed`}
-                              >
-                                AM
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setStartPeriod("PM");
-                                  setNewTimeSlot({ ...newTimeSlot, startTime: "", endTime: "" });
-                                }}
-                                disabled={!selectedDate || !startHour}
-                                className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${startPeriod === "PM"
-                                  ? "bg-[#EECFD1] text-[#3A3A3A] shadow-sm"
-                                  : "text-gray-500 hover:text-[#3A3A3A] hover:bg-gray-50"
-                                  } disabled:opacity-50 disabled:cursor-not-allowed`}
-                              >
-                                PM
-                              </button>
+                              <div className="flex gap-1 bg-white rounded-lg p-1 border border-gray-200">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const newPeriod = "AM";
+                                    setStartPeriod(newPeriod);
+                                    if (startHour && startMinute) {
+                                      const time = convertTo24Hour(startHour, startMinute, newPeriod);
+                                      const currentDuration = calculateDuration(newTimeSlot.startTime, newTimeSlot.endTime);
+                                      const durationToKeep = currentDuration > 0 ? currentDuration : 60;
+                                      const newEndTime = calculateEndTimeFromStart(time, durationToKeep);
+
+                                      setNewTimeSlot(prev => ({ ...prev, startTime: time, endTime: newEndTime }));
+
+                                      // Update End Time Dropdowns
+                                      if (newEndTime) {
+                                        const [eh, em] = newEndTime.split(':').map(Number);
+                                        setEndHour(String(eh % 12 || 12));
+                                        setEndMinute(String(em).padStart(2, '0'));
+                                        setEndPeriod(eh >= 12 ? 'PM' : 'AM');
+                                      }
+                                    }
+                                  }}
+                                  disabled={!selectedDate || !startHour}
+                                  className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${startPeriod === "AM"
+                                    ? "bg-[#EECFD1] text-[#3A3A3A] shadow-sm"
+                                    : "text-gray-500 hover:text-[#3A3A3A] hover:bg-gray-50"
+                                    } disabled:opacity-50 disabled:cursor-not-allowed`}
+                                >
+                                  AM
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const newPeriod = "PM";
+                                    setStartPeriod(newPeriod);
+                                    if (startHour && startMinute) {
+                                      const time = convertTo24Hour(startHour, startMinute, newPeriod);
+                                      const currentDuration = calculateDuration(newTimeSlot.startTime, newTimeSlot.endTime);
+                                      const durationToKeep = currentDuration > 0 ? currentDuration : 60;
+                                      const newEndTime = calculateEndTimeFromStart(time, durationToKeep);
+
+                                      setNewTimeSlot(prev => ({ ...prev, startTime: time, endTime: newEndTime }));
+
+                                      // Update End Time Dropdowns
+                                      if (newEndTime) {
+                                        const [eh, em] = newEndTime.split(':').map(Number);
+                                        setEndHour(String(eh % 12 || 12));
+                                        setEndMinute(String(em).padStart(2, '0'));
+                                        setEndPeriod(eh >= 12 ? 'PM' : 'AM');
+                                      }
+                                    }
+                                  }}
+                                  disabled={!selectedDate || !startHour}
+                                  className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${startPeriod === "PM"
+                                    ? "bg-[#EECFD1] text-[#3A3A3A] shadow-sm"
+                                    : "text-gray-500 hover:text-[#3A3A3A] hover:bg-gray-50"
+                                    } disabled:opacity-50 disabled:cursor-not-allowed`}
+                                >
+                                  PM
+                                </button>
+                              </div>
                             </div>
                           </div>
                         </div>
 
+                        <div className="space-y-3">
+                          <label className="block text-sm font-semibold text-[#3A3A3A]">
+                            End Time <span className="text-red-500">*</span>
+                          </label>
+                          <div className="flex justify-center bg-gray-50 rounded-xl p-4 border border-gray-200 md:hidden">
+                            <TimePickerWheel
+                              value={newTimeSlot.endTime || calculateEndTimeFromStart(newTimeSlot.startTime || "09:00")}
+                              onChange={(val) => {
+                                setNewTimeSlot(prev => ({ ...prev, endTime: val }));
+                              }}
+                            />
+                          </div>
+
+                          {/* Desktop End Time Picker */}
+                          <div className="hidden md:flex items-center gap-3">
+                            <div className="flex-1 flex items-center gap-2 bg-gray-50 rounded-xl p-1 border border-gray-200">
+                              <div className="flex-1 relative">
+                                <select
+                                  value={endHour}
+                                  onChange={(e) => {
+                                    const newHour = e.target.value;
+                                    setEndHour(newHour);
+                                    if (newHour && endMinute) {
+                                      const time = convertTo24Hour(newHour, endMinute, endPeriod);
+                                      setNewTimeSlot(prev => ({ ...prev, endTime: time }));
+                                    } else {
+                                      setNewTimeSlot(prev => ({ ...prev, endTime: "" }));
+                                    }
+                                  }}
+                                  disabled={!selectedDate || !newTimeSlot.startTime}
+                                  className="w-full px-4 py-3 pr-8 bg-transparent border-0 text-[#3A3A3A] font-medium text-base focus:outline-none focus:ring-0 disabled:opacity-50 disabled:cursor-not-allowed appearance-none cursor-pointer"
+                                >
+                                  <option value="">--</option>
+                                  {Array.from({ length: 12 }, (_, i) => i + 1).map((h) => (
+                                    <option key={h} value={String(h)}>{String(h).padStart(2, '0')}</option>
+                                  ))}
+                                </select>
+                                <div className="absolute inset-y-0 right-2 flex items-center pointer-events-none">
+                                  <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                  </svg>
+                                </div>
+                              </div>
+                              <span className="text-[#3A3A3A] font-semibold text-lg">:</span>
+                              <div className="flex-1 relative">
+                                <select
+                                  value={endMinute}
+                                  onChange={(e) => {
+                                    const newMinute = e.target.value;
+                                    setEndMinute(newMinute);
+                                    if (endHour && newMinute) {
+                                      const time = convertTo24Hour(endHour, newMinute, endPeriod);
+                                      setNewTimeSlot(prev => ({ ...prev, endTime: time }));
+                                    } else {
+                                      setNewTimeSlot(prev => ({ ...prev, endTime: "" }));
+                                    }
+                                  }}
+                                  disabled={!selectedDate || !newTimeSlot.startTime || !endHour}
+                                  className="w-full px-4 py-3 pr-8 bg-transparent border-0 text-[#3A3A3A] font-medium text-base focus:outline-none focus:ring-0 disabled:opacity-50 disabled:cursor-not-allowed appearance-none cursor-pointer"
+                                >
+                                  {Array.from({ length: 12 }, (_, i) => {
+                                    const minute = String(i * 5).padStart(2, '0');
+                                    return <option key={minute} value={minute}>{minute}</option>;
+                                  })}
+                                </select>
+                                <div className="absolute inset-y-0 right-2 flex items-center pointer-events-none">
+                                  <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                  </svg>
+                                </div>
+                              </div>
+                              <div className="flex gap-1 bg-white rounded-lg p-1 border border-gray-200">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const newPeriod = "AM";
+                                    setEndPeriod(newPeriod);
+                                    if (endHour && endMinute) {
+                                      const time = convertTo24Hour(endHour, endMinute, newPeriod);
+                                      setNewTimeSlot(prev => ({ ...prev, endTime: time }));
+                                    }
+                                  }}
+                                  disabled={!selectedDate || !newTimeSlot.startTime || !endHour}
+                                  className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${endPeriod === "AM"
+                                    ? "bg-[#EECFD1] text-[#3A3A3A] shadow-sm"
+                                    : "text-gray-500 hover:text-[#3A3A3A] hover:bg-gray-50"
+                                    } disabled:opacity-50 disabled:cursor-not-allowed`}
+                                >
+                                  AM
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const newPeriod = "PM";
+                                    setEndPeriod(newPeriod);
+                                    if (endHour && endMinute) {
+                                      const time = convertTo24Hour(endHour, endMinute, newPeriod);
+                                      setNewTimeSlot(prev => ({ ...prev, endTime: time }));
+                                    }
+                                  }}
+                                  disabled={!selectedDate || !newTimeSlot.startTime || !endHour}
+                                  className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${endPeriod === "PM"
+                                    ? "bg-[#EECFD1] text-[#3A3A3A] shadow-sm"
+                                    : "text-gray-500 hover:text-[#3A3A3A] hover:bg-gray-50"
+                                    } disabled:opacity-50 disabled:cursor-not-allowed`}
+                                >
+                                  PM
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Duration Display - Calculated */}
+                          {newTimeSlot.startTime && newTimeSlot.endTime && (() => {
+                            const duration = calculateDuration(newTimeSlot.startTime, newTimeSlot.endTime);
+                            return duration > 0 ? (
+                              <div className="flex items-center gap-2 text-sm justify-center mt-2">
+                                <span className="text-gray-500">Duration:</span>
+                                <span className="font-semibold text-[#3A3A3A] px-3 py-1.5 bg-[#EECFD1]/10 rounded-lg">
+                                  {formatDuration(duration)}
+                                </span>
+                              </div>
+                            ) : null;
+                          })()}
+                        </div>
                       </div>
 
-                      {/* End Time Selection */}
-                      <div className="space-y-3">
-                        <label className="block text-sm font-semibold text-[#3A3A3A]">
-                          End Time <span className="text-red-500">*</span>
-                        </label>
-                        <div className="flex items-center gap-3">
-                          {/* Unified Time Picker */}
-                          <div className="flex-1 flex items-center gap-2 bg-gray-50 rounded-xl p-1 border border-gray-200">
-                            <div className="flex-1 relative">
-                              <select
-                                value={endHour}
-                                onChange={(e) => {
-                                  setEndHour(e.target.value);
-                                }}
-                                disabled={!selectedDate || !newTimeSlot.startTime}
-                                className="w-full px-4 py-3 pr-8 bg-transparent border-0 text-[#3A3A3A] font-medium text-base focus:outline-none focus:ring-0 disabled:opacity-50 disabled:cursor-not-allowed appearance-none cursor-pointer"
-                              >
-                                <option value="">--</option>
-                                {Array.from({ length: 12 }, (_, i) => i + 1).map((h) => (
-                                  <option key={h} value={String(h)}>{String(h).padStart(2, '0')}</option>
-                                ))}
-                              </select>
-                              <div className="absolute inset-y-0 right-2 flex items-center pointer-events-none">
-                                <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                                </svg>
-                              </div>
-                            </div>
-                            <span className="text-[#3A3A3A] font-semibold text-lg">:</span>
-                            <div className="flex-1 relative">
-                              <select
-                                value={endMinute}
-                                onChange={(e) => {
-                                  setEndMinute(e.target.value);
-                                }}
-                                disabled={!selectedDate || !newTimeSlot.startTime || !endHour}
-                                className="w-full px-4 py-3 pr-8 bg-transparent border-0 text-[#3A3A3A] font-medium text-base focus:outline-none focus:ring-0 disabled:opacity-50 disabled:cursor-not-allowed appearance-none cursor-pointer"
-                              >
-                                {Array.from({ length: 12 }, (_, i) => {
-                                  const minute = String(i * 5).padStart(2, '0');
-                                  return <option key={minute} value={minute}>{minute}</option>;
-                                })}
-                              </select>
-                              <div className="absolute inset-y-0 right-2 flex items-center pointer-events-none">
-                                <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                                </svg>
-                              </div>
-                            </div>
-                            <div className="flex gap-1 bg-white rounded-lg p-1 border border-gray-200">
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setEndPeriod("AM");
-                                }}
-                                disabled={!selectedDate || !newTimeSlot.startTime || !endHour}
-                                className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${endPeriod === "AM"
-                                  ? "bg-[#EECFD1] text-[#3A3A3A] shadow-sm"
-                                  : "text-gray-500 hover:text-[#3A3A3A] hover:bg-gray-50"
-                                  } disabled:opacity-50 disabled:cursor-not-allowed`}
-                              >
-                                AM
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setEndPeriod("PM");
-                                }}
-                                disabled={!selectedDate || !newTimeSlot.startTime || !endHour}
-                                className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${endPeriod === "PM"
-                                  ? "bg-[#EECFD1] text-[#3A3A3A] shadow-sm"
-                                  : "text-gray-500 hover:text-[#3A3A3A] hover:bg-gray-50"
-                                  } disabled:opacity-50 disabled:cursor-not-allowed`}
-                              >
-                                PM
-                              </button>
-                            </div>
-                          </div>
+                      {/* Add-Ons Selection */}
+                      <div className="space-y-3 pt-4 border-t border-[#E5E5E5]">
+                        <div className="flex items-center justify-between">
+                          <label className="block text-sm font-semibold text-[#3A3A3A]">
+                            Add-Ons for this Slot <span className="text-[#888888] text-xs font-normal">(Optional)</span>
+                          </label>
+                          <button
+                            type="button"
+                            onClick={() => setIsAddOnsDropdownOpen(!isAddOnsDropdownOpen)}
+                            className="text-sm font-medium text-primary hover:text-primary/80"
+                          >
+                            {isAddOnsDropdownOpen ? "Close" : "+ Add Add-On"}
+                          </button>
                         </div>
 
-                        {/* Duration Display - Calculated */}
-                        {newTimeSlot.startTime && newTimeSlot.endTime && (() => {
-                          const duration = calculateDuration(newTimeSlot.startTime, newTimeSlot.endTime);
-                          return duration > 0 ? (
-                            <div className="flex items-center gap-2 text-sm">
-                              <span className="text-gray-500">Duration:</span>
-                              <span className="font-semibold text-[#3A3A3A] px-3 py-1.5 bg-[#EECFD1]/10 rounded-lg">
-                                {formatDuration(duration)}
-                              </span>
+                        {isAddOnsDropdownOpen && (
+                          <div className="p-4 bg-gray-50 rounded-xl border border-gray-200 mb-3">
+                            <p className="text-sm text-gray-500 mb-3">Select available add-ons:</p>
+                            <div className="flex flex-wrap gap-2">
+                              {selectedSubCategory && SUB_CATEGORY_ADDONS[selectedSubCategory]?.map((addOn, idx) => (
+                                <button
+                                  key={idx}
+                                  type="button"
+                                  onClick={() => handleToggleAddOn(addOn)}
+                                  className={`px-3 py-1.5 rounded-full text-sm transition-colors border ${selectedAddOns.some(a => a.name === addOn.name)
+                                    ? "bg-primary text-white border-primary"
+                                    : "bg-white text-gray-700 border-gray-300 hover:border-primary"
+                                    }`}
+                                >
+                                  {addOn.name} (+${addOn.cost})
+                                </button>
+                              ))}
+                              {(!selectedSubCategory || !SUB_CATEGORY_ADDONS[selectedSubCategory]) && (
+                                <p className="text-sm text-gray-400 italic">Select a sub-category to see add-ons</p>
+                              )}
                             </div>
-                          ) : null;
-                        })()}
+                          </div>
+                        )}
+
+                        {selectedAddOns.length > 0 && (
+                          <div className="flex flex-wrap gap-2">
+                            {selectedAddOns.map((addOn, idx) => (
+                              <div key={idx} className="bg-[#EECFD1]/20 border border-[#EECFD1] rounded-full px-3 py-1 flex items-center gap-2">
+                                <span className="text-sm font-medium text-[#3A3A3A]">{addOn.name} (${addOn.cost})</span>
+                                <button
+                                  type="button"
+                                  onClick={() => handleToggleAddOn(addOn)}
+                                  className="text-[#3A3A3A]/60 hover:text-[#3A3A3A]"
+                                >
+                                  ×
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
 
                       {/* Price Field for Time Slot */}

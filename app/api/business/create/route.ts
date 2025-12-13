@@ -258,7 +258,8 @@ async function createBusinessHandler(req: NextRequest) {
       userId: userId,
       businessName: validatedData.businessName.trim(),
       email: validatedData.email.toLowerCase().trim(),
-      address: validatedData.address.trim(),
+      address: typeof validatedData.address === 'string' ? validatedData.address.trim() : validatedData.address.street.trim(),
+      location: typeof validatedData.address === 'object' && validatedData.address.location ? validatedData.address.location : undefined,
       // NOTE: "approved" for testing, change to "pending" for production
       // "pending" requires admin approval before business can list services
       status: "approved",

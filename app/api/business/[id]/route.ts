@@ -86,6 +86,21 @@ async function updateBusinessHandler(
       );
     }
 
+    // Extract address and location if present
+    if (validatedData.address) {
+      if (typeof validatedData.address === 'string') {
+        business.address = validatedData.address;
+        // Don't touch location if only string address provided (unless we geo-code, but sticking to simple logic for now)
+      } else if (typeof validatedData.address === 'object') {
+        business.address = validatedData.address.street;
+        if (validatedData.address.location) {
+          business.location = validatedData.address.location;
+        }
+      }
+      // Remove address from validatedData so it doesn't overwrite with object
+      delete (validatedData as any).address;
+    }
+
     Object.assign(business, validatedData);
     await business.save();
 

@@ -82,9 +82,12 @@ export default function SigninPage() {
         localStorage.setItem("user", JSON.stringify(result.user));
       }
 
-      // Redirect to home or dashboard
+      // Redirect to redirect url or home
+      const searchParams = new URL(window.location.href).searchParams;
+      const redirectUrl = searchParams.get("redirect") || "/";
+
       setTimeout(() => {
-        router.push("/");
+        router.push(redirectUrl);
       }, 1000);
     } catch (err: any) {
       setError("Something went wrong. Please try again.");

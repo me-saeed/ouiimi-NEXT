@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Calendar } from "lucide-react";
 import { ServiceCard } from "@/components/ui/service-card";
+import { useRef } from "react";
 
 interface Booking {
   id: string;
@@ -43,6 +44,7 @@ export default function ShopperProfilePage() {
   const [success, setSuccess] = useState<string>("");
   const [showContact, setShowContact] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     // Check for success message from cart
@@ -85,6 +87,80 @@ export default function ShopperProfilePage() {
       router.push("/signin");
     }
   }, [router]);
+
+  const handleUpdateProfilePic = async (url: string) => {
+    try {
+      if (!user) return;
+
+      const token = localStorage.getItem("token");
+      const userId = user.id || user._id;
+
+      const response = await fetch(`/api/user/${userId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          pic: url,
+        }),
+      });
+
+      if (response.ok) {
+        setSuccess("Profile picture updated successfully");
+        const updatedUser = { ...user, pic: url };
+        localStorage.setItem("user", JSON.stringify(updatedUser));
+        setUser(updatedUser);
+        setTimeout(() => setSuccess(""), 3000);
+      } else {
+        setError("Failed to update profile picture");
+      }
+    } catch (e) {
+      console.error("Error updating profile picture:", e);
+      setError("Failed to update profile picture");
+    }
+  };
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+
+      // Validate file type
+      if (!file.type.startsWith("image/")) {
+        setError("Please upload an image file");
+        return;
+      }
+
+      // Validate file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        setError("Image size should be less than 5MB");
+        return;
+      }
+
+      setIsLoading(true);
+      try {
+        const formData = new FormData();
+        formData.append("file", file);
+
+        const response = await fetch("/api/upload", {
+          method: "POST",
+          body: formData,
+        });
+
+        if (!response.ok) {
+          throw new Error("Upload failed");
+        }
+
+        const data = await response.json();
+        await handleUpdateProfilePic(data.url);
+      } catch (err) {
+        console.error("Error uploading image:", err);
+        setError("Failed to upload image");
+      } finally {
+        setIsLoading(false);
+      }
+    }
+  };
 
   const loadBookings = async (userData: any) => {
     if (!userData?.id && !userData?._id) return;
@@ -342,7 +418,7 @@ export default function ShopperProfilePage() {
         <div className="bg-white py-8 border-b border-gray-100">
           <div className="container mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex flex-col items-center text-center space-y-4">
-              <div className="relative">
+              <div className="relative mb-4">
                 {user.pic && user.pic !== "avatar.png" ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
@@ -357,9 +433,20 @@ export default function ShopperProfilePage() {
                     </span>
                   </div>
                 )}
-                <button className="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center text-lg font-bold hover:bg-primary/90">
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  className="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center text-lg font-bold hover:bg-primary/90 cursor-pointer"
+                  disabled={isLoading}
+                >
                   +
                 </button>
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleFileSelect}
+                  className="hidden"
+                  accept="image/*"
+                />
               </div>
 
               <h2 className="text-xl font-medium text-foreground">
