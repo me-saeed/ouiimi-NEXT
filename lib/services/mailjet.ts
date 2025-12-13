@@ -52,7 +52,7 @@ const TEMPLATE_IDS = {
   appointment_reminder: 7568563,              // "Appointment Reminder (Shopper)"
   booking_complete: 7568493,                  // "Booking Complete (shopper)"
   payment_receipt: 7568471,                   // "Payment Receipt (small business)"
-  booking_cancellation: 7568667,              // Reusing Confirmation (Ideally separate)
+  booking_cancellation: 7579254,            // "Booking Cancelled (Shopper) - Premium"
   forgot_password: 7469418,                   // "My templte"
 } as const;
 
@@ -94,6 +94,12 @@ export async function sendEmail(
           Subject: subject,
           Variables: {
             ...data,
+            // Format numbers to strings with 2 decimals for display
+            totalCost: data.totalCost !== undefined ? Number(data.totalCost).toFixed(2) : "0.00",
+            depositAmount: data.depositAmount !== undefined ? Number(data.depositAmount).toFixed(2) : "0.00",
+            paymentAmount: data.paymentAmount !== undefined ? Number(data.paymentAmount).toFixed(2) : "0.00",
+            refundAmount: data.refundAmount !== undefined ? Number(data.refundAmount).toFixed(2) : "0.00",
+
             // Snake Case Variants
             first_name: data.fname,
             last_name: data.lname,
@@ -101,13 +107,13 @@ export async function sendEmail(
             service_name: data.serviceName,
             booking_date: data.date,
             booking_time: data.time,
-            total_cost: data.totalCost,
-            deposit_amount: data.depositAmount,
-            payment_amount: data.paymentAmount,
+            total_cost: data.totalCost !== undefined ? Number(data.totalCost).toFixed(2) : "0.00",
+            deposit_amount: data.depositAmount !== undefined ? Number(data.depositAmount).toFixed(2) : "0.00",
+            payment_amount: data.paymentAmount !== undefined ? Number(data.paymentAmount).toFixed(2) : "0.00",
             customer_name: data.customerName || `${data.fname || ''} ${data.lname || ''}`.trim(),
             booking_id: data.bookingId,
             reset_link: data.uniquelink,
-            refund_amount: data.refundAmount,
+            refund_amount: data.refundAmount !== undefined ? Number(data.refundAmount).toFixed(2) : "0.00",
 
             // Pascal Case Variants
             FirstName: data.fname,
@@ -116,8 +122,8 @@ export async function sendEmail(
             ServiceName: data.serviceName,
             Date: data.date,
             Time: data.time,
-            TotalCost: data.totalCost,
-            DepositAmount: data.depositAmount,
+            TotalCost: data.totalCost !== undefined ? Number(data.totalCost).toFixed(2) : "0.00",
+            DepositAmount: data.depositAmount !== undefined ? Number(data.depositAmount).toFixed(2) : "0.00",
             CustomerName: data.customerName,
             BookingId: data.bookingId,
           },
