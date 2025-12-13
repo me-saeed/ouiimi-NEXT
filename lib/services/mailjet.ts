@@ -138,10 +138,21 @@ export async function sendEmail(
     });
 
     const response = await request;
-    console.log("Email sent successfully:", response.body);
+    console.log(`[Mailjet] Email sent successfully to ${emailToSend.join(", ")}. Template: ${templateType}`);
     return true;
-  } catch (error) {
-    console.error("Error sending email:", error);
+  } catch (error: any) {
+    console.error(`[Mailjet] FATAL ERROR sending email to ${emailToSend.join(", ")}`);
+    console.error(`[Mailjet] Template: ${templateType}`);
+
+    if (error.statusCode) {
+      console.error(`[Mailjet] Status Code: ${error.statusCode}`);
+      console.error(`[Mailjet] Error Message: ${error.message}`);
+      if (error.response && error.response.text) {
+        console.error(`[Mailjet] Full Response: ${error.response.text}`);
+      }
+    } else {
+      console.error(`[Mailjet] Error details:`, error);
+    }
     return false;
   }
 }

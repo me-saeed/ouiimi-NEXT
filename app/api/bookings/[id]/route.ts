@@ -277,7 +277,7 @@ async function updateBookingHandler(
 
       const populatedBooking = await Booking.findById(booking._id)
         .populate("userId", "fname lname email")
-        .populate("businessId", "businessName")
+        .populate("businessId", "businessName email")
         .populate("serviceId", "serviceName")
         .lean();
 
