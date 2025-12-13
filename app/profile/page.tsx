@@ -152,16 +152,17 @@ export default function ShopperProfilePage() {
           const bookingDateTime = new Date(`${booking.timeSlot.date}T${booking.timeSlot.endTime}`);
           const isPast = bookingDateTime <= now;
 
-          // Finished: payment transferred (fully_paid) or cancelled/completed
-          if (booking.status === "cancelled" || booking.status === "completed" || booking.paymentStatus === "fully_paid") {
+          // Finished: Time passed, or explicitly finished/cancelled/paid
+          // User Request: "When service time is passed the service should go in finished"
+          if (isPast || booking.status === "cancelled" || booking.status === "completed") {
             finished.push(booking);
           }
-          // Pending: appointment time passed but payment not transferred
-          else if (isPast && booking.paymentStatus !== "fully_paid") {
+          // Pending: Future + Waiting (status pending)
+          else if (booking.status === "pending") {
             pending.push(booking);
           }
-          // Upcoming: appointment time hasn't passed
-          else if (!isPast && (booking.status === "confirmed" || booking.status === "pending")) {
+          // Upcoming: Future + Confirmed
+          else {
             upcoming.push(booking);
           }
         });

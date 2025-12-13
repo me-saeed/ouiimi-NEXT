@@ -36,12 +36,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             if (storedToken && storedUser) {
                 setToken(storedToken);
                 setUser(JSON.parse(storedUser));
+                // Ensure cookie is set for middleware - Simple format for maximum compatibility
+                document.cookie = `token=${storedToken}; path=/`;
             }
         } catch (error) {
             console.error("Error loading auth state:", error);
             // Clear invalid data
             localStorage.removeItem("token");
             localStorage.removeItem("user");
+            document.cookie = "token=; path=/; max-age=0";
         } finally {
             setIsLoading(false);
         }
@@ -52,6 +55,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(userData);
         localStorage.setItem("token", newToken);
         localStorage.setItem("user", JSON.stringify(userData));
+        // Set cookie for middleware
+        document.cookie = `token=${newToken}; path=/`;
     };
 
     const logout = () => {
@@ -59,6 +64,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(null);
         localStorage.removeItem("token");
         localStorage.removeItem("user");
+        document.cookie = "token=; path=/; max-age=0";
     };
 
     const value: AuthContextType = {

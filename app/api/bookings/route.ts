@@ -445,75 +445,9 @@ async function createBookingHandler(req: NextRequest) {
       }
     }
 
-    // Send confirmation email
-    try {
-      if (userIdData && typeof userIdData === 'object' && userIdData.email) {
-        const businessName = typeof businessIdData === 'object' ? businessIdData.businessName : "Business";
-        const serviceName = typeof serviceIdData === 'object' ? serviceIdData.serviceName : "Service";
-        const date = new Date(savedBooking.timeSlot.date).toLocaleDateString("en-GB");
-        const time = `${savedBooking.timeSlot.startTime} - ${savedBooking.timeSlot.endTime}`;
-
-        await sendEmail(
-          [userIdData.email],
-          "Booking Confirmed - ouiimi",
-          {
-            fname: userIdData.fname || "Customer",
-            email: userIdData.email,
-            businessName,
-            serviceName,
-            date,
-            time,
-            totalCost: savedBooking.totalCost,
-            depositAmount: savedBooking.depositAmount,
-            bookingId: String(savedBooking._id).slice(-8),
-            // outstanding balance for shopper template
-            outstanding: savedBooking.remainingAmount
-          },
-          "booking_confirmation_shopper"
-        );
-
-        // Send confirmation email to Business
-        if (businessIdData && typeof businessIdData === 'object' && businessIdData.email) {
-          console.log(`[Email] Sending booking confirmation to BUSINESS: ${businessIdData.email}`);
-          console.log(`[Email] Business confirmation data:`, {
-            customerId: userIdData.id,
-            customerName: userIdData.fname + ' ' + userIdData.lname,
-            bookingId: String(savedBooking._id).slice(-8)
-          });
-
-          const sent = await sendEmail(
-            [businessIdData.email],
-            "New Booking Received - ouiimi",
-            {
-              fname: userIdData.fname || "Customer", // This maps to 'first_name' in generic logic, typically addressed to recipient.
-              // But for business email, templates often use 'customer_name' for the person who booked
-              customerName: `${userIdData.fname} ${userIdData.lname}`.trim(), // Explicitly pass customer name
-              email: businessIdData.email,
-              businessName,
-              serviceName,
-              date,
-              time,
-              bookingId: String(savedBooking._id).slice(-8),
-              depositAmount: savedBooking.depositAmount,
-              totalCost: savedBooking.totalCost, // ADDED: Missing variable likely causing failure
-              outstanding: savedBooking.remainingAmount
-            },
-            "booking_confirmation_business"
-          );
-
-          if (sent) {
-            console.log(`[Email] Business confirmation result: SUCCESS`);
-          } else {
-            console.error(`[Email] Business confirmation result: FAILED (Check Mailjet logs)`);
-          }
-        } else {
-          console.warn(`[Email] Skipping business confirmation - No business email found for ID: ${businessIdData?.id || businessIdData}`);
-        }
-      }
-    } catch (emailError) {
-      console.error("Error sending booking confirmation email:", emailError);
-      // Don't fail the booking if email fails
-    }
+    // Email Notification: Converted to "Payment Pending" or removed entirely until payment is made.
+    // User requested confirmation emails ONLY after payment.
+    console.log("[Booking API] Booking created. Waiting for payment to send confirmation emails.");
 
     return NextResponse.json(
       {

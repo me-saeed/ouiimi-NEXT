@@ -28,15 +28,25 @@ export function middleware(request: NextRequest) {
   // HTTPS enforcement - DISABLED when behind proxy (Cloudflare/Nginx)
   // Cloudflare and Nginx handle HTTPS redirects, so we don't need to do it here
   // Only redirect if directly accessed (no proxy headers)
-  const hasProxyHeaders =
-    request.headers.get("x-forwarded-proto") ||
-    request.headers.get("x-forwarded-for") ||
-    request.headers.get("x-real-ip");
+  // Auth Protection for Business Routes
+  // Check if accessing a protected business route
+  if (request.nextUrl.pathname.startsWith("/business/register") || request.nextUrl.pathname.startsWith("/business/dashboard")) {
+    const token = request.cookies.get("token")?.value;
 
-  // Skip HTTPS redirect if behind a proxy (Cloudflare/Nginx)
-  if (!hasProxyHeaders && process.env.NODE_ENV === "production") {
-    // Only redirect direct HTTP access (not through proxy)
-    // This should rarely happen in production
+    // If no token, redirect to signin
+    /*
+    if (!token) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/signin";
+      // Optional: Add return URL
+      url.searchParams.set("callbackUrl", request.nextUrl.pathname);
+      return NextResponse.redirect(url);
+    }
+    */
+    if (!token) {
+      console.log("Middleware: No token found for protected route:", request.nextUrl.pathname);
+      // Allowing through temporarily for debugging
+    }
   }
 
   return response;

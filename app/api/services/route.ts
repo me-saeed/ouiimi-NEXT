@@ -337,18 +337,25 @@ async function getServicesHandler(req: NextRequest) {
           },
         ]);
 
-        const total = await Service.countDocuments({
-          ...filter,
-          "address.location": {
-            $near: {
-              $geometry: {
+        const countResult = await Service.aggregate([
+          {
+            $geoNear: {
+              near: {
                 type: "Point",
-                coordinates: [lng, lat],
+                coordinates: [lng, lat], // [longitude, latitude]
               },
-              $maxDistance: radius * 1000,
+              distanceField: "distance",
+              maxDistance: radius * 1000, // Convert km to meters
+              spherical: true,
+              query: filter,
             },
           },
-        });
+          {
+            $count: "total",
+          },
+        ]);
+
+        const total = countResult.length > 0 ? countResult[0].total : 0;
 
         return NextResponse.json({
           services: services.filter((s: any) => s.businessId).map((s: any) => ({
@@ -447,6 +454,17 @@ async function getServicesHandler(req: NextRequest) {
           },
         },
       },
+    ];
+
+    // NEW: Filter out services with NO available slots (Fully Booked)
+    // Only apply for public listings (not business dashboard)
+    if (!businessId) {
+      aggregationPipeline.push({
+        $match: { "availableTimeSlots.0": { $exists: true } }
+      });
+    }
+
+    aggregationPipeline.push(
       {
         $lookup: {
           from: "businesses",
@@ -484,7 +502,7 @@ async function getServicesHandler(req: NextRequest) {
       { $sort: { createdAt: -1 } },
       { $skip: skip },
       { $limit: limit },
-    ];
+    );
 
     const [services, totalResult] = await Promise.all([
       Service.aggregate(aggregationPipeline),

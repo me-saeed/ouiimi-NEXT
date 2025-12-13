@@ -207,6 +207,7 @@ async function updateBookingHandler(
     }
 
     const oldStatus = booking.status;
+    const oldPaymentStatus = booking.paymentStatus;
 
     if (validatedData.status) {
       const oldStatus = booking.status;
@@ -345,12 +346,21 @@ async function updateBookingHandler(
 
           } else {
             // 3. Notify Shopper: "Business cancelled"
-            await sendEmail(
+            console.log(`[Email] Sending cancellation to SHOPPER (Business initiated): ${user.email}`);
+
+            const sent = await sendEmail(
               [user.email],
               "Booking Cancelled by Business - ouiimi",
-              emailData,
+              {
+                ...emailData,
+                cancellationReason: validatedData.cancellationReason || "No reason provided", // Add reason
+                customerName: `${user.fname} ${user.lname}`.trim()
+              },
               "booking_cancellation_by_business"
             );
+
+            if (sent) console.log(`[Email] Shopper cancellation email result: SUCCESS`);
+            else console.error(`[Email] Shopper cancellation email result: FAILED`);
           }
 
         } else if (oldStatus !== "completed" && booking.status === "completed") {
@@ -388,6 +398,59 @@ async function updateBookingHandler(
               },
               "payment_receipt"
             );
+          }
+        }
+
+        // NEW: Send Confirmation Email when Payment is made (Deposit or Full)
+        // Only trigger if it wasn't paid before
+        const isPaidNow = validatedData.paymentStatus === "deposit_paid" || validatedData.paymentStatus === "fully_paid";
+        const wasNotPaid = oldPaymentStatus !== "deposit_paid" && oldPaymentStatus !== "fully_paid";
+
+        if (isPaidNow && wasNotPaid) {
+          console.log(`[Email] Payment Confirmed (${validatedData.paymentStatus}). Sending Booking Confirmation...`);
+
+          // 1. Send Confirmation to Shopper
+          await sendEmail(
+            [user.email],
+            "Booking Confirmed - ouiimi",
+            {
+              fname: user.fname || "Customer",
+              email: user.email,
+              businessName: business?.businessName || "Business",
+              serviceName: service?.serviceName || "Service",
+              date,
+              time,
+              totalCost: populatedBooking.totalCost,
+              depositAmount: populatedBooking.depositAmount,
+              bookingId: String(booking._id).slice(-8),
+              outstanding: populatedBooking.remainingAmount
+            },
+            "booking_confirmation_shopper"
+          );
+
+          // 2. Send Confirmation to Business
+          if (business?.email) {
+            console.log(`[Email] Sending booking confirmation to BUSINESS: ${business.email}`);
+            const sent = await sendEmail(
+              [business.email],
+              "New Booking Received - ouiimi",
+              {
+                fname: user.fname || "Customer",
+                customerName: `${user.fname} ${user.lname}`.trim(),
+                email: business.email,
+                businessName: business?.businessName || "Business",
+                serviceName: service?.serviceName || "Service",
+                date,
+                time,
+                bookingId: String(booking._id).slice(-8),
+                depositAmount: populatedBooking.depositAmount,
+                totalCost: populatedBooking.totalCost,
+                outstanding: populatedBooking.remainingAmount
+              },
+              "booking_confirmation_business"
+            );
+            if (sent) console.log(`[Email] Business confirmation result: SUCCESS`);
+            else console.error(`[Email] Business confirmation result: FAILED`);
           }
         }
       }
