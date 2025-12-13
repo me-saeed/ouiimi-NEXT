@@ -10,13 +10,15 @@ interface ImageUploadProps {
     onChange: (url: string) => void;
     disabled?: boolean;
     label?: string;
+    variant?: "default" | "avatar";
 }
 
 export function ImageUpload({
     value,
     onChange,
     disabled,
-    label = "Upload Image"
+    label = "Upload Image",
+    variant = "default"
 }: ImageUploadProps) {
     const [isUploading, setIsUploading] = useState(false);
     const [error, setError] = useState<string>("");
@@ -76,6 +78,52 @@ export function ImageUpload({
     const handleButtonClick = () => {
         fileInputRef.current?.click();
     };
+
+    if (variant === "avatar") {
+        return (
+            <div className="flex flex-col items-center">
+                <div className="relative mb-2">
+                    {value ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                            src={value}
+                            alt="Avatar"
+                            className="w-24 h-24 rounded-full object-cover border-4 border-[#EECFD1] shadow-sm"
+                        />
+                    ) : (
+                        <div className="w-24 h-24 rounded-full bg-[#EECFD1] border-4 border-white shadow-sm flex items-center justify-center">
+                            <span className="text-2xl font-bold text-white">
+                                +
+                            </span>
+                        </div>
+                    )}
+                    <button
+                        type="button"
+                        onClick={handleButtonClick}
+                        disabled={disabled || isUploading}
+                        className="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center text-lg font-bold hover:bg-primary/90 cursor-pointer shadow-sm disabled:opacity-70"
+                    >
+                        {isUploading ? (
+                            <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        ) : (
+                            "+"
+                        )}
+                    </button>
+                    <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        ref={fileInputRef}
+                        onChange={handleFileChange}
+                        disabled={disabled || isUploading}
+                    />
+                </div>
+                {error && (
+                    <div className="text-xs text-red-500 font-medium">{error}</div>
+                )}
+            </div>
+        );
+    }
 
     return (
         <div className="space-y-4 w-full">

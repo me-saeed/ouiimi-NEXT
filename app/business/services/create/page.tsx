@@ -821,6 +821,7 @@ export default function CreateServicePage() {
           price: Number(slot.price), // Required price for this time slot
           duration: Number(slot.duration), // Calculated duration in minutes
           staffIds: (slot.staffIds || []).map(id => String(id)),
+          addOns: slot.addOns || [], // Include add-ons for this specific slot
         })),
       };
 
@@ -1063,7 +1064,7 @@ export default function CreateServicePage() {
                   control={control}
                   name="address"
                   placeholder="123 Main St, City, State ZIP"
-                  error={errors.address?.message}
+                  error={errors.address?.message || (errors.address as any)?.street?.message}
                   required
                   returnObject={true}
                   setValue={setValue}

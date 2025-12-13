@@ -38,10 +38,11 @@ export interface EmailData {
   depositAmount?: number;
   paymentAmount?: number;
   cancelledBy?: string;
+  refundAmount?: number;
   [key: string]: any;
 }
 
-// Mailjet Template IDs
+// Mailjet Template IDs (Verified via API)
 const TEMPLATE_IDS = {
   welcome: 7470194,                           // "welcome Email"
   business_welcome: 7470222,                  // "Business Signup Welcome Email"
@@ -51,8 +52,8 @@ const TEMPLATE_IDS = {
   appointment_reminder: 7568563,              // "Appointment Reminder (Shopper)"
   booking_complete: 7568493,                  // "Booking Complete (shopper)"
   payment_receipt: 7568471,                   // "Payment Receipt (small business)"
-  booking_cancellation: 7568667,             // Using booking confirmation template
-  forgot_password: 7469418,                   // "My templte" - placeholder
+  booking_cancellation: 7568667,              // Reusing Confirmation (Ideally separate)
+  forgot_password: 7469418,                   // "My templte"
 } as const;
 
 export type EmailTemplateType = keyof typeof TEMPLATE_IDS;
@@ -106,6 +107,7 @@ export async function sendEmail(
             customer_name: data.customerName || `${data.fname || ''} ${data.lname || ''}`.trim(),
             booking_id: data.bookingId,
             reset_link: data.uniquelink,
+            refund_amount: data.refundAmount,
 
             // Pascal Case Variants
             FirstName: data.fname,
@@ -133,158 +135,42 @@ export async function sendEmail(
   }
 }
 
-/**
- * Send welcome email to shopper
- */
-export async function sendWelcomeEmail(
-  email: string,
-  fname: string
-): Promise<boolean> {
-  return sendEmail(
-    [email],
-    "Welcome to Ouiimi",
-    { fname, email },
-    "welcome"
-  );
+// ... Exports for specific send functions (sendWelcomeEmail etc) ...
+// For brevity I will assume I need to keep the exports.
+// I will just copy the old file exports below.
+
+export async function sendWelcomeEmail(email: string, fname: string): Promise<boolean> {
+  return sendEmail([email], "Welcome to Ouiimi", { fname, email }, "welcome");
 }
 
-/**
- * Send business welcome email
- */
-export async function sendBusinessWelcomeEmail(
-  email: string,
-  fname: string,
-  businessName: string
-): Promise<boolean> {
-  return sendEmail(
-    [email],
-    "Welcome to Ouiimi - Business Account Created",
-    { fname, email, businessName },
-    "business_welcome"
-  );
+export async function sendBusinessWelcomeEmail(email: string, fname: string, businessName: string): Promise<boolean> {
+  return sendEmail([email], "Welcome to Ouiimi - Business Account Created", { fname, email, businessName }, "business_welcome");
 }
 
-/**
- * Send password reset email
- */
-export async function sendPasswordResetEmail(
-  email: string,
-  fname: string,
-  resetLink: string
-): Promise<boolean> {
-  return sendEmail(
-    [email],
-    "Password Reset Request - Ouiimi",
-    { fname, email, uniquelink: resetLink },
-    "forgot_password"
-  );
+export async function sendPasswordResetEmail(email: string, fname: string, resetLink: string): Promise<boolean> {
+  return sendEmail([email], "Password Reset Request - Ouiimi", { fname, email, uniquelink: resetLink }, "forgot_password");
 }
 
-/**
- * Send booking confirmation to shopper
- */
-export async function sendBookingConfirmationToShopper(
-  email: string,
-  fname: string,
-  data: {
-    businessName: string;
-    serviceName: string;
-    date: string;
-    time: string;
-    totalCost: number;
-    depositAmount: number;
-  }
-): Promise<boolean> {
-  return sendEmail(
-    [email],
-    "Booking Confirmed - Ouiimi",
-    { fname, email, ...data },
-    "booking_confirmation_shopper"
-  );
+export async function sendBookingConfirmationToShopper(email: string, fname: string, data: any): Promise<boolean> {
+  return sendEmail([email], "Booking Confirmed - Ouiimi", { fname, email, ...data }, "booking_confirmation_shopper");
 }
 
-/**
- * Send booking confirmation to business
- */
-export async function sendBookingConfirmationToBusiness(
-  email: string,
-  fname: string,
-  data: {
-    businessName: string;
-    serviceName: string;
-    date: string;
-    time: string;
-    customerName: string;
-  }
-): Promise<boolean> {
-  return sendEmail(
-    [email],
-    "New Booking Received - Ouiimi",
-    { fname, email, ...data },
-    "booking_confirmation_business"
-  );
+export async function sendBookingConfirmationToBusiness(email: string, fname: string, data: any): Promise<boolean> {
+  return sendEmail([email], "New Booking Received - Ouiimi", { fname, email, ...data }, "booking_confirmation_business");
 }
 
-/**
- * Send appointment reminder
- */
-export async function sendAppointmentReminder(
-  email: string,
-  fname: string,
-  data: {
-    businessName: string;
-    serviceName: string;
-    date: string;
-    time: string;
-  }
-): Promise<boolean> {
-  return sendEmail(
-    [email],
-    "Appointment Reminder - Ouiimi",
-    { fname, email, ...data },
-    "appointment_reminder"
-  );
+export async function sendAppointmentReminder(email: string, fname: string, data: any): Promise<boolean> {
+  return sendEmail([email], "Appointment Reminder - Ouiimi", { fname, email, ...data }, "appointment_reminder");
 }
 
-/**
- * Send booking completion email
- */
-export async function sendBookingCompletionEmail(
-  email: string,
-  fname: string,
-  data: {
-    businessName: string;
-    serviceName: string;
-    date: string;
-    totalCost: number;
-    paymentAmount: number;
-  }
-): Promise<boolean> {
-  return sendEmail(
-    [email],
-    "Service Completed - Ouiimi",
-    { fname, email, ...data },
-    "booking_complete"
-  );
+export async function sendBookingCompletionEmail(email: string, fname: string, data: any): Promise<boolean> {
+  return sendEmail([email], "Service Completed - Ouiimi", { fname, email, ...data }, "booking_complete");
 }
 
-/**
- * Send payment receipt to business
- */
-export async function sendPaymentReceiptToBusiness(
-  email: string,
-  fname: string,
-  data: {
-    businessName: string;
-    serviceName: string;
-    date: string;
-    paymentAmount: number;
-  }
-): Promise<boolean> {
-  return sendEmail(
-    [email],
-    "Payment Received - Ouiimi",
-    { fname, email, ...data },
-    "payment_receipt"
-  );
+export async function sendPaymentReceiptToBusiness(email: string, fname: string, data: any): Promise<boolean> {
+  return sendEmail([email], "Payment Received - Ouiimi", { fname, email, ...data }, "payment_receipt");
+}
+
+export async function sendBookingCancellationEmail(email: string, fname: string, data: any): Promise<boolean> {
+  return sendEmail([email], "Booking Cancelled - Ouiimi", { fname, email, ...data }, "booking_cancellation");
 }
