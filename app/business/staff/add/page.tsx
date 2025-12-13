@@ -26,7 +26,7 @@ export default function AddStaffPage() {
   // Form schema without businessId and photo (we handle photo separately)
   const formSchema = staffCreateSchema.omit({ businessId: true, photo: true });
   const fileInputRef = useRef<HTMLInputElement>(null);
-  
+
   const {
     register,
     handleSubmit,
@@ -80,7 +80,7 @@ export default function AddStaffPage() {
     console.log("=== FORM SUBMITTED ===");
     console.log("Form data:", data);
     console.log("Form errors:", errors);
-    
+
     setIsLoading(true);
     setError("");
     setSuccess("");
@@ -104,7 +104,7 @@ export default function AddStaffPage() {
 
       const parsedUser = JSON.parse(userData);
       const userId = parsedUser.id || parsedUser._id;
-      
+
       if (!userId) {
         setError("User ID not found. Please sign in again.");
         setIsLoading(false);
@@ -134,7 +134,7 @@ export default function AddStaffPage() {
       }
 
       const foundBusinessId = businessData.businesses[0].id || businessData.businesses[0]._id;
-      
+
       if (!foundBusinessId) {
         setError("Business ID not found. Please register a business first.");
         setIsLoading(false);
@@ -142,89 +142,85 @@ export default function AddStaffPage() {
       }
 
       console.log("Business ID found:", foundBusinessId);
-      
-      // Convert image to base64 if selected
-      let photoUrl = "";
+
+      const formData = new FormData();
+      formData.append("businessId", foundBusinessId);
+      formData.append("name", data.name);
+      if (data.qualifications) formData.append("qualifications", data.qualifications);
+      if (data.about) formData.append("about", data.about);
+
       if (selectedImage) {
-        photoUrl = await convertImageToBase64(selectedImage);
+        formData.append("photo", selectedImage);
       }
 
-      const requestBody = {
-        ...data,
-        businessId: foundBusinessId,
-        photo: photoUrl || undefined,
-      };
-      
-      console.log("Request body:", JSON.stringify(requestBody, null, 2));
-      console.log("Making POST request to /api/staff...");
+      console.log("Making POST request to /api/staff with FormData...");
 
       const response = await fetch("/api/staff", {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
+          // Content-Type is set automatically for FormData
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(requestBody),
+        body: formData,
       });
 
       console.log("Staff API response status:", response.status);
-      console.log("Staff API response headers:", Object.fromEntries(response.headers.entries()));
-      
+
       const result = await response.json();
       console.log("Staff API response body:", result);
 
       if (!response.ok) {
         const errorMsg = result.error || result.details || "Failed to add staff member";
         console.error("Staff creation failed:", errorMsg, result);
-        
+
         // Show detailed error message
         let displayError = typeof errorMsg === 'string' ? errorMsg : JSON.stringify(errorMsg);
         if (result.details && Array.isArray(result.details)) {
           displayError += ": " + result.details.map((d: any) => d.message || d).join(", ");
         }
-        
+
         setError(displayError);
-        
+
         // Show error toast
         toast({
           variant: "destructive",
           title: "Error",
           description: displayError,
         });
-        
+
         setIsLoading(false);
         return;
       }
 
       console.log("Staff created successfully:", result);
-      
+
       // Show toast notification
       toast({
         variant: "success",
         title: "Success!",
         description: "Staff member added successfully!",
       });
-      
+
       setSuccess("Staff member added successfully! Redirecting...");
-      
-      // Show success message for 2 seconds before redirect
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // Force redirect to staff page (not profile)
-      console.log("Redirecting to /business/staff");
-      router.push("/business/staff");
+
+      // Show success message briefly
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      // Force redirect to staff tab
+      console.log("Redirecting to /business/dashboard?tab=staff");
+      router.push("/business/dashboard?tab=staff");
     } catch (err: any) {
       console.error("Staff creation error:", err);
       const errorMsg = err.message || "Something went wrong. Please try again.";
       setError(errorMsg);
-      
+
       // Show error toast
       toast({
         variant: "destructive",
         title: "Error",
         description: errorMsg,
       });
-      
+
       setIsLoading(false);
     }
   };
@@ -265,32 +261,32 @@ export default function AddStaffPage() {
                 </Alert>
               )}
 
-              <form 
-              onSubmit={handleSubmit(
-                (data) => {
-                  console.log("Form validation passed, calling onSubmit");
-                  onSubmit(data);
-                },
-                (errors) => {
-                  console.log("Form validation failed:", errors);
-                  const firstError = Object.values(errors)[0];
-                  if (firstError) {
-                    const errorMsg = firstError.message || "Please fix the form errors";
-                    setError(errorMsg);
-                    toast({
-                      variant: "destructive",
-                      title: "Validation Error",
-                      description: errorMsg,
-                    });
+              <form
+                onSubmit={handleSubmit(
+                  (data) => {
+                    console.log("Form validation passed, calling onSubmit");
+                    onSubmit(data);
+                  },
+                  (errors) => {
+                    console.log("Form validation failed:", errors);
+                    const firstError = Object.values(errors)[0];
+                    if (firstError) {
+                      const errorMsg = firstError.message || "Please fix the form errors";
+                      setError(errorMsg);
+                      toast({
+                        variant: "destructive",
+                        title: "Validation Error",
+                        description: errorMsg,
+                      });
+                    }
                   }
-                }
-              )} 
+                )}
                 className="space-y-6"
               >
                 {/* Image Upload - Centered */}
                 <div className="flex justify-center pt-2">
                   <div className="relative">
-                    <div 
+                    <div
                       onClick={() => fileInputRef.current?.click()}
                       className="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center cursor-pointer hover:bg-gray-200 transition-colors overflow-hidden"
                     >
@@ -304,7 +300,7 @@ export default function AddStaffPage() {
                       ) : null}
                     </div>
                     {/* Plus icon positioned below and to the right */}
-                    <div 
+                    <div
                       onClick={() => fileInputRef.current?.click()}
                       className="absolute -bottom-1 -right-1 w-6 h-6 bg-black rounded-full flex items-center justify-center cursor-pointer z-10 shadow-sm"
                     >
@@ -322,18 +318,18 @@ export default function AddStaffPage() {
 
                 {/* Name Input - Light grey background, centered text */}
                 <div>
-                <input
-                  {...register("name")}
-                  type="text"
+                  <input
+                    {...register("name")}
+                    type="text"
                     className="w-full px-4 py-3 rounded-xl border-0 bg-gray-100 text-[#3A3A3A] placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:bg-white transition-all text-center"
                     placeholder="Name"
-                />
-                {errors.name && (
+                  />
+                  {errors.name && (
                     <p className="text-red-500 text-xs mt-1.5 text-center">
-                    {errors.name.message}
-                  </p>
-                )}
-              </div>
+                      {errors.name.message}
+                    </p>
+                  )}
+                </div>
 
                 {/* About/Qualifications Textarea - Light grey background, left-aligned */}
                 <div>
@@ -346,9 +342,9 @@ export default function AddStaffPage() {
                   {errors.about && (
                     <p className="text-red-500 text-xs mt-1.5 text-left">
                       {errors.about.message}
-                  </p>
-                )}
-              </div>
+                    </p>
+                  )}
+                </div>
 
                 {/* Qualifications (hidden but still in form data) */}
                 <input
@@ -356,7 +352,7 @@ export default function AddStaffPage() {
                   type="hidden"
                 />
               </form>
-              </div>
+            </div>
 
             {/* ADD Button - Below the card, centered */}
             <div className="mt-4 flex justify-center">
@@ -381,17 +377,17 @@ export default function AddStaffPage() {
                     }
                   }
                 )}
-                  disabled={isLoading}
+                disabled={isLoading}
                 className="px-8 py-2.5 text-[#3A3A3A] hover:text-[#2a2a2a] font-semibold transition-colors disabled:opacity-50"
-                >
-                  {isLoading ? (
-                    <>
+              >
+                {isLoading ? (
+                  <>
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-[#3A3A3A] mr-2 inline-block" />
-                      Adding...
-                    </>
-                  ) : (
+                    Adding...
+                  </>
+                ) : (
                   "ADD"
-                  )}
+                )}
               </button>
             </div>
           </div>

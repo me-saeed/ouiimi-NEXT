@@ -249,13 +249,16 @@ export default function HomePage() {
                   {/* Horizontal Scroll Container */}
                   <div className="relative">
                     <div className="flex gap-4 overflow-x-auto scrollbar-hide pb-4 -mx-4 px-4 sm:mx-0 sm:px-0">
-                      {categoryServices.slice(0, 6).map((service) => (
-                        <div key={service.id} className="min-w-[300px] sm:min-w-[320px] flex-shrink-0">
-                          <ServiceCard
-                            {...formatServiceForCard(service)}
-                          />
-                        </div>
-                      ))}
+                      {categoryServices
+                        .filter(service => getEarliestAvailableTimeSlot(service) !== null)
+                        .slice(0, 6)
+                        .map((service) => (
+                          <div key={service.id} className="min-w-[300px] sm:min-w-[320px] flex-shrink-0">
+                            <ServiceCard
+                              {...formatServiceForCard(service)}
+                            />
+                          </div>
+                        ))}
 
                       {/* "See More" Card at the end of scroll */}
                       {totalCount > 6 && (

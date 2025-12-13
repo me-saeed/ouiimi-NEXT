@@ -28,7 +28,7 @@ export const POST = async (req: NextRequest) => {
 
         // Ensure uploads directory exists
         // Path: /public/uploads
-        const relativeUploadDir = "/uploads";
+        const relativeUploadDir = "/images";
         const uploadDir = join(process.cwd(), "public", relativeUploadDir);
 
         try {

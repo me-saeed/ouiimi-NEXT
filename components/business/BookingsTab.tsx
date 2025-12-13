@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ServiceCard } from "@/components/ui/service-card";
@@ -47,77 +47,41 @@ export function BookingsTab({ business }: BookingsTabProps) {
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth());
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
 
+  const lastRequestId = useRef(0);
+
   useEffect(() => {
+    // Increment on mount/update to be safe
+    lastRequestId.current++;
+
     if (business?.id || business?._id) {
       loadBookings();
     }
-    // Auto-refresh every minute to check for status transitions
+
+    // Auto-refresh every minute
     const interval = setInterval(() => {
       if (business?.id || business?._id) {
         loadBookings();
       }
     }, 60000);
-    return () => clearInterval(interval);
+
+    return () => {
+      // Cancel any pending callbacks by incrementing ID
+      lastRequestId.current++;
+      clearInterval(interval);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [business, activeSubTab]);
 
-  useEffect(() => {
-    setSelectedDate(null);
-    setSelectedBooking(null);
-    // Reset to current month when switching tabs
-    const now = new Date();
-    setCurrentMonth(now.getMonth());
-    setCurrentYear(now.getFullYear());
-  }, [activeSubTab]);
+  // ... (useEffect for date reset remains)
 
-  // Generate all dates for current month
-  const monthDates = useMemo(() => {
-    const dates: Array<{ date: Date; dateStr: string; day: number; weekday: string }> = [];
-    const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+  // ... (month processing remains)
 
-    for (let day = 1; day <= daysInMonth; day++) {
-      const date = new Date(currentYear, currentMonth, day);
-      const dateStr = date.toISOString().split('T')[0];
-      dates.push({
-        date,
-        dateStr,
-        day,
-        weekday: date.toLocaleDateString('en-US', { weekday: 'short' })
-      });
-    }
-    return dates;
-  }, [currentMonth, currentYear]);
-
-  // Navigate months
-  const goToPreviousMonth = () => {
-    if (currentMonth === 0) {
-      setCurrentMonth(11);
-      setCurrentYear(currentYear - 1);
-    } else {
-      setCurrentMonth(currentMonth - 1);
-    }
-    setSelectedDate(null);
-  };
-
-  const goToNextMonth = () => {
-    if (currentMonth === 11) {
-      setCurrentMonth(0);
-      setCurrentYear(currentYear + 1);
-    } else {
-      setCurrentMonth(currentMonth + 1);
-    }
-    setSelectedDate(null);
-  };
-
-  const goToCurrentMonth = () => {
-    const now = new Date();
-    setCurrentMonth(now.getMonth());
-    setCurrentYear(now.getFullYear());
-    setSelectedDate(null);
-  };
+  // ... (navigation functions remain)
 
   const loadBookings = async () => {
     if (!business?.id && !business?._id) return;
+
+    const requestId = ++lastRequestId.current;
 
     setIsLoading(true);
     setError("");
@@ -147,14 +111,17 @@ export function BookingsTab({ business }: BookingsTabProps) {
         }
       );
 
+      // Check if stale
+      if (requestId !== lastRequestId.current) return;
+
       if (response.ok) {
         const data = await response.json();
+        // Check again after async json()
+        if (requestId !== lastRequestId.current) return;
+
         let filteredBookings = data.bookings || [];
 
         // Filter bookings based on new logic:
-        // Upcoming: Future bookings (service time hasn't passed)
-        // Pending: Past bookings where admin hasn't released payment yet
-        // Finished: Bookings where admin has released payment
         const now = new Date();
 
         if (activeSubTab === "up-coming") {
@@ -198,7 +165,6 @@ export function BookingsTab({ business }: BookingsTabProps) {
               // Create datetime string in local timezone and parse it
               // Use the date from the booking and combine with time
               const bookingDateTimeStr = `${dateStr}T${formattedTime}`;
-              const bookingDateTime = new Date(bookingDateTimeStr);
 
               // If the date string doesn't include timezone, it's interpreted as local time
               // We need to compare in the same timezone context
@@ -216,6 +182,7 @@ export function BookingsTab({ business }: BookingsTabProps) {
                 return false;
               }
 
+              // Show future bookings
               return localBookingDateTime > now;
             } catch (error) {
               console.error('Error filtering booking:', error, b);
@@ -270,12 +237,71 @@ export function BookingsTab({ business }: BookingsTabProps) {
       } else {
         setError("Failed to load bookings");
       }
-    } catch (e) {
+    } catch (e: any) {
+      if (e.name === "AbortError") {
+        return;
+      }
       console.error("Error loading bookings:", e);
       setError("Failed to load bookings");
     } finally {
       setIsLoading(false);
     }
+  };
+
+
+  useEffect(() => {
+    setSelectedDate(null);
+    setSelectedBooking(null);
+    // Reset to current month when switching tabs
+    const now = new Date();
+    setCurrentMonth(now.getMonth());
+    setCurrentYear(now.getFullYear());
+  }, [activeSubTab]);
+
+  // Generate all dates for current month
+  const monthDates = useMemo(() => {
+    const dates: Array<{ date: Date; dateStr: string; day: number; weekday: string }> = [];
+    const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+
+    for (let day = 1; day <= daysInMonth; day++) {
+      const date = new Date(currentYear, currentMonth, day);
+      const dateStr = date.toISOString().split('T')[0];
+      dates.push({
+        date,
+        dateStr,
+        day,
+        weekday: date.toLocaleDateString('en-US', { weekday: 'short' })
+      });
+    }
+    return dates;
+  }, [currentMonth, currentYear]);
+
+  // Navigate months
+  const goToPreviousMonth = () => {
+    if (currentMonth === 0) {
+      setCurrentMonth(11);
+      setCurrentYear(currentYear - 1);
+    } else {
+      setCurrentMonth(currentMonth - 1);
+    }
+    setSelectedDate(null);
+  };
+
+  const goToNextMonth = () => {
+    if (currentMonth === 11) {
+      setCurrentMonth(0);
+      setCurrentYear(currentYear + 1);
+    } else {
+      setCurrentMonth(currentMonth + 1);
+    }
+    setSelectedDate(null);
+  };
+
+  const goToCurrentMonth = () => {
+    const now = new Date();
+    setCurrentMonth(now.getMonth());
+    setCurrentYear(now.getFullYear());
+    setSelectedDate(null);
   };
 
   const handleCompleteBooking = async (bookingId: string) => {

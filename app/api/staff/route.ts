@@ -7,7 +7,7 @@
  * Staff can be assigned to time slots when creating services.
  * 
  * ENDPOINTS:
- * - POST /api/staff  - Create a new staff member
+ * - POST /api/staff  - Create a new staff member (Multipart/FormData)
  * - GET /api/staff   - List staff members for a business
  * 
  * AUTHENTICATION: Required (JWT Bearer token) for POST
@@ -22,6 +22,8 @@ import Business from "@/lib/models/Business";
 import { staffCreateSchema } from "@/lib/validation";
 import { withRateLimit } from "@/lib/security/rate-limit";
 import { verifyToken } from "@/lib/jwt";
+import { writeFile, mkdir } from "fs/promises";
+import { join } from "path";
 
 // Force dynamic rendering (no caching)
 export const dynamic = 'force-dynamic';
@@ -36,28 +38,18 @@ export const dynamic = 'force-dynamic';
  *   "Authorization": "Bearer <jwt_token>"
  * }
  * 
- * REQUEST BODY:
- * {
- *   "businessId": "business_id",      // Required - which business
- *   "name": "Jane Smith",             // Required - staff name
- *   "photo": "https://...",           // Optional - profile photo URL
- *   "qualifications": "Licensed...",  // Optional - certifications
- *   "about": "5 years experience..."  // Optional - bio text
- * }
+ * REQUEST BODY (FormData):
+ * - businessId: string
+ * - name: string
+ * - photo: File (Optional)
+ * - qualifications: string (Optional)
+ * - about: string (Optional)
  * 
  * RESPONSE (Success - 201):
  * {
  *   "message": "Staff member added successfully",
  *   "staff": { id, name, photo, qualifications, about, isActive, businessId }
  * }
- * 
- * FLOW:
- * 1. Verify JWT token
- * 2. Validate request body
- * 3. Check business exists
- * 4. Verify user owns the business
- * 5. Create staff member
- * 6. Return staff details
  */
 async function createStaffHandler(req: NextRequest) {
   try {
@@ -82,10 +74,30 @@ async function createStaffHandler(req: NextRequest) {
     }
 
     // =========================================================================
-    // STEP 2: Parse and validate request body
+    // STEP 2: Parse FormData
     // =========================================================================
-    const body = await req.json();
-    const validatedData = staffCreateSchema.parse(body);
+    const formData = await req.formData();
+
+    // Extract fields
+    const businessId = formData.get("businessId") as string;
+    const name = formData.get("name") as string;
+    const qualifications = formData.get("qualifications") as string | null;
+    const about = formData.get("about") as string | null;
+    const photoFile = formData.get("photo") as File | null;
+
+    // Validate using Zod (we construct an object to validate)
+    const dataToValidate = {
+      businessId,
+      name,
+      qualifications: qualifications || undefined,
+      about: about || undefined,
+      // photo is validated separately
+    };
+
+    // We use a partial schema or specific checks because 'photo' in schema might expect a string URL
+    // Let's use the schema but omit 'photo' for validation
+    const schemaWithoutPhoto = staffCreateSchema.omit({ photo: true });
+    const validatedData = schemaWithoutPhoto.parse(dataToValidate);
 
     // =========================================================================
     // STEP 3: Connect to database
@@ -93,8 +105,9 @@ async function createStaffHandler(req: NextRequest) {
     await dbConnect();
 
     // =========================================================================
-    // STEP 4: Verify business exists
+    // STEP 4: Verify business exists and ownership
     // =========================================================================
+    // Only business owner can add staff to their business
     const business = await Business.findById(validatedData.businessId);
     if (!business) {
       return NextResponse.json(
@@ -103,10 +116,6 @@ async function createStaffHandler(req: NextRequest) {
       );
     }
 
-    // =========================================================================
-    // STEP 5: Verify user owns this business
-    // =========================================================================
-    // Only business owner can add staff to their business
     if (String(business.userId) !== String(decoded.userId)) {
       return NextResponse.json(
         { error: "Unauthorized - You can only add staff to your own business" },
@@ -114,8 +123,6 @@ async function createStaffHandler(req: NextRequest) {
       );
     }
 
-    // Allow staff to be added to pending or approved businesses (for testing)
-    // In production, you might want to require business approval first
     if (business.status === "rejected") {
       return NextResponse.json(
         { error: "Cannot add staff to a rejected business" },
@@ -123,14 +130,51 @@ async function createStaffHandler(req: NextRequest) {
       );
     }
 
-    console.log("Creating staff member:", validatedData.name, "for business:", validatedData.businessId);
-    console.log("Staff data to create:", {
-      businessId: validatedData.businessId,
-      name: validatedData.name,
-      photo: validatedData.photo || null,
-      qualifications: validatedData.qualifications || null,
-      about: validatedData.about || null,
-    });
+    // =========================================================================
+    // STEP 5: Handle File Upload
+    // =========================================================================
+    let photoUrl = "";
+    if (photoFile && photoFile.size > 0) {
+        // Validate file type
+        if (!photoFile.type.startsWith("image/")) {
+            return NextResponse.json(
+                { error: "Invalid file type. Only images are allowed." },
+                { status: 400 }
+            );
+        }
+
+        // Validate size (e.g. 5MB)
+        if (photoFile.size > 5 * 1024 * 1024) {
+            return NextResponse.json(
+                { error: "Image too large. Max 5MB." },
+                { status: 400 }
+            );
+        }
+
+        const bytes = await photoFile.arrayBuffer();
+        const buffer = Buffer.from(bytes);
+
+        // Create unique filename
+        const originalName = photoFile.name.replace(/[^a-zA-Z0-9.-]/g, "_");
+        const filename = `staff-${Date.now()}-${originalName}`;
+
+        // Ensure uploads directory exists
+        const relativeUploadDir = "/uploads/staff";
+        const uploadDir = join(process.cwd(), "public", relativeUploadDir);
+
+        try {
+            await mkdir(uploadDir, { recursive: true });
+            const filePath = join(uploadDir, filename);
+            await writeFile(filePath, buffer);
+            photoUrl = `${relativeUploadDir}/${filename}`;
+        } catch (e) {
+            console.error("Error saving file:", e);
+            return NextResponse.json(
+                { error: "Failed to save image file" },
+                { status: 500 }
+            );
+        }
+    }
 
     // =========================================================================
     // STEP 6: Create staff member in database
@@ -138,76 +182,77 @@ async function createStaffHandler(req: NextRequest) {
     const staff = await Staff.create({
       businessId: validatedData.businessId,
       name: validatedData.name.trim(),
-      photo: validatedData.photo?.trim() || null,
-      qualifications: validatedData.qualifications?.trim() || null,
-      about: validatedData.about?.trim() || null,
+      photo: photoUrl || undefined,
+      qualifications: validatedData.qualifications || undefined,
+      about: validatedData.about || undefined,
+      isActive: true, // Default to active
     });
 
-    console.log("Staff created, ID:", String(staff._id));
+  console.log("Staff created, ID:", String(staff._id));
 
-    // Verify staff was saved (paranoid check)
-    const savedStaff = await Staff.findById(staff._id);
-    if (!savedStaff) {
-      console.error("Staff was not saved to database!");
-      return NextResponse.json(
-        { error: "Failed to save staff to database. Please try again." },
-        { status: 500 }
-      );
-    }
-
-    console.log("Staff created and verified. ID:", String(savedStaff._id));
-    console.log("Staff details:", {
-      id: String(savedStaff._id),
-      name: savedStaff.name,
-      businessId: String(savedStaff.businessId),
-      isActive: savedStaff.isActive,
-      photo: savedStaff.photo,
-      qualifications: savedStaff.qualifications,
-      about: savedStaff.about,
-    });
-
-    // =========================================================================
-    // STEP 7: Return success response
-    // =========================================================================
+  // Verify staff was saved (paranoid check)
+  const savedStaff = await Staff.findById(staff._id);
+  if (!savedStaff) {
+    console.error("Staff was not saved to database!");
     return NextResponse.json(
-      {
-        message: "Staff member added successfully",
-        staff: {
-          id: String(savedStaff._id),
-          _id: String(savedStaff._id),  // Include both formats for compatibility
-          name: savedStaff.name,
-          photo: savedStaff.photo,
-          qualifications: savedStaff.qualifications,
-          about: savedStaff.about,
-          isActive: savedStaff.isActive,
-          businessId: String(savedStaff.businessId),
-        },
-      },
-      { status: 201 }  // 201 = Created
-    );
-  } catch (error: any) {
-    console.error("Create staff error:", error);
-    console.error("Error details:", {
-      message: error.message,
-      stack: error.stack,
-      name: error.name,
-    });
-
-    if (error.name === "ZodError") {
-      return NextResponse.json(
-        { error: "Validation error", details: error.errors },
-        { status: 400 }
-      );
-    }
-
-    return NextResponse.json(
-      {
-        error: "Failed to add staff member",
-        details: error.message || "Unknown error occurred"
-      },
+      { error: "Failed to save staff to database. Please try again." },
       { status: 500 }
     );
   }
+
+  console.log("Staff created and verified. ID:", String(savedStaff._id));
+  console.log("Staff details:", {
+    id: String(savedStaff._id),
+    name: savedStaff.name,
+    businessId: String(savedStaff.businessId),
+    isActive: savedStaff.isActive,
+    photo: savedStaff.photo,
+    qualifications: savedStaff.qualifications,
+    about: savedStaff.about,
+  });
+
+  // =========================================================================
+  // STEP 7: Return success response
+  // =========================================================================
+  return NextResponse.json(
+    {
+      message: "Staff member added successfully",
+      staff: {
+        id: String(savedStaff._id),
+        _id: String(savedStaff._id),  // Include both formats for compatibility
+        name: savedStaff.name,
+        photo: savedStaff.photo,
+        qualifications: savedStaff.qualifications,
+        about: savedStaff.about,
+        isActive: savedStaff.isActive,
+        businessId: String(savedStaff.businessId),
+      },
+    },
+    { status: 201 }  // 201 = Created
+  );
+} catch (error: any) {
+  console.error("Create staff error:", error);
+  console.error("Error details:", {
+    message: error.message,
+    stack: error.stack,
+    name: error.name,
+  });
+
+  if (error.name === "ZodError") {
+    return NextResponse.json(
+      { error: "Validation error", details: error.errors },
+      { status: 400 }
+    );
+  }
+
+  return NextResponse.json(
+    {
+      error: "Failed to add staff member",
+      details: error.message || "Unknown error occurred"
+    },
+    { status: 500 }
+  );
+}
 }
 
 /**

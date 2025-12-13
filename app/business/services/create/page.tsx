@@ -131,6 +131,8 @@ const SUB_CATEGORY_ADDONS: Record<string, Array<{ name: string; cost: number }>>
   ],
 };
 
+
+
 export default function CreateServicePage() {
   const router = useRouter();
   const { toast } = useToast();
@@ -146,9 +148,8 @@ export default function CreateServicePage() {
   const [success, setSuccess] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
   const [staff, setStaff] = useState<any[]>([]);
-  const [endHour, setEndHour] = useState<string>("");
-  const [endMinute, setEndMinute] = useState<string>("00");
-  const [endPeriod, setEndPeriod] = useState<"AM" | "PM">("AM");
+
+  const [duration, setDuration] = useState<number>(30); // Default 30 mins
   // Group time slots by date: { "2025-10-30": [{ startTime, endTime, price, duration, staffIds, addOns }] }
   const [datesWithSlots, setDatesWithSlots] = useState<Record<string, Array<{
     startTime: string;
@@ -167,9 +168,7 @@ export default function CreateServicePage() {
     price: "" as string | number,
     staffIds: [] as string[],
   });
-  const [startHour, setStartHour] = useState<string>("");
-  const [startMinute, setStartMinute] = useState<string>("00");
-  const [startPeriod, setStartPeriod] = useState<"AM" | "PM">("AM");
+
 
   // Add-ons state
   const [selectedAddOns, setSelectedAddOns] = useState<Array<{ name: string; cost: number }>>([]);
@@ -312,23 +311,18 @@ export default function CreateServicePage() {
 
   const handleSelectDate = (date: string) => {
     setSelectedDate(date);
-    setShowDatePicker(false);
-    if (!showTimeSlotForm) {
-      setShowTimeSlotForm(true);
-    }
+    setShowTimeSlotForm(true);
+    // Initialize with defaults: 09:00 to 10:00 (60 mins)
     setNewTimeSlot({
-      startTime: "",
-      endTime: "",
+      startTime: "09:00",
+      endTime: "10:00",
       price: "",
       staffIds: [],
     });
-    setStartHour("");
-    setStartMinute("00");
-    setStartPeriod("AM");
-    setEndHour("");
-    setEndMinute("00");
-    setEndPeriod("AM");
+    setDuration(60);
     setSelectedAddOns([]);
+    setError("");
+    setSuccess("");
   };
 
   // Check for time conflicts (overlapping time ranges)
@@ -356,163 +350,71 @@ export default function CreateServicePage() {
     });
   };
 
-  // Calculate end time from start time (using default 30 min duration for preview)
-  // Actual duration will be calculated from start and end time when saving
-  const calculateEndTimeFromStart = (startTime: string, defaultDurationMins: number = 30): string => {
+  // Calculate end time from start time and duration minutes
+  const calculateEndTimeFromDuration = (startTime: string, durationMins: number): string => {
     if (!startTime) return "";
     const [hours, minutes] = startTime.split(":").map(Number);
     const startDate = new Date();
     startDate.setHours(hours, minutes, 0, 0);
-    const endDate = new Date(startDate.getTime() + defaultDurationMins * 60000);
+    const endDate = new Date(startDate.getTime() + durationMins * 60000);
+
     const endHours = String(endDate.getHours()).padStart(2, "0");
     const endMinutes = String(endDate.getMinutes()).padStart(2, "0");
     return `${endHours}:${endMinutes}`;
   };
 
-  const handleTimeChange = () => {
-    if (!startHour) {
-      setNewTimeSlot({
-        ...newTimeSlot,
-        startTime: "",
-        endTime: "",
-      });
-      setError("");
+  // Handler for Start Time Change
+  const handleStartTimeChange = (newStartTime: string) => {
+    // When Start Time changes, we keep Duration constant -> Change End Time
+    // Unless we don't have a valid duration yet (e.g. initial), then maybe we keep end time? 
+    // Plan: Use current duration state to calculate new end time.
+
+    // Calculate new end time based on current duration
+    const newEndTime = calculateEndTimeFromDuration(newStartTime, duration);
+
+    setNewTimeSlot(prev => ({
+      ...prev,
+      startTime: newStartTime,
+      endTime: newEndTime
+    }));
+  };
+
+  // Handler for End Time Change
+  const handleEndTimeChange = (newEndTime: string) => {
+    // When End Time changes, we keep Start Time constant -> Change Duration
+    if (!newTimeSlot.startTime) {
+      // If no start time, just set end time
+      setNewTimeSlot(prev => ({ ...prev, endTime: newEndTime }));
       return;
     }
 
-    const startTime24 = convertTo24Hour(startHour, startMinute, startPeriod);
+    const newDuration = calculateDuration(newTimeSlot.startTime, newEndTime);
 
-    // Only set start time - end time must be explicitly selected
-    setNewTimeSlot({
-      ...newTimeSlot,
-      startTime: startTime24,
-    });
-
-    // If end time is set, validate it
-    if (newTimeSlot.endTime) {
-      const start = new Date(`2000-01-01T${startTime24}`);
-      const end = new Date(`2000-01-01T${newTimeSlot.endTime}`);
-      if (end <= start) {
-        setError("End time must be after start time.");
-        return;
-      }
-
-      // Check for conflicts
-      const selectedStaffIds = newTimeSlot.staffIds;
-      if (selectedStaffIds.length === 0) {
-        setError("Please assign staff to check for time conflicts.");
-        return;
-      }
-      const hasConflict = checkTimeConflict(startTime24, newTimeSlot.endTime, selectedStaffIds);
-
-      if (hasConflict) {
-        setError(`This time slot conflicts with an existing booking for the selected staff on this date.`);
-        return;
-      }
-    }
-
-    setError("");
+    setNewTimeSlot(prev => ({
+      ...prev,
+      endTime: newEndTime
+    }));
+    setDuration(newDuration);
   };
 
-  useEffect(() => {
-    if (startHour && startMinute && startPeriod) {
-      const startTime24 = convertTo24Hour(startHour, startMinute, startPeriod);
-
-      // Only update start time - end time must be explicitly selected by user
-      setNewTimeSlot(prev => ({
-        ...prev,
-        startTime: startTime24,
-      }));
-
-      // Clear any existing error when start time changes
-      if (newTimeSlot.endTime) {
-        // If end time is already set, validate it
-        const start = new Date(`2000-01-01T${startTime24}`);
-        const end = new Date(`2000-01-01T${newTimeSlot.endTime}`);
-        if (end <= start) {
-          setError("End time must be after start time.");
-        } else {
-          const selectedStaffIds = newTimeSlot.staffIds;
-          if (selectedStaffIds.length === 0) {
-            setError("Please assign staff to check for time conflicts.");
-          } else {
-            const hasConflict = checkTimeConflict(startTime24, newTimeSlot.endTime, selectedStaffIds);
-            if (hasConflict) {
-              setError(`This time slot conflicts with an existing booking for the selected staff on this date.`);
-            } else {
-              setError("");
-            }
-          }
-        }
-      } else {
-        setError("");
-      }
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [startHour, startMinute, startPeriod]);
-
-  // Update endTime when end time fields change
-  useEffect(() => {
-    if (endHour && endMinute && endPeriod) {
-      const endTime24 = convertTo24Hour(endHour, endMinute, endPeriod);
-
-      // Only validate if start time is set
-      if (newTimeSlot.startTime) {
-        // Validate end time is after start time
-        const start = new Date(`2000-01-01T${newTimeSlot.startTime}`);
-        const end = new Date(`2000-01-01T${endTime24}`);
-        if (end <= start) {
-          setError("End time must be after start time.");
-          setNewTimeSlot(prev => ({ ...prev, endTime: "" }));
-          return;
-        }
-
-        // Check for conflicts
-        const selectedStaffIds = newTimeSlot.staffIds;
-        if (selectedStaffIds.length === 0) {
-          setError("Please assign staff to check for time conflicts.");
-        } else {
-          const hasConflict = checkTimeConflict(newTimeSlot.startTime, endTime24, selectedStaffIds);
-
-          if (hasConflict) {
-            setError(`This time slot conflicts with an existing booking for the selected staff on this date.`);
-          } else {
-            setError("");
-          }
-        }
-      }
-
-      setNewTimeSlot(prev => ({
-        ...prev,
-        endTime: endTime24,
-      }));
-    } else if (!endHour && newTimeSlot.endTime) {
-      // Clear endTime if endHour is cleared
-      setNewTimeSlot(prev => ({
-        ...prev,
-        endTime: "",
-      }));
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [endHour, endMinute, endPeriod, newTimeSlot.startTime]);
-
+  // Effect to check for conflicts when time changes
   useEffect(() => {
     if (newTimeSlot.startTime && newTimeSlot.endTime && selectedDate) {
       const selectedStaffIds = newTimeSlot.staffIds;
-      if (selectedStaffIds.length === 0) {
-        setError("Please assign staff to check for time conflicts.");
-      } else {
+      if (selectedStaffIds.length > 0) {
         const hasConflict = checkTimeConflict(newTimeSlot.startTime, newTimeSlot.endTime, selectedStaffIds);
-
         if (hasConflict) {
           setError(`This time slot conflicts with an existing booking for the selected staff on this date.`);
         } else {
-          setError("");
+          // Clear only if it was a conflict error
+          if (error && error.includes("conflicts")) setError("");
         }
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [newTimeSlot.staffIds, selectedDate]);
+  }, [newTimeSlot.startTime, newTimeSlot.endTime, duration]);
+
+
 
   const handleAddTimeSlot = () => {
     if (!selectedDate || !newTimeSlot.startTime) {
@@ -583,12 +485,8 @@ export default function CreateServicePage() {
       price: "",
       staffIds: [],
     });
-    setStartHour("");
-    setStartMinute("00");
-    setStartPeriod("AM");
-    setEndHour("");
-    setEndMinute("00");
-    setEndPeriod("AM");
+    setDuration(60); // Reset to default 60
+    setError("");
     setError("");
     toast({
       variant: "success",
@@ -1184,295 +1082,40 @@ export default function CreateServicePage() {
                     <div className="space-y-6">
                       {/* Time Selection - Clean and Professional */}
                       <div className="space-y-6">
-                        <div className="space-y-3">
-                          <label className="block text-sm font-semibold text-[#3A3A3A]">
-                            Start Time <span className="text-red-500">*</span>
-                          </label>
-                          <div className="flex justify-center bg-gray-50 rounded-xl p-4 border border-gray-200 md:hidden">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 justify-items-center bg-gray-50/50 rounded-2xl p-6 border border-gray-100">
+                          {/* Start Time */}
+                          <div className="w-full flex justify-center">
                             <TimePickerWheel
-                              value={newTimeSlot.startTime || "09:00"}
-                              onChange={(val) => {
-                                const currentDuration = calculateDuration(newTimeSlot.startTime, newTimeSlot.endTime);
-                                const durationToKeep = currentDuration > 0 ? currentDuration : 60;
-                                const newEndTime = calculateEndTimeFromStart(val, durationToKeep);
-                                setNewTimeSlot(prev => ({ ...prev, startTime: val, endTime: newEndTime }));
-                              }}
+                              label="Start Time"
+                              value={newTimeSlot.startTime}
+                              onChange={handleStartTimeChange}
                             />
                           </div>
 
-                          {/* Desktop Time Picker */}
-                          <div className="hidden md:flex items-center gap-3">
-                            <div className="flex-1 flex items-center gap-2 bg-gray-50 rounded-xl p-1 border border-gray-200">
-                              <div className="flex-1 relative">
-                                <select
-                                  value={startHour}
-                                  onChange={(e) => {
-                                    const newHour = e.target.value;
-                                    setStartHour(newHour);
-                                    if (newHour && startMinute) {
-                                      const time = convertTo24Hour(newHour, startMinute, startPeriod);
-                                      const currentDuration = calculateDuration(newTimeSlot.startTime, newTimeSlot.endTime);
-                                      const durationToKeep = currentDuration > 0 ? currentDuration : 60;
-                                      const newEndTime = calculateEndTimeFromStart(time, durationToKeep);
-
-                                      setNewTimeSlot(prev => ({ ...prev, startTime: time, endTime: newEndTime }));
-
-                                      // Update End Time Dropdowns
-                                      if (newEndTime) {
-                                        const [eh, em] = newEndTime.split(':').map(Number);
-                                        setEndHour(String(eh % 12 || 12));
-                                        setEndMinute(String(em).padStart(2, '0'));
-                                        setEndPeriod(eh >= 12 ? 'PM' : 'AM');
-                                      }
-                                    } else {
-                                      setNewTimeSlot(prev => ({ ...prev, startTime: "" }));
-                                    }
-                                  }}
-                                  disabled={!selectedDate}
-                                  className="w-full px-4 py-3 pr-8 bg-transparent border-0 text-[#3A3A3A] font-medium text-base focus:outline-none focus:ring-0 disabled:opacity-50 disabled:cursor-not-allowed appearance-none cursor-pointer"
-                                >
-                                  <option value="">--</option>
-                                  {Array.from({ length: 12 }, (_, i) => i + 1).map((h) => (
-                                    <option key={h} value={String(h)}>{String(h).padStart(2, '0')}</option>
-                                  ))}
-                                </select>
-                                <div className="absolute inset-y-0 right-2 flex items-center pointer-events-none">
-                                  <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                                  </svg>
-                                </div>
-                              </div>
-                              <span className="text-[#3A3A3A] font-semibold text-lg">:</span>
-                              <div className="flex-1 relative">
-                                <select
-                                  value={startMinute}
-                                  onChange={(e) => {
-                                    const newMinute = e.target.value;
-                                    setStartMinute(newMinute);
-                                    if (startHour && newMinute) {
-                                      const time = convertTo24Hour(startHour, newMinute, startPeriod);
-                                      const currentDuration = calculateDuration(newTimeSlot.startTime, newTimeSlot.endTime);
-                                      const durationToKeep = currentDuration > 0 ? currentDuration : 60;
-                                      const newEndTime = calculateEndTimeFromStart(time, durationToKeep);
-
-                                      setNewTimeSlot(prev => ({ ...prev, startTime: time, endTime: newEndTime }));
-
-                                      // Update End Time Dropdowns
-                                      if (newEndTime) {
-                                        const [eh, em] = newEndTime.split(':').map(Number);
-                                        setEndHour(String(eh % 12 || 12));
-                                        setEndMinute(String(em).padStart(2, '0'));
-                                        setEndPeriod(eh >= 12 ? 'PM' : 'AM');
-                                      }
-                                    } else {
-                                      setNewTimeSlot(prev => ({ ...prev, startTime: "" }));
-                                    }
-                                  }}
-                                  disabled={!selectedDate || !startHour}
-                                  className="w-full px-4 py-3 pr-8 bg-transparent border-0 text-[#3A3A3A] font-medium text-base focus:outline-none focus:ring-0 disabled:opacity-50 disabled:cursor-not-allowed appearance-none cursor-pointer"
-                                >
-                                  {Array.from({ length: 12 }, (_, i) => {
-                                    const minute = String(i * 5).padStart(2, '0');
-                                    return <option key={minute} value={minute}>{minute}</option>;
-                                  })}
-                                </select>
-                                <div className="absolute inset-y-0 right-2 flex items-center pointer-events-none">
-                                  <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                                  </svg>
-                                </div>
-                              </div>
-                              <div className="flex gap-1 bg-white rounded-lg p-1 border border-gray-200">
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    const newPeriod = "AM";
-                                    setStartPeriod(newPeriod);
-                                    if (startHour && startMinute) {
-                                      const time = convertTo24Hour(startHour, startMinute, newPeriod);
-                                      const currentDuration = calculateDuration(newTimeSlot.startTime, newTimeSlot.endTime);
-                                      const durationToKeep = currentDuration > 0 ? currentDuration : 60;
-                                      const newEndTime = calculateEndTimeFromStart(time, durationToKeep);
-
-                                      setNewTimeSlot(prev => ({ ...prev, startTime: time, endTime: newEndTime }));
-
-                                      // Update End Time Dropdowns
-                                      if (newEndTime) {
-                                        const [eh, em] = newEndTime.split(':').map(Number);
-                                        setEndHour(String(eh % 12 || 12));
-                                        setEndMinute(String(em).padStart(2, '0'));
-                                        setEndPeriod(eh >= 12 ? 'PM' : 'AM');
-                                      }
-                                    }
-                                  }}
-                                  disabled={!selectedDate || !startHour}
-                                  className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${startPeriod === "AM"
-                                    ? "bg-[#EECFD1] text-[#3A3A3A] shadow-sm"
-                                    : "text-gray-500 hover:text-[#3A3A3A] hover:bg-gray-50"
-                                    } disabled:opacity-50 disabled:cursor-not-allowed`}
-                                >
-                                  AM
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    const newPeriod = "PM";
-                                    setStartPeriod(newPeriod);
-                                    if (startHour && startMinute) {
-                                      const time = convertTo24Hour(startHour, startMinute, newPeriod);
-                                      const currentDuration = calculateDuration(newTimeSlot.startTime, newTimeSlot.endTime);
-                                      const durationToKeep = currentDuration > 0 ? currentDuration : 60;
-                                      const newEndTime = calculateEndTimeFromStart(time, durationToKeep);
-
-                                      setNewTimeSlot(prev => ({ ...prev, startTime: time, endTime: newEndTime }));
-
-                                      // Update End Time Dropdowns
-                                      if (newEndTime) {
-                                        const [eh, em] = newEndTime.split(':').map(Number);
-                                        setEndHour(String(eh % 12 || 12));
-                                        setEndMinute(String(em).padStart(2, '0'));
-                                        setEndPeriod(eh >= 12 ? 'PM' : 'AM');
-                                      }
-                                    }
-                                  }}
-                                  disabled={!selectedDate || !startHour}
-                                  className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${startPeriod === "PM"
-                                    ? "bg-[#EECFD1] text-[#3A3A3A] shadow-sm"
-                                    : "text-gray-500 hover:text-[#3A3A3A] hover:bg-gray-50"
-                                    } disabled:opacity-50 disabled:cursor-not-allowed`}
-                                >
-                                  PM
-                                </button>
-                              </div>
-                            </div>
+                          {/* End Time */}
+                          <div className="w-full flex justify-center relative">
+                            {/* Mobile arrow (vertical) / Desktop arrow (horizontal) optional */}
+                            <TimePickerWheel
+                              label="End Time"
+                              value={newTimeSlot.endTime}
+                              onChange={handleEndTimeChange}
+                            />
                           </div>
                         </div>
 
-                        <div className="space-y-3">
-                          <label className="block text-sm font-semibold text-[#3A3A3A]">
-                            End Time <span className="text-red-500">*</span>
-                          </label>
-                          <div className="flex justify-center bg-gray-50 rounded-xl p-4 border border-gray-200 md:hidden">
-                            <TimePickerWheel
-                              value={newTimeSlot.endTime || calculateEndTimeFromStart(newTimeSlot.startTime || "09:00")}
-                              onChange={(val) => {
-                                setNewTimeSlot(prev => ({ ...prev, endTime: val }));
-                              }}
-                            />
-                          </div>
-
-                          {/* Desktop End Time Picker */}
-                          <div className="hidden md:flex items-center gap-3">
-                            <div className="flex-1 flex items-center gap-2 bg-gray-50 rounded-xl p-1 border border-gray-200">
-                              <div className="flex-1 relative">
-                                <select
-                                  value={endHour}
-                                  onChange={(e) => {
-                                    const newHour = e.target.value;
-                                    setEndHour(newHour);
-                                    if (newHour && endMinute) {
-                                      const time = convertTo24Hour(newHour, endMinute, endPeriod);
-                                      setNewTimeSlot(prev => ({ ...prev, endTime: time }));
-                                    } else {
-                                      setNewTimeSlot(prev => ({ ...prev, endTime: "" }));
-                                    }
-                                  }}
-                                  disabled={!selectedDate || !newTimeSlot.startTime}
-                                  className="w-full px-4 py-3 pr-8 bg-transparent border-0 text-[#3A3A3A] font-medium text-base focus:outline-none focus:ring-0 disabled:opacity-50 disabled:cursor-not-allowed appearance-none cursor-pointer"
-                                >
-                                  <option value="">--</option>
-                                  {Array.from({ length: 12 }, (_, i) => i + 1).map((h) => (
-                                    <option key={h} value={String(h)}>{String(h).padStart(2, '0')}</option>
-                                  ))}
-                                </select>
-                                <div className="absolute inset-y-0 right-2 flex items-center pointer-events-none">
-                                  <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                                  </svg>
-                                </div>
-                              </div>
-                              <span className="text-[#3A3A3A] font-semibold text-lg">:</span>
-                              <div className="flex-1 relative">
-                                <select
-                                  value={endMinute}
-                                  onChange={(e) => {
-                                    const newMinute = e.target.value;
-                                    setEndMinute(newMinute);
-                                    if (endHour && newMinute) {
-                                      const time = convertTo24Hour(endHour, newMinute, endPeriod);
-                                      setNewTimeSlot(prev => ({ ...prev, endTime: time }));
-                                    } else {
-                                      setNewTimeSlot(prev => ({ ...prev, endTime: "" }));
-                                    }
-                                  }}
-                                  disabled={!selectedDate || !newTimeSlot.startTime || !endHour}
-                                  className="w-full px-4 py-3 pr-8 bg-transparent border-0 text-[#3A3A3A] font-medium text-base focus:outline-none focus:ring-0 disabled:opacity-50 disabled:cursor-not-allowed appearance-none cursor-pointer"
-                                >
-                                  {Array.from({ length: 12 }, (_, i) => {
-                                    const minute = String(i * 5).padStart(2, '0');
-                                    return <option key={minute} value={minute}>{minute}</option>;
-                                  })}
-                                </select>
-                                <div className="absolute inset-y-0 right-2 flex items-center pointer-events-none">
-                                  <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                                  </svg>
-                                </div>
-                              </div>
-                              <div className="flex gap-1 bg-white rounded-lg p-1 border border-gray-200">
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    const newPeriod = "AM";
-                                    setEndPeriod(newPeriod);
-                                    if (endHour && endMinute) {
-                                      const time = convertTo24Hour(endHour, endMinute, newPeriod);
-                                      setNewTimeSlot(prev => ({ ...prev, endTime: time }));
-                                    }
-                                  }}
-                                  disabled={!selectedDate || !newTimeSlot.startTime || !endHour}
-                                  className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${endPeriod === "AM"
-                                    ? "bg-[#EECFD1] text-[#3A3A3A] shadow-sm"
-                                    : "text-gray-500 hover:text-[#3A3A3A] hover:bg-gray-50"
-                                    } disabled:opacity-50 disabled:cursor-not-allowed`}
-                                >
-                                  AM
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    const newPeriod = "PM";
-                                    setEndPeriod(newPeriod);
-                                    if (endHour && endMinute) {
-                                      const time = convertTo24Hour(endHour, endMinute, newPeriod);
-                                      setNewTimeSlot(prev => ({ ...prev, endTime: time }));
-                                    }
-                                  }}
-                                  disabled={!selectedDate || !newTimeSlot.startTime || !endHour}
-                                  className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${endPeriod === "PM"
-                                    ? "bg-[#EECFD1] text-[#3A3A3A] shadow-sm"
-                                    : "text-gray-500 hover:text-[#3A3A3A] hover:bg-gray-50"
-                                    } disabled:opacity-50 disabled:cursor-not-allowed`}
-                                >
-                                  PM
-                                </button>
-                              </div>
+                        {/* Duration Display */}
+                        <div className="flex justify-center">
+                          <div className="inline-flex items-center gap-3 px-5 py-2.5 bg-[#EECFD1]/10 rounded-full border border-[#EECFD1]/20 shadow-sm">
+                            <svg className="w-4 h-4 text-[#EECFD1]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <div className="flex items-baseline gap-2">
+                              <span className="text-sm text-gray-500 font-medium">Duration:</span>
+                              <span className="text-lg font-bold text-[#3A3A3A] tracking-tight">
+                                {formatDuration(duration)}
+                              </span>
                             </div>
                           </div>
-
-                          {/* Duration Display - Calculated */}
-                          {/* Duration Display - Calculated */}
-                          {newTimeSlot.startTime && newTimeSlot.endTime && (() => {
-                            const duration = calculateDuration(newTimeSlot.startTime, newTimeSlot.endTime);
-                            return (
-                              <div className="flex items-center gap-2 text-sm justify-center mt-2">
-                                <span className="text-gray-500">Duration:</span>
-                                <span className="font-semibold text-[#3A3A3A] px-3 py-1.5 bg-[#EECFD1]/10 rounded-lg">
-                                  {formatDuration(duration) || "0mins"}
-                                </span>
-                              </div>
-                            );
-                          })()}
                         </div>
                       </div>
 
