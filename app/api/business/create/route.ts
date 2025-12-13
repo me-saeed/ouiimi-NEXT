@@ -62,6 +62,7 @@ import User from "@/lib/models/User";
 import { businessCreateSchema } from "@/lib/validation";
 import { withRateLimit } from "@/lib/security/rate-limit";
 import { verifyToken } from "@/lib/jwt";
+import { sendEmail } from "@/lib/services/mailjet";
 
 // Force dynamic rendering (no caching)
 export const dynamic = 'force-dynamic';
@@ -265,6 +266,13 @@ async function createBusinessHandler(req: NextRequest) {
       status: "approved",
     };
 
+    // EXPLICIT LOGGING FOR GEOJSON VERIFICATION
+    if (businessData.location) {
+      console.log("[GeoAudit] Business Creation - Saving Location:", JSON.stringify(businessData.location, null, 2));
+    } else {
+      console.warn("[GeoAudit] Business Creation - NO LOCATION DATA being saved!");
+    }
+
     // Add optional fields only if they exist
     if (validatedData.phone) {
       businessData.phone = validatedData.phone.trim();
@@ -313,6 +321,26 @@ async function createBusinessHandler(req: NextRequest) {
     // =========================================================================
     // STEP 11: Return success response
     // =========================================================================
+    // =========================================================================
+    // STEP 10: Send welcome email to business
+    // =========================================================================
+    try {
+      await sendEmail(
+        [business.email],
+        "Welcome to Ouiimi - Business Account Created",
+        {
+          fname: business.businessName, // Template uses 'fname' or 'businessName'? Let's check. 
+          // business_welcome template uses {{var:businessName}}. 
+          // Generic sendEmail passes data spread.
+          email: business.email,
+          businessName: business.businessName
+        },
+        "business_welcome"
+      );
+    } catch (e) {
+      console.error("Failed to send business welcome email", e);
+    }
+
     return NextResponse.json(
       {
         message: "Business account created successfully. Pending approval.",

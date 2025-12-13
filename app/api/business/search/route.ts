@@ -18,11 +18,11 @@ async function searchBusinessHandler(req: NextRequest) {
     const skip = (page - 1) * limit;
 
     const searchFilter: any = {};
-    
+
     // If searching by userId, don't filter by status (to get pending businesses too)
     if (userId) {
       const mongoose = (await import("mongoose")).default;
-      searchFilter.userId = mongoose.Types.ObjectId.isValid(userId) 
+      searchFilter.userId = mongoose.Types.ObjectId.isValid(userId)
         ? new mongoose.Types.ObjectId(userId)
         : userId;
     } else if (status) {
@@ -66,6 +66,7 @@ async function searchBusinessHandler(req: NextRequest) {
           email: b.email,
           phone: b.phone,
           address: b.address,
+          location: b.location,
           logo: b.logo,
           story: b.story,
           status: b.status,

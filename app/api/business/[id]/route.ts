@@ -48,6 +48,7 @@ async function getBusinessHandler(
           email: business.email,
           phone: business.phone,
           address: business.address,
+          location: business.location, // Return GeoJSON location
           logo: business.logo,
           story: business.story,
           status: business.status,

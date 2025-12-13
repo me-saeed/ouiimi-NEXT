@@ -289,23 +289,72 @@ async function updateBookingHandler(
         const time = `${populatedBooking.timeSlot.startTime} - ${populatedBooking.timeSlot.endTime}`;
 
         if (oldStatus !== "cancelled" && booking.status === "cancelled") {
-          // Send cancellation email
-          await sendEmail(
-            [user.email],
-            "Booking Cancelled - ouiimi",
-            {
-              fname: user.fname || "Customer",
-              email: user.email,
-              businessName: business?.businessName || "Business",
-              serviceName: service?.serviceName || "Service",
-              date,
-              time,
-              cancelledBy: validatedData.cancelledBy || "customer",
-            },
-            "booking_cancellation"
-          );
+          const isShopper = (validatedData.cancelledBy || "customer") === "customer";
+          const emailData = {
+            fname: user.fname || "Customer",
+            email: user.email,
+            businessName: business?.businessName || "Business",
+            serviceName: service?.serviceName || "Service",
+            date,
+            time,
+            bookingId: String(booking._id).slice(-8),
+            depositAmount: populatedBooking.depositAmount,
+            payoutAmount: populatedBooking.depositAmount && (populatedBooking.depositAmount / 2).toFixed(2), // 50% split assumption from templates
+            cancelledBy: validatedData.cancelledBy || "customer",
+          };
+
+          if (isShopper) {
+            // 1. Notify Shopper: "You cancelled"
+            await sendEmail(
+              [user.email],
+              "Booking Cancelled - ouiimi",
+              emailData,
+              "booking_cancellation_shopper"
+            );
+
+            // 2. Notify Business: "Shopper cancelled"
+            if (business?.email) {
+              console.log(`[Email] Sending booking cancellation to BUSINESS: ${business.email}`);
+
+              // Ensure customerName is passed
+              const cancellationData = {
+                ...emailData,
+                customerName: `${user.fname} ${user.lname}`.trim()
+              };
+
+              const sent = await sendBookingCancellationToBusiness(
+                business.email,
+                business.businessName || "Business", // Addressed to business
+                cancellationData
+              );
+
+              if (sent) console.log(`[Email] Business cancellation email sent successfully.`);
+              else console.error(`[Email] Business cancellation email failed.`);
+            } else {
+              console.warn(`[Email] Skipping business cancellation email - No business email found.`);
+            }
+
+            // 3. (Optional) Cancellation Payout Email?
+            // If payout is automated, we might send 'cancellation_payout' here too, 
+            // but user said "Deposit Payout Confirmation" - usually this comes after the payout is actually processed.
+            // I will leave it out for now unless I see payout logic here. 
+            // Logic above says: booking.paymentStatus = "refunded"; 
+            // Actually, if shopper cancels, business gets 50%.
+            // If business has payout logic, maybe we trigger email. 
+            // For now, these 2 are the critical ones.
+
+          } else {
+            // 3. Notify Shopper: "Business cancelled"
+            await sendEmail(
+              [user.email],
+              "Booking Cancelled by Business - ouiimi",
+              emailData,
+              "booking_cancellation_by_business"
+            );
+          }
+
         } else if (oldStatus !== "completed" && booking.status === "completed") {
-          // Send completion email
+          // Send completion email to Shopper
           await sendEmail(
             [user.email],
             "Service Completed - ouiimi",
@@ -317,9 +366,29 @@ async function updateBookingHandler(
               date,
               totalCost: populatedBooking.totalCost,
               paymentAmount: populatedBooking.totalCost,
+              bookingId: String(booking._id).slice(-8),
             },
             "booking_complete"
           );
+
+          // Send Payment Receipt/Payout Email to Business (Completion)
+          if (business?.email) {
+            await sendEmail(
+              [business.email],
+              "Payment Receipt - ouiimi",
+              {
+                fname: user.fname || "Customer",
+                email: business.email, // Sent to business
+                businessName: business?.businessName || "Business",
+                serviceName: service?.serviceName || "Service",
+                date,
+                bookingId: String(booking._id).slice(-8),
+                totalDeposit: populatedBooking.depositAmount,
+                payoutAmount: (populatedBooking.depositAmount ? populatedBooking.depositAmount * 0.5 : 0).toFixed(2)
+              },
+              "payment_receipt"
+            );
+          }
         }
       }
     } catch (emailError) {

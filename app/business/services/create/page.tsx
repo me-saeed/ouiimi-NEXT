@@ -146,7 +146,6 @@ export default function CreateServicePage() {
   const [success, setSuccess] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
   const [staff, setStaff] = useState<any[]>([]);
-  const [defaultStaffIds, setDefaultStaffIds] = useState<string[]>([]);
   const [endHour, setEndHour] = useState<string>("");
   const [endMinute, setEndMinute] = useState<string>("00");
   const [endPeriod, setEndPeriod] = useState<"AM" | "PM">("AM");
@@ -321,7 +320,7 @@ export default function CreateServicePage() {
       startTime: "",
       endTime: "",
       price: "",
-      staffIds: [...defaultStaffIds],
+      staffIds: [],
     });
     setStartHour("");
     setStartMinute("00");
@@ -335,6 +334,7 @@ export default function CreateServicePage() {
   // Check for time conflicts (overlapping time ranges)
   const checkTimeConflict = (startTime24: string, endTime24: string, staffIds: string[]): boolean => {
     if (!selectedDate || !startTime24 || !endTime24) return false;
+    if (staffIds.length === 0) return false; // Cannot check for conflicts without assigned staff
 
     const existingSlots = datesWithSlots[selectedDate] || [];
     const start = new Date(`2000-01-01T${startTime24}`);
@@ -347,8 +347,7 @@ export default function CreateServicePage() {
       const selectedStaff = staffIds.sort();
 
       // Check if staff overlap
-      const staffOverlap = selectedStaff.length === 0 || existingStaff.length === 0 ||
-        selectedStaff.some(id => existingStaff.includes(id));
+      const staffOverlap = selectedStaff.some(id => existingStaff.includes(id));
 
       if (!staffOverlap) return false;
 
@@ -399,7 +398,11 @@ export default function CreateServicePage() {
       }
 
       // Check for conflicts
-      const selectedStaffIds = newTimeSlot.staffIds.length > 0 ? newTimeSlot.staffIds : defaultStaffIds;
+      const selectedStaffIds = newTimeSlot.staffIds;
+      if (selectedStaffIds.length === 0) {
+        setError("Please assign staff to check for time conflicts.");
+        return;
+      }
       const hasConflict = checkTimeConflict(startTime24, newTimeSlot.endTime, selectedStaffIds);
 
       if (hasConflict) {
@@ -429,12 +432,16 @@ export default function CreateServicePage() {
         if (end <= start) {
           setError("End time must be after start time.");
         } else {
-          const selectedStaffIds = newTimeSlot.staffIds.length > 0 ? newTimeSlot.staffIds : defaultStaffIds;
-          const hasConflict = checkTimeConflict(startTime24, newTimeSlot.endTime, selectedStaffIds);
-          if (hasConflict) {
-            setError(`This time slot conflicts with an existing booking for the selected staff on this date.`);
+          const selectedStaffIds = newTimeSlot.staffIds;
+          if (selectedStaffIds.length === 0) {
+            setError("Please assign staff to check for time conflicts.");
           } else {
-            setError("");
+            const hasConflict = checkTimeConflict(startTime24, newTimeSlot.endTime, selectedStaffIds);
+            if (hasConflict) {
+              setError(`This time slot conflicts with an existing booking for the selected staff on this date.`);
+            } else {
+              setError("");
+            }
           }
         }
       } else {
@@ -461,13 +468,17 @@ export default function CreateServicePage() {
         }
 
         // Check for conflicts
-        const selectedStaffIds = newTimeSlot.staffIds.length > 0 ? newTimeSlot.staffIds : defaultStaffIds;
-        const hasConflict = checkTimeConflict(newTimeSlot.startTime, endTime24, selectedStaffIds);
-
-        if (hasConflict) {
-          setError(`This time slot conflicts with an existing booking for the selected staff on this date.`);
+        const selectedStaffIds = newTimeSlot.staffIds;
+        if (selectedStaffIds.length === 0) {
+          setError("Please assign staff to check for time conflicts.");
         } else {
-          setError("");
+          const hasConflict = checkTimeConflict(newTimeSlot.startTime, endTime24, selectedStaffIds);
+
+          if (hasConflict) {
+            setError(`This time slot conflicts with an existing booking for the selected staff on this date.`);
+          } else {
+            setError("");
+          }
         }
       }
 
@@ -487,13 +498,17 @@ export default function CreateServicePage() {
 
   useEffect(() => {
     if (newTimeSlot.startTime && newTimeSlot.endTime && selectedDate) {
-      const selectedStaffIds = newTimeSlot.staffIds.length > 0 ? newTimeSlot.staffIds : defaultStaffIds;
-      const hasConflict = checkTimeConflict(newTimeSlot.startTime, newTimeSlot.endTime, selectedStaffIds);
-
-      if (hasConflict) {
-        setError(`This time slot conflicts with an existing booking for the selected staff on this date.`);
+      const selectedStaffIds = newTimeSlot.staffIds;
+      if (selectedStaffIds.length === 0) {
+        setError("Please assign staff to check for time conflicts.");
       } else {
-        setError("");
+        const hasConflict = checkTimeConflict(newTimeSlot.startTime, newTimeSlot.endTime, selectedStaffIds);
+
+        if (hasConflict) {
+          setError(`This time slot conflicts with an existing booking for the selected staff on this date.`);
+        } else {
+          setError("");
+        }
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -524,7 +539,7 @@ export default function CreateServicePage() {
     }
 
     // Validate staff assignment
-    const finalStaffIds = newTimeSlot.staffIds.length > 0 ? newTimeSlot.staffIds : defaultStaffIds;
+    const finalStaffIds = newTimeSlot.staffIds;
     if (finalStaffIds.length === 0) {
       setError("Please assign at least one staff member to this time slot");
       return;
@@ -566,11 +581,14 @@ export default function CreateServicePage() {
       startTime: "",
       endTime: "",
       price: "",
-      staffIds: [...defaultStaffIds],
+      staffIds: [],
     });
     setStartHour("");
     setStartMinute("00");
     setStartPeriod("AM");
+    setEndHour("");
+    setEndMinute("00");
+    setEndPeriod("AM");
     setError("");
     toast({
       variant: "success",
@@ -602,21 +620,13 @@ export default function CreateServicePage() {
     }
   };
 
-  const handleToggleStaff = (staffId: string, isDefault: boolean = false) => {
-    if (isDefault) {
-      setDefaultStaffIds(prev =>
-        prev.includes(staffId)
-          ? prev.filter(id => id !== staffId)
-          : [...prev, staffId]
-      );
-    } else {
-      setNewTimeSlot({
-        ...newTimeSlot,
-        staffIds: newTimeSlot.staffIds.includes(staffId)
-          ? newTimeSlot.staffIds.filter(id => id !== staffId)
-          : [...newTimeSlot.staffIds, staffId],
-      });
-    }
+  const handleToggleStaff = (staffId: string) => {
+    setNewTimeSlot({
+      ...newTimeSlot,
+      staffIds: newTimeSlot.staffIds.includes(staffId)
+        ? newTimeSlot.staffIds.filter(id => id !== staffId)
+        : [...newTimeSlot.staffIds, staffId],
+    });
   };
 
   const handleToggleAddOn = (addOn: { name: string; cost: number }) => {
@@ -1088,40 +1098,6 @@ export default function CreateServicePage() {
                 )}
               </div>
 
-              {/* Default Staff Selection */}
-              {staff.length > 0 && (
-                <div className="space-y-3 pt-4 border-t border-[#E5E5E5]">
-                  <label className="block text-sm font-semibold text-[#3A3A3A]">
-                    Default Staff for this Service <span className="text-[#888888] text-xs font-normal">(Optional)</span>
-                  </label>
-                  <p className="text-xs text-[#888888]">
-                    Selected staff will be automatically assigned to new time slots. You can change this per slot.
-                  </p>
-                  <div className="border border-[#E5E5E5] rounded-lg p-3 bg-white space-y-2">
-                    {staff.map((member) => (
-                      <label key={member.id || member._id} className="flex items-center gap-3 p-2.5 hover:bg-[#F5F5F5] rounded-lg cursor-pointer transition-colors">
-                        <input
-                          type="checkbox"
-                          checked={defaultStaffIds.includes(member.id || member._id)}
-                          onChange={() => handleToggleStaff(member.id || member._id, true)}
-                          className="w-4 h-4 text-[#EECFD1] border-[#E5E5E5] rounded focus:ring-[#EECFD1]"
-                        />
-                        <div className="flex items-center gap-2.5">
-                          {member.photo ? (
-                            <Image src={member.photo} alt={member.name} width={28} height={28} className="rounded-full object-cover" />
-                          ) : (
-                            <div className="w-7 h-7 rounded-full bg-[#EECFD1] flex items-center justify-center text-sm font-bold text-[#3A3A3A]">
-                              {member.name.charAt(0)}
-                            </div>
-                          )}
-                          <span className="text-sm font-medium text-[#3A3A3A]">{member.name}</span>
-                        </div>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-              )}
-
               {/* Dates and Time Slots Section */}
               <div className="space-y-4 pt-6 border-t border-[#E5E5E5]">
                 <div className="flex items-center justify-between mb-4">
@@ -1485,16 +1461,17 @@ export default function CreateServicePage() {
                           </div>
 
                           {/* Duration Display - Calculated */}
+                          {/* Duration Display - Calculated */}
                           {newTimeSlot.startTime && newTimeSlot.endTime && (() => {
                             const duration = calculateDuration(newTimeSlot.startTime, newTimeSlot.endTime);
-                            return duration > 0 ? (
+                            return (
                               <div className="flex items-center gap-2 text-sm justify-center mt-2">
                                 <span className="text-gray-500">Duration:</span>
                                 <span className="font-semibold text-[#3A3A3A] px-3 py-1.5 bg-[#EECFD1]/10 rounded-lg">
-                                  {formatDuration(duration)}
+                                  {formatDuration(duration) || "0mins"}
                                 </span>
                               </div>
-                            ) : null;
+                            );
                           })()}
                         </div>
                       </div>

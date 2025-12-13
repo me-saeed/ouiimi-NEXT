@@ -465,9 +465,43 @@ async function createBookingHandler(req: NextRequest) {
             totalCost: savedBooking.totalCost,
             depositAmount: savedBooking.depositAmount,
             bookingId: String(savedBooking._id).slice(-8),
+            // outstanding balance for shopper template
+            outstanding: savedBooking.remainingAmount
           },
           "booking_confirmation_shopper"
         );
+
+        // Send confirmation email to Business
+        if (businessIdData && typeof businessIdData === 'object' && businessIdData.email) {
+          console.log(`[Email] Sending booking confirmation to BUSINESS: ${businessIdData.email}`);
+          console.log(`[Email] Business confirmation data:`, {
+            customerId: userIdData.id,
+            customerName: userIdData.fname + ' ' + userIdData.lname,
+            bookingId: String(savedBooking._id).slice(-8)
+          });
+
+          await sendEmail(
+            [businessIdData.email],
+            "New Booking Received - ouiimi",
+            {
+              fname: userIdData.fname || "Customer", // This maps to 'first_name' in generic logic, typically addressed to recipient.
+              // But for business email, templates often use 'customer_name' for the person who booked
+              customerName: `${userIdData.fname} ${userIdData.lname}`.trim(), // Explicitly pass customer name
+              email: businessIdData.email,
+              businessName,
+              serviceName,
+              date,
+              time,
+              bookingId: String(savedBooking._id).slice(-8),
+              depositAmount: savedBooking.depositAmount,
+              outstanding: savedBooking.remainingAmount
+            },
+            "booking_confirmation_business"
+          );
+          console.log(`[Email] Business confirmation sent successfully.`);
+        } else {
+          console.warn(`[Email] Skipping business confirmation - No business email found for ID: ${businessIdData?.id || businessIdData}`);
+        }
       }
     } catch (emailError) {
       console.error("Error sending booking confirmation email:", emailError);

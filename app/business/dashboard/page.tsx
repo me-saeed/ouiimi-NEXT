@@ -158,10 +158,15 @@ export default function BusinessDashboardPage() {
             console.log("[Dashboard] Setting business:", businessItem._id || businessItem.id);
             setBusiness(businessItem);
             setIsLoading(false);
+          } else {
+            // No business found, verify this state
+            console.log("[Dashboard] No business found (empty list)");
+            setBusiness(null);
+            setIsLoading(false);
           }
         } else if (businessResponse.status === 404) {
           // No business found - this is okay, show register message
-          console.log("No business found for user");
+          console.log("No business found for user (404)");
           setIsLoading(false);
         }
       } catch (e) {

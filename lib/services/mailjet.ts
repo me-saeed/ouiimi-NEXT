@@ -47,13 +47,18 @@ const TEMPLATE_IDS = {
   welcome: 7470194,                           // "welcome Email"
   business_welcome: 7470222,                  // "Business Signup Welcome Email"
   business_approved: 7470249,                 // "business Approved"
+  account_verification: 7579447,              // "Account Email Verification"
   booking_confirmation_shopper: 7568667,      // "Booking Confirmation (Shopper)"
   booking_confirmation_business: 7568585,     // "Booking Confirmation (business)"
   appointment_reminder: 7568563,              // "Appointment Reminder (Shopper)"
   booking_complete: 7568493,                  // "Booking Complete (shopper)"
   payment_receipt: 7568471,                   // "Payment Receipt (small business)"
-  booking_cancellation: 7579254,            // "Booking Cancelled (Shopper) - Premium"
-  forgot_password: 7469418,                   // "My templte"
+  booking_cancellation: 7579484,              // Legacy alias for "Booking Cancelled By Shopper - Premium"
+  booking_cancellation_shopper: 7579484,      // "Booking Cancelled By Shopper - Premium"
+  booking_cancellation_business: 7579485,     // "Booking Cancelled by shopper (to business) - Premium"
+  booking_cancellation_by_business: 7579486,  // "Booking Cancelled By Small business - Premium"
+  cancellation_payout: 7579487,               // "Deposit Payout Confirmation (Cancellation) - Premium"
+  forgot_password: 7579452,                   // "Forgot Password"
 } as const;
 
 export type EmailTemplateType = keyof typeof TEMPLATE_IDS;
@@ -179,4 +184,8 @@ export async function sendPaymentReceiptToBusiness(email: string, fname: string,
 
 export async function sendBookingCancellationEmail(email: string, fname: string, data: any): Promise<boolean> {
   return sendEmail([email], "Booking Cancelled - Ouiimi", { fname, email, ...data }, "booking_cancellation");
+}
+
+export async function sendBookingCancellationToBusiness(email: string, fname: string, data: any): Promise<boolean> {
+  return sendEmail([email], "Booking Cancelled - Ouiimi", { fname, email, ...data }, "booking_cancellation_business");
 }
