@@ -7,12 +7,13 @@ import Image from "next/image";
 import PageLayout from "@/components/layout/PageLayout";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { X } from "lucide-react";
 
 function ServiceDetailContent() {
   const params = useParams();
   const router = useRouter();
   const serviceId = params.id as string;
-  
+
   const [user, setUser] = useState<any>(null);
   const [service, setService] = useState<any>(null);
   const [business, setBusiness] = useState<any>(null);
@@ -42,7 +43,7 @@ function ServiceDetailContent() {
     const loadServiceData = async () => {
       try {
         const response = await fetch(`/api/services/${serviceId}`);
-        
+
         if (!response.ok) {
           if (response.status === 404) {
             setError("Service not found");
@@ -56,7 +57,7 @@ function ServiceDetailContent() {
         const data = await response.json();
         if (data.service) {
           setService(data.service);
-          
+
           // Fetch business details if businessId is populated
           if (data.service.businessId) {
             if (typeof data.service.businessId === 'object' && data.service.businessId.businessName) {
@@ -64,10 +65,10 @@ function ServiceDetailContent() {
               setBusiness(data.service.businessId);
             } else {
               // Fetch business separately if not populated
-              const businessId = typeof data.service.businessId === 'object' 
+              const businessId = typeof data.service.businessId === 'object'
                 ? data.service.businessId._id || data.service.businessId.id
                 : data.service.businessId;
-              
+
               if (businessId) {
                 const businessResponse = await fetch(`/api/business/${businessId}`);
                 if (businessResponse.ok) {
@@ -174,56 +175,56 @@ function BookingForm({ service, business, user }: { service: any; business: any;
 
   const availableDates: string[] = service.timeSlots && Array.isArray(service.timeSlots) && service.timeSlots.length > 0
     ? (() => {
-        const dateStrings: string[] = service.timeSlots
-          .filter((slot: any) => {
-            if (!slot || slot.isBooked) return false;
-            try {
-              const slotDate = new Date(slot.date);
-              if (isNaN(slotDate.getTime())) return false;
-              slotDate.setHours(0, 0, 0, 0);
-              return slotDate >= today;
-            } catch (e) {
-              console.error("Error filtering slot:", e, slot);
-              return false;
-            }
-          })
-          .map((slot: any) => {
-            try {
-              const date = new Date(slot.date);
-              if (isNaN(date.getTime())) return null;
-              return date.toISOString().split('T')[0];
-            } catch (e) {
-              console.error("Error mapping slot date:", e, slot);
-              return null;
-            }
-          })
-          .filter((date: string | null): date is string => date !== null);
-        return [...new Set(dateStrings)].sort((a: string, b: string) => 
-          new Date(a).getTime() - new Date(b).getTime()
-        );
-      })()
+      const dateStrings: string[] = service.timeSlots
+        .filter((slot: any) => {
+          if (!slot || slot.isBooked) return false;
+          try {
+            const slotDate = new Date(slot.date);
+            if (isNaN(slotDate.getTime())) return false;
+            slotDate.setHours(0, 0, 0, 0);
+            return slotDate >= today;
+          } catch (e) {
+            console.error("Error filtering slot:", e, slot);
+            return false;
+          }
+        })
+        .map((slot: any) => {
+          try {
+            const date = new Date(slot.date);
+            if (isNaN(date.getTime())) return null;
+            return date.toISOString().split('T')[0];
+          } catch (e) {
+            console.error("Error mapping slot date:", e, slot);
+            return null;
+          }
+        })
+        .filter((date: string | null): date is string => date !== null);
+      return [...new Set(dateStrings)].sort((a: string, b: string) =>
+        new Date(a).getTime() - new Date(b).getTime()
+      );
+    })()
     : [];
 
   const availableTimeSlots = selectedDate
     ? (service.timeSlots || []).filter((slot: any) => {
-        if (!slot || slot.isBooked) return false;
-        try {
-          const slotDate = new Date(slot.date);
-          if (isNaN(slotDate.getTime())) return false;
-          const slotDateStr = slotDate.toISOString().split('T')[0];
-          return slotDateStr === selectedDate;
-        } catch (e) {
-          console.error("Error parsing slot date:", e, slot);
-          return false;
-        }
-      })
+      if (!slot || slot.isBooked) return false;
+      try {
+        const slotDate = new Date(slot.date);
+        if (isNaN(slotDate.getTime())) return false;
+        const slotDateStr = slotDate.toISOString().split('T')[0];
+        return slotDateStr === selectedDate;
+      } catch (e) {
+        console.error("Error parsing slot date:", e, slot);
+        return false;
+      }
+    })
     : [];
 
   const availableStaff = selectedTimeSlot
     ? (selectedTimeSlot.staffIds || []).map((staff: any) => ({
-        id: typeof staff === 'object' ? staff._id || staff.id : staff,
-        name: typeof staff === 'object' ? staff.name : "Staff",
-      }))
+      id: typeof staff === 'object' ? staff._id || staff.id : staff,
+      name: typeof staff === 'object' ? staff.name : "Staff",
+    }))
     : [];
 
   // Check staff busy status when date and time slot are selected
@@ -239,7 +240,7 @@ function BookingForm({ service, business, user }: { service: any; business: any;
         if (!token) return;
 
         const busyStatus: Record<string, boolean> = {};
-        
+
         // Check each staff member's availability
         await Promise.all(
           availableStaff.map(async (staff: any) => {
@@ -252,18 +253,18 @@ function BookingForm({ service, business, user }: { service: any; business: any;
                   },
                 }
               );
-              
+
               if (response.ok) {
                 const data = await response.json();
                 const bookings = data.bookings || [];
-                
+
                 // Check if staff is busy at this time
                 const isBusy = bookings.some((booking: any) => {
                   const bookingStart = booking.timeSlot.startTime;
                   const bookingEnd = booking.timeSlot.endTime;
                   const slotStart = selectedTimeSlot.startTime;
                   const slotEnd = selectedTimeSlot.endTime;
-                  
+
                   // Check for time overlap
                   return (
                     (slotStart >= bookingStart && slotStart < bookingEnd) ||
@@ -271,7 +272,7 @@ function BookingForm({ service, business, user }: { service: any; business: any;
                     (slotStart <= bookingStart && slotEnd >= bookingEnd)
                   );
                 });
-                
+
                 busyStatus[staff.id] = isBusy;
               }
             } catch (err) {
@@ -279,7 +280,7 @@ function BookingForm({ service, business, user }: { service: any; business: any;
             }
           })
         );
-        
+
         setStaffBusyStatus(busyStatus);
       } catch (err) {
         console.error("Error checking staff availability:", err);
@@ -305,15 +306,15 @@ function BookingForm({ service, business, user }: { service: any; business: any;
 
     const cartItem = {
       serviceId: service.id || service._id,
-      businessId: typeof service.businessId === 'object' 
+      businessId: typeof service.businessId === 'object'
         ? service.businessId.id || service.businessId._id
         : service.businessId,
       serviceName: service.serviceName,
-      businessName: typeof service.businessId === 'object' 
-        ? service.businessId.businessName 
+      businessName: typeof service.businessId === 'object'
+        ? service.businessId.businessName
         : business?.businessName || "Business",
-      logo: typeof service.businessId === 'object' 
-        ? service.businessId.logo 
+      logo: typeof service.businessId === 'object'
+        ? service.businessId.logo
         : business?.logo,
       date: selectedDate,
       time: `${formatTime12Hour(selectedTimeSlot.startTime)} - ${formatTime12Hour(selectedTimeSlot.endTime)}`,
@@ -358,7 +359,7 @@ function BookingForm({ service, business, user }: { service: any; business: any;
       {/* Business Owner Name and Logo Header - Clickable */}
       {(business?.businessName || business?.logo || user?.fname) && (
         <div className="pb-4 border-b border-gray-200">
-          <Link 
+          <Link
             href={business?._id || business?.id ? `/business/${business._id || business.id}` : '#'}
             className="flex items-center gap-3 hover:opacity-80 transition-opacity cursor-pointer group"
           >
@@ -397,35 +398,35 @@ function BookingForm({ service, business, user }: { service: any; business: any;
             Date
           </label>
           <div className="relative">
-          <select
-            value={selectedDate}
-            onChange={(e) => {
-              setSelectedDate(e.target.value);
-              setSelectedTimeSlot(null);
-              setSelectedStaff("");
-            }}
+            <select
+              value={selectedDate}
+              onChange={(e) => {
+                setSelectedDate(e.target.value);
+                setSelectedTimeSlot(null);
+                setSelectedStaff("");
+              }}
               className="w-full px-4 py-3.5 pr-10 rounded-xl border border-gray-200 bg-white text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-[#EECFD1] focus:border-[#EECFD1] transition-all appearance-none hover:border-gray-300"
-          >
-            <option value="">Select Date</option>
-            {availableDates.map((date: string) => {
-              const dateObj = new Date(date);
-              return (
-                <option key={date} value={date}>
-                  {dateObj.toLocaleDateString("en-GB", {
-                    day: "2-digit",
-                    month: "2-digit",
-                    year: "numeric",
-                  })}
-                </option>
-              );
-            })}
-          </select>
-          <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-            <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-            </svg>
+            >
+              <option value="">Select Date</option>
+              {availableDates.map((date: string) => {
+                const dateObj = new Date(date);
+                return (
+                  <option key={date} value={date}>
+                    {dateObj.toLocaleDateString("en-GB", {
+                      day: "2-digit",
+                      month: "2-digit",
+                      year: "numeric",
+                    })}
+                  </option>
+                );
+              })}
+            </select>
+            <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+              <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </div>
           </div>
-        </div>
           {availableDates.length === 0 && (
             <div className="space-y-2">
               <p className="text-sm text-amber-600 font-medium">
@@ -440,10 +441,10 @@ function BookingForm({ service, business, user }: { service: any; business: any;
           )}
         </div>
 
-          <div className="space-y-2">
+        <div className="space-y-2">
           <label className="text-sm font-semibold text-gray-700 mb-2 block">
             Time
-            </label>
+          </label>
           <div className="relative">
             <select
               value={selectedTimeSlot ? `${selectedTimeSlot.startTime}-${selectedTimeSlot.endTime}` : ""}
@@ -467,7 +468,7 @@ function BookingForm({ service, business, user }: { service: any; business: any;
                 const hours = Math.floor(durationMs / (1000 * 60 * 60));
                 const minutes = Math.floor((durationMs % (1000 * 60 * 60)) / (1000 * 60));
                 const duration = hours > 0 ? `${hours}hr${minutes > 0 ? ` ${minutes}mins` : ''}` : `${minutes}mins`;
-                
+
                 return (
                   <option
                     key={idx}
@@ -484,12 +485,12 @@ function BookingForm({ service, business, user }: { service: any; business: any;
               </svg>
             </div>
           </div>
-          </div>
+        </div>
 
-          <div className="space-y-2">
+        <div className="space-y-2">
           <label className="text-sm font-semibold text-gray-700 mb-2 block">
             Staff
-            </label>
+          </label>
           <div className="relative">
             <select
               value={selectedStaff}
@@ -520,24 +521,24 @@ function BookingForm({ service, business, user }: { service: any; business: any;
           <div>
             <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 block">
               SERVICE
-          </label>
+            </label>
             <p className="text-base font-bold text-[#3A3A3A]">{service.serviceName || ""}</p>
-        </div>
+          </div>
 
           <div>
             <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 block">
               ADDRESS
-          </label>
+            </label>
             <p className="text-sm text-[#3A3A3A]">
               {service.address || (typeof service.businessId === 'object' ? service.businessId.address : business?.address) || ""}
             </p>
-        </div>
+          </div>
 
           {service.description && (
             <div>
               <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 block">
                 DESCRIPTION
-          </label>
+              </label>
               <p className="text-sm text-[#3A3A3A] leading-relaxed">{service.description}</p>
             </div>
           )}
@@ -572,9 +573,22 @@ function BookingForm({ service, business, user }: { service: any; business: any;
             {selectedAddOns.length > 0 && (
               <div className="mt-3 space-y-2 pl-1">
                 {selectedAddOns.map((addon, idx) => (
-                  <div key={idx} className="flex items-center justify-between text-sm bg-white rounded-lg px-4 py-2.5 border border-gray-100">
-                    <span className="text-gray-700">{addon.name}</span>
-                    <span className="font-semibold text-gray-900">${addon.cost.toFixed(2)}</span>
+                  <div key={idx} className="flex items-center justify-between text-sm bg-white rounded-lg px-4 py-2.5 border border-gray-100 group">
+                    <div className="flex items-center gap-2">
+                      <span className="text-gray-700">{addon.name}</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="font-semibold text-gray-900">${addon.cost.toFixed(2)}</span>
+                      <button
+                        onClick={() => {
+                          setSelectedAddOns(selectedAddOns.filter((a) => a.name !== addon.name));
+                        }}
+                        className="text-gray-400 hover:text-red-500 hover:bg-red-50 p-1 rounded-full transition-colors"
+                        title="Remove Add-on"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -589,17 +603,17 @@ function BookingForm({ service, business, user }: { service: any; business: any;
             <div className="flex justify-between items-center text-sm">
               <span className="text-gray-600">Base Cost</span>
               <span className="font-medium text-[#3A3A3A]">${(selectedTimeSlot?.price || 0).toFixed(2)}</span>
-          </div>
-          {selectedAddOns.length > 0 && (
+            </div>
+            {selectedAddOns.length > 0 && (
               <div className="space-y-2 pt-2 border-t border-gray-200">
-              {selectedAddOns.map((addon, idx) => (
+                {selectedAddOns.map((addon, idx) => (
                   <div key={idx} className="flex justify-between items-center text-sm">
                     <span className="text-gray-600">{addon.name}</span>
                     <span className="font-medium text-[#3A3A3A]">+${addon.cost.toFixed(2)}</span>
-                </div>
-              ))}
-            </div>
-          )}
+                  </div>
+                ))}
+              </div>
+            )}
             <div className="flex justify-between items-center pt-4 border-t border-gray-300">
               <span className="text-base font-bold text-[#3A3A3A]">Total</span>
               <span className="text-2xl font-bold text-[#3A3A3A]">${calculateTotal().toFixed(2)}</span>

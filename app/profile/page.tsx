@@ -9,6 +9,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Calendar } from "lucide-react";
 import { ServiceCard } from "@/components/ui/service-card";
 import { useRef } from "react";
+import { ImageUpload } from "@/components/ui/image-upload";
 
 interface Booking {
   id: string;
@@ -121,46 +122,7 @@ export default function ShopperProfilePage() {
     }
   };
 
-  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
 
-      // Validate file type
-      if (!file.type.startsWith("image/")) {
-        setError("Please upload an image file");
-        return;
-      }
-
-      // Validate file size (max 5MB)
-      if (file.size > 5 * 1024 * 1024) {
-        setError("Image size should be less than 5MB");
-        return;
-      }
-
-      setIsLoading(true);
-      try {
-        const formData = new FormData();
-        formData.append("file", file);
-
-        const response = await fetch("/api/upload", {
-          method: "POST",
-          body: formData,
-        });
-
-        if (!response.ok) {
-          throw new Error("Upload failed");
-        }
-
-        const data = await response.json();
-        await handleUpdateProfilePic(data.url);
-      } catch (err) {
-        console.error("Error uploading image:", err);
-        setError("Failed to upload image");
-      } finally {
-        setIsLoading(false);
-      }
-    }
-  };
 
   const loadBookings = async (userData: any) => {
     if (!userData?.id && !userData?._id) return;
@@ -418,36 +380,11 @@ export default function ShopperProfilePage() {
         <div className="bg-white py-8 border-b border-gray-100">
           <div className="container mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex flex-col items-center text-center space-y-4">
-              <div className="relative mb-4">
-                {user.pic && user.pic !== "avatar.png" ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={user.pic}
-                    alt={user.fname}
-                    className="w-24 h-24 rounded-full object-cover border-4 border-[#EECFD1] shadow-sm"
-                  />
-                ) : (
-                  <div className="w-24 h-24 rounded-full bg-[#EECFD1] border-4 border-white shadow-sm flex items-center justify-center">
-                    <span className="text-2xl font-bold text-white">
-                      {user.fname?.charAt(0) || "U"}
-                    </span>
-                  </div>
-                )}
-                <button
-                  onClick={() => fileInputRef.current?.click()}
-                  className="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center text-lg font-bold hover:bg-primary/90 cursor-pointer"
-                  disabled={isLoading}
-                >
-                  +
-                </button>
-                <input
-                  type="file"
-                  ref={fileInputRef}
-                  onChange={handleFileSelect}
-                  className="hidden"
-                  accept="image/*"
-                />
-              </div>
+              <ImageUpload
+                value={user.pic === "avatar.png" ? "" : user.pic}
+                onChange={handleUpdateProfilePic}
+                variant="avatar"
+              />
 
               <h2 className="text-xl font-medium text-foreground">
                 {user.fname} {user.lname}

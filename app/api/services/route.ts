@@ -82,8 +82,9 @@ async function createServiceHandler(req: NextRequest) {
         price: slot.price, // Required price for this time slot
         duration, // Computed duration in minutes
         staffIds: slot.staffIds
-          ? slot.staffIds.map((id) => new mongoose.Types.ObjectId(id))
+          ? slot.staffIds.map((id: any) => new mongoose.Types.ObjectId(id))
           : [],
+        addOns: slot.addOns || [], // Persist add-ons per slot
         isBooked: false,
       };
     });
