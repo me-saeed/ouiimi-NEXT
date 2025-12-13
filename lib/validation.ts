@@ -6,7 +6,16 @@ export const signupSchema = z.object({
   email: z.string().email("Invalid email address"),
   username: z.string().min(3, "Username must be at least 3 characters"),
   password: z.string().min(8, "Password must be at least 8 characters"),
-  address: z.string().optional(),
+  address: z.union([
+    z.string(),
+    z.object({
+      street: z.string(),
+      location: z.object({
+        type: z.literal("Point"),
+        coordinates: z.tuple([z.number(), z.number()]),
+      }),
+    }),
+  ]).optional(),
   contactNo: z.string().optional(),
 });
 
@@ -55,7 +64,16 @@ export const businessCreateSchema = z.object({
   businessName: z.string().min(2, "Business name must be at least 2 characters"),
   email: z.string().email("Invalid email address"),
   phone: z.string().optional(),
-  address: z.string().min(5, "Address is required"),
+  address: z.union([
+    z.string().min(5, "Address is required"),
+    z.object({
+      street: z.string(),
+      location: z.object({
+        type: z.literal("Point"),
+        coordinates: z.tuple([z.number(), z.number()]),
+      }),
+    }),
+  ]),
   story: z.string().optional(),
 });
 
@@ -63,7 +81,16 @@ export const businessUpdateSchema = z.object({
   businessName: z.string().min(2).optional(),
   email: z.string().email().optional(),
   phone: z.string().optional(),
-  address: z.string().min(5).optional(),
+  address: z.union([
+    z.string().min(5),
+    z.object({
+      street: z.string(),
+      location: z.object({
+        type: z.literal("Point"),
+        coordinates: z.tuple([z.number(), z.number()]),
+      }),
+    }),
+  ]).optional(),
   logo: z.string().optional(),
   story: z.string().optional(),
   status: z.enum(["pending", "approved", "rejected"]).optional(),
@@ -94,18 +121,19 @@ export const staffUpdateSchema = z.object({
 });
 
 // Service Validation Schemas
+export const addOnSchema = z.object({
+  name: z.string().min(1, "Add-on name is required"),
+  cost: z.number().min(0, "Cost must be 0 or greater"),
+});
+
 export const timeSlotSchema = z.object({
   date: z.string().or(z.date()),
   startTime: z.string().min(1, "Start time is required"),
   endTime: z.string().min(1, "End time is required"),
   price: z.number().min(0, "Price is required and must be 0 or greater"), // Required price for this time slot
   duration: z.number().min(0).optional(), // Computed duration in minutes (will be calculated)
-  staffIds: z.array(z.string()).optional(),
-});
-
-export const addOnSchema = z.object({
-  name: z.string().min(1, "Add-on name is required"),
-  cost: z.number().min(0, "Cost must be 0 or greater"),
+  staffIds: z.array(z.string()).min(1, "At least one staff member must be assigned"),
+  addOns: z.array(addOnSchema).optional(),
 });
 
 export const serviceCreateSchema = z.object({

@@ -44,6 +44,7 @@ export interface ITimeSlot {
   price: number;                           // Price for this slot (can vary by time/day)
   duration: number;                        // Duration in minutes (computed from start/end)
   staffIds: mongoose.Types.ObjectId[];     // Staff members assigned to this slot
+  addOns?: IAddOn[];                       // specific add-ons for this slot
   isBooked: boolean;                       // TRUE when slot is reserved
   bookingId?: mongoose.Types.ObjectId;     // Reference to the Booking if booked
 }
@@ -90,20 +91,6 @@ export interface IService extends Document {
  * TimeSlot Sub-Schema
  * _id: false means time slots don't get their own _id (they're embedded)
  */
-const timeSlotSchema = new Schema<ITimeSlot>(
-  {
-    date: { type: Date, required: true },
-    startTime: { type: String, required: true },
-    endTime: { type: String, required: true },
-    price: { type: Number, required: true, min: 0 },
-    duration: { type: Number, required: true, min: 0 },
-    staffIds: [{ type: Schema.Types.ObjectId, ref: "Staff" }],
-    isBooked: { type: Boolean, default: false },
-    bookingId: { type: Schema.Types.ObjectId, ref: "Booking", default: null },
-  },
-  { _id: false }  // No separate _id for embedded documents
-);
-
 /**
  * AddOn Sub-Schema
  */
@@ -113,6 +100,25 @@ const addOnSchema = new Schema<IAddOn>(
     cost: { type: Number, required: true },
   },
   { _id: false }
+);
+
+/**
+ * TimeSlot Sub-Schema
+ * _id: false means time slots don't get their own _id (they're embedded)
+ */
+const timeSlotSchema = new Schema<ITimeSlot>(
+  {
+    date: { type: Date, required: true },
+    startTime: { type: String, required: true },
+    endTime: { type: String, required: true },
+    price: { type: Number, required: true, min: 0 },
+    duration: { type: Number, required: true, min: 0 },
+    staffIds: [{ type: Schema.Types.ObjectId, ref: "Staff" }],
+    addOns: { type: [addOnSchema], default: [] },
+    isBooked: { type: Boolean, default: false },
+    bookingId: { type: Schema.Types.ObjectId, ref: "Booking", default: null },
+  },
+  { _id: false }  // No separate _id for embedded documents
 );
 
 /**

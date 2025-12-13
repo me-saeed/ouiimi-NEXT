@@ -55,6 +55,10 @@ export interface IUser extends Document {
   date: Date;                 // Registration date
   oauthProvider?: string;     // OAuth provider (e.g., "google", "facebook")
   oauthId?: string;           // OAuth provider's user ID
+  location?: {
+    type: "Point";
+    coordinates: number[];
+  };
 }
 
 /**
@@ -117,6 +121,19 @@ const userSchema = new Schema<IUser>(
     // OAuth fields for Google/Facebook login
     oauthProvider: { type: String },  // "google" or "facebook"
     oauthId: { type: String },        // Provider's unique user ID
+
+    // GeoJSON location for geospatial queries
+    location: {
+      type: {
+        type: String,
+        enum: ["Point"],
+        default: "Point",
+      },
+      coordinates: {
+        type: [Number], // [longitude, latitude]
+        index: "2dsphere",
+      },
+    },
   },
   {
     timestamps: true,  // Adds createdAt and updatedAt automatically

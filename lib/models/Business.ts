@@ -43,10 +43,12 @@ export interface IBusiness extends Document {
   story?: string;                     // About/description text
   status: "pending" | "approved" | "rejected";  // Approval status
   bankDetails?: {                     // Bank details for payment release
-    name?: string;                    // Account holder name
-    bsb?: string;                     // BSB number (Australia)
     accountNumber?: string;           // Bank account number
     contactNumber?: string;           // Contact phone
+  };
+  location?: {
+    type: "Point";
+    coordinates: number[];
   };
   createdAt: Date;
   updatedAt: Date;
@@ -91,6 +93,18 @@ const businessSchema = new Schema<IBusiness>(
       type: String,
       required: true,
       trim: true,
+    },
+
+    // GeoJSON location for geospatial queries
+    location: {
+      type: {
+        type: String,
+        enum: ["Point"],
+        default: "Point",
+      },
+      coordinates: {
+        type: [Number], // [longitude, latitude]
+      },
     },
 
     // Logo URL (optional)
@@ -141,6 +155,9 @@ businessSchema.index({ businessName: 1 });
 
 // For filtering by status (admin dashboard)
 businessSchema.index({ status: 1 });
+
+// 2dsphere index for geospatial queries
+businessSchema.index({ location: "2dsphere" });
 
 // =============================================================================
 // MODEL EXPORT

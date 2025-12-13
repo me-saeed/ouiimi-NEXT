@@ -10,19 +10,92 @@ import { StaffTab } from "@/components/business/StaffTab";
 import { DetailsTab } from "@/components/business/DetailsTab";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/contexts/AuthContext";
+import { useRef } from "react";
+import { useToast } from "@/hooks/use-toast";
 
 export default function BusinessDashboardPage() {
   const router = useRouter();
   const { user, isAuthenticated } = useAuth();
   const [business, setBusiness] = useState<any>(null);
-  const [stats, setStats] = useState({
-    services: 0,
-    staff: 0,
-    bookings: 0,
-  });
+
 
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"bookings" | "list" | "staff" | "details">("bookings");
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const { toast } = useToast();
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+
+      // Validate file type
+      if (!file.type.startsWith("image/")) {
+        return;
+      }
+
+      // Validate file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Image size should be less than 5MB",
+        });
+        return;
+      }
+
+      const toastId = toast({
+        title: "Uploading...",
+        description: "Please wait while we upload your logo.",
+      });
+
+      try {
+        const formData = new FormData();
+        formData.append("file", file);
+
+        const response = await fetch("/api/upload", {
+          method: "POST",
+          body: formData,
+        });
+
+        if (!response.ok) {
+          throw new Error("Upload failed");
+        }
+
+        const data = await response.json();
+        const logoUrl = data.url;
+
+        // Update business with new logo
+        const businessId = business._id || business.id;
+        const updateResponse = await fetch(`/api/business/${businessId}`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+          body: JSON.stringify({ logo: logoUrl }),
+        });
+
+        if (updateResponse.ok) {
+          setBusiness((prev: any) => ({ ...prev, logo: logoUrl }));
+          toast({
+            variant: "success",
+            title: "Success",
+            description: "Business logo updated successfully!",
+          });
+        } else {
+          throw new Error("Failed to update business profile");
+        }
+
+      } catch (err) {
+        console.error("Error uploading image:", err);
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Failed to upload image. Please try again.",
+        });
+      }
+    }
+  };
 
   // Check URL hash or query param for initial tab
   useEffect(() => {
@@ -30,7 +103,7 @@ export default function BusinessDashboardPage() {
       const hash = window.location.hash;
       const params = new URLSearchParams(window.location.search);
       const tabParam = params.get("tab") || hash.replace("#", "");
-      
+
       if (tabParam && ["bookings", "list", "staff", "details"].includes(tabParam)) {
         setActiveTab(tabParam as "bookings" | "list" | "staff" | "details");
       }
@@ -40,7 +113,7 @@ export default function BusinessDashboardPage() {
   useEffect(() => {
     const loadDashboardData = async () => {
       console.log("[Dashboard] loadDashboardData started, isAuthenticated:", isAuthenticated);
-      
+
       if (!isAuthenticated) {
         console.log("[Dashboard] Not authenticated, redirecting to signin");
         router.push("/signin");
@@ -62,7 +135,7 @@ export default function BusinessDashboardPage() {
           setIsLoading(false);
           return;
         }
-        
+
         console.log("[Dashboard] Loading business data for userId:", userId);
 
         // Fetch business by userId
@@ -78,55 +151,27 @@ export default function BusinessDashboardPage() {
         if (businessResponse.ok) {
           const businessData = await businessResponse.json();
           console.log("[Dashboard] Business data received:", businessData.businesses?.length || 0, "businesses");
-          
+
           if (businessData.businesses && businessData.businesses.length > 0) {
             const businessItem = businessData.businesses[0];
             console.log("[Dashboard] Setting business:", businessItem._id || businessItem.id);
             setBusiness(businessItem);
-
-            const businessId = businessItem._id || businessItem.id;
-
-            // Fetch stats
-            const [servicesRes, staffRes] = await Promise.all([
-              fetch(`/api/services?businessId=${businessId}`, {
-                headers: { Authorization: `Bearer ${token}` },
-              }),
-              fetch(`/api/staff?businessId=${businessId}`, {
-                headers: { Authorization: `Bearer ${token}` },
-              }),
-            ]);
-
-            if (servicesRes.ok) {
-              const servicesData = await servicesRes.json();
-              setStats((prev) => ({
-                ...prev,
-                services: servicesData.services?.length || 0,
-              }));
-            }
-
-            if (staffRes.ok) {
-              const staffData = await staffRes.json();
-              setStats((prev) => ({
-                ...prev,
-                staff: staffData.staff?.length || 0,
-              }));
-            }
+            setIsLoading(false);
           }
         } else if (businessResponse.status === 404) {
           // No business found - this is okay, show register message
           console.log("No business found for user");
+          setIsLoading(false);
         }
       } catch (e) {
         console.error("[Dashboard] Error loading dashboard data:", e);
         console.error("[Dashboard] Error stack:", (e as Error).stack);
-      } finally {
-        console.log("[Dashboard] Setting isLoading to false");
         setIsLoading(false);
       }
     };
 
     if (user) {
-    loadDashboardData();
+      loadDashboardData();
     } else {
       console.log("[Dashboard] No user, skipping loadDashboardData");
     }
@@ -202,9 +247,19 @@ export default function BusinessDashboardPage() {
                     </span>
                   </div>
                 )}
-                <button className="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center text-lg font-bold hover:bg-primary/90">
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  className="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center text-lg font-bold hover:bg-primary/90"
+                >
                   +
                 </button>
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleFileSelect}
+                  className="hidden"
+                  accept="image/*"
+                />
               </div>
 
               <h2 className="text-xl font-medium text-foreground">{business?.businessName}</h2>

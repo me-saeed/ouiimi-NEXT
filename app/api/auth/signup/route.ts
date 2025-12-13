@@ -129,7 +129,8 @@ async function signupHandler(req: NextRequest) {
       email: validatedData.email.toLowerCase(),
       username: validatedData.username.toLowerCase(),
       password: hashedPassword,
-      address: validatedData.address || null,
+      address: typeof validatedData.address === 'string' ? validatedData.address : validatedData.address?.street || null,
+      location: typeof validatedData.address === 'object' && validatedData.address?.location ? validatedData.address.location : undefined,
       contactNo: validatedData.contactNo || null,
       counterId,
       verify: "yes", // Auto-verify for now, can add email verification later

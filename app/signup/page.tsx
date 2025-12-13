@@ -23,6 +23,7 @@ export default function SignupPage() {
     register,
     handleSubmit,
     control,
+    setValue,
     formState: { errors },
   } = useForm<SignupInput>({
     resolver: zodResolver(signupSchema),
@@ -85,8 +86,17 @@ export default function SignupPage() {
       }
 
       // Redirect to signin after 2 seconds
+      // Redirect to signin or redirect url after 2 seconds
+      const searchParams = new URL(window.location.href).searchParams;
+      const redirectUrl = searchParams.get("redirect");
+
       setTimeout(() => {
-        router.push("/signin");
+        if (redirectUrl) {
+          // If redirect url exists, we might want to auto-login or send them to signin with redirect
+          router.push(`/signin?redirect=${encodeURIComponent(redirectUrl)}`);
+        } else {
+          router.push("/signin");
+        }
       }, 2000);
     } catch (err: any) {
       setError("Something went wrong. Please try again.");
@@ -208,6 +218,8 @@ export default function SignupPage() {
               name="address"
               placeholder="Enter your address"
               error={errors.address?.message}
+              returnObject={true}
+              setValue={setValue}
             />
           </div>
 

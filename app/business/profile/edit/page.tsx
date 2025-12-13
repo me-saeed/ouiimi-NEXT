@@ -8,6 +8,8 @@ import { businessUpdateSchema, type BusinessUpdateInput } from "@/lib/validation
 import PageLayout from "@/components/layout/PageLayout";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AddressAutocomplete } from "@/components/ui/address-autocomplete";
+import { ImageUpload } from "@/components/ui/image-upload";
+import { Controller } from "react-hook-form";
 
 export default function BusinessProfileEditPage() {
   const router = useRouter();
@@ -22,6 +24,7 @@ export default function BusinessProfileEditPage() {
     register,
     handleSubmit,
     control,
+    setValue,
     formState: { errors },
     reset,
   } = useForm<BusinessUpdateInput>({
@@ -96,13 +99,19 @@ export default function BusinessProfileEditPage() {
       const token = localStorage.getItem("token");
       const businessId = business._id || business.id;
 
+      // Process the data before sending
+      const requestData = {
+        ...data,
+        address: typeof data.address === 'string' ? data.address : data.address, // Allows object
+      };
+
       const response = await fetch(`/api/business/${businessId}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(data),
+        body: JSON.stringify(requestData),
       });
 
       const result = await response.json();
@@ -299,35 +308,33 @@ export default function BusinessProfileEditPage() {
                   placeholder="123 Main St, City, State"
                   error={errors.address?.message}
                   required
+                  returnObject={true}
+                  setValue={setValue}
                 />
               </div>
 
               <div>
                 <label className="block text-sm font-semibold text-[#3A3A3A] mb-2.5">
-                  Logo URL
+                  Business Logo
                 </label>
-                <input
-                  {...register("logo")}
-                  type="url"
-                  className="input-polished"
-                  placeholder="https://example.com/logo.png"
+                <Controller
+                  control={control}
+                  name="logo"
+                  render={({ field }) => (
+                    <ImageUpload
+                      value={field.value}
+                      onChange={field.onChange}
+                      label="Upload Logo"
+                      disabled={isLoading}
+                    />
+                  )}
                 />
                 {errors.logo && (
                   <p className="text-red-500 text-sm mt-1.5">
                     {errors.logo.message}
                   </p>
                 )}
-                {business.logo && (
-                  <div className="mt-3">
-                    <p className="text-sm text-[#3A3A3A]/70 mb-2">Current Logo:</p>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={business.logo}
-                      alt="Business logo"
-                      className="w-24 h-24 rounded-lg object-cover border border-gray-300"
-                    />
-                  </div>
-                )}
+
               </div>
 
               <div>
