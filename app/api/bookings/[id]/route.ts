@@ -7,7 +7,7 @@ import Service from "@/lib/models/Service";
 import Staff from "@/lib/models/Staff";
 import { verifyToken } from "@/lib/jwt";
 import { withRateLimitDynamic } from "@/lib/security/rate-limit";
-import { sendEmail } from "@/lib/services/mailjet";
+import { sendEmail, sendBookingCancellationToBusiness } from "@/lib/services/mailjet";
 import { z } from "zod";
 
 export const dynamic = 'force-dynamic';

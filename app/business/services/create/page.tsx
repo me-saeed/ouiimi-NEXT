@@ -822,7 +822,7 @@ export default function CreateServicePage() {
         description: data.description || "",
         address: data.address,
         businessId: foundBusinessId,
-        defaultStaffIds: defaultStaffIds || [],
+
         addOns: selectedAddOns, // Include selected add-ons
         timeSlots: timeSlotsForSubmission.map(slot => ({
           date: typeof slot.date === 'string' ? slot.date : new Date(slot.date).toISOString().split('T')[0],
@@ -1577,7 +1577,7 @@ export default function CreateServicePage() {
                               <input
                                 type="checkbox"
                                 checked={newTimeSlot.staffIds.includes(member.id || member._id)}
-                                onChange={() => handleToggleStaff(member.id || member._id, false)}
+                                onChange={() => handleToggleStaff(member.id || member._id)}
                                 disabled={!selectedDate}
                                 className="w-4 h-4 text-[#EECFD1] border-[#E5E5E5] rounded focus:ring-[#EECFD1] disabled:cursor-not-allowed"
                               />
