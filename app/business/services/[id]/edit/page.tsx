@@ -131,10 +131,10 @@ export default function EditServicePage() {
         setValue("subCategory", subCategoryValue);
         setValue("serviceName", data.service.serviceName); // Keep for API but will be replaced with subCategory
         setValue("description", data.service.description || "");
-        
+
         // Handle address - could be string (old) or object (new)
         if (typeof data.service.address === 'object' && data.service.address?.street) {
-        setValue("address", data.service.address);
+          setValue("address", data.service.address);
         } else if (typeof data.service.address === 'string') {
           // Legacy: convert string address to object format (will need geocoding on save)
           setValue("address", {
@@ -145,7 +145,7 @@ export default function EditServicePage() {
             },
           });
         }
-        
+
         // Group time slots by date
         const grouped: Record<string, Array<{
           startTime: string;
@@ -154,7 +154,7 @@ export default function EditServicePage() {
           duration: number;
           staffIds: string[];
         }>> = {};
-        
+
         // Calculate duration helper
         const calculateDuration = (startTime: string, endTime: string): number => {
           const [startHours, startMinutes] = startTime.split(":").map(Number);
@@ -165,19 +165,19 @@ export default function EditServicePage() {
           if (duration < 0) duration += 24 * 60;
           return duration;
         };
-        
+
         if (data.service.timeSlots && Array.isArray(data.service.timeSlots)) {
           data.service.timeSlots.forEach((slot: any) => {
             const date = new Date(slot.date).toISOString().split('T')[0];
             if (!grouped[date]) {
               grouped[date] = [];
             }
-            
+
             // Use price if available, fallback to cost for backward compatibility
             const price = slot.price || 0;
             // Use duration if available, otherwise calculate
             const duration = slot.duration !== undefined ? slot.duration : calculateDuration(slot.startTime, slot.endTime);
-            
+
             grouped[date].push({
               startTime: slot.startTime,
               endTime: slot.endTime,
@@ -187,14 +187,14 @@ export default function EditServicePage() {
             });
           });
         }
-        
+
         setDatesWithSlots(grouped);
-        
+
         // Load business and staff
-        const businessId = typeof data.service.businessId === 'object' 
+        const businessId = typeof data.service.businessId === 'object'
           ? data.service.businessId.id || data.service.businessId._id
           : data.service.businessId;
-        
+
         if (businessId) {
           const [businessRes, staffRes] = await Promise.all([
             fetch(`/api/business/${businessId}`, {
@@ -204,12 +204,12 @@ export default function EditServicePage() {
               headers: { Authorization: `Bearer ${token}` },
             }),
           ]);
-          
+
           if (businessRes.ok) {
             const businessData = await businessRes.json();
             setBusiness(businessData.business);
           }
-          
+
           if (staffRes.ok) {
             const staffData = await staffRes.json();
             setStaff(staffData.staff || []);
@@ -240,7 +240,7 @@ export default function EditServicePage() {
       const token = localStorage.getItem("token");
       // Get all time slots with calculated duration
       const timeSlotsForSubmission = getTimeSlotsForSubmission(datesWithSlots);
-      
+
       const requestData = {
         ...data,
         serviceName: data.subCategory, // Use subCategory as serviceName
@@ -253,7 +253,7 @@ export default function EditServicePage() {
           staffIds: slot.staffIds || [],
         })),
       };
-      
+
       const response = await fetch(`/api/services/${serviceId}`, {
         method: "PUT",
         headers: {
@@ -309,36 +309,36 @@ export default function EditServicePage() {
     if (!hour) return "";
     let h = parseInt(hour, 10);
     const m = parseInt(minute, 10) || 0;
-    
+
     if (period === "AM") {
       if (h === 12) h = 0;
     } else {
       if (h !== 12) h += 12;
     }
-    
+
     return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
   };
 
   // Check for time conflicts (overlapping time ranges)
   const checkTimeConflict = (startTime24: string, endTime24: string, staffIds: string[]): boolean => {
     if (!selectedDate || !startTime24 || !endTime24) return false;
-    
+
     const existingSlots = datesWithSlots[selectedDate] || [];
     const start = new Date(`2000-01-01T${startTime24}`);
     const end = new Date(`2000-01-01T${endTime24}`);
-    
+
     return existingSlots.some((existingSlot: any) => {
       const existingStart = new Date(`2000-01-01T${existingSlot.startTime}`);
       const existingEnd = new Date(`2000-01-01T${existingSlot.endTime}`);
       const existingStaff = (existingSlot.staffIds || []).sort();
       const selectedStaff = staffIds.sort();
-      
+
       // Check if staff overlap
-      const staffOverlap = selectedStaff.length === 0 || existingStaff.length === 0 || 
+      const staffOverlap = selectedStaff.length === 0 || existingStaff.length === 0 ||
         selectedStaff.some(id => existingStaff.includes(id));
-      
+
       if (!staffOverlap) return false;
-      
+
       // Check if time ranges overlap
       return (start < existingEnd && end > existingStart);
     });
@@ -356,7 +356,7 @@ export default function EditServicePage() {
     }
 
     const startTime24 = convertTo24Hour(startHour, startMinute, startPeriod);
-    
+
     if (!endHour) {
       setNewTimeSlot({
         ...newTimeSlot,
@@ -367,7 +367,7 @@ export default function EditServicePage() {
     }
 
     const endTime24 = convertTo24Hour(endHour, endMinute, endPeriod);
-    
+
     // Validate end time is after start time
     const start = new Date(`2000-01-01T${startTime24}`);
     const end = new Date(`2000-01-01T${endTime24}`);
@@ -418,7 +418,7 @@ export default function EditServicePage() {
     setSelectedDate(date);
     setShowDatePicker(false);
     if (!showTimeSlotForm) {
-    setShowTimeSlotForm(true);
+      setShowTimeSlotForm(true);
     }
     setNewTimeSlot({
       startTime: "",
@@ -434,20 +434,33 @@ export default function EditServicePage() {
     setEndPeriod("AM");
   };
 
+  // Calculate end time from start time (using default 30 min duration for preview)
+  // Actual duration will be calculated from start and end time when saving
+  const calculateEndTimeFromStart = (startTime: string, defaultDurationMins: number = 30): string => {
+    if (!startTime) return "";
+    const [hours, minutes] = startTime.split(":").map(Number);
+    const startDate = new Date();
+    startDate.setHours(hours, minutes, 0, 0);
+    const endDate = new Date(startDate.getTime() + defaultDurationMins * 60000);
+    const endHours = String(endDate.getHours()).padStart(2, "0");
+    const endMinutes = String(endDate.getMinutes()).padStart(2, "0");
+    return `${endHours}:${endMinutes}`;
+  };
+
   // Calculate duration in minutes from start and end time
   const calculateDuration = (startTime: string, endTime: string): number => {
     const [startHours, startMinutes] = startTime.split(":").map(Number);
     const [endHours, endMinutes] = endTime.split(":").map(Number);
-    
+
     const startTotalMinutes = startHours * 60 + startMinutes;
     const endTotalMinutes = endHours * 60 + endMinutes;
-    
+
     // Handle case where end time is next day (e.g., 23:00 to 01:00)
     let duration = endTotalMinutes - startTotalMinutes;
     if (duration < 0) {
       duration += 24 * 60; // Add 24 hours
     }
-    
+
     return duration;
   };
 
@@ -538,13 +551,13 @@ export default function EditServicePage() {
       const updatedSlots = slots.filter((_, i) => i !== index);
       const updatedDates = updatedSlots.length === 0
         ? (() => {
-            const { [date]: removed, ...rest } = datesWithSlots;
-            return rest;
-          })()
+          const { [date]: removed, ...rest } = datesWithSlots;
+          return rest;
+        })()
         : {
-            ...datesWithSlots,
-            [date]: updatedSlots,
-          };
+          ...datesWithSlots,
+          [date]: updatedSlots,
+        };
 
       // Convert to flat array and save to API
       const timeSlotsForSubmission = getTimeSlotsForSubmission(updatedDates);
@@ -613,7 +626,7 @@ export default function EditServicePage() {
     const updatedStaffIds = newTimeSlot.staffIds.includes(staffId)
       ? newTimeSlot.staffIds.filter(id => id !== staffId)
       : [...newTimeSlot.staffIds, staffId];
-    
+
     setNewTimeSlot({
       ...newTimeSlot,
       staffIds: updatedStaffIds,
@@ -709,39 +722,39 @@ export default function EditServicePage() {
 
             <form onSubmit={handleSubmit(onSubmit)} className="bg-white rounded-2xl shadow-lg border-0 overflow-hidden">
               <div className="p-8 space-y-6">
-              <div>
+                <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
                     Category <span className="text-red-500">*</span>
-                </label>
+                  </label>
                   <div className="relative">
-                <select
-                  {...register("category")}
+                    <select
+                      {...register("category")}
                       className="w-full px-4 py-3 pr-10 rounded-xl border border-gray-200 bg-white text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-[#EECFD1] focus:border-[#EECFD1] transition-all appearance-none hover:border-gray-300 cursor-pointer"
-                >
-                  <option value="">Select category</option>
-                  {CATEGORIES.map((cat) => (
-                    <option key={cat} value={cat}>
-                      {cat}
-                    </option>
-                  ))}
-                </select>
+                    >
+                      <option value="">Select category</option>
+                      {CATEGORIES.map((cat) => (
+                        <option key={cat} value={cat}>
+                          {cat}
+                        </option>
+                      ))}
+                    </select>
                     <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
                       <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                       </svg>
                     </div>
                   </div>
-                {errors.category && (
-                  <p className="text-red-500 text-sm mt-1.5">
-                    {errors.category.message}
-                  </p>
-                )}
-              </div>
+                  {errors.category && (
+                    <p className="text-red-500 text-sm mt-1.5">
+                      {errors.category.message}
+                    </p>
+                  )}
+                </div>
 
-              <div>
+                <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
                     Service Name <span className="text-red-500">*</span>
-                </label>
+                  </label>
                   <div className="relative">
                     <select
                       {...register("subCategory", { required: "Service name is required" })}
@@ -759,60 +772,60 @@ export default function EditServicePage() {
                       <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                       </svg>
-              </div>
-                </div>
+                    </div>
+                  </div>
                   {errors.subCategory && (
                     <p className="text-red-500 text-sm mt-1.5">
                       {errors.subCategory.message}
                     </p>
                   )}
-              </div>
+                </div>
 
 
-              <div>
+                <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
                     Address <span className="text-red-500">*</span>
-                </label>
+                  </label>
                   <AddressAutocomplete
                     control={control}
                     name="address"
-                  placeholder="123 Main St, City"
+                    placeholder="123 Main St, City"
                     error={errors.address?.message}
                     required
                     returnObject={true}
                     setValue={setValue}
-                />
-              </div>
+                  />
+                </div>
 
-              <div>
+                <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Description
-                </label>
-                <textarea
-                  {...register("description")}
-                  rows={4}
+                    Description
+                  </label>
+                  <textarea
+                    {...register("description")}
+                    rows={4}
                     className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-[#EECFD1] focus:border-[#EECFD1] transition-all resize-none hover:border-gray-300"
-                  placeholder="Describe your service..."
-                />
-                {errors.description && (
-                  <p className="text-red-500 text-sm mt-1.5">
-                    {errors.description.message}
-                  </p>
-                )}
-              </div>
+                    placeholder="Describe your service..."
+                  />
+                  {errors.description && (
+                    <p className="text-red-500 text-sm mt-1.5">
+                      {errors.description.message}
+                    </p>
+                  )}
+                </div>
 
-              {/* Dates and Time Slots Management Section */}
-              <div className="space-y-4 pt-6 border-t border-gray-200">
+                {/* Dates and Time Slots Management Section */}
+                <div className="space-y-4 pt-6 border-t border-gray-200">
                   <div className="bg-gray-50 rounded-xl p-5 border border-gray-200">
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1">
                         <label className="block text-base font-bold text-[#3A3A3A] mb-2">
                           Dates & Time Slots <span className="text-red-500">*</span>
-                      </label>
-                      <p className="text-sm text-gray-600">
-                        Manage dates and time slots when customers can book this service. You can add multiple dates and multiple time slots per date.
-                      </p>
-                    </div>
+                        </label>
+                        <p className="text-sm text-gray-600">
+                          Manage dates and time slots when customers can book this service. You can add multiple dates and multiple time slots per date.
+                        </p>
+                      </div>
                       <div className="flex gap-2">
                         <Button
                           type="button"
@@ -828,49 +841,49 @@ export default function EditServicePage() {
                         >
                           + Add Time Slot
                         </Button>
-                    <Button
-                      type="button"
-                      onClick={() => setShowDatePicker(true)}
-                      variant="outline"
-                      size="sm"
+                        <Button
+                          type="button"
+                          onClick={() => setShowDatePicker(true)}
+                          variant="outline"
+                          size="sm"
                           className="rounded-xl border-gray-300 bg-white hover:bg-gray-50 text-gray-700 font-medium whitespace-nowrap"
-                    >
-                      + Add Date
-                    </Button>
-                      </div>
-                  </div>
-                </div>
-
-                {/* Date Picker Modal */}
-                {showDatePicker && (
-                  <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl">
-                      <div className="flex items-center justify-between mb-4">
-                        <h3 className="text-lg font-bold text-[#3A3A3A]">Select Date</h3>
-                        <button
-                          onClick={() => setShowDatePicker(false)}
-                          className="text-gray-500 hover:text-[#3A3A3A]"
                         >
-                          ✕
-                        </button>
+                          + Add Date
+                        </Button>
                       </div>
-                      <input
-                        type="date"
-                        min={new Date().toISOString().split('T')[0]}
-                        onChange={(e) => {
-                          if (e.target.value) {
-                            handleSelectDate(e.target.value);
-                          }
-                        }}
-                        className="w-full px-4 py-3 rounded-xl border-2 border-gray-300 bg-white text-[#3A3A3A] focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary font-medium"
-                        autoFocus
-                      />
-                      <p className="text-xs text-gray-500 mt-2">
-                        Select a date to add time slots
-                      </p>
                     </div>
                   </div>
-                )}
+
+                  {/* Date Picker Modal */}
+                  {showDatePicker && (
+                    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                      <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl">
+                        <div className="flex items-center justify-between mb-4">
+                          <h3 className="text-lg font-bold text-[#3A3A3A]">Select Date</h3>
+                          <button
+                            onClick={() => setShowDatePicker(false)}
+                            className="text-gray-500 hover:text-[#3A3A3A]"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                        <input
+                          type="date"
+                          min={new Date().toISOString().split('T')[0]}
+                          onChange={(e) => {
+                            if (e.target.value) {
+                              handleSelectDate(e.target.value);
+                            }
+                          }}
+                          className="w-full px-4 py-3 rounded-xl border-2 border-gray-300 bg-white text-[#3A3A3A] focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary font-medium"
+                          autoFocus
+                        />
+                        <p className="text-xs text-gray-500 mt-2">
+                          Select a date to add time slots
+                        </p>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Time Slot Form - Always visible but disabled until date is selected */}
                   {showTimeSlotForm && (
@@ -879,7 +892,7 @@ export default function EditServicePage() {
                         <div>
                           <h3 className="text-xl font-bold text-[#3A3A3A]">
                             Add Time Slot
-                      </h3>
+                          </h3>
                           {selectedDate && (
                             <p className="text-sm text-gray-500 mt-1">
                               {new Date(selectedDate).toLocaleDateString("en-GB", {
@@ -891,22 +904,22 @@ export default function EditServicePage() {
                             </p>
                           )}
                         </div>
-                      <button
-                        onClick={() => {
-                          setShowTimeSlotForm(false);
-                          setSelectedDate("");
-                        }}
+                        <button
+                          onClick={() => {
+                            setShowTimeSlotForm(false);
+                            setSelectedDate("");
+                          }}
                           className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-[#3A3A3A] hover:bg-gray-100 transition-colors"
                           aria-label="Close"
-                      >
+                        >
                           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                           </svg>
-                      </button>
-                    </div>
-                    
-                    {/* Time Selection - Clean and Professional */}
-                    <div className="space-y-3">
+                        </button>
+                      </div>
+
+                      {/* Time Selection - Clean and Professional */}
+                      <div className="space-y-3">
                         <label className="block text-sm font-semibold text-gray-700">
                           Start Time <span className="text-red-500">*</span>
                         </label>
@@ -917,8 +930,25 @@ export default function EditServicePage() {
                               <select
                                 value={startHour}
                                 onChange={(e) => {
-                                  setStartHour(e.target.value);
-                                  setNewTimeSlot({ ...newTimeSlot, startTime: "", endTime: "" });
+                                  const newHour = e.target.value;
+                                  setStartHour(newHour);
+                                  if (newHour && startMinute) {
+                                    const time = convertTo24Hour(newHour, startMinute, startPeriod);
+                                    const currentDuration = calculateDuration(newTimeSlot.startTime, newTimeSlot.endTime);
+                                    const durationToKeep = currentDuration > 0 ? currentDuration : 60;
+                                    const newEndTime = calculateEndTimeFromStart(time, durationToKeep);
+
+                                    setNewTimeSlot(prev => ({ ...prev, startTime: time, endTime: newEndTime }));
+
+                                    if (newEndTime) {
+                                      const [eh, em] = newEndTime.split(':').map(Number);
+                                      setEndHour(String(eh % 12 || 12));
+                                      setEndMinute(String(em).padStart(2, '0'));
+                                      setEndPeriod(eh >= 12 ? 'PM' : 'AM');
+                                    }
+                                  } else {
+                                    setNewTimeSlot(prev => ({ ...prev, startTime: "" }));
+                                  }
                                 }}
                                 disabled={!selectedDate}
                                 className="w-full px-4 py-3 pr-8 bg-transparent border-0 text-gray-900 font-medium text-base focus:outline-none focus:ring-0 disabled:opacity-50 disabled:cursor-not-allowed appearance-none cursor-pointer"
@@ -932,15 +962,32 @@ export default function EditServicePage() {
                                 <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                                 </svg>
-                      </div>
+                              </div>
                             </div>
                             <span className="text-gray-900 font-semibold text-lg">:</span>
                             <div className="flex-1 relative">
                               <select
                                 value={startMinute}
                                 onChange={(e) => {
-                                  setStartMinute(e.target.value);
-                                  setNewTimeSlot({ ...newTimeSlot, startTime: "", endTime: "" });
+                                  const newMinute = e.target.value;
+                                  setStartMinute(newMinute);
+                                  if (startHour && newMinute) {
+                                    const time = convertTo24Hour(startHour, newMinute, startPeriod);
+                                    const currentDuration = calculateDuration(newTimeSlot.startTime, newTimeSlot.endTime);
+                                    const durationToKeep = currentDuration > 0 ? currentDuration : 60;
+                                    const newEndTime = calculateEndTimeFromStart(time, durationToKeep);
+
+                                    setNewTimeSlot(prev => ({ ...prev, startTime: time, endTime: newEndTime }));
+
+                                    if (newEndTime) {
+                                      const [eh, em] = newEndTime.split(':').map(Number);
+                                      setEndHour(String(eh % 12 || 12));
+                                      setEndMinute(String(em).padStart(2, '0'));
+                                      setEndPeriod(eh >= 12 ? 'PM' : 'AM');
+                                    }
+                                  } else {
+                                    setNewTimeSlot(prev => ({ ...prev, startTime: "" }));
+                                  }
                                 }}
                                 disabled={!selectedDate || !startHour}
                                 className="w-full px-4 py-3 pr-8 bg-transparent border-0 text-gray-900 font-medium text-base focus:outline-none focus:ring-0 disabled:opacity-50 disabled:cursor-not-allowed appearance-none cursor-pointer"
@@ -960,230 +1007,256 @@ export default function EditServicePage() {
                               <button
                                 type="button"
                                 onClick={() => {
-                                  setStartPeriod("AM");
-                                  setNewTimeSlot({ ...newTimeSlot, startTime: "", endTime: "" });
+                                  const newPeriod = "AM";
+                                  setStartPeriod(newPeriod);
+                                  if (startHour && startMinute) {
+                                    const time = convertTo24Hour(startHour, startMinute, newPeriod);
+                                    const currentDuration = calculateDuration(newTimeSlot.startTime, newTimeSlot.endTime);
+                                    const durationToKeep = currentDuration > 0 ? currentDuration : 60;
+                                    const newEndTime = calculateEndTimeFromStart(time, durationToKeep);
+
+                                    setNewTimeSlot(prev => ({ ...prev, startTime: time, endTime: newEndTime }));
+
+                                    if (newEndTime) {
+                                      const [eh, em] = newEndTime.split(':').map(Number);
+                                      setEndHour(String(eh % 12 || 12));
+                                      setEndMinute(String(em).padStart(2, '0'));
+                                      setEndPeriod(eh >= 12 ? 'PM' : 'AM');
+                                    }
+                                  }
                                 }}
                                 disabled={!selectedDate || !startHour}
-                                className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
-                                  startPeriod === "AM"
-                                    ? "bg-[#EECFD1] text-[#3A3A3A] shadow-sm"
-                                    : "text-gray-500 hover:text-[#3A3A3A] hover:bg-gray-50"
-                                } disabled:opacity-50 disabled:cursor-not-allowed`}
+                                className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${startPeriod === "AM"
+                                  ? "bg-[#EECFD1] text-[#3A3A3A] shadow-sm"
+                                  : "text-gray-500 hover:text-[#3A3A3A] hover:bg-gray-50"
+                                  } disabled:opacity-50 disabled:cursor-not-allowed`}
                               >
                                 AM
                               </button>
                               <button
                                 type="button"
                                 onClick={() => {
-                                  setStartPeriod("PM");
-                                  setNewTimeSlot({ ...newTimeSlot, startTime: "", endTime: "" });
+                                  const newPeriod = "PM";
+                                  setStartPeriod(newPeriod);
+                                  if (startHour && startMinute) {
+                                    const time = convertTo24Hour(startHour, startMinute, newPeriod);
+                                    const currentDuration = calculateDuration(newTimeSlot.startTime, newTimeSlot.endTime);
+                                    const durationToKeep = currentDuration > 0 ? currentDuration : 60;
+                                    const newEndTime = calculateEndTimeFromStart(time, durationToKeep);
+
+                                    setNewTimeSlot(prev => ({ ...prev, startTime: time, endTime: newEndTime }));
+
+                                    if (newEndTime) {
+                                      const [eh, em] = newEndTime.split(':').map(Number);
+                                      setEndHour(String(eh % 12 || 12));
+                                      setEndMinute(String(em).padStart(2, '0'));
+                                      setEndPeriod(eh >= 12 ? 'PM' : 'AM');
+                                    }
+                                  }
                                 }}
                                 disabled={!selectedDate || !startHour}
-                                className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
-                                  startPeriod === "PM"
-                                    ? "bg-[#EECFD1] text-[#3A3A3A] shadow-sm"
-                                    : "text-gray-500 hover:text-[#3A3A3A] hover:bg-gray-50"
-                                } disabled:opacity-50 disabled:cursor-not-allowed`}
+                                className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${startPeriod === "PM"
+                                  ? "bg-[#EECFD1] text-[#3A3A3A] shadow-sm"
+                                  : "text-gray-500 hover:text-[#3A3A3A] hover:bg-gray-50"
+                                  } disabled:opacity-50 disabled:cursor-not-allowed`}
                               >
                                 PM
                               </button>
                             </div>
-                      </div>
-                    </div>
-
-                    {/* End Time Selection */}
-                    <div className="space-y-3">
-                        <label className="block text-sm font-semibold text-gray-700">
-                          End Time <span className="text-red-500">*</span>
-                        </label>
-                        <div className="flex items-center gap-3">
-                          {/* Unified Time Picker */}
-                          <div className="flex-1 flex items-center gap-2 bg-gray-50 rounded-xl p-1 border border-gray-200">
-                            <div className="flex-1 relative">
-                              <select
-                                value={endHour}
-                                onChange={(e) => {
-                                  setEndHour(e.target.value);
-                                  setNewTimeSlot({ ...newTimeSlot, endTime: "" });
-                                }}
-                                disabled={!selectedDate || !newTimeSlot.startTime}
-                                className="w-full px-4 py-3 pr-8 bg-transparent border-0 text-gray-900 font-medium text-base focus:outline-none focus:ring-0 disabled:opacity-50 disabled:cursor-not-allowed appearance-none cursor-pointer"
-                              >
-                                <option value="">--</option>
-                                {Array.from({ length: 12 }, (_, i) => i + 1).map((h) => (
-                                  <option key={h} value={String(h)}>{String(h).padStart(2, '0')}</option>
-                                ))}
-                              </select>
-                              <div className="absolute inset-y-0 right-2 flex items-center pointer-events-none">
-                                <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                                </svg>
-                              </div>
-                            </div>
-                            <span className="text-gray-900 font-semibold text-lg">:</span>
-                            <div className="flex-1 relative">
-                              <select
-                                value={endMinute}
-                                onChange={(e) => {
-                                  setEndMinute(e.target.value);
-                                  setNewTimeSlot({ ...newTimeSlot, endTime: "" });
-                                }}
-                                disabled={!selectedDate || !newTimeSlot.startTime || !endHour}
-                                className="w-full px-4 py-3 pr-8 bg-transparent border-0 text-gray-900 font-medium text-base focus:outline-none focus:ring-0 disabled:opacity-50 disabled:cursor-not-allowed appearance-none cursor-pointer"
-                              >
-                                {Array.from({ length: 12 }, (_, i) => {
-                                  const minute = String(i * 5).padStart(2, '0');
-                                  return <option key={minute} value={minute}>{minute}</option>;
-                                })}
-                              </select>
-                              <div className="absolute inset-y-0 right-2 flex items-center pointer-events-none">
-                                <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                                </svg>
-                              </div>
-                            </div>
-                            <div className="flex gap-1 bg-white rounded-lg p-1 border border-gray-200">
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setEndPeriod("AM");
-                                  setNewTimeSlot({ ...newTimeSlot, endTime: "" });
-                                }}
-                                disabled={!selectedDate || !newTimeSlot.startTime || !endHour}
-                                className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
-                                  endPeriod === "AM"
-                                    ? "bg-[#EECFD1] text-[#3A3A3A] shadow-sm"
-                                    : "text-gray-500 hover:text-[#3A3A3A] hover:bg-gray-50"
-                                } disabled:opacity-50 disabled:cursor-not-allowed`}
-                              >
-                                AM
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setEndPeriod("PM");
-                                  setNewTimeSlot({ ...newTimeSlot, endTime: "" });
-                                }}
-                                disabled={!selectedDate || !newTimeSlot.startTime || !endHour}
-                                className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
-                                  endPeriod === "PM"
-                                    ? "bg-[#EECFD1] text-[#3A3A3A] shadow-sm"
-                                    : "text-gray-500 hover:text-[#3A3A3A] hover:bg-gray-50"
-                                } disabled:opacity-50 disabled:cursor-not-allowed`}
-                              >
-                                PM
-                              </button>
-                            </div>
-                      </div>
-                    </div>
-
-                        {/* Duration Display - Calculated */}
-                        {newTimeSlot.startTime && newTimeSlot.endTime && (
-                          <div className="flex items-center gap-2 text-sm">
-                            <span className="text-gray-500">Duration:</span>
-                            <span className="font-semibold text-[#3A3A3A] px-3 py-1.5 bg-[#EECFD1]/10 rounded-lg">
-                              {formatDuration(calculateDuration(newTimeSlot.startTime, newTimeSlot.endTime))}
-                            </span>
                           </div>
-                        )}
-                      </div>
-                    </div>
+                        </div>
 
-                    {/* Price Field for Time Slot */}
-                    <div className="space-y-2">
-                      <label className="block text-sm font-semibold text-gray-700">
-                        Price ($) <span className="text-red-500">*</span>
-                      </label>
-                      <div className="relative">
-                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500">$</span>
-                        <input
-                          type="number"
-                          step="0.01"
-                          min="0"
-                          value={newTimeSlot.price === "" ? "" : newTimeSlot.price}
-                          onChange={(e) => {
-                            const value = e.target.value;
-                            if (value === "") {
-                              setNewTimeSlot({ ...newTimeSlot, price: "" });
-                            } else {
-                              const price = parseFloat(value);
-                              if (!isNaN(price) && price >= 0) {
-                                setNewTimeSlot({ ...newTimeSlot, price });
-                              }
-                            }
-                          }}
-                          disabled={!selectedDate || !newTimeSlot.startTime || !newTimeSlot.endTime}
-                          className="w-full pl-8 pr-4 py-3 rounded-lg border border-gray-200 bg-white text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#EECFD1] focus:border-[#EECFD1] transition-all disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed disabled:opacity-60"
-                          placeholder="50.00"
-                          required
-                        />
-                      </div>
-                      <p className="text-xs text-gray-500">
-                        Price for this specific time slot
-                      </p>
-                    </div>
+                        {/* End Time Selection */}
+                        <div className="space-y-3">
+                          <label className="block text-sm font-semibold text-gray-700">
+                            End Time <span className="text-red-500">*</span>
+                          </label>
+                          <div className="flex items-center gap-3">
+                            {/* Unified Time Picker */}
+                            <div className="flex-1 flex items-center gap-2 bg-gray-50 rounded-xl p-1 border border-gray-200">
+                              <div className="flex-1 relative">
+                                <select
+                                  value={endHour}
+                                  onChange={(e) => {
+                                    setEndHour(e.target.value);
+                                    setNewTimeSlot({ ...newTimeSlot, endTime: "" });
+                                  }}
+                                  disabled={!selectedDate || !newTimeSlot.startTime}
+                                  className="w-full px-4 py-3 pr-8 bg-transparent border-0 text-gray-900 font-medium text-base focus:outline-none focus:ring-0 disabled:opacity-50 disabled:cursor-not-allowed appearance-none cursor-pointer"
+                                >
+                                  <option value="">--</option>
+                                  {Array.from({ length: 12 }, (_, i) => i + 1).map((h) => (
+                                    <option key={h} value={String(h)}>{String(h).padStart(2, '0')}</option>
+                                  ))}
+                                </select>
+                                <div className="absolute inset-y-0 right-2 flex items-center pointer-events-none">
+                                  <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                  </svg>
+                                </div>
+                              </div>
+                              <span className="text-gray-900 font-semibold text-lg">:</span>
+                              <div className="flex-1 relative">
+                                <select
+                                  value={endMinute}
+                                  onChange={(e) => {
+                                    setEndMinute(e.target.value);
+                                    setNewTimeSlot({ ...newTimeSlot, endTime: "" });
+                                  }}
+                                  disabled={!selectedDate || !newTimeSlot.startTime || !endHour}
+                                  className="w-full px-4 py-3 pr-8 bg-transparent border-0 text-gray-900 font-medium text-base focus:outline-none focus:ring-0 disabled:opacity-50 disabled:cursor-not-allowed appearance-none cursor-pointer"
+                                >
+                                  {Array.from({ length: 12 }, (_, i) => {
+                                    const minute = String(i * 5).padStart(2, '0');
+                                    return <option key={minute} value={minute}>{minute}</option>;
+                                  })}
+                                </select>
+                                <div className="absolute inset-y-0 right-2 flex items-center pointer-events-none">
+                                  <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                  </svg>
+                                </div>
+                              </div>
+                              <div className="flex gap-1 bg-white rounded-lg p-1 border border-gray-200">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setEndPeriod("AM");
+                                    setNewTimeSlot({ ...newTimeSlot, endTime: "" });
+                                  }}
+                                  disabled={!selectedDate || !newTimeSlot.startTime || !endHour}
+                                  className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${endPeriod === "AM"
+                                    ? "bg-[#EECFD1] text-[#3A3A3A] shadow-sm"
+                                    : "text-gray-500 hover:text-[#3A3A3A] hover:bg-gray-50"
+                                    } disabled:opacity-50 disabled:cursor-not-allowed`}
+                                >
+                                  AM
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setEndPeriod("PM");
+                                    setNewTimeSlot({ ...newTimeSlot, endTime: "" });
+                                  }}
+                                  disabled={!selectedDate || !newTimeSlot.startTime || !endHour}
+                                  className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${endPeriod === "PM"
+                                    ? "bg-[#EECFD1] text-[#3A3A3A] shadow-sm"
+                                    : "text-gray-500 hover:text-[#3A3A3A] hover:bg-gray-50"
+                                    } disabled:opacity-50 disabled:cursor-not-allowed`}
+                                >
+                                  PM
+                                </button>
+                              </div>
+                            </div>
+                          </div>
 
-                    {staff.length > 0 && (
+                          {/* Duration Display - Calculated */}
+                          {newTimeSlot.startTime && newTimeSlot.endTime && (
+                            <div className="flex items-center gap-2 text-sm">
+                              <span className="text-gray-500">Duration:</span>
+                              <span className="font-semibold text-[#3A3A3A] px-3 py-1.5 bg-[#EECFD1]/10 rounded-lg">
+                                {formatDuration(calculateDuration(newTimeSlot.startTime, newTimeSlot.endTime)) || "0mins"}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Price Field for Time Slot */}
                       <div className="space-y-2">
+                        <label className="block text-sm font-semibold text-gray-700">
+                          Price ($) <span className="text-red-500">*</span>
+                        </label>
+                        <div className="relative">
+                          <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500">$</span>
+                          <input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            value={newTimeSlot.price === "" ? "" : newTimeSlot.price}
+                            onChange={(e) => {
+                              const value = e.target.value;
+                              if (value === "") {
+                                setNewTimeSlot({ ...newTimeSlot, price: "" });
+                              } else {
+                                const price = parseFloat(value);
+                                if (!isNaN(price) && price >= 0) {
+                                  setNewTimeSlot({ ...newTimeSlot, price });
+                                }
+                              }
+                            }}
+                            disabled={!selectedDate || !newTimeSlot.startTime || !newTimeSlot.endTime}
+                            className="w-full pl-8 pr-4 py-3 rounded-lg border border-gray-200 bg-white text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#EECFD1] focus:border-[#EECFD1] transition-all disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed disabled:opacity-60"
+                            placeholder="50.00"
+                            required
+                          />
+                        </div>
+                        <p className="text-xs text-gray-500">
+                          Price for this specific time slot
+                        </p>
+                      </div>
+
+                      {staff.length > 0 && (
+                        <div className="space-y-2">
                           <label className="text-sm font-semibold text-gray-700">Assign Staff (Optional)</label>
                           <div className="border border-gray-200 rounded-xl p-3 bg-gray-50 max-h-40 overflow-y-auto">
-                          {staff.map((member) => (
+                            {staff.map((member) => (
                               <label key={member.id || member._id} className="flex items-center gap-2 p-2 hover:bg-white rounded-lg cursor-pointer transition-colors">
-                              <input
-                                type="checkbox"
+                                <input
+                                  type="checkbox"
                                   checked={newTimeSlot.staffIds.includes(String(member.id || member._id))}
                                   onChange={() => handleToggleStaff(String(member.id || member._id))}
                                   className="w-4 h-4 text-[#EECFD1] border-gray-300 rounded focus:ring-[#EECFD1]"
-                              />
+                                />
                                 <span className="text-sm font-medium text-gray-700">{member.name}</span>
-                            </label>
-                          ))}
-                        </div>
-                        {newTimeSlot.staffIds.length > 0 && (
+                              </label>
+                            ))}
+                          </div>
+                          {newTimeSlot.staffIds.length > 0 && (
                             <div className="mt-2 p-3 bg-[#EECFD1]/10 rounded-lg border border-[#EECFD1]/20">
                               <p className="text-xs font-semibold text-[#EECFD1] mb-1">Staff Selected:</p>
                               <p className="text-sm text-gray-700">
-                              {newTimeSlot.staffIds.map(id => {
+                                {newTimeSlot.staffIds.map(id => {
                                   const member = staff.find(s => String(s.id || s._id) === id);
-                                return member?.name;
-                              }).filter(Boolean).join(", ")}
-                            </p>
-                          </div>
-                        )}
+                                  return member?.name;
+                                }).filter(Boolean).join(", ")}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      <div className="flex gap-3 pt-2">
+                        <Button
+                          type="button"
+                          onClick={handleAddTimeSlot}
+                          className="flex-1 h-11 rounded-xl bg-[#EECFD1] hover:bg-[#EECFD1]/90 text-[#3A3A3A] font-semibold"
+                        >
+                          Add Time Slot
+                        </Button>
+                        <Button
+                          type="button"
+                          onClick={() => {
+                            setShowTimeSlotForm(false);
+                            setSelectedDate("");
+                          }}
+                          variant="outline"
+                          className="flex-1 h-11 rounded-xl border-gray-300 bg-white hover:bg-gray-50 text-gray-700 font-semibold"
+                        >
+                          Cancel
+                        </Button>
                       </div>
-                    )}
-
-                    <div className="flex gap-3 pt-2">
-                      <Button
-                        type="button"
-                        onClick={handleAddTimeSlot}
-                        className="flex-1 h-11 rounded-xl bg-[#EECFD1] hover:bg-[#EECFD1]/90 text-[#3A3A3A] font-semibold"
-                      >
-                        Add Time Slot
-                      </Button>
-                      <Button
-                        type="button"
-                        onClick={() => {
-                          setShowTimeSlotForm(false);
-                          setSelectedDate("");
-                        }}
-                        variant="outline"
-                        className="flex-1 h-11 rounded-xl border-gray-300 bg-white hover:bg-gray-50 text-gray-700 font-semibold"
-                      >
-                        Cancel
-                      </Button>
                     </div>
-                  </div>
-                )}
+                  )}
 
-                {/* Dates with Time Slots - Grouped Display */}
-                {Object.keys(datesWithSlots).length > 0 ? (
-                  <div className="space-y-4">
-                    {Object.entries(datesWithSlots)
-                      .sort(([dateA], [dateB]) => new Date(dateA).getTime() - new Date(dateB).getTime())
-                      .map(([date, slots]) => (
+                  {/* Dates with Time Slots - Grouped Display */}
+                  {Object.keys(datesWithSlots).length > 0 ? (
+                    <div className="space-y-4">
+                      {Object.entries(datesWithSlots)
+                        .sort(([dateA], [dateB]) => new Date(dateA).getTime() - new Date(dateB).getTime())
+                        .map(([date, slots]) => (
                           <div key={date} className="bg-gray-50 rounded-xl p-5 border border-gray-200">
-                          <div className="flex items-center justify-between mb-4">
+                            <div className="flex items-center justify-between mb-4">
                               <div>
                                 <h4 className="font-bold text-base text-[#3A3A3A]">
                                   {new Date(date).toLocaleDateString("en-GB", {
@@ -1199,96 +1272,96 @@ export default function EditServicePage() {
                                     year: "numeric"
                                   })}
                                 </p>
-                            </div>
-                            <div className="flex gap-2">
-                              <Button
-                                type="button"
-                                onClick={() => handleSelectDate(date)}
-                                variant="outline"
-                                size="sm"
+                              </div>
+                              <div className="flex gap-2">
+                                <Button
+                                  type="button"
+                                  onClick={() => handleSelectDate(date)}
+                                  variant="outline"
+                                  size="sm"
                                   className="rounded-lg border-gray-300 bg-white hover:bg-gray-50 text-gray-700 text-xs font-medium"
-                              >
-                                + Add Slot
-                              </Button>
-                              <Button
-                                type="button"
-                                onClick={() => handleRemoveDate(date)}
-                                variant="outline"
-                                size="sm"
+                                >
+                                  + Add Slot
+                                </Button>
+                                <Button
+                                  type="button"
+                                  onClick={() => handleRemoveDate(date)}
+                                  variant="outline"
+                                  size="sm"
                                   className="rounded-lg text-red-500 border-red-200 hover:bg-red-50 text-xs font-medium"
-                              >
-                                Remove Date
-                              </Button>
+                                >
+                                  Remove Date
+                                </Button>
+                              </div>
+                            </div>
+
+                            <div className="space-y-2">
+                              {slots.map((slot, index) => {
+                                const assignedStaff = staff.filter((s: any) =>
+                                  slot.staffIds.includes(s.id || s._id)
+                                );
+
+                                return (
+                                  <div
+                                    key={index}
+                                    className="flex items-center justify-between p-3 bg-white rounded-lg border border-gray-200"
+                                  >
+                                    <div className="flex-1">
+                                      <p className="text-sm font-semibold text-[#3A3A3A]">
+                                        {formatTime12Hour(slot.startTime)} - {formatTime12Hour(slot.endTime)} • ${slot.price?.toFixed(2) || "0.00"} • {formatDuration(slot.duration || calculateDuration(slot.startTime, slot.endTime))}
+                                      </p>
+                                      {assignedStaff.length > 0 && (
+                                        <div className="mt-1 text-xs text-gray-600">
+                                          <span className="text-[#EECFD1] font-medium">
+                                            Staff: {assignedStaff.map((s: any) => s.name).join(", ")}
+                                          </span>
+                                        </div>
+                                      )}
+                                    </div>
+                                    <Button
+                                      type="button"
+                                      onClick={() => handleDeleteTimeSlot(date, index)}
+                                      variant="outline"
+                                      size="sm"
+                                      className="rounded-lg text-red-500 hover:text-red-700 hover:bg-red-50 border-red-200 text-xs font-medium"
+                                    >
+                                      Remove
+                                    </Button>
+                                  </div>
+                                );
+                              })}
                             </div>
                           </div>
-                          
-                          <div className="space-y-2">
-                            {slots.map((slot, index) => {
-                              const assignedStaff = staff.filter((s: any) => 
-                                slot.staffIds.includes(s.id || s._id)
-                              );
-                              
-                              return (
-                                <div
-                                  key={index}
-                                  className="flex items-center justify-between p-3 bg-white rounded-lg border border-gray-200"
-                                >
-                                  <div className="flex-1">
-                                    <p className="text-sm font-semibold text-[#3A3A3A]">
-                                      {formatTime12Hour(slot.startTime)} - {formatTime12Hour(slot.endTime)} • ${slot.price?.toFixed(2) || "0.00"} • {formatDuration(slot.duration || calculateDuration(slot.startTime, slot.endTime))}
-                                    </p>
-                                      {assignedStaff.length > 0 && (
-                                      <div className="mt-1 text-xs text-gray-600">
-                                        <span className="text-[#EECFD1] font-medium">
-                                          Staff: {assignedStaff.map((s: any) => s.name).join(", ")}
-                                        </span>
-                                      </div>
-                                      )}
-                                  </div>
-                                  <Button
-                                    type="button"
-                                    onClick={() => handleDeleteTimeSlot(date, index)}
-                                    variant="outline"
-                                    size="sm"
-                                      className="rounded-lg text-red-500 hover:text-red-700 hover:bg-red-50 border-red-200 text-xs font-medium"
-                                  >
-                                    Remove
-                                  </Button>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-10 bg-gray-50 rounded-xl border-2 border-dashed border-gray-300">
-                    <p className="text-sm font-medium text-gray-600 mb-1">
-                      No dates added yet
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      Click &quot;Add Date&quot; above to add dates and time slots for this service
-                    </p>
-                  </div>
-                )}
-              </div>
+                        ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-10 bg-gray-50 rounded-xl border-2 border-dashed border-gray-300">
+                      <p className="text-sm font-medium text-gray-600 mb-1">
+                        No dates added yet
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        Click &quot;Add Date&quot; above to add dates and time slots for this service
+                      </p>
+                    </div>
+                  )}
+                </div>
 
-              <div className="flex gap-4 pt-4 border-t border-gray-200">
-                <Button
-                  type="submit"
-                  disabled={isLoading}
-                  className="flex-1 h-12 rounded-xl bg-[#EECFD1] hover:bg-[#EECFD1]/90 text-[#3A3A3A] font-semibold shadow-lg hover:shadow-xl transition-all disabled:opacity-50"
-                >
-                  {isLoading ? "Updating..." : "Update Service"}
-                </Button>
-                <Button
-                  type="button"
-                  onClick={() => router.back()}
-                  className="flex-1 h-12 rounded-xl bg-gray-100 text-gray-700 hover:bg-gray-200 font-semibold transition-all"
-                >
-                  Cancel
-                </Button>
-              </div>
+                <div className="flex gap-4 pt-4 border-t border-gray-200">
+                  <Button
+                    type="submit"
+                    disabled={isLoading}
+                    className="flex-1 h-12 rounded-xl bg-[#EECFD1] hover:bg-[#EECFD1]/90 text-[#3A3A3A] font-semibold shadow-lg hover:shadow-xl transition-all disabled:opacity-50"
+                  >
+                    {isLoading ? "Updating..." : "Update Service"}
+                  </Button>
+                  <Button
+                    type="button"
+                    onClick={() => router.back()}
+                    className="flex-1 h-12 rounded-xl bg-gray-100 text-gray-700 hover:bg-gray-200 font-semibold transition-all"
+                  >
+                    Cancel
+                  </Button>
+                </div>
               </div>
             </form>
           </div>

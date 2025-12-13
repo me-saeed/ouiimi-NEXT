@@ -108,6 +108,13 @@ async function createServiceHandler(req: NextRequest) {
       status: "listed",
     });
 
+    // EXPLICIT LOGGING FOR GEOJSON VERIFICATION
+    if (service.address && service.address.location) {
+      console.log("[GeoAudit] Service Creation - Saving Location:", JSON.stringify(service.address.location, null, 2));
+    } else {
+      console.warn("[GeoAudit] Service Creation - NO LOCATION DATA being saved!");
+    }
+
     // Verify service was saved
     const savedService = await Service.findById(service._id);
     if (!savedService) {

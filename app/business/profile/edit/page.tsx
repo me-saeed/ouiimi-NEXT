@@ -64,7 +64,9 @@ export default function BusinessProfileEditPage() {
               businessName: businessItem.businessName || "",
               email: businessItem.email || "",
               phone: businessItem.phone || "",
-              address: businessItem.address || "",
+              address: businessItem.address && businessItem.location
+                ? { street: businessItem.address, location: businessItem.location }
+                : businessItem.address || "",
               story: businessItem.story || "",
               logo: businessItem.logo || "",
             });
