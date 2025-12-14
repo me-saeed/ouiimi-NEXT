@@ -50,6 +50,11 @@ jobs:
           NEXTAUTH_URL: http://localhost:3000
           MAILJET_API_KEY: test-key
           MAILJET_SECRET_KEY: test-secret
+          STRIPE_SECRET_KEY: test-stripe-secret
+          NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: test-stripe-publishable
+          NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: test-google-maps-key
+          GOOGLE_CLIENT_ID: test-google-client-id
+          GOOGLE_CLIENT_SECRET: test-google-client-secret
 
       - name: Generate coverage report
         run: yarn test:coverage
@@ -76,8 +81,6 @@ jobs:
       - name: Build application
         run: yarn build
         env:
-          # Dummy MONGODB_URI for build-time analysis (Next.js needs it to analyze API routes)
-          # Actual connection uses runtime value from .env.production on server
           MONGODB_URI: mongodb://localhost:27017/dummy-build
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
           NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
@@ -86,6 +89,11 @@ jobs:
           MAILJET_SECRET_KEY: ${{ secrets.MAILJET_SECRET_KEY }}
           MAILJET_FROM_EMAIL: ${{ secrets.MAILJET_FROM_EMAIL }}
           MAILJET_FROM_NAME: ${{ secrets.MAILJET_FROM_NAME }}
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+          NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY }}
+          NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: ${{ secrets.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY }}
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
 
   deploy:
     name: Deploy to DigitalOcean
@@ -108,28 +116,25 @@ jobs:
 
       - name: Build application for deployment
         run: |
-          # Build the application in GitHub Actions (faster, more reliable)
-          # Note: MONGODB_URI is provided here only for build-time analysis by Next.js
-          # The actual connection uses the runtime value from .env.production on the server
           echo "Building application..."
           yarn install --frozen-lockfile
           yarn build
           echo "✅ Build completed"
         env:
-          # Dummy MONGODB_URI for build-time analysis (Next.js needs it to analyze API routes)
-          # Actual connection uses runtime value from .env.production on server
           MONGODB_URI: mongodb://localhost:27017/dummy-build
           NEXTAUTH_URL: ${{ secrets.NEXTAUTH_URL }}
-          # Mailjet keys are only needed if used during build (they're not, but keeping for consistency)
           MAILJET_API_KEY: ${{ secrets.MAILJET_API_KEY }}
           MAILJET_SECRET_KEY: ${{ secrets.MAILJET_SECRET_KEY }}
           MAILJET_FROM_EMAIL: ${{ secrets.MAILJET_FROM_EMAIL }}
           MAILJET_FROM_NAME: ${{ secrets.MAILJET_FROM_NAME }}
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+          NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY }}
+          NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: ${{ secrets.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY }}
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
 
       - name: Prepare deployment package
         run: |
-          # Create a tarball with built files (exclude source files we don't need)
-          # The "file changed as we read it" warning is harmless - tar still creates the archive
           set +e
           tar -czf deploy.tar.gz \
             --exclude='.git' \
@@ -145,25 +150,18 @@ jobs:
             --exclude='jest-reporter.js' \
             . 2>&1 | grep -v "file changed as we read it" || true
           set -e
-          
-          # Verify the tarball was created
+
           if [ ! -f deploy.tar.gz ]; then
             echo "❌ Failed to create deployment package"
             exit 1
           fi
-          
+
           echo "✅ Deployment package created ($(du -h deploy.tar.gz | cut -f1))"
 
       - name: Deploy to server
         run: |
-          # Copy files to server
           scp -o ServerAliveInterval=60 -o ServerAliveCountMax=3 deploy.tar.gz ${{ secrets.DO_USER }}@${{ secrets.DO_HOST }}:/tmp/deploy.tar.gz
-          
-          # Extract and deploy on server
-          # Pass APP_PATH and secrets as environment variables through SSH
-          # Use ServerAliveInterval to prevent connection timeout during long builds
-          # Write secrets to a temporary file and pass them securely
-          # Use unquoted heredoc to allow GitHub Actions variable expansion
+
           cat > /tmp/deploy_env.sh << ENVEOF
           export APP_PATH="${{ secrets.DO_APP_PATH }}"
           export MONGODB_URI_VAL="${{ secrets.MONGODB_URI }}"
@@ -174,54 +172,50 @@ jobs:
           export MAILJET_SECRET_KEY_VAL="${{ secrets.MAILJET_SECRET_KEY }}"
           export MAILJET_FROM_EMAIL_VAL="${{ secrets.MAILJET_FROM_EMAIL }}"
           export MAILJET_FROM_NAME_VAL="${{ secrets.MAILJET_FROM_NAME }}"
+          export STRIPE_SECRET_KEY_VAL="${{ secrets.STRIPE_SECRET_KEY }}"
+          export NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY_VAL="${{ secrets.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY }}"
+          export NEXT_PUBLIC_GOOGLE_MAPS_API_KEY_VAL="${{ secrets.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY }}"
+          export GOOGLE_CLIENT_ID_VAL="${{ secrets.GOOGLE_CLIENT_ID }}"
+          export GOOGLE_CLIENT_SECRET_VAL="${{ secrets.GOOGLE_CLIENT_SECRET }}"
           ENVEOF
-          
-          # Copy env file to server
+
           scp -o ServerAliveInterval=60 -o ServerAliveCountMax=3 /tmp/deploy_env.sh ${{ secrets.DO_USER }}@${{ secrets.DO_HOST }}:/tmp/deploy_env.sh
-          
-          # Run deployment script on server
+
           ssh -o ServerAliveInterval=60 -o ServerAliveCountMax=3 ${{ secrets.DO_USER }}@${{ secrets.DO_HOST }} "source /tmp/deploy_env.sh && bash" << 'DEPLOYSCRIPT'
             set -e
-            
-            # Debug: Show APP_PATH value
+
             echo "APP_PATH is set to: [$APP_PATH]"
-            
-            # Validate APP_PATH is not empty
+
             if [ -z "$APP_PATH" ]; then
               echo "❌ Error: APP_PATH is empty. Please check DO_APP_PATH secret."
               exit 1
             fi
-            
-            # Create directory if it doesn't exist
+
             if [ ! -d "$APP_PATH" ]; then
               echo "Creating application directory: $APP_PATH"
               mkdir -p "$APP_PATH"
             fi
-            
-            # Backup existing directory if it exists and has content
+
             if [ -d "$APP_PATH" ] && [ "$(ls -A $APP_PATH 2>/dev/null)" ]; then
               echo "Backing up existing directory..."
               cd /root
               mv "$APP_PATH" "${APP_PATH}.backup.$(date +%s)" 2>/dev/null || true
               mkdir -p "$APP_PATH"
             fi
-            
-            # Extract deployment package
+
             echo "Extracting deployment package..."
             cd "$APP_PATH"
             tar -xzf /tmp/deploy.tar.gz
             rm /tmp/deploy.tar.gz
-            
-            # Check and update Node.js version if needed
+
             echo "Checking Node.js version..."
             NODE_VERSION=$(node -v | cut -d'v' -f2 | cut -d'.' -f1,2)
             REQUIRED_VERSION="18.17"
-            
+
             if [ "$(printf '%s\n' "$REQUIRED_VERSION" "$NODE_VERSION" | sort -V | head -n1)" != "$REQUIRED_VERSION" ]; then
               echo "⚠️  Node.js version $NODE_VERSION is too old. Required: >= $REQUIRED_VERSION"
               echo "Installing Node.js 20.x using nvm..."
-              
-              # Install nvm if not present
+
               if [ ! -d "$HOME/.nvm" ]; then
                 curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash || true
                 export NVM_DIR="$HOME/.nvm"
@@ -230,29 +224,24 @@ jobs:
                 export NVM_DIR="$HOME/.nvm"
                 [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
               fi
-              
-              # Install and use Node.js 20
+
               nvm install 20 || true
               nvm use 20 || true
               nvm alias default 20 || true
-              
-              # Verify installation
+
               NEW_NODE_VERSION=$(node -v)
               echo "✅ Node.js updated to: $NEW_NODE_VERSION"
             else
               echo "✅ Node.js version $NODE_VERSION is compatible"
             fi
-            
-            # Verify yarn is available
+
             if ! command -v yarn &> /dev/null; then
               echo "Installing yarn..."
               npm install -g yarn || true
             fi
-            
-            # Configure git to allow this directory (fix ownership warning)
+
             git config --global --add safe.directory "$APP_PATH" || true
-            
-            # Initialize git repository for future updates (optional - not required for tarball deployment)
+
             if [ ! -d ".git" ]; then
               echo "Initializing git repository (optional)..."
               git init || true
@@ -262,31 +251,32 @@ jobs:
               git add . || true
               git commit -m "Initial deployment" || true
             fi
-            
-            # Ensure we're using the correct Node.js version for build
+
             if [ -s "$HOME/.nvm/nvm.sh" ]; then
               export NVM_DIR="$HOME/.nvm"
               [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
               nvm use 20 || nvm use default || true
             fi
-            
-            # Update .env.production with values from GitHub Secrets
+
             echo "Updating .env.production from GitHub Secrets..."
-            
-            # Use GitHub Secrets if provided, otherwise use defaults
-            MONGODB_URI_FINAL="${MONGODB_URI_VAL:-mongodb+srv://doadmin:780LgfUa92B45Am3@db-mongodb-syd1-51575-b8378040.mongo.ondigitalocean.com/ouiimi?tls=true&authSource=admin&replicaSet=db-mongodb-syd1-51575}"
-            JWT_SECRET_FINAL="${JWT_SECRET_VAL:-change-this-to-a-secure-random-string-generate-with-openssl-rand-base64-32}"
-            NEXTAUTH_SECRET_FINAL="${NEXTAUTH_SECRET_VAL:-change-this-to-a-secure-random-string-generate-with-openssl-rand-base64-32}"
+
+            MONGODB_URI_FINAL="${MONGODB_URI_VAL:-mongodb://localhost:27017/ouiimi}"
+            JWT_SECRET_FINAL="${JWT_SECRET_VAL:-change-this}"
+            NEXTAUTH_SECRET_FINAL="${NEXTAUTH_SECRET_VAL:-change-this}"
             NEXTAUTH_URL_FINAL="${NEXTAUTH_URL_VAL:-https://ouiimi.com.au}"
-            MAILJET_API_KEY_FINAL="${MAILJET_API_KEY_VAL:-6c5afba9421a25308809ce27ee20a7df}"
-            MAILJET_SECRET_KEY_FINAL="${MAILJET_SECRET_KEY_VAL:-46413525c090257962796ac7c3e2ef46}"
+            MAILJET_API_KEY_FINAL="${MAILJET_API_KEY_VAL:-change-this}"
+            MAILJET_SECRET_KEY_FINAL="${MAILJET_SECRET_KEY_VAL:-change-this}"
             MAILJET_FROM_EMAIL_FINAL="${MAILJET_FROM_EMAIL_VAL:-information@ouiimi.com}"
             MAILJET_FROM_NAME_FINAL="${MAILJET_FROM_NAME_VAL:-Ouiimi}"
-            
-            # Create or update .env.production
+
+            STRIPE_SECRET_KEY_FINAL="${STRIPE_SECRET_KEY_VAL:-change-this}"
+            NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY_FINAL="${NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY_VAL:-change-this}"
+            NEXT_PUBLIC_GOOGLE_MAPS_API_KEY_FINAL="${NEXT_PUBLIC_GOOGLE_MAPS_API_KEY_VAL:-change-this}"
+            GOOGLE_CLIENT_ID_FINAL="${GOOGLE_CLIENT_ID_VAL:-change-this}"
+            GOOGLE_CLIENT_SECRET_FINAL="${GOOGLE_CLIENT_SECRET_VAL:-change-this}"
+
             if [ ! -f "$APP_PATH/.env.production" ]; then
-              echo "Creating .env.production from GitHub Secrets..."
-              # Use printf to avoid nested heredoc issues in YAML
+              echo "Creating .env.production..."
               printf '%s\n' \
                 "NODE_ENV=production" \
                 "MONGODB_URI=${MONGODB_URI_FINAL}" \
@@ -296,40 +286,54 @@ jobs:
                 "MAILJET_API_KEY=${MAILJET_API_KEY_FINAL}" \
                 "MAILJET_SECRET_KEY=${MAILJET_SECRET_KEY_FINAL}" \
                 "MAILJET_FROM_EMAIL=${MAILJET_FROM_EMAIL_FINAL}" \
-                "MAILJET_FROM_NAME=${MAILJET_FROM_NAME_FINAL}" > "$APP_PATH/.env.production"
-              echo "✅ Created .env.production from GitHub Secrets"
+                "MAILJET_FROM_NAME=${MAILJET_FROM_NAME_FINAL}" \
+                "STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY_FINAL}" \
+                "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=${NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY_FINAL}" \
+                "NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=${NEXT_PUBLIC_GOOGLE_MAPS_API_KEY_FINAL}" \
+                "GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID_FINAL}" \
+                "GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET_FINAL}" > "$APP_PATH/.env.production"
+              echo "✅ Created .env.production"
             else
               echo "Updating existing .env.production..."
-              # Update MONGODB_URI if GitHub secret is provided
-              if [ -n "${MONGODB_URI_VAL}" ]; then
-                if grep -q "^MONGODB_URI=" "$APP_PATH/.env.production" 2>/dev/null; then
-                  # Escape special characters for sed
-                  MONGODB_URI_ESCAPED=$(echo "$MONGODB_URI_VAL" | sed 's/[[\.*^$()+?{|]/\\&/g')
-                  sed -i "s|^MONGODB_URI=.*|MONGODB_URI=${MONGODB_URI_ESCAPED}|" "$APP_PATH/.env.production"
-                else
-                  echo "MONGODB_URI=${MONGODB_URI_VAL}" >> "$APP_PATH/.env.production"
+
+              upsert_env () {
+                KEY="$1"
+                VAL="$2"
+                FILE="$3"
+                if [ -z "$VAL" ]; then
+                  return 0
                 fi
-                echo "✅ Updated MONGODB_URI from GitHub Secret"
-              fi
-              # Update other secrets if provided
-              if [ -n "${JWT_SECRET_VAL}" ]; then
-                JWT_SECRET_ESCAPED=$(echo "$JWT_SECRET_VAL" | sed 's/[[\.*^$()+?{|]/\\&/g')
-                sed -i "s|^JWT_SECRET=.*|JWT_SECRET=${JWT_SECRET_ESCAPED}|" "$APP_PATH/.env.production" 2>/dev/null || echo "JWT_SECRET=${JWT_SECRET_VAL}" >> "$APP_PATH/.env.production"
-              fi
-              if [ -n "${NEXTAUTH_SECRET_VAL}" ]; then
-                NEXTAUTH_SECRET_ESCAPED=$(echo "$NEXTAUTH_SECRET_VAL" | sed 's/[[\.*^$()+?{|]/\\&/g')
-                sed -i "s|^NEXTAUTH_SECRET=.*|NEXTAUTH_SECRET=${NEXTAUTH_SECRET_ESCAPED}|" "$APP_PATH/.env.production" 2>/dev/null || echo "NEXTAUTH_SECRET=${NEXTAUTH_SECRET_VAL}" >> "$APP_PATH/.env.production"
-              fi
+                VAL_ESCAPED=$(printf '%s' "$VAL" | sed 's/[\/&]/\\&/g')
+                if grep -q "^${KEY}=" "$FILE" 2>/dev/null; then
+                  sed -i "s|^${KEY}=.*|${KEY}=${VAL_ESCAPED}|" "$FILE"
+                else
+                  printf '%s\n' "${KEY}=${VAL}" >> "$FILE"
+                fi
+              }
+
+              upsert_env "MONGODB_URI" "$MONGODB_URI_VAL" "$APP_PATH/.env.production"
+              upsert_env "JWT_SECRET" "$JWT_SECRET_VAL" "$APP_PATH/.env.production"
+              upsert_env "NEXTAUTH_SECRET" "$NEXTAUTH_SECRET_VAL" "$APP_PATH/.env.production"
+              upsert_env "NEXTAUTH_URL" "$NEXTAUTH_URL_VAL" "$APP_PATH/.env.production"
+              upsert_env "MAILJET_API_KEY" "$MAILJET_API_KEY_VAL" "$APP_PATH/.env.production"
+              upsert_env "MAILJET_SECRET_KEY" "$MAILJET_SECRET_KEY_VAL" "$APP_PATH/.env.production"
+              upsert_env "MAILJET_FROM_EMAIL" "$MAILJET_FROM_EMAIL_VAL" "$APP_PATH/.env.production"
+              upsert_env "MAILJET_FROM_NAME" "$MAILJET_FROM_NAME_VAL" "$APP_PATH/.env.production"
+
+              upsert_env "STRIPE_SECRET_KEY" "$STRIPE_SECRET_KEY_VAL" "$APP_PATH/.env.production"
+              upsert_env "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY" "$NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY_VAL" "$APP_PATH/.env.production"
+              upsert_env "NEXT_PUBLIC_GOOGLE_MAPS_API_KEY" "$NEXT_PUBLIC_GOOGLE_MAPS_API_KEY_VAL" "$APP_PATH/.env.production"
+              upsert_env "GOOGLE_CLIENT_ID" "$GOOGLE_CLIENT_ID_VAL" "$APP_PATH/.env.production"
+              upsert_env "GOOGLE_CLIENT_SECRET" "$GOOGLE_CLIENT_SECRET_VAL" "$APP_PATH/.env.production"
+
               echo "✅ Updated .env.production"
             fi
-            
-            # Install only production dependencies (build already done in GitHub Actions)
+
             echo "Installing production dependencies..."
             echo "Using Node.js: $(node -v)"
             echo "Using Yarn: $(yarn -v || echo 'not installed')"
             yarn install --frozen-lockfile --production=false
-            
-            # Build is already done in GitHub Actions, but verify .next exists
+
             if [ ! -d "$APP_PATH/.next" ]; then
               echo "⚠️  Warning: .next directory not found. Building on server..."
               set -a
@@ -339,77 +343,56 @@ jobs:
             else
               echo "✅ Build files found (.next directory exists)"
             fi
-            
-            # Create logs directory if it doesn't exist
+
             mkdir -p "$APP_PATH/logs"
-            
-            # Restart application (using PM2)
+
             echo "Restarting application..."
-            
-            # Ensure PM2 uses the correct Node.js version
+
             if [ -s "$HOME/.nvm/nvm.sh" ]; then
               export NVM_DIR="$HOME/.nvm"
               [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
               nvm use 20 || nvm use default || true
             fi
-            
+
             cd "$APP_PATH"
-            
-            # Check if app is running in PM2 and restart/start accordingly
+
             echo "Checking PM2 status..."
             PM2_STATUS=$(pm2 list | grep -E "ouiimi|ecosystem" || echo "")
-            
+
             if [ -n "$PM2_STATUS" ]; then
               echo "App found in PM2, stopping and removing..."
               pm2 stop ouiimi || true
               pm2 delete ouiimi || true
-              # Also try to stop/delete by ecosystem config name
               pm2 stop ecosystem.config.js || true
               pm2 delete ecosystem.config.js || true
             fi
-            
-            # Verify .env.production exists and has correct MongoDB URI
+
             echo "Verifying .env.production..."
             if [ -f "$APP_PATH/.env.production" ]; then
               echo "✅ .env.production exists"
-              # Check MongoDB URI format
-              MONGODB_URI_CHECK=$(grep "^MONGODB_URI=" "$APP_PATH/.env.production" | cut -d'=' -f2-)
-              if echo "$MONGODB_URI_CHECK" | grep -q "/ouiimi?"; then
-                echo "✅ MongoDB URI format looks correct"
-              else
-                echo "⚠️  Warning: MongoDB URI format might be incorrect"
-                echo "Current: $(echo "$MONGODB_URI_CHECK" | cut -c1-80)..."
-              fi
             else
               echo "❌ .env.production not found!"
             fi
-            
+
             echo "Starting application with PM2..."
-            # Use --update-env to ensure environment variables are updated
             pm2 start ecosystem.config.js --update-env
-            
-            # Save PM2 process list
+
             pm2 save || true
-            
-            # Show PM2 status
+
             echo "PM2 status:"
             pm2 list
-            
-            # Show environment variables being used
+
             echo "Checking environment variables..."
-            pm2 env 0 | grep -E "MONGODB_URI|NODE_ENV" || echo "Note: Use 'pm2 env <id>' to see full env"
-            
-            # Reload Nginx
+            pm2 env 0 | grep -E "MONGODB_URI|NODE_ENV|NEXTAUTH_URL|STRIPE|GOOGLE" || echo "Note: Use 'pm2 env <id>' to see full env"
+
             echo "Reloading Nginx..."
             nginx -t && systemctl reload nginx
-            
+
             echo "✅ Deployment completed successfully!"
-            
-            # Clean up env file
+
             rm -f /tmp/deploy_env.sh
           DEPLOYSCRIPT
-          
-          # Clean up local env file
+
           rm -f /tmp/deploy_env.sh
 
       - name: Health check
@@ -417,7 +400,6 @@ jobs:
           echo "Waiting for app to start..."
           sleep 15
           echo "Testing health endpoint..."
-          # Try multiple times with retries
           for i in {1..5}; do
             echo "Attempt $i/5..."
             if curl -f -m 10 https://ouiimi.com.au/api/health 2>/dev/null; then
@@ -428,8 +410,4 @@ jobs:
             sleep 5
           done
           echo "⚠️  Health check failed after 5 attempts"
-          echo "This might be normal if the app is still starting. Check manually:"
-          echo "  curl https://ouiimi.com.au/api/health"
-          # Don't fail the deployment, just warn
           exit 0
-
