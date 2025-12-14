@@ -132,6 +132,7 @@ jobs:
           NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: ${{ secrets.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY }}
           GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
           GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          NEXT_PUBLIC_BASE_URL: ${{ secrets.NEXT_PUBLIC_BASE_URL }}
 
       - name: Prepare deployment package
         run: |
@@ -177,6 +178,7 @@ jobs:
           export NEXT_PUBLIC_GOOGLE_MAPS_API_KEY_VAL="${{ secrets.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY }}"
           export GOOGLE_CLIENT_ID_VAL="${{ secrets.GOOGLE_CLIENT_ID }}"
           export GOOGLE_CLIENT_SECRET_VAL="${{ secrets.GOOGLE_CLIENT_SECRET }}"
+          export NEXT_PUBLIC_BASE_URL_VAL="${{ secrets.NEXT_PUBLIC_BASE_URL_VAL }}"
           ENVEOF
 
           scp -o ServerAliveInterval=60 -o ServerAliveCountMax=3 /tmp/deploy_env.sh ${{ secrets.DO_USER }}@${{ secrets.DO_HOST }}:/tmp/deploy_env.sh
