@@ -129,7 +129,7 @@ function BusinessProfileContent() {
   const formatServiceForCard = (service: any) => {
     const { date, time } = getNextAvailableTimeSlot(service);
     const serviceBusiness = typeof service.businessId === 'object' ? service.businessId : business;
-    
+
     return {
       id: service.id,
       name: service.serviceName,
@@ -209,11 +209,10 @@ function BusinessProfileContent() {
             <div className="flex justify-center w-full max-w-3xl mx-auto">
               <button
                 onClick={() => setActiveTab("story")}
-                className={`flex-1 py-4 text-sm font-medium transition-colors relative ${
-                  activeTab === "story"
-                    ? "text-foreground"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
+                className={`flex-1 py-4 text-sm font-medium transition-colors relative ${activeTab === "story"
+                  ? "text-foreground"
+                  : "text-muted-foreground hover:text-foreground"
+                  }`}
               >
                 Story
                 {activeTab === "story" && (
@@ -222,11 +221,10 @@ function BusinessProfileContent() {
               </button>
               <button
                 onClick={() => setActiveTab("services")}
-                className={`flex-1 py-4 text-sm font-medium transition-colors relative ${
-                  activeTab === "services"
-                    ? "text-foreground"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
+                className={`flex-1 py-4 text-sm font-medium transition-colors relative ${activeTab === "services"
+                  ? "text-foreground"
+                  : "text-muted-foreground hover:text-foreground"
+                  }`}
               >
                 Services
                 {activeTab === "services" && (
@@ -235,11 +233,10 @@ function BusinessProfileContent() {
               </button>
               <button
                 onClick={() => setActiveTab("staff")}
-                className={`flex-1 py-4 text-sm font-medium transition-colors relative ${
-                  activeTab === "staff"
-                    ? "text-foreground"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
+                className={`flex-1 py-4 text-sm font-medium transition-colors relative ${activeTab === "staff"
+                  ? "text-foreground"
+                  : "text-muted-foreground hover:text-foreground"
+                  }`}
               >
                 Staff
                 {activeTab === "staff" && (
@@ -294,8 +291,8 @@ function BusinessProfileContent() {
                         </div>
                       </div>
                     )}
-                    
-                  {business.email && (
+
+                    {business.email && (
                       <div className="flex items-start gap-3">
                         <div className="w-10 h-10 rounded-lg bg-[#EECFD1]/20 flex items-center justify-center flex-shrink-0">
                           <svg className="w-5 h-5 text-[#EECFD1]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -309,9 +306,9 @@ function BusinessProfileContent() {
                           </a>
                         </div>
                       </div>
-                  )}
-                    
-                  {business.phone && (
+                    )}
+
+                    {business.phone && (
                       <div className="flex items-start gap-3">
                         <div className="w-10 h-10 rounded-lg bg-[#EECFD1]/20 flex items-center justify-center flex-shrink-0">
                           <svg className="w-5 h-5 text-[#EECFD1]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -325,7 +322,7 @@ function BusinessProfileContent() {
                           </a>
                         </div>
                       </div>
-                  )}
+                    )}
                   </div>
                 </div>
               </div>
@@ -365,7 +362,7 @@ function BusinessProfileContent() {
                 Object.entries(groupedServices).map(([subCategory, categoryServices]) => (
                   <div key={subCategory} className="space-y-4">
                     <h3 className="text-xl font-semibold text-foreground">{subCategory}</h3>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 sm:gap-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
                       {categoryServices.map((service) => (
                         <ServiceCard
                           key={service.id}
@@ -387,7 +384,7 @@ function BusinessProfileContent() {
                   <p className="text-muted-foreground">No staff members listed yet.</p>
                 </div>
               ) : (
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                   {staff.map((member) => (
                     <div
                       key={member.id}

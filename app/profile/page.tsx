@@ -45,6 +45,8 @@ export default function ShopperProfilePage() {
   const [success, setSuccess] = useState<string>("");
   const [showContact, setShowContact] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [isMobile, setIsMobile] = useState(false);
+  const [expandedCardId, setExpandedCardId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -56,6 +58,17 @@ export default function ShopperProfilePage() {
       // Clean URL
       window.history.replaceState({}, "", "/profile");
     }
+  }, []);
+
+  // Detect mobile screen size
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768); // md breakpoint
+    };
+
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
   // User details form
@@ -149,11 +162,13 @@ export default function ShopperProfilePage() {
         const finished: Booking[] = [];
 
         allBookings.forEach((booking: Booking) => {
-          const bookingDateTime = new Date(`${booking.timeSlot.date}T${booking.timeSlot.endTime}`);
-          const isPast = bookingDateTime <= now;
+          // Get booking date and set to end of day (11:59 PM)
+          const bookingDate = new Date(booking.timeSlot.date);
+          bookingDate.setHours(23, 59, 59, 999);
+          const isPast = now > bookingDate;
 
-          // Finished: Time passed, or explicitly finished/cancelled/paid
-          // User Request: "When service time is passed the service should go in finished"
+          // Finished: Day has passed (after 11:59 PM), or explicitly finished/cancelled/paid
+          // User Request: Bookings stay in "Upcoming" until end of day (11:59 PM) of booking date
           if (isPast || booking.status === "cancelled" || booking.status === "completed") {
             finished.push(booking);
           }
@@ -161,7 +176,7 @@ export default function ShopperProfilePage() {
           else if (booking.status === "pending") {
             pending.push(booking);
           }
-          // Upcoming: Future + Confirmed
+          // Upcoming: Future + Confirmed (stays here until 11:59 PM of booking date)
           else {
             upcoming.push(booking);
           }
@@ -482,7 +497,42 @@ export default function ShopperProfilePage() {
                     {activeTab === "finished" && "No finished bookings found."}
                   </p>
                 </div>
+              ) : isMobile ? (
+                // Mobile: Single column with expandable details under each card
+                <div className="space-y-3">
+                  {getFilteredBookings().map((booking) => {
+                    const cardData = formatBookingForServiceCard(booking);
+                    const isExpanded = expandedCardId === booking.id;
+                    return (
+                      <div key={booking.id} className="space-y-3">
+                        <div
+                          onClick={() => {
+                            if (isExpanded) {
+                              setExpandedCardId(null);
+                            } else {
+                              setExpandedCardId(booking.id);
+                            }
+                          }}
+                          className="cursor-pointer [&_a]:pointer-events-none"
+                        >
+                          <ServiceCard {...cardData} />
+                        </div>
+                        {isExpanded && (
+                          <BookingDetailView
+                            booking={booking}
+                            onCancel={() => handleCancelBooking(booking.id)}
+                            onReschedule={() => handleRebook(booking)}
+                            onContact={() => setShowContact(true)}
+                            showContact={showContact}
+                            onCloseContact={() => setShowContact(false)}
+                          />
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
               ) : (
+                // Desktop: Two-column grid with side panel
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   {/* Booking Cards */}
                   <div className="space-y-3">
@@ -526,7 +576,38 @@ export default function ShopperProfilePage() {
                 <div className="text-center py-12 card-polished">
                   <p className="text-muted-foreground">No finished bookings found.</p>
                 </div>
+              ) : isMobile ? (
+                // Mobile: Single column with expandable details under each card
+                <div className="space-y-3">
+                  {finishedBookings.map((booking) => {
+                    const cardData = formatBookingForServiceCard(booking);
+                    const isExpanded = expandedCardId === booking.id;
+                    return (
+                      <div key={booking.id} className="space-y-3">
+                        <div
+                          onClick={() => {
+                            if (isExpanded) {
+                              setExpandedCardId(null);
+                            } else {
+                              setExpandedCardId(booking.id);
+                            }
+                          }}
+                          className="cursor-pointer [&_a]:pointer-events-none"
+                        >
+                          <ServiceCard {...cardData} />
+                        </div>
+                        {isExpanded && (
+                          <FinishedBookingDetailView
+                            booking={booking}
+                            onRebook={() => handleRebook(booking)}
+                          />
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
               ) : (
+                // Desktop: Two-column grid with side panel
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   <div className="space-y-3">
                     {finishedBookings.map((booking) => {

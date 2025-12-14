@@ -9,6 +9,7 @@ import PageLayout from "@/components/layout/PageLayout";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AddressAutocomplete } from "@/components/ui/address-autocomplete";
+import { AuthModal } from "@/components/ui/auth-modal";
 import {
   Card,
   CardContent,
@@ -22,6 +23,7 @@ export default function BusinessRegisterPage() {
   const [user, setUser] = useState<any>(null);
   const [error, setError] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
 
   const {
     register,
@@ -72,14 +74,15 @@ export default function BusinessRegisterPage() {
           }
 
           setIsCheckingAuth(false);
+          setShowAuthModal(false);
         } catch (e) {
           console.error("Error parsing user data:", e);
           setIsCheckingAuth(false);
-          router.push("/signin?redirect=/business/register");
+          setShowAuthModal(true);
         }
       } else {
         setIsCheckingAuth(false);
-        router.push("/signin?redirect=/business/register");
+        setShowAuthModal(true);
       }
     };
 
@@ -255,6 +258,15 @@ export default function BusinessRegisterPage() {
 
   return (
     <PageLayout user={user || null}>
+      {/* Authentication Modal */}
+      <AuthModal
+        isOpen={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
+        message="You need to be signed in to create a business profile. Please sign in or create a new account to continue."
+        redirectPath="/business/register"
+        dismissible={true}
+      />
+
       <div className="min-h-screen bg-gray-50/50 py-12 flex items-center justify-center">
         <div className="w-full max-w-2xl px-4 sm:px-6">
           {isCheckingAuth ? (
@@ -262,23 +274,6 @@ export default function BusinessRegisterPage() {
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
               <p className="text-sm text-muted-foreground">Verifying access...</p>
             </div>
-          ) : !user ? (
-            <Card className="w-full shadow-lg border-0 bg-white">
-              <CardHeader className="text-center space-y-2 pb-8 pt-10">
-                <CardTitle className="text-2xl font-bold text-gray-900">Authentication Required</CardTitle>
-                <CardDescription className="text-base">
-                  Please sign in to continue with business registration.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="flex justify-center pb-10">
-                <Button
-                  onClick={() => router.push("/signin?redirect=/business/register")}
-                  className="btn-polished btn-polished-primary min-w-[200px]"
-                >
-                  Sign In
-                </Button>
-              </CardContent>
-            </Card>
           ) : (
             <Card className="w-full shadow-lg border-0 bg-white overflow-hidden">
               <CardHeader className="space-y-1 text-center bg-white pb-8 pt-10 px-6 sm:px-10 border-b border-gray-100/50">

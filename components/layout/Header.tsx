@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 interface HeaderProps {
   user?: {
@@ -12,10 +12,56 @@ interface HeaderProps {
   } | null;
 }
 
-export default function Header({ user }: HeaderProps) {
+export default function Header({ user: userProp }: HeaderProps) {
   const router = useRouter();
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [user, setUser] = useState<any>(null);
+  const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
+
+  // Check authentication on mount and when localStorage changes
+  useEffect(() => {
+    const checkAuth = () => {
+      if (typeof window === "undefined") return;
+
+      const token = localStorage.getItem("token");
+      const userData = localStorage.getItem("user");
+
+      if (token && userData) {
+        try {
+          const parsedUser = JSON.parse(userData);
+          setUser(parsedUser);
+        } catch (e) {
+          console.error("Error parsing user data:", e);
+          setUser(null);
+        }
+      } else {
+        setUser(null);
+      }
+    };
+
+    checkAuth();
+
+    // Listen for storage changes (for logout in other tabs)
+    window.addEventListener("storage", checkAuth);
+    return () => window.removeEventListener("storage", checkAuth);
+  }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    setUser(null);
+    setProfileDropdownOpen(false);
+    setSidebarOpen(false);
+    router.push("/");
+  };
+
+  const getUserInitials = () => {
+    if (!user) return "";
+    const fname = user.fname || "";
+    const lname = user.lname || "";
+    return `${fname.charAt(0)}${lname.charAt(0)}`.toUpperCase();
+  };
 
   const sidebarLinks = [
     { href: "/about", label: "About" },
@@ -84,26 +130,100 @@ export default function Header({ user }: HeaderProps) {
               })}
             </nav>
 
-            {/* Right: Cart Icon */}
-            <Link
-              href="/cart"
-              className="text-white hover:bg-white/10 transition-all duration-200 p-2 rounded-lg relative tap-target"
-              aria-label="Shopping cart"
-            >
-              <svg
-                className="w-6 h-6"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-                strokeWidth={2}
+            {/* Right: Authentication UI */}
+            <div className="flex items-center gap-3">
+              {user ? (
+                // Logged in - Show profile dropdown
+                <div className="relative">
+                  <button
+                    onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
+                    className="flex items-center gap-2 text-white hover:bg-white/10 transition-all duration-200 px-3 py-2 rounded-lg"
+                    aria-label="User menu"
+                  >
+                    <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-white text-sm font-semibold">
+                      {getUserInitials()}
+                    </div>
+                    <svg
+                      className={`w-4 h-4 transition-transform ${profileDropdownOpen ? "rotate-180" : ""}`}
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                      strokeWidth={2}
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
+
+                  {/* Dropdown Menu */}
+                  {profileDropdownOpen && (
+                    <>
+                      <div
+                        className="fixed inset-0 z-40"
+                        onClick={() => setProfileDropdownOpen(false)}
+                      />
+                      <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg py-2 z-50 border border-gray-100">
+                        <div className="px-4 py-3 border-b border-gray-100">
+                          <p className="text-sm font-semibold text-gray-900">
+                            {user.fname} {user.lname}
+                          </p>
+                          <p className="text-xs text-gray-500 truncate">{user.email}</p>
+                        </div>
+                        <Link
+                          href="/profile"
+                          onClick={() => setProfileDropdownOpen(false)}
+                          className="block px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                        >
+                          Profile
+                        </Link>
+                        <button
+                          onClick={handleLogout}
+                          className="w-full text-left px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                        >
+                          Sign Out
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              ) : (
+                // Not logged in - Show Sign In/Sign Up buttons
+                <>
+                  <Link
+                    href="/signin"
+                    className="hidden sm:block text-white hover:bg-white/10 transition-all duration-200 px-4 py-2 rounded-lg text-sm font-medium"
+                  >
+                    Sign In
+                  </Link>
+                  <Link
+                    href="/signup"
+                    className="hidden sm:block bg-white text-[#EECFD1] hover:bg-white/90 transition-all duration-200 px-4 py-2 rounded-lg text-sm font-semibold shadow-sm"
+                  >
+                    Sign Up
+                  </Link>
+                </>
+              )}
+
+              {/* Cart Icon */}
+              <Link
+                href="/cart"
+                className="text-white hover:bg-white/10 transition-all duration-200 p-2 rounded-lg relative tap-target"
+                aria-label="Shopping cart"
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 00-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 00-16.536-1.84M7.5 14.25L5.106 5.272M6 20.25a.75.75 0 11-1.5 0 .75.75 0 011.5 0zm12.75 0a.75.75 0 11-1.5 0 .75.75 0 011.5 0z"
-                />
-              </svg>
-            </Link>
+                <svg
+                  className="w-6 h-6"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  strokeWidth={2}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 00-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 00-16.536-1.84M7.5 14.25L5.106 5.272M6 20.25a.75.75 0 11-1.5 0 .75.75 0 011.5 0zm12.75 0a.75.75 0 11-1.5 0 .75.75 0 011.5 0z"
+                  />
+                </svg>
+              </Link>
+            </div>
           </div>
         </div>
       </header>
@@ -139,6 +259,47 @@ export default function Header({ user }: HeaderProps) {
                   </svg>
                 </button>
               </div>
+
+              {/* Authentication Section */}
+              {user ? (
+                <div className="mb-6 pb-6 border-b border-gray-200">
+                  <div className="flex items-center gap-3 px-5 py-3 bg-[#EECFD1]/10 rounded-lg">
+                    <div className="w-10 h-10 rounded-full bg-[#EECFD1] flex items-center justify-center text-white text-sm font-semibold">
+                      {getUserInitials()}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-gray-900 truncate">
+                        {user.fname} {user.lname}
+                      </p>
+                      <p className="text-xs text-gray-500 truncate">{user.email}</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={handleLogout}
+                    className="w-full mt-3 px-5 py-2.5 text-sm font-medium text-red-600 hover:bg-red-50 rounded-lg transition-colors text-left"
+                  >
+                    Sign Out
+                  </button>
+                </div>
+              ) : (
+                <div className="mb-6 pb-6 border-b border-gray-200 space-y-2">
+                  <Link
+                    href="/signin"
+                    onClick={() => setSidebarOpen(false)}
+                    className="block px-5 py-3 bg-[#EECFD1] text-white font-semibold rounded-lg text-center hover:bg-[#e5c4c7] transition-all"
+                  >
+                    Sign In
+                  </Link>
+                  <Link
+                    href="/signup"
+                    onClick={() => setSidebarOpen(false)}
+                    className="block px-5 py-3 border-2 border-[#EECFD1] text-[#EECFD1] font-semibold rounded-lg text-center hover:bg-[#EECFD1]/10 transition-all"
+                  >
+                    Sign Up
+                  </Link>
+                </div>
+              )}
+
               <nav className="space-y-2">
                 {sidebarLinks.map((link) => {
                   const isActive = pathname === link.href || pathname?.startsWith(link.href + "/");
