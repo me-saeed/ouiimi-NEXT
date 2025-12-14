@@ -13,7 +13,7 @@ if (!apiKey || !secretKey) {
 const mailjet = Mailjet.Client.apiConnect(apiKey, secretKey);
 
 // Shared CSS/Layout
-const CSS = `
+const EMAIL_CSS = `
   body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; line-height: 1.6; color: #333333; margin: 0; padding: 0; }
   .wrapper { width: 100%; background-color: #f6f9fc; padding: 40px 0; }
   .container { max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; }
@@ -38,7 +38,7 @@ function wrap(content: string, title: string) {
     <head>
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <style>${CSS}</style>
+      <style>${EMAIL_CSS}</style>
     </head>
     <body>
       <div class="wrapper">

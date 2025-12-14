@@ -14,6 +14,10 @@ import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
 import dbConnect from "@/lib/db";
 import Booking from "@/lib/models/Booking";
+import {
+    sendBookingConfirmationToShopper,
+    sendBookingConfirmationToBusiness
+} from "@/lib/services/mailjet";
 
 // =============================================================================
 // LAZY STRIPE INITIALIZATION
@@ -78,13 +82,60 @@ export async function POST(request: NextRequest) {
                 // Update booking status
                 const booking = await Booking.findOne({
                     paymentIntentId: paymentIntent.id,
-                });
+                })
+                    .populate("userId", "fname lname email")
+                    .populate("businessId", "businessName email")
+                    .populate("serviceId", "serviceName");
 
                 if (booking) {
                     booking.paymentStatus = "deposit_paid";
                     booking.status = "confirmed";
                     await booking.save();
                     console.log(`✅ Booking ${booking._id} updated to confirmed`);
+
+                    // Prepare email data
+                    const user = booking.userId as any;
+                    const business = booking.businessId as any;
+                    const service = booking.serviceId as any;
+
+                    if (user && business && service) {
+                        const emailData = {
+                            fname: user.fname,
+                            lname: user.lname,
+                            email: user.email,
+                            businessName: business.businessName,
+                            serviceName: service.serviceName,
+                            date: new Date(booking.timeSlot.date).toLocaleDateString('en-US', {
+                                year: 'numeric', month: 'long', day: 'numeric'
+                            }),
+                            time: `${booking.timeSlot.startTime} - ${booking.timeSlot.endTime}`,
+                            totalCost: booking.totalCost,
+                            depositAmount: booking.depositAmount,
+                            paymentAmount: booking.depositAmount, // The amount just paid
+                            remainingAmount: booking.remainingAmount,
+                            bookingId: booking.bookingNumber || (booking._id as any).toString().slice(-6).toUpperCase(),
+                            location: business.address || "Business Location" // Fallback if address not populated
+                        };
+
+                        // Send confirmation to Shopper
+                        try {
+                            await sendBookingConfirmationToShopper(user.email, user.fname, emailData);
+                            console.log(`📧 Shopper confirmation sent to ${user.email}`);
+
+                            // Send notification to Business
+                            // Note: We send to business email, usually fetched from business profile
+                            if (business.email) {
+                                await sendBookingConfirmationToBusiness(business.email, "Business Owner", {
+                                    ...emailData,
+                                    customerName: `${user.fname} ${user.lname}`
+                                });
+                                console.log(`📧 Business notification sent to ${business.email}`);
+                            }
+                        } catch (emailError) {
+                            console.error("⚠️ Failed to send confirmation emails:", emailError);
+                            // Don't fail the webhook, just log
+                        }
+                    }
                 } else {
                     console.error(`❌ No booking found for payment ${paymentIntent.id}`);
                 }

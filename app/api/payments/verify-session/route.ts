@@ -125,6 +125,62 @@ export async function POST(request: NextRequest) {
         await booking.save();
 
         // =====================================================================
+        // STEP 5.5: Send Confirmation Emails (Reliability Fallback)
+        // =====================================================================
+        // We trigger email here as well to ensure delivery even if webhook fails
+        // (common in dev/localhost without public URL).
+        try {
+            // Re-fetch with population to ensure we have all data
+            // Use _id from the already fetched booking object
+            const populatedBooking = await Booking.findById(booking._id)
+                .populate("userId", "fname lname email")
+                .populate("businessId", "businessName email")
+                .populate("serviceId", "serviceName");
+
+            if (populatedBooking) {
+                const user = populatedBooking.userId as any;
+                const business = populatedBooking.businessId as any;
+                const service = populatedBooking.serviceId as any;
+
+                if (user && business && service) {
+                    const emailData = {
+                        fname: user.fname,
+                        lname: user.lname,
+                        email: user.email,
+                        businessName: business.businessName,
+                        serviceName: service.serviceName,
+                        date: new Date(booking.timeSlot.date).toLocaleDateString('en-US', {
+                            year: 'numeric', month: 'long', day: 'numeric'
+                        }),
+                        time: `${booking.timeSlot.startTime} - ${booking.timeSlot.endTime}`,
+                        totalCost: booking.totalCost,
+                        depositAmount: booking.depositAmount,
+                        paymentAmount: booking.depositAmount,
+                        remainingAmount: booking.remainingAmount,
+                        bookingId: booking.bookingNumber || (booking._id as any).toString().slice(-6).toUpperCase(),
+                        location: business.address || "Business Location"
+                    };
+
+                    const { sendBookingConfirmationToShopper, sendBookingConfirmationToBusiness } = require("@/lib/services/mailjet");
+
+                    await sendBookingConfirmationToShopper(user.email, user.fname, emailData);
+                    console.log(`📧 [Verify] Shopper confirmation sent to ${user.email}`);
+
+                    if (business.email) {
+                        await sendBookingConfirmationToBusiness(business.email, "Business Owner", {
+                            ...emailData,
+                            customerName: `${user.fname} ${user.lname}`
+                        });
+                        console.log(`📧 [Verify] Business notification sent to ${business.email}`);
+                    }
+                }
+            }
+        } catch (emailErr) {
+            console.error("⚠️ Failed to send confirmation emails in verify-session:", emailErr);
+            // Non-blocking: continue to success response
+        }
+
+        // =====================================================================
         // STEP 6: Return success response
         // =====================================================================
         return NextResponse.json({

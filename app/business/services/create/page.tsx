@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AddressAutocomplete } from "@/components/ui/address-autocomplete";
-import { TimePickerWheel } from "@/components/ui/time-picker-wheel";
+import { TimeSelect } from "@/components/ui/time-select";
 import { useToast } from "@/hooks/use-toast";
 import Image from "next/image";
 
@@ -1079,137 +1079,127 @@ export default function CreateServicePage() {
                       </button>
                     </div>
 
-                    <div className="space-y-6">
-                      {/* Time Selection - Clean and Professional */}
-                      <div className="space-y-6">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 justify-items-center bg-gray-50/50 rounded-2xl p-6 border border-gray-100">
-                          {/* Start Time */}
-                          <div className="w-full flex justify-center">
-                            <TimePickerWheel
-                              label="Start Time"
-                              value={newTimeSlot.startTime}
-                              onChange={handleStartTimeChange}
-                            />
-                          </div>
+                    <div className="space-y-6 pt-2">
+                      <div className="space-y-5">
+                        {/* Start Time */}
+                        <TimeSelect
+                          label="Start Time"
+                          value={newTimeSlot.startTime}
+                          onChange={handleStartTimeChange}
+                          required
+                        />
 
-                          {/* End Time */}
-                          <div className="w-full flex justify-center relative">
-                            {/* Mobile arrow (vertical) / Desktop arrow (horizontal) optional */}
-                            <TimePickerWheel
-                              label="End Time"
-                              value={newTimeSlot.endTime}
-                              onChange={handleEndTimeChange}
-                            />
-                          </div>
-                        </div>
+                        {/* End Time */}
+                        <TimeSelect
+                          label="End Time"
+                          value={newTimeSlot.endTime}
+                          onChange={handleEndTimeChange}
+                          required
+                        />
+                      </div>
 
-                        {/* Duration Display */}
+                      {/* Duration Display */}
+                      {duration > 0 && (
                         <div className="flex justify-center">
-                          <div className="inline-flex items-center gap-3 px-5 py-2.5 bg-[#EECFD1]/10 rounded-full border border-[#EECFD1]/20 shadow-sm">
-                            <svg className="w-4 h-4 text-[#EECFD1]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                            <div className="flex items-baseline gap-2">
-                              <span className="text-sm text-gray-500 font-medium">Duration:</span>
-                              <span className="text-lg font-bold text-[#3A3A3A] tracking-tight">
-                                {formatDuration(duration)}
-                              </span>
-                            </div>
+                          <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-gray-50 rounded-lg text-sm text-[#3A3A3A]">
+                            <span className="text-gray-500">Duration:</span>
+                            <span className="font-bold">{formatDuration(duration)}</span>
                           </div>
                         </div>
-                      </div>
-
-                      {/* Add-Ons Selection */}
-                      <div className="space-y-3 pt-4 border-t border-[#E5E5E5]">
-                        <div className="flex items-center justify-between">
-                          <label className="block text-sm font-semibold text-[#3A3A3A]">
-                            Add-Ons for this Slot <span className="text-[#888888] text-xs font-normal">(Optional)</span>
-                          </label>
-                          <button
-                            type="button"
-                            onClick={() => setIsAddOnsDropdownOpen(!isAddOnsDropdownOpen)}
-                            className="text-sm font-medium text-primary hover:text-primary/80"
-                          >
-                            {isAddOnsDropdownOpen ? "Close" : "+ Add Add-On"}
-                          </button>
-                        </div>
-
-                        {isAddOnsDropdownOpen && (
-                          <div className="p-4 bg-gray-50 rounded-xl border border-gray-200 mb-3">
-                            <p className="text-sm text-gray-500 mb-3">Select available add-ons:</p>
-                            <div className="flex flex-wrap gap-2">
-                              {selectedSubCategory && SUB_CATEGORY_ADDONS[selectedSubCategory]?.map((addOn, idx) => (
-                                <button
-                                  key={idx}
-                                  type="button"
-                                  onClick={() => handleToggleAddOn(addOn)}
-                                  className={`px-3 py-1.5 rounded-full text-sm transition-colors border ${selectedAddOns.some(a => a.name === addOn.name)
-                                    ? "bg-primary text-white border-primary"
-                                    : "bg-white text-gray-700 border-gray-300 hover:border-primary"
-                                    }`}
-                                >
-                                  {addOn.name} (+${addOn.cost})
-                                </button>
-                              ))}
-                              {(!selectedSubCategory || !SUB_CATEGORY_ADDONS[selectedSubCategory]) && (
-                                <p className="text-sm text-gray-400 italic">Select a sub-category to see add-ons</p>
-                              )}
-                            </div>
-                          </div>
-                        )}
-
-                        {selectedAddOns.length > 0 && (
-                          <div className="flex flex-wrap gap-2">
-                            {selectedAddOns.map((addOn, idx) => (
-                              <div key={idx} className="bg-[#EECFD1]/20 border border-[#EECFD1] rounded-full px-3 py-1 flex items-center gap-2">
-                                <span className="text-sm font-medium text-[#3A3A3A]">{addOn.name} (${addOn.cost})</span>
-                                <button
-                                  type="button"
-                                  onClick={() => handleToggleAddOn(addOn)}
-                                  className="text-[#3A3A3A]/60 hover:text-[#3A3A3A]"
-                                >
-                                  ×
-                                </button>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Price Field for Time Slot */}
-                      <div className="space-y-2">
-                        <label className="block text-sm font-semibold text-[#3A3A3A]">
-                          Price ($) <span className="text-red-500">*</span>
-                        </label>
-                        <div className="relative">
-                          <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[#888888]">$</span>
-                          <input
-                            type="number"
-                            step="0.01"
-                            min="0"
-                            value={newTimeSlot.price === "" ? "" : newTimeSlot.price}
-                            onChange={(e) => {
-                              const value = e.target.value;
-                              if (value === "") {
-                                setNewTimeSlot({ ...newTimeSlot, price: "" });
-                              } else {
-                                const price = parseFloat(value);
-                                if (!isNaN(price) && price >= 0) {
-                                  setNewTimeSlot({ ...newTimeSlot, price });
-                                }
-                              }
-                            }}
-                            disabled={!selectedDate || !newTimeSlot.startTime || !newTimeSlot.endTime}
-                            className="w-full pl-8 pr-4 py-3 rounded-lg border border-[#E5E5E5] bg-white text-[#3A3A3A] placeholder:text-[#888888] focus:outline-none focus:ring-2 focus:ring-[#EECFD1]/20 focus:border-[#EECFD1] transition-all disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed disabled:opacity-60"
-                            placeholder="50.00"
-                            required
-                          />
-                        </div>
-                        <p className="text-xs text-[#888888]">
-                          Price for this specific time slot
-                        </p>
-                      </div>
+                      )}
                     </div>
+
+                    {/* Add-Ons Selection */}
+                    <div className="space-y-3 pt-4 border-t border-[#E5E5E5]">
+                      <div className="flex items-center justify-between">
+                        <label className="block text-sm font-semibold text-[#3A3A3A]">
+                          Add-Ons for this Slot <span className="text-[#888888] text-xs font-normal">(Optional)</span>
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => setIsAddOnsDropdownOpen(!isAddOnsDropdownOpen)}
+                          className="text-sm font-medium text-primary hover:text-primary/80"
+                        >
+                          {isAddOnsDropdownOpen ? "Close" : "+ Add Add-On"}
+                        </button>
+                      </div>
+
+                      {isAddOnsDropdownOpen && (
+                        <div className="p-4 bg-gray-50 rounded-xl border border-gray-200 mb-3">
+                          <p className="text-sm text-gray-500 mb-3">Select available add-ons:</p>
+                          <div className="flex flex-wrap gap-2">
+                            {selectedSubCategory && SUB_CATEGORY_ADDONS[selectedSubCategory]?.map((addOn, idx) => (
+                              <button
+                                key={idx}
+                                type="button"
+                                onClick={() => handleToggleAddOn(addOn)}
+                                className={`px-3 py-1.5 rounded-full text-sm transition-colors border ${selectedAddOns.some(a => a.name === addOn.name)
+                                  ? "bg-primary text-white border-primary"
+                                  : "bg-white text-gray-700 border-gray-300 hover:border-primary"
+                                  }`}
+                              >
+                                {addOn.name} (+${addOn.cost})
+                              </button>
+                            ))}
+                            {(!selectedSubCategory || !SUB_CATEGORY_ADDONS[selectedSubCategory]) && (
+                              <p className="text-sm text-gray-400 italic">Select a sub-category to see add-ons</p>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {selectedAddOns.length > 0 && (
+                        <div className="flex flex-wrap gap-2">
+                          {selectedAddOns.map((addOn, idx) => (
+                            <div key={idx} className="bg-[#EECFD1]/20 border border-[#EECFD1] rounded-full px-3 py-1 flex items-center gap-2">
+                              <span className="text-sm font-medium text-[#3A3A3A]">{addOn.name} (${addOn.cost})</span>
+                              <button
+                                type="button"
+                                onClick={() => handleToggleAddOn(addOn)}
+                                className="text-[#3A3A3A]/60 hover:text-[#3A3A3A]"
+                              >
+                                ×
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Price Field for Time Slot */}
+                    <div className="space-y-2">
+                      <label className="block text-sm font-semibold text-[#3A3A3A]">
+                        Price ($) <span className="text-red-500">*</span>
+                      </label>
+                      <div className="relative">
+                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[#888888]">$</span>
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          value={newTimeSlot.price === "" ? "" : newTimeSlot.price}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            if (value === "") {
+                              setNewTimeSlot({ ...newTimeSlot, price: "" });
+                            } else {
+                              const price = parseFloat(value);
+                              if (!isNaN(price) && price >= 0) {
+                                setNewTimeSlot({ ...newTimeSlot, price });
+                              }
+                            }
+                          }}
+                          disabled={!selectedDate || !newTimeSlot.startTime || !newTimeSlot.endTime}
+                          className="w-full pl-8 pr-4 py-3 rounded-lg border border-[#E5E5E5] bg-white text-[#3A3A3A] placeholder:text-[#888888] focus:outline-none focus:ring-2 focus:ring-[#EECFD1]/20 focus:border-[#EECFD1] transition-all disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed disabled:opacity-60"
+                          placeholder="50.00"
+                          required
+                        />
+                      </div>
+                      <p className="text-xs text-[#888888]">
+                        Price for this specific time slot
+                      </p>
+                    </div>
+
 
                     <div className="space-y-2">
                       <label className="text-sm font-semibold text-[#3A3A3A]">Assign Staff <span className="text-[#888888] text-xs font-normal">(Optional)</span></label>
