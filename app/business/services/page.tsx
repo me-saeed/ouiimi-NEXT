@@ -80,6 +80,8 @@ export default function BusinessServicesPage() {
         if (servicesResponse.ok) {
           const servicesData = await servicesResponse.json();
           if (servicesData.services) {
+            console.log('[Services Debug] Received services:', servicesData.services);
+            console.log('[Services Debug] First service:', servicesData.services[0]);
             setServices(servicesData.services);
           }
         } else {
@@ -174,7 +176,12 @@ export default function BusinessServicesPage() {
     const { date, time } = getNextAvailableTimeSlot(service);
     const businessData = typeof service.businessId === 'object' ? service.businessId : null;
 
-    return {
+    // Extract duration from service or first time slot
+    const duration = service.duration
+      || (service.timeSlots && service.timeSlots.length > 0 ? service.timeSlots[0]?.duration : null)
+      || 60; // Default to 60 minutes if not found
+
+    const cardData = {
       id: service.id || service._id,
       name: service.serviceName,
       price: service.timeSlots && service.timeSlots.length > 0 ? (service.timeSlots[0]?.price || 0) : 0,
@@ -183,10 +190,17 @@ export default function BusinessServicesPage() {
       subCategory: service.subCategory,
       businessName: businessData?.businessName || "Business",
       location: businessData?.address || "",
-      duration: service.duration,
+      duration: `${duration} min`,
       date: date,
       time: time,
     };
+
+    console.log('[Card Format Debug] Service:', service.serviceName);
+    console.log('[Card Format Debug] Duration extracted:', duration);
+    console.log('[Card Format Debug] Date/Time:', { date, time });
+    console.log('[Card Format Debug] Card data:', cardData);
+
+    return cardData;
   };
 
   if (!user) {

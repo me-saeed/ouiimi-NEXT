@@ -113,7 +113,17 @@ export async function POST(request: NextRequest) {
         const businessId = booking.businessId as any;
 
         // =====================================================================
-        // STEP 4: Create Stripe Checkout Session
+        // STEP 4: Determine base URL dynamically from request
+        // =====================================================================
+        // Extract host and protocol from request headers to build base URL
+        // This works automatically in all environments (dev, staging, production)
+        const host = request.headers.get("host") || "localhost:3000";
+        const protocol = request.headers.get("x-forwarded-proto") || 
+                        (host.includes("localhost") ? "http" : "https");
+        const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || `${protocol}://${host}`;
+
+        // =====================================================================
+        // STEP 5: Create Stripe Checkout Session
         // =====================================================================
         // stripe.checkout.sessions.create() returns a session with a URL
         // User is redirected to this URL to complete payment on Stripe's page
@@ -153,10 +163,10 @@ export async function POST(request: NextRequest) {
 
             // Where to redirect after successful payment
             // {CHECKOUT_SESSION_ID} is replaced by Stripe with actual session ID
-            success_url: `${process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"}/bookings/${bookingId}/confirm?session_id={CHECKOUT_SESSION_ID}`,
+            success_url: `${baseUrl}/bookings/${bookingId}/confirm?session_id={CHECKOUT_SESSION_ID}`,
 
             // Where to redirect if user cancels payment
-            cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"}/bookings/${bookingId}/checkout`,
+            cancel_url: `${baseUrl}/bookings/${bookingId}/checkout`,
 
             // Metadata stored with the payment (useful for webhooks)
             metadata: {

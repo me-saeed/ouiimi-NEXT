@@ -206,6 +206,22 @@ async function updateBookingHandler(
       );
     }
 
+    // Check if trying to cancel a booking that has already passed
+    if (validatedData.status === "cancelled") {
+      const bookingDateTime = new Date(booking.timeSlot.date);
+      const [hours, minutes] = booking.timeSlot.startTime.split(':').map(Number);
+      bookingDateTime.setHours(hours, minutes, 0, 0);
+
+      const now = new Date();
+
+      if (bookingDateTime <= now) {
+        return NextResponse.json(
+          { error: "Cannot cancel a booking that has already started or passed" },
+          { status: 400 }
+        );
+      }
+    }
+
     const oldStatus = booking.status;
     const oldPaymentStatus = booking.paymentStatus;
 
@@ -219,28 +235,47 @@ async function updateBookingHandler(
         }
         booking.paymentStatus = "refunded";
 
-        // Free up the time slot in the service when booking is cancelled
-        if (oldStatus !== "cancelled") {
-          const service = await Service.findById(booking.serviceId);
-          if (service) {
-            const timeSlot = service.timeSlots.find((ts: any) => {
-              const tsDate = new Date(ts.date);
-              tsDate.setHours(0, 0, 0, 0);
-              const bookingDate = new Date(booking.timeSlot.date);
-              bookingDate.setHours(0, 0, 0, 0);
-              return (
-                tsDate.getTime() === bookingDate.getTime() &&
-                ts.startTime === booking.timeSlot.startTime &&
-                ts.endTime === booking.timeSlot.endTime &&
-                String(ts.bookingId) === String(booking._id)
-              );
-            });
-            if (timeSlot) {
-              timeSlot.isBooked = false;
-              timeSlot.bookingId = undefined;
-              await service.save();
+        // ✅ CANONICAL FORMAT: Release the booked staff member
+        if (booking.serviceId && booking.staffId) {
+          const serviceId = booking.serviceId;
+          const timeSlot = booking.timeSlot;
+          const mongoose = (await import("mongoose")).default;
+
+          // Atomic update: Set isBooked=false for the specific staff
+          await Service.updateOne(
+            {
+              _id: serviceId,
+              "timeSlots.date": timeSlot.date,
+              "timeSlots.startTime": timeSlot.startTime,
+              "timeSlots.endTime": timeSlot.endTime
+            },
+            {
+              $set: {
+                "timeSlots.$[slot].staffIds.$[staff].isBooked": false,
+                "timeSlots.$[slot].bookingId": null
+              }
+            },
+            {
+              arrayFilters: [
+                {
+                  "slot.date": timeSlot.date,
+                  "slot.startTime": timeSlot.startTime,
+                  "slot.endTime": timeSlot.endTime
+                },
+                {
+                  "staff.staffId": new mongoose.Types.ObjectId(booking.staffId)
+                }
+              ]
             }
+          );
+
+          // Trigger schema hook to recalculate slot.isBooked
+          const service = await Service.findById(serviceId);
+          if (service) {
+            await service.save(); // Hook recalculates isBooked = bookedStaff >= totalStaff
           }
+
+          console.log(`[Cancellation] Released staff ${booking.staffId} from slot`);
         }
       } else if (validatedData.status === "completed") {
         booking.paymentStatus = "fully_paid";
@@ -567,27 +602,45 @@ async function deleteBookingHandler(
       }
     }
 
-    // Free up the time slot in the service before deleting
-    const service = await Service.findById(booking.serviceId);
-    if (service) {
-      const timeSlot = service.timeSlots.find((ts: any) => {
-        const tsDate = new Date(ts.date);
-        tsDate.setHours(0, 0, 0, 0);
-        const bookingDate = new Date(booking.timeSlot.date);
-        bookingDate.setHours(0, 0, 0, 0);
-        return (
-          tsDate.getTime() === bookingDate.getTime() &&
-          ts.startTime === booking.timeSlot.startTime &&
-          ts.endTime === booking.timeSlot.endTime &&
-          String(ts.bookingId) === String(booking._id)
-        );
-      });
-      if (timeSlot) {
-        timeSlot.isBooked = false;
-        timeSlot.bookingId = undefined;
-        await service.save();
-        console.log(`[Delete Booking] Released time slot for service ${service._id}`);
+    // ✅ CANONICAL FORMAT: Release the booked staff member before deletion
+    if (booking.serviceId && booking.staffId) {
+      const mongoose = (await import("mongoose")).default;
+
+      // Atomic update: Set isBooked=false for the specific staff
+      await Service.updateOne(
+        {
+          _id: booking.serviceId,
+          "timeSlots.date": booking.timeSlot.date,
+          "timeSlots.startTime": booking.timeSlot.startTime,
+          "timeSlots.endTime": booking.timeSlot.endTime
+        },
+        {
+          $set: {
+            "timeSlots.$[slot].staffIds.$[staff].isBooked": false,
+            "timeSlots.$[slot].bookingId": null
+          }
+        },
+        {
+          arrayFilters: [
+            {
+              "slot.date": booking.timeSlot.date,
+              "slot.startTime": booking.timeSlot.startTime,
+              "slot.endTime": booking.timeSlot.endTime
+            },
+            {
+              "staff.staffId": new mongoose.Types.ObjectId(booking.staffId)
+            }
+          ]
+        }
+      );
+
+      // Trigger schema hook to recalculate slot.isBooked
+      const service = await Service.findById(booking.serviceId);
+      if (service) {
+        await service.save(); // Hook recalculates isBooked = bookedStaff >= totalStaff
       }
+
+      console.log(`[Delete Booking] Released staff ${booking.staffId} from slot for service ${booking.serviceId}`);
     }
 
     await Booking.findByIdAndDelete(params.id);

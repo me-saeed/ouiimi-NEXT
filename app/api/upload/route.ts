@@ -27,29 +27,41 @@ export const POST = async (req: NextRequest) => {
         const filename = `${Date.now()}-${originalName}`;
 
         // Ensure uploads directory exists
-        // Path: /public/uploads
+        // Path: /public/images (accessible as /images/filename.jpg)
         const relativeUploadDir = "/images";
-        const uploadDir = join(process.cwd(), "public", relativeUploadDir);
+        const uploadDir = join(process.cwd(), "public", "images");
+
+        console.log(`[Upload] Creating directory: ${uploadDir}`);
 
         try {
             await mkdir(uploadDir, { recursive: true });
-        } catch (e) {
-            console.error("Error creating upload directory:", e);
+            console.log(`[Upload] Directory created/verified: ${uploadDir}`);
+        } catch (mkdirError: any) {
+            console.error("[Upload] Error creating upload directory:", mkdirError);
+            console.error("[Upload] Directory path:", uploadDir);
+            console.error("[Upload] Error code:", mkdirError.code);
+            // Continue anyway - directory might already exist
         }
 
         const filePath = join(uploadDir, filename);
 
+        console.log(`[Upload] Writing file: ${filePath}`);
+
         // Write file
         await writeFile(filePath, buffer);
 
-        // Return public URL
+        console.log(`[Upload] File written successfully: ${filename}`);
+
+        // Return public URL (relative path that works in browser)
         const fileUrl = `${relativeUploadDir}/${filename}`;
 
         return NextResponse.json({ url: fileUrl, success: true });
-    } catch (error) {
-        console.error("Upload error:", error);
+    } catch (error: any) {
+        console.error("[Upload] Upload error:", error);
+        console.error("[Upload] Error message:", error.message);
+        console.error("[Upload] Error stack:", error.stack);
         return NextResponse.json(
-            { error: "Internal Server Error" },
+            { error: "Internal Server Error", details: error.message },
             { status: 500 }
         );
     }

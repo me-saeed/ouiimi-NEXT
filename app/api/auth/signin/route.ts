@@ -166,10 +166,26 @@ async function signinHandler(req: NextRequest) {
     });
 
     // =========================================================================
-    // STEP 8: Save token to user document
+    // STEP 7.5: Send welcome email on first signin
+    // =========================================================================
+    // If user hasn't logged in before (lastLoginDate is null), send welcome email
+    if (!user.lastLoginDate) {
+      try {
+        const { sendWelcomeEmail } = await import("@/lib/services/mailjet");
+        await sendWelcomeEmail(user.email, user.fname);
+        console.log(`[Signin] Welcome email sent to ${user.email}`);
+      } catch (emailError) {
+        console.error("[Signin] Error sending welcome email:", emailError);
+        // Don't fail signin if email fails
+      }
+    }
+
+    // =========================================================================
+    // STEP 8: Save token and update last login date
     // =========================================================================
     // Storing token in DB allows for token invalidation/logout
     user.token = token;
+    user.lastLoginDate = new Date();
     await user.save();
 
     // =========================================================================

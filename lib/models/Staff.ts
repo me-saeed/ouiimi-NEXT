@@ -92,9 +92,14 @@ const staffSchema = new Schema<IStaff>(
 // =============================================================================
 // INDEXES
 // =============================================================================
+// INDEXES - Speed up common queries
+// =============================================================================
 
-// For fetching active staff by business
+// For finding active staff by business (most common query)
 staffSchema.index({ businessId: 1, isActive: 1 });
+
+// For individual staff lookup
+staffSchema.index({ businessId: 1, _id: 1 });
 
 // =============================================================================
 // MODEL EXPORT

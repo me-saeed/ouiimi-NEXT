@@ -2,9 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/db";
 import Service from "@/lib/models/Service";
 import Staff from "@/lib/models/Staff";
+import Business from "@/lib/models/Business";
 import { serviceUpdateSchema } from "@/lib/validation";
 import { withRateLimitDynamic } from "@/lib/security/rate-limit";
 import mongoose from "mongoose";
+import { invalidateCache } from "@/lib/utils/cache"; // Cache invalidation
 
 export const dynamic = 'force-dynamic';
 
@@ -39,12 +41,13 @@ async function getServiceHandler(
     if (service.timeSlots && service.timeSlots.length > 0) {
       const Staff = (await import("@/lib/models/Staff")).default;
       const allStaffIds: string[] = [];
-      
+
       // Collect all staff IDs from all time slots
       service.timeSlots.forEach((ts: any) => {
         if (ts.staffIds && Array.isArray(ts.staffIds)) {
-          ts.staffIds.forEach((id: any) => {
-            const idStr = typeof id === 'object' ? String(id._id || id) : String(id);
+          ts.staffIds.forEach((staff: any) => {
+            // ✅ CANONICAL FORMAT: Extract staffId from {staffId, isBooked}
+            const idStr = String(staff.staffId);
             if (idStr && !allStaffIds.includes(idStr)) {
               allStaffIds.push(idStr);
             }
@@ -64,18 +67,25 @@ async function getServiceHandler(
           const staffMap = new Map();
           staffMembers.forEach((staff: any) => {
             staffMap.set(String(staff._id), {
-              id: String(staff._id),
               name: staff.name,
               photo: staff.photo,
             });
           });
 
-          // Replace staffIds with populated staff objects
+          // Replace staffIds with populated staff objects, preserving isBooked flag
           service.timeSlots.forEach((ts: any) => {
             if (ts.staffIds && Array.isArray(ts.staffIds)) {
-              (ts as any).staffIds = ts.staffIds.map((id: any) => {
-                const idStr = typeof id === 'object' ? String(id._id || id) : String(id);
-                return staffMap.get(idStr) || id;
+              (ts as any).staffIds = ts.staffIds.map((staff: any) => {
+                // ✅ CANONICAL FORMAT: staff = {staffId, isBooked}
+                const idStr = String(staff.staffId);
+                const populatedData = staffMap.get(idStr);
+
+                // Return complete staff object with all fields
+                return {
+                  staffId: staff.staffId,  // Keep the ObjectId
+                  isBooked: staff.isBooked,  // Preserve booking status
+                  ...(populatedData || {})  // Add name and photo if found
+                };
               });
             }
           });
@@ -86,14 +96,14 @@ async function getServiceHandler(
       }
     }
 
-        // Filter available time slots (not booked and date is in the future)
-        const now = new Date();
-        now.setHours(0, 0, 0, 0);
-        const availableTimeSlots = (service.timeSlots || []).filter((ts: any) => {
-          const slotDate = new Date(ts.date);
-          slotDate.setHours(0, 0, 0, 0);
-          return !ts.isBooked && slotDate >= now;
-        });
+    // Filter available time slots (not booked and date is in the future)
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+    const availableTimeSlots = (service.timeSlots || []).filter((ts: any) => {
+      const slotDate = new Date(ts.date);
+      slotDate.setHours(0, 0, 0, 0);
+      return !ts.isBooked && slotDate >= now;
+    });
 
     // Type-safe businessId handling
     let businessIdData: any;
@@ -123,11 +133,11 @@ async function getServiceHandler(
           subCategory: service.subCategory,
           serviceName: service.serviceName,
           description: service.description,
-          address: typeof service.address === 'object' && service.address?.street 
-            ? service.address.street 
+          address: typeof service.address === 'object' && service.address?.street
+            ? service.address.street
             : (typeof service.address === 'string' ? service.address : ""),
-          addressLocation: typeof service.address === 'object' && service.address?.location 
-            ? service.address.location 
+          addressLocation: typeof service.address === 'object' && service.address?.location
+            ? service.address.location
             : null,
           addOns: service.addOns || [],
           timeSlots: availableTimeSlots.map((ts: any) => ({
@@ -137,6 +147,7 @@ async function getServiceHandler(
             price: ts.price,
             duration: ts.duration,
             isBooked: ts.isBooked,
+            // Populated format: [{staffId, isBooked, name?, photo?}]
             staffIds: ts.staffIds || [],
           })),
           status: service.status,
@@ -177,36 +188,65 @@ async function updateServiceHandler(
     const calculateDuration = (startTime: string, endTime: string): number => {
       const [startHours, startMinutes] = startTime.split(":").map(Number);
       const [endHours, endMinutes] = endTime.split(":").map(Number);
-      
+
       const startTotalMinutes = startHours * 60 + startMinutes;
       const endTotalMinutes = endHours * 60 + endMinutes;
-      
+
       // Handle case where end time is next day (e.g., 23:00 to 01:00)
       let duration = endTotalMinutes - startTotalMinutes;
       if (duration < 0) {
         duration += 24 * 60; // Add 24 hours
       }
-      
+
       return duration;
     };
 
     // Handle timeSlots update separately if provided
     if (body.timeSlots && Array.isArray(body.timeSlots)) {
-      service.timeSlots = body.timeSlots.map((slot: any) => {
-        // Calculate duration from start and end time
-        const duration = slot.duration || calculateDuration(slot.startTime, slot.endTime);
-        
+      const updatedTimeSlots = body.timeSlots.map((slot: any) => {
+        // Handle existing slots that might have bookings
+        const existingSlot = service.timeSlots.find((s: any) => {
+          const slotDate = new Date(s.date);
+          slotDate.setHours(0, 0, 0, 0);
+          const newSlotDate = new Date(slot.date);
+          newSlotDate.setHours(0, 0, 0, 0);
+          return slotDate.getTime() === newSlotDate.getTime() &&
+            s.startTime === slot.startTime &&
+            s.endTime === slot.endTime;
+        });
+
         return {
-        date: new Date(slot.date),
-        startTime: slot.startTime,
-        endTime: slot.endTime,
-          price: slot.price, // Required price for this time slot
-          duration, // Computed duration in minutes
-        staffIds: slot.staffIds ? slot.staffIds.map((id: string) => new mongoose.Types.ObjectId(id)) : [],
-        isBooked: slot.isBooked || false,
-        bookingId: slot.bookingId || null,
+          date: new Date(slot.date),
+          startTime: slot.startTime,
+          endTime: slot.endTime,
+          price: slot.price || 0,
+          duration: slot.duration || 60,
+          // ✅ CANONICAL FORMAT: Convert string IDs to {staffId, isBooked}
+          staffIds: slot.staffIds
+            ? slot.staffIds.map((staffIdInput: any) => {
+              // Frontend sends array of string IDs
+              const staffId = typeof staffIdInput === 'string'
+                ? staffIdInput
+                : staffIdInput.staffId || staffIdInput;
+
+              // Preserve isBooked status if this staff was already booked
+              const wasBooked = existingSlot?.staffIds?.find((s: any) =>
+                s.staffId?.toString() === staffId.toString() && s.isBooked
+              );
+
+              return {
+                staffId: new mongoose.Types.ObjectId(staffId),
+                isBooked: wasBooked ? true : false
+              };
+            })
+            : [],
+          addOns: slot.addOns || [],
+          isBooked: existingSlot?.isBooked || false,
+          bookingId: existingSlot?.bookingId || undefined
         };
       });
+
+      service.timeSlots = updatedTimeSlots;
     }
 
     // Update other fields (excluding duration which is computed)
@@ -216,7 +256,7 @@ async function updateServiceHandler(
       delete fieldsToUpdate.duration;
     }
     Object.assign(service, fieldsToUpdate);
-    
+
     // Handle address update if provided
     if (validatedData.address) {
       service.address = {
@@ -227,6 +267,7 @@ async function updateServiceHandler(
         },
       };
     }
+
     await service.save();
 
     // Verify service was saved
@@ -302,7 +343,7 @@ async function deleteServiceHandler(
     // Only prevent deletion if there are future bookings that are confirmed or pending
     const Booking = (await import("@/lib/models/Booking")).default;
     const now = new Date();
-    
+
     const activeBookings = await Booking.find({
       serviceId: new mongoose.Types.ObjectId(params.id),
       status: { $in: ["confirmed", "pending"] }, // Only check confirmed/pending bookings

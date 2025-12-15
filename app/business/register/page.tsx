@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AddressAutocomplete } from "@/components/ui/address-autocomplete";
 import { AuthModal } from "@/components/ui/auth-modal";
+import { retryWithBackoff, isNetworkError, formatRetryMessage } from "@/lib/utils/retry";
 import {
   Card,
   CardContent,
@@ -24,6 +25,9 @@ export default function BusinessRegisterPage() {
   const [error, setError] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
+  const [retryMessage, setRetryMessage] = useState("");
+  const [canRetry, setCanRetry] = useState(false);
 
   const {
     register,
@@ -180,66 +184,67 @@ export default function BusinessRegisterPage() {
         return;
       }
 
-      // Make the API call
-      const response = await fetch("/api/business/create", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
+      // Reset retry state
+      setRetryCount(0);
+      setRetryMessage("");
+      setCanRetry(false);
+
+      // Wrap API call with retry logic
+      const { result } = await retryWithBackoff(
+        async () => {
+          const res = await fetch("/api/business/create", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify(requestBody),
+          });
+
+          //Parse response
+          let result;
+          try {
+            result = await res.json();
+          } catch (jsonError) {
+            console.error("Error parsing response JSON:", jsonError);
+            throw new Error("Invalid response from server");
+          }
+
+          // Check for HTTP errors
+          if (!res.ok) {
+            const error: any = new Error(result.error || result.message || "Failed to create business account");
+            error.status = res.status;
+            error.info = result;
+            throw error;
+          }
+
+          return { response: res, result };
         },
-        body: JSON.stringify(requestBody),
-      }).catch((fetchError) => {
-        console.error("Fetch error:", fetchError);
-        throw new Error("Network error. Please check your connection and try again.");
-      });
-
-      console.log("Response status:", response.status);
-      console.log("Response ok:", response.ok);
-
-      let result;
-      try {
-        result = await response.json();
-        console.log("Business registration response:", result);
-      } catch (jsonError) {
-        console.error("Error parsing response JSON:", jsonError);
-        const text = await response.text();
-        console.error("Response text:", text);
-        setError("Invalid response from server. Please try again.");
-        setIsLoading(false);
-        return;
-      }
-
-      if (!response.ok) {
-        let errorMsg = "Failed to create business account";
-
-        if (result.error) {
-          errorMsg = result.error;
-        } else if (result.details) {
-          errorMsg = typeof result.details === 'string'
-            ? result.details
-            : JSON.stringify(result.details);
-        } else if (result.message) {
-          errorMsg = result.message;
+        {
+          maxRetries: 3,
+          initialDelay: 1000,
+          maxDelay: 10000,
+          onRetry: (attempt, error, delay) => {
+            setRetryCount(attempt);
+            const message = formatRetryMessage(attempt, 3, delay);
+            setRetryMessage(message);
+            console.log(`[Registration] ${message}`, error);
+          },
+          shouldRetry: (error) => {
+            // Only retry network errors or 5xx errors
+            const shouldRetry = isNetworkError(error);
+            if (!shouldRetry) {
+              console.log("[Registration] Not retrying error:", error.status, error.message);
+            }
+            return shouldRetry;
+          },
         }
-
-        console.error("Business registration failed:", errorMsg);
-
-        // If business already exists, redirect to dashboard instead of showing error
-        if (result.error && result.error.includes("already have a business")) {
-          setError("");
-          setIsLoading(false);
-          alert("You already have a business registered. Redirecting to dashboard...");
-          router.push("/business/dashboard");
-          return;
-        }
-
-        setError(errorMsg);
-        setIsLoading(false);
-        return;
-      }
+      );
 
       console.log("Business created successfully:", result);
       setError(""); // Clear any previous errors
+      setRetryMessage("");
+      setRetryCount(0);
       setIsLoading(false);
 
       // Show success message
@@ -251,7 +256,28 @@ export default function BusinessRegisterPage() {
     } catch (err: any) {
       console.error("Business registration error:", err);
       console.error("Error stack:", err.stack);
-      setError(err.message || "Something went wrong. Please try again.");
+
+      // Handle special case: business already exists
+      if (err.info?.error?.includes("already have a business")) {
+        setError("");
+        setIsLoading(false);
+        setRetryMessage("");
+        alert("You already have a business registered. Redirecting to dashboard...");
+        router.push("/business/dashboard");
+        return;
+      }
+
+      // Check if this is a network error that could be retried
+      if (isNetworkError(err)) {
+        setError(err.message || "Network error occurred. Please check your connection.");
+        setCanRetry(true); // Show retry button
+      } else {
+        // Validation error or other non-retryable error
+        setError(err.message || "Failed to register business. Please check your information.");
+        setCanRetry(false);
+      }
+
+      setRetryMessage("");
       setIsLoading(false);
     }
   };
@@ -294,6 +320,25 @@ export default function BusinessRegisterPage() {
                   </Alert>
                 )}
 
+                {retryMessage && (
+                  <Alert className="mb-8">
+                    <AlertDescription className="flex items-center gap-2">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+                      {retryMessage}
+                    </AlertDescription>
+                  </Alert>
+                )}
+
+                {canRetry && !isLoading && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => handleSubmit(onSubmit)()}
+                    className="w-full mb-8"
+                  >
+                    🔄 Retry Registration
+                  </Button>
+                )}
                 <form
                   onSubmit={handleSubmit(
                     async (data) => {

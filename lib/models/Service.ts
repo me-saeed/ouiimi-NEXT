@@ -43,10 +43,18 @@ export interface ITimeSlot {
   endTime: string;                         // End time in 24h format (e.g., "10:00")
   price: number;                           // Price for this slot (can vary by time/day)
   duration: number;                        // Duration in minutes (computed from start/end)
-  staffIds: mongoose.Types.ObjectId[];     // Staff members assigned to this slot
-  addOns?: IAddOn[];                       // specific add-ons for this slot
-  isBooked: boolean;                       // TRUE when slot is reserved
-  bookingId?: mongoose.Types.ObjectId;     // Reference to the Booking if booked
+
+  // Staff with booking status - SINGLE SOURCE OF TRUTH
+  staffIds: Array<{
+    staffId: mongoose.Types.ObjectId;
+    isBooked: boolean;                     // true = this staff is booked for this slot
+  }>;
+
+  addOns?: IAddOn[];                       // Optional add-ons for this slot
+
+  // Slot-level fields
+  isBooked: boolean;                       // TRUE when ALL staff are booked (auto-calculated)
+  bookingId?: mongoose.Types.ObjectId;     // Last booking ID (for reference)
 }
 
 /**
@@ -113,8 +121,19 @@ const timeSlotSchema = new Schema<ITimeSlot>(
     endTime: { type: String, required: true },
     price: { type: Number, required: true, min: 0 },
     duration: { type: Number, required: true, min: 0 },
-    staffIds: [{ type: Schema.Types.ObjectId, ref: "Staff" }],
+
+    // Staff with booking status (SINGLE SOURCE OF TRUTH)
+    staffIds: {
+      type: [{
+        staffId: { type: Schema.Types.ObjectId, ref: "Staff", required: true },
+        isBooked: { type: Boolean, default: false }
+      }],
+      default: []
+    },
+
     addOns: { type: [addOnSchema], default: [] },
+
+    // Slot-level fields
     isBooked: { type: Boolean, default: false },
     bookingId: { type: Schema.Types.ObjectId, ref: "Booking", default: null },
   },
@@ -240,6 +259,25 @@ serviceSchema.index({ status: 1 });
 // 2dsphere index enables geospatial queries like "find services within 15km"
 // This is REQUIRED for $geoNear aggregation to work
 serviceSchema.index({ "address.location": "2dsphere" });
+
+// =============================================================================
+// MIDDLEWARE: Pre-save hook to auto-calculate isBooked status
+// =============================================================================
+serviceSchema.pre('save', function (next) {
+  if (this.timeSlots && this.timeSlots.length > 0) {
+    this.timeSlots.forEach((slot: any) => {
+      // Auto-calculate slot.isBooked from staff flags
+      if (slot.staffIds && slot.staffIds.length > 0) {
+        const totalStaff = slot.staffIds.length;
+        const bookedStaff = slot.staffIds.filter((s: any) => s.isBooked).length;
+        slot.isBooked = bookedStaff >= totalStaff;
+      } else {
+        slot.isBooked = false;
+      }
+    });
+  }
+  next();
+});
 
 // =============================================================================
 // MODEL EXPORT

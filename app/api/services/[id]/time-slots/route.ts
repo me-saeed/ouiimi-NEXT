@@ -31,16 +31,23 @@ async function updateTimeSlotsHandler(
       );
     }
 
+    // Map time slots to the correct format
     const newTimeSlots = validatedData.timeSlots.map((slot) => ({
       date: new Date(slot.date),
       startTime: slot.startTime,
       endTime: slot.endTime,
-      price: slot.price || 0, // Price from time slot
-      duration: slot.duration || 0, // Duration in minutes
+      price: slot.price,
+      duration: slot.duration || 60,
+      // ✅ NEW: Map staff IDs to new structure with isBooked flags
       staffIds: slot.staffIds
-        ? slot.staffIds.map((id) => new mongoose.Types.ObjectId(id))
+        ? slot.staffIds.map((id) => ({
+          staffId: new mongoose.Types.ObjectId(id),
+          isBooked: false  // All staff start as available
+        }))
         : [],
+      addOns: slot.addOns || [],
       isBooked: false,
+      bookingId: undefined
     }));
 
     service.timeSlots = [...service.timeSlots, ...newTimeSlots];

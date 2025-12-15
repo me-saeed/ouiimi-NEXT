@@ -53,6 +53,7 @@ export interface IUser extends Document {
   verify: string;             // "yes" or "no" - email verified
   counterId: number;          // Unique counter ID
   date: Date;                 // Registration date
+  lastLoginDate?: Date;       // Last login timestamp (for welcome email tracking)
   oauthProvider?: string;     // OAuth provider (e.g., "google", "facebook")
   oauthId?: string;           // OAuth provider's user ID
   location?: {
@@ -117,6 +118,9 @@ const userSchema = new Schema<IUser>(
 
     // Registration timestamp
     date: { type: Date, default: Date.now },
+
+    // Last login timestamp (for welcome email on first signin)
+    lastLoginDate: { type: Date, default: null },
 
     // OAuth fields for Google/Facebook login
     oauthProvider: { type: String },  // "google" or "facebook"

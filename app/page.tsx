@@ -12,6 +12,7 @@ import { useAuth } from "@/lib/contexts/AuthContext";
 
 const SERVICE_CATEGORIES = [
   "Hair Services",
+  "Skin & Facials",
   "Nails",
   "Beauty & Brows",
   "Massage & Wellness",
@@ -69,11 +70,21 @@ export default function HomePage() {
 
             if (response.ok) {
               const data = await response.json();
+              console.log(`[Homepage] ${category} - API returned:`, data.services?.length || 0, 'services');
+              if (data.services && data.services.length > 0) {
+                console.log(`[Homepage] ${category} - First service:`, {
+                  name: data.services[0].serviceName,
+                  hasTimeSlots: !!data.services[0].timeSlots,
+                  timeSlotsCount: data.services[0].timeSlots?.length || 0,
+                  firstSlot: data.services[0].timeSlots?.[0] || null
+                });
+              }
               // Services already filtered for available slots by API
               servicesData[category] = data.services || [];
               // Use pagination total from API
               countsData[category] = data.pagination?.total || data.services?.length || 0;
             } else {
+              console.error(`[Homepage] ${category} - API error:`, response.status);
               servicesData[category] = [];
               countsData[category] = 0;
             }
@@ -240,6 +251,16 @@ export default function HomePage() {
               if (isLoading) return null; // Or skeleton
               if (categoryServices.length === 0) return null;
 
+              // Filter services with available time slots
+              const filteredServices = categoryServices.filter(service => getEarliestAvailableTimeSlot(service) !== null);
+
+              console.log(`[Homepage] ${category} - After client filter:`, filteredServices.length, 'of', categoryServices.length);
+
+              if (filteredServices.length === 0) {
+                console.warn(`[Homepage] ${category} - All services filtered out by client-side filter`);
+                return null;
+              }
+
               return (
                 <div key={category}>
                   <div className="flex items-center justify-between mb-4 sm:mb-6">
@@ -249,8 +270,7 @@ export default function HomePage() {
                   {/* Horizontal Scroll Container */}
                   <div className="relative">
                     <div className="flex gap-4 overflow-x-auto scrollbar-hide pb-4 -mx-4 px-4 sm:mx-0 sm:px-0">
-                      {categoryServices
-                        .filter(service => getEarliestAvailableTimeSlot(service) !== null)
+                      {filteredServices
                         .slice(0, 6)
                         .map((service) => (
                           <div key={service.id} className="min-w-[300px] sm:min-w-[320px] flex-shrink-0">

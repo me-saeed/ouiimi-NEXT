@@ -212,7 +212,18 @@ function BookingForm({ service, business, user }: { service: any; business: any;
         const slotDate = new Date(slot.date);
         if (isNaN(slotDate.getTime())) return false;
         const slotDateStr = slotDate.toISOString().split('T')[0];
-        return slotDateStr === selectedDate;
+
+        // Only include slots for the selected date
+        if (slotDateStr !== selectedDate) return false;
+
+        // Check if the time slot has already passed
+        const now = new Date();
+        const slotDateTime = new Date(slot.date);
+        const [hours, minutes] = slot.startTime.split(':').map(Number);
+        slotDateTime.setHours(hours, minutes, 0, 0);
+
+        // Only show time slots that haven't started yet
+        return slotDateTime > now;
       } catch (e) {
         console.error("Error parsing slot date:", e, slot);
         return false;
@@ -220,12 +231,19 @@ function BookingForm({ service, business, user }: { service: any; business: any;
     })
     : [];
 
-  const availableStaff = selectedTimeSlot
-    ? (selectedTimeSlot.staffIds || []).map((staff: any) => ({
-      id: typeof staff === 'object' ? staff._id || staff.id : staff,
-      name: typeof staff === 'object' ? staff.name : "Staff",
-    }))
-    : [];
+
+
+  // ✅ CANONICAL FORMAT: staffIds = [{staffId, isBooked, name?, photo?}]
+  // Filter to show only available (not booked) staff
+  const availableStaff = selectedTimeSlot?.staffIds
+    ?.filter((staff: any) => !staff.isBooked)
+    ?.map((staff: any) => ({
+      id: staff.staffId.toString(),
+      name: staff.name || "Staff"
+    })) || [];
+
+
+
 
   // Check staff busy status when date and time slot are selected
   useEffect(() => {

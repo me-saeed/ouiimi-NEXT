@@ -486,8 +486,12 @@ export default function CreateServicePage() {
       staffIds: [],
     });
     setDuration(60); // Reset to default 60
+    setSelectedAddOns([]); // Reset add-ons
     setError("");
-    setError("");
+
+    // Close the time slot form modal
+    setShowTimeSlotForm(false);
+
     toast({
       variant: "success",
       title: "Time slot added!",

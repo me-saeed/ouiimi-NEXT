@@ -109,10 +109,13 @@ async function createBookingHandler(req: NextRequest) {
     console.log("[Booking API] Time conversion - Original:", validatedData.timeSlot.startTime, "->", bookingStartTime);
     console.log("[Booking API] Time conversion - Original:", validatedData.timeSlot.endTime, "->", bookingEndTime);
 
-    // Check if staff is already booked at this time (across ALL services)
-    if (validatedData.staffId) {
-      const staffId = new mongoose.Types.ObjectId(validatedData.staffId);
+    // Declare staffId at function scope for later use
+    const staffId = validatedData.staffId
+      ? new mongoose.Types.ObjectId(validatedData.staffId)
+      : null;
 
+    // Check if staff is already booked at this time (across ALL services)
+    if (staffId) {
       // Create date range for the booking day
       const bookingDayStart = new Date(bookingDate);
       bookingDayStart.setHours(0, 0, 0, 0);
@@ -251,61 +254,160 @@ async function createBookingHandler(req: NextRequest) {
 
     const bookingId = new mongoose.Types.ObjectId();
 
-    console.log("[Booking API] Attempting atomic update with:", {
+    console.log("[Booking API] Attempting atomic update - marking staff as booked");
+    console.log("[Booking API] Looking for:", {
       serviceId: validatedData.serviceId,
       date: bookingDate,
       startTime: bookingStartTime,
-      endTime: bookingEndTime
+      endTime: bookingEndTime,
+      staffId: staffId?.toString()
     });
 
-    const updatedService = await Service.findOneAndUpdate(
-      {
-        _id: new mongoose.Types.ObjectId(validatedData.serviceId),
-        timeSlots: {
-          $elemMatch: {
-            date: bookingDate,
-            startTime: bookingStartTime,
-            endTime: bookingEndTime,
-            isBooked: false // CRITICAL: Only update if currently free
+    // First, let's check what the service actually has
+    const serviceCheck = await Service.findById(validatedData.serviceId);
+    if (serviceCheck) {
+      const matchingSlot = serviceCheck.timeSlots.find((slot: any) => {
+        const slotDate = new Date(slot.date);
+        slotDate.setHours(0, 0, 0, 0);
+        const bookingDateObj = new Date(bookingDate);
+        bookingDateObj.setHours(0, 0, 0, 0);
+        return slotDate.getTime() === bookingDateObj.getTime() &&
+          slot.startTime === bookingStartTime &&
+          slot.endTime === bookingEndTime;
+      });
+
+      if (matchingSlot) {
+        console.log("[Booking API] Found matching slot:", {
+          date: matchingSlot.date,
+          startTime: matchingSlot.startTime,
+          endTime: matchingSlot.endTime,
+          isBooked: matchingSlot.isBooked,
+          staffIds: matchingSlot.staffIds,
+          staffIdsType: Array.isArray(matchingSlot.staffIds) ?
+            (matchingSlot.staffIds.length > 0 ? typeof matchingSlot.staffIds[0] : 'empty array') :
+            'not an array'
+        });
+      } else {
+        console.error("[Booking API] No matching slot found in service!");
+        return NextResponse.json(
+          { error: "Time slot not found in service" },
+          { status: 404 }
+        );
+      }
+    }
+
+    // ✅ CANONICAL FORMAT ONLY: staffIds = [{staffId: ObjectId, isBooked: boolean}]
+    let updatedService = null;
+
+    if (staffId) {
+      updatedService = await Service.findOneAndUpdate(
+        {
+          _id: new mongoose.Types.ObjectId(validatedData.serviceId),
+          timeSlots: {
+            $elemMatch: {
+              date: bookingDate,
+              startTime: bookingStartTime,
+              endTime: bookingEndTime,
+              staffIds: {
+                $elemMatch: {
+                  staffId: staffId,
+                  isBooked: false
+                }
+              }
+            }
           }
+        },
+        {
+          $set: {
+            "timeSlots.$[slot].staffIds.$[staff].isBooked": true,
+            "timeSlots.$[slot].bookingId": bookingId
+          }
+        },
+        {
+          new: true,
+          arrayFilters: [
+            {
+              "slot.date": bookingDate,
+              "slot.startTime": bookingStartTime,
+              "slot.endTime": bookingEndTime
+            },
+            {
+              "staff.staffId": staffId
+            }
+          ]
         }
-      },
-      {
-        $set: {
-          "timeSlots.$.isBooked": true,
-          "timeSlots.$.bookingId": bookingId
+      );
+    } else {
+      // No staff selected - just mark the slot as booked
+      updatedService = await Service.findOneAndUpdate(
+        {
+          _id: new mongoose.Types.ObjectId(validatedData.serviceId),
+          timeSlots: {
+            $elemMatch: {
+              date: bookingDate,
+              startTime: bookingStartTime,
+              endTime: bookingEndTime,
+              isBooked: false
+            }
+          }
+        },
+        {
+          $set: {
+            "timeSlots.$.isBooked": true,
+            "timeSlots.$.bookingId": bookingId
+          }
+        },
+        {
+          new: true
         }
-      },
-      { new: true }
-    );
+      );
+    }
 
     if (!updatedService) {
-      console.error("[Booking API] Atomic update failed - Checking why...");
-      // Check if slot exists but is already booked
-      const serviceCheck = await Service.findById(validatedData.serviceId);
-      if (serviceCheck) {
-        const slotCheck = serviceCheck.timeSlots.find((slot: any) => {
-          const slotDate = new Date(slot.date);
-          slotDate.setHours(0, 0, 0, 0);
-          return slotDate.getTime() === bookingDateTimestamp &&
-            slot.startTime === bookingStartTime &&
-            slot.endTime === bookingEndTime;
-        });
-
-        if (slotCheck) {
-          console.error("[Booking API] Slot found but isBooked:", slotCheck.isBooked);
-        } else {
-          console.error("[Booking API] Slot not found in database at all");
-        }
-      }
-
+      console.error("[Booking API] Atomic update failed - staff may already be booked or slot doesn't exist");
       return NextResponse.json(
-        { error: "This time slot is no longer available. Please select another time." },
+        { error: "This staff member is not available for the selected time slot" },
         { status: 409 }
       );
     }
 
-    console.log("Atomic slot reservation successful");
+    console.log("[Booking API] ✅ Staff booking flag updated successfully");
+
+    // Get the updated slot to check if ALL staff are now booked
+    const bookedSlot = updatedService.timeSlots.find((slot: any) => {
+      const slotDate = new Date(slot.date);
+      slotDate.setHours(0, 0, 0, 0);
+      return slotDate.getTime() === bookingDateTimestamp &&
+        slot.startTime === bookingStartTime &&
+        slot.endTime === bookingEndTime;
+    });
+
+    if (bookedSlot) {
+      const totalStaff = bookedSlot.staffIds?.length || 0;
+      const bookedStaff = bookedSlot.staffIds?.filter((s: any) => s.isBooked).length || 0;
+      const allStaffBooked = bookedStaff >= totalStaff;
+
+      console.log(`[Booking API] Staff booking status: ${bookedStaff}/${totalStaff} staff now booked`);
+
+      // Update the slot's isBooked flag
+      if (allStaffBooked) {
+        await Service.updateOne(
+          {
+            _id: validatedData.serviceId,
+            "timeSlots.date": bookingDate,
+            "timeSlots.startTime": bookingStartTime,
+            "timeSlots.endTime": bookingEndTime
+          },
+          {
+            $set: { "timeSlots.$.isBooked": true }
+          }
+        );
+        console.log("[Booking API] ✅ All staff booked - slot marked as FULLY BOOKED");
+      } else {
+        console.log(`[Booking API] ✅ Partial booking - ${bookedStaff}/${totalStaff} staff booked, SLOT REMAINS VISIBLE`);
+      }
+    }
+
 
     // Generate sequential booking number starting from 5000
     const lastBooking = await Booking.findOne().sort({ bookingNumber: -1 }).select('bookingNumber');
@@ -532,26 +634,31 @@ async function getBookingsHandler(req: NextRequest) {
     const userId = searchParams.get("userId");
     const status = searchParams.get("status");
 
-    console.log("Query params:", { businessId, userId, status });
+    // Pagination parameters
+    const limit = Math.min(parseInt(searchParams.get("limit") || "20"), 100); // Max 100 per page
+    const page = Math.max(parseInt(searchParams.get("page") || "1"), 1);
+    const skip = (page - 1) * limit;
 
-    const filter: any = {};
+    console.log("Query params:", { businessId, userId, status, limit, page, skip });
+
+    const query: any = {}; // Renamed from 'filter' to 'query'
     if (businessId) {
       const mongoose = (await import("mongoose")).default;
-      filter.businessId = mongoose.Types.ObjectId.isValid(businessId)
+      query.businessId = mongoose.Types.ObjectId.isValid(businessId)
         ? new mongoose.Types.ObjectId(businessId)
         : businessId;
     }
     if (userId) {
       const mongoose = (await import("mongoose")).default;
-      filter.userId = mongoose.Types.ObjectId.isValid(userId)
+      query.userId = mongoose.Types.ObjectId.isValid(userId)
         ? new mongoose.Types.ObjectId(userId)
         : userId;
     }
     if (status) {
-      filter.status = status;
+      query.status = status;
     }
 
-    console.log("Fetching bookings with filter:", filter);
+    console.log("Fetching bookings with query:", query);
 
     // Ensure all models are registered before populate
     const mongoose = (await import("mongoose")).default;
@@ -569,47 +676,50 @@ async function getBookingsHandler(req: NextRequest) {
       await import("@/lib/models/Staff");
     }
 
-    const bookings = await Booking.find(filter)
+    const bookings = await Booking.find(query)
       .populate("userId", "fname lname email contactNo")
       .populate("businessId", "businessName logo address email phone")
       .populate("serviceId", "serviceName category")
       .populate("staffId", "name photo")
-      .sort({ "timeSlot.date": 1, "timeSlot.startTime": 1 })
-      .lean();
+      .sort({ createdAt: -1 }) // Changed sorting to createdAt descending
+      .limit(limit)
+      .skip(skip)
+      .lean(); // 30% performance improvement
 
-    console.log("Found bookings:", bookings.length);
+    // Get total count for pagination
+    const total = await Booking.countDocuments(query);
+
+    console.log("Found bookings:", bookings.length, "Total:", total);
 
     return NextResponse.json(
       {
         bookings: bookings.map((b: any) => ({
-          id: b._id?.toString() || b._id,
-          _id: b._id?.toString() || b._id,
-          userId: (b.userId && typeof b.userId === 'object') ? {
-            id: b.userId._id?.toString(),
+          id: String(b._id),
+          userId: typeof b.userId === 'object' && b.userId !== null ? {
+            id: String(b.userId._id),
             fname: b.userId.fname,
             lname: b.userId.lname,
             email: b.userId.email,
             contactNo: b.userId.contactNo,
-          } : b.userId?.toString() || null,
-          businessId: (b.businessId && typeof b.businessId === 'object') ? {
-            id: b.businessId._id?.toString(),
+          } : (b.userId ? String(b.userId) : null),
+          businessId: typeof b.businessId === 'object' && b.businessId !== null ? {
+            id: String(b.businessId._id),
             businessName: b.businessId.businessName,
             logo: b.businessId.logo,
             address: b.businessId.address,
             email: b.businessId.email,
             phone: b.businessId.phone,
-          } : b.businessId?.toString() || null,
-          serviceId: (b.serviceId && typeof b.serviceId === 'object') ? {
-            id: b.serviceId._id?.toString(),
+          } : (b.businessId ? String(b.businessId) : null),
+          serviceId: typeof b.serviceId === 'object' && b.serviceId !== null ? {
+            id: String(b.serviceId._id),
             serviceName: b.serviceId.serviceName,
             category: b.serviceId.category,
-            baseCost: 0, // Price is now in time slots
-          } : b.serviceId?.toString() || null,
-          staffId: b.staffId ? (typeof b.staffId === 'object' ? {
-            id: b.staffId._id?.toString(),
+          } : (b.serviceId ? String(b.serviceId) : null),
+          staffId: (typeof b.staffId === 'object' && b.staffId !== null ? {
+            id: String(b.staffId._id),
             name: b.staffId.name,
             photo: b.staffId.photo,
-          } : b.staffId.toString()) : null,
+          } : (b.staffId ? String(b.staffId) : null)),
           bookingNumber: b.bookingNumber || null, // Fallback for old bookings without bookingNumber
           timeSlot: b.timeSlot,
           addOns: b.addOns || [],
@@ -628,6 +738,13 @@ async function getBookingsHandler(req: NextRequest) {
           createdAt: b.createdAt,
           updatedAt: b.updatedAt,
         })),
+        pagination: {
+          total,
+          page,
+          limit,
+          pages: Math.ceil(total / limit),
+          hasMore: skip + bookings.length < total,
+        },
       },
       { status: 200 }
     );

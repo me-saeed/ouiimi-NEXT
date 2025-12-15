@@ -81,8 +81,12 @@ async function createServiceHandler(req: NextRequest) {
         endTime: slot.endTime,
         price: slot.price, // Required price for this time slot
         duration, // Computed duration in minutes
+        // ✅ FIXED: Store staffIds as {staffId, isBooked} objects
         staffIds: slot.staffIds
-          ? slot.staffIds.map((id: any) => new mongoose.Types.ObjectId(id))
+          ? slot.staffIds.map((id: any) => ({
+            staffId: new mongoose.Types.ObjectId(id),
+            isBooked: false // New slots start as not booked
+          }))
           : [],
         addOns: slot.addOns || [], // Persist add-ons per slot
         isBooked: false,
@@ -414,10 +418,26 @@ async function getServicesHandler(req: NextRequest) {
               as: "slot",
               cond: {
                 $and: [
-                  { $eq: ["$$slot.isBooked", false] },
-                  // Date filtering
+                  // ✅ CANONICAL FORMAT: staffIds = [{staffId, isBooked}]
+                  // Check if slot has AT LEAST ONE staff with isBooked=false
+                  {
+                    $gt: [
+                      {
+                        $size: {
+                          $filter: {
+                            input: "$$slot.staffIds",
+                            as: "staff",
+                            cond: { $eq: ["$$staff.isBooked", false] }
+                          }
+                        }
+                      },
+                      0
+                    ]
+                  },
+                  // Date filtering with TIME check (not just date)
                   filterDateObj
                     ? {
+                      // For specific date filter, just check date match
                       $eq: [
                         {
                           $dateToString: {
@@ -434,17 +454,75 @@ async function getServicesHandler(req: NextRequest) {
                       ],
                     }
                     : {
-                      $gte: [
-                        "$$slot.date",
+                      // For general listing, filter by date+time to exclude past slots
+                      $or: [
+                        // Future dates (after today)
                         {
-                          $dateFromString: {
-                            dateString: {
+                          $gt: [
+                            {
+                              $dateToString: {
+                                format: "%Y-%m-%d",
+                                date: "$$slot.date",
+                              },
+                            },
+                            {
                               $dateToString: {
                                 format: "%Y-%m-%d",
                                 date: now,
                               },
                             },
-                          },
+                          ],
+                        },
+                        // Today's date but check time hasn't passed
+                        {
+                          $and: [
+                            // Same date as today
+                            {
+                              $eq: [
+                                {
+                                  $dateToString: {
+                                    format: "%Y-%m-%d",
+                                    date: "$$slot.date",
+                                  },
+                                },
+                                {
+                                  $dateToString: {
+                                    format: "%Y-%m-%d",
+                                    date: now,
+                                  },
+                                },
+                              ],
+                            },
+                            // Time hasn't passed yet - construct datetime and compare
+                            {
+                              $gt: [
+                                {
+                                  $dateFromParts: {
+                                    year: { $year: "$$slot.date" },
+                                    month: { $month: "$$slot.date" },
+                                    day: { $dayOfMonth: "$$slot.date" },
+                                    hour: {
+                                      $toInt: {
+                                        $arrayElemAt: [
+                                          { $split: ["$$slot.startTime", ":"] },
+                                          0,
+                                        ],
+                                      },
+                                    },
+                                    minute: {
+                                      $toInt: {
+                                        $arrayElemAt: [
+                                          { $split: ["$$slot.startTime", ":"] },
+                                          1,
+                                        ],
+                                      },
+                                    },
+                                  },
+                                },
+                                now,
+                              ],
+                            },
+                          ],
                         },
                       ],
                     },
@@ -494,7 +572,9 @@ async function getServicesHandler(req: NextRequest) {
           description: 1,
           address: 1,
           addOns: 1,
-          timeSlots: "$availableTimeSlots",
+          // For business dashboard (with businessId), show ALL time slots
+          // For public listings (no businessId), show only available slots
+          timeSlots: businessId ? "$timeSlots" : "$availableTimeSlots",
           status: 1,
           createdAt: 1,
         },
@@ -511,8 +591,16 @@ async function getServicesHandler(req: NextRequest) {
 
     const total = totalResult || 0;
 
+
     console.log("[API /api/services GET] Query results - Total:", total, "Returned:", services.length);
     console.log(`[API /api/services GET] Server-filtered available slots [${requestId}]`);
+    if (businessId && services.length > 0) {
+      console.log(`[API /api/services GET] Business Dashboard - First service data:`, {
+        serviceName: services[0].serviceName,
+        timeSlots: services[0].timeSlots?.length || 0,
+        firstSlot: services[0].timeSlots?.[0] || null
+      });
+    }
     console.timeEnd(`[API /api/services GET] Execution time [${requestId}]`);
 
     const responseData = {
@@ -521,11 +609,12 @@ async function getServicesHandler(req: NextRequest) {
         .map((s: any) => ({
           id: s._id?.toString() || s._id,
           _id: s._id?.toString() || s._id,
-          businessId: s.businessId,
+          businessId: s.businessId,  // Already populated by aggregation
           category: s.category,
           subCategory: s.subCategory,
           serviceName: s.serviceName,
           description: s.description,
+          duration: s.timeSlots && s.timeSlots.length > 0 ? s.timeSlots[0].duration : 60,  // ✅ ADD duration from first slot
           address:
             typeof s.address === "object" && s.address?.street
               ? s.address.street
@@ -537,7 +626,7 @@ async function getServicesHandler(req: NextRequest) {
               ? s.address.location
               : null,
           addOns: s.addOns || [],
-          timeSlots: (s.timeSlots || []).map((ts: any) => ({
+          timeSlots: (s.timeSlots || s.availableTimeSlots || []).map((ts: any) => ({  // ✅ Use availableTimeSlots from aggregation
             date: ts.date,
             startTime: ts.startTime,
             endTime: ts.endTime,

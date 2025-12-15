@@ -135,45 +135,45 @@ async function createStaffHandler(req: NextRequest) {
     // =========================================================================
     let photoUrl = "";
     if (photoFile && photoFile.size > 0) {
-        // Validate file type
-        if (!photoFile.type.startsWith("image/")) {
-            return NextResponse.json(
-                { error: "Invalid file type. Only images are allowed." },
-                { status: 400 }
-            );
-        }
+      // Validate file type
+      if (!photoFile.type.startsWith("image/")) {
+        return NextResponse.json(
+          { error: "Invalid file type. Only images are allowed." },
+          { status: 400 }
+        );
+      }
 
-        // Validate size (e.g. 5MB)
-        if (photoFile.size > 5 * 1024 * 1024) {
-            return NextResponse.json(
-                { error: "Image too large. Max 5MB." },
-                { status: 400 }
-            );
-        }
+      // Validate size (e.g. 5MB)
+      if (photoFile.size > 5 * 1024 * 1024) {
+        return NextResponse.json(
+          { error: "Image too large. Max 5MB." },
+          { status: 400 }
+        );
+      }
 
-        const bytes = await photoFile.arrayBuffer();
-        const buffer = Buffer.from(bytes);
+      const bytes = await photoFile.arrayBuffer();
+      const buffer = Buffer.from(bytes);
 
-        // Create unique filename
-        const originalName = photoFile.name.replace(/[^a-zA-Z0-9.-]/g, "_");
-        const filename = `staff-${Date.now()}-${originalName}`;
+      // Create unique filename
+      const originalName = photoFile.name.replace(/[^a-zA-Z0-9.-]/g, "_");
+      const filename = `staff-${Date.now()}-${originalName}`;
 
-        // Ensure uploads directory exists
-        const relativeUploadDir = "/uploads/staff";
-        const uploadDir = join(process.cwd(), "public", relativeUploadDir);
+      // Ensure uploads directory exists
+      const relativeUploadDir = "/uploads/staff";
+      const uploadDir = join(process.cwd(), "public", relativeUploadDir);
 
-        try {
-            await mkdir(uploadDir, { recursive: true });
-            const filePath = join(uploadDir, filename);
-            await writeFile(filePath, buffer);
-            photoUrl = `${relativeUploadDir}/${filename}`;
-        } catch (e) {
-            console.error("Error saving file:", e);
-            return NextResponse.json(
-                { error: "Failed to save image file" },
-                { status: 500 }
-            );
-        }
+      try {
+        await mkdir(uploadDir, { recursive: true });
+        const filePath = join(uploadDir, filename);
+        await writeFile(filePath, buffer);
+        photoUrl = `${relativeUploadDir}/${filename}`;
+      } catch (e) {
+        console.error("Error saving file:", e);
+        return NextResponse.json(
+          { error: "Failed to save image file" },
+          { status: 500 }
+        );
+      }
     }
 
     // =========================================================================
@@ -188,71 +188,71 @@ async function createStaffHandler(req: NextRequest) {
       isActive: true, // Default to active
     });
 
-  console.log("Staff created, ID:", String(staff._id));
+    console.log("Staff created, ID:", String(staff._id));
 
-  // Verify staff was saved (paranoid check)
-  const savedStaff = await Staff.findById(staff._id);
-  if (!savedStaff) {
-    console.error("Staff was not saved to database!");
+    // Verify staff was saved (paranoid check)
+    const savedStaff = await Staff.findById(staff._id);
+    if (!savedStaff) {
+      console.error("Staff was not saved to database!");
+      return NextResponse.json(
+        { error: "Failed to save staff to database. Please try again." },
+        { status: 500 }
+      );
+    }
+
+    console.log("Staff created and verified. ID:", String(savedStaff._id));
+    console.log("Staff details:", {
+      id: String(savedStaff._id),
+      name: savedStaff.name,
+      businessId: String(savedStaff.businessId),
+      isActive: savedStaff.isActive,
+      photo: savedStaff.photo,
+      qualifications: savedStaff.qualifications,
+      about: savedStaff.about,
+    });
+
+    // =========================================================================
+    // STEP 7: Return success response
+    // =========================================================================
     return NextResponse.json(
-      { error: "Failed to save staff to database. Please try again." },
+      {
+        message: "Staff member added successfully",
+        staff: {
+          id: String(savedStaff._id),
+          _id: String(savedStaff._id),  // Include both formats for compatibility
+          name: savedStaff.name,
+          photo: savedStaff.photo,
+          qualifications: savedStaff.qualifications,
+          about: savedStaff.about,
+          isActive: savedStaff.isActive,
+          businessId: String(savedStaff.businessId),
+        },
+      },
+      { status: 201 }  // 201 = Created
+    );
+  } catch (error: any) {
+    console.error("Create staff error:", error);
+    console.error("Error details:", {
+      message: error.message,
+      stack: error.stack,
+      name: error.name,
+    });
+
+    if (error.name === "ZodError") {
+      return NextResponse.json(
+        { error: "Validation error", details: error.errors },
+        { status: 400 }
+      );
+    }
+
+    return NextResponse.json(
+      {
+        error: "Failed to add staff member",
+        details: error.message || "Unknown error occurred"
+      },
       { status: 500 }
     );
   }
-
-  console.log("Staff created and verified. ID:", String(savedStaff._id));
-  console.log("Staff details:", {
-    id: String(savedStaff._id),
-    name: savedStaff.name,
-    businessId: String(savedStaff.businessId),
-    isActive: savedStaff.isActive,
-    photo: savedStaff.photo,
-    qualifications: savedStaff.qualifications,
-    about: savedStaff.about,
-  });
-
-  // =========================================================================
-  // STEP 7: Return success response
-  // =========================================================================
-  return NextResponse.json(
-    {
-      message: "Staff member added successfully",
-      staff: {
-        id: String(savedStaff._id),
-        _id: String(savedStaff._id),  // Include both formats for compatibility
-        name: savedStaff.name,
-        photo: savedStaff.photo,
-        qualifications: savedStaff.qualifications,
-        about: savedStaff.about,
-        isActive: savedStaff.isActive,
-        businessId: String(savedStaff.businessId),
-      },
-    },
-    { status: 201 }  // 201 = Created
-  );
-} catch (error: any) {
-  console.error("Create staff error:", error);
-  console.error("Error details:", {
-    message: error.message,
-    stack: error.stack,
-    name: error.name,
-  });
-
-  if (error.name === "ZodError") {
-    return NextResponse.json(
-      { error: "Validation error", details: error.errors },
-      { status: 400 }
-    );
-  }
-
-  return NextResponse.json(
-    {
-      error: "Failed to add staff member",
-      details: error.message || "Unknown error occurred"
-    },
-    { status: 500 }
-  );
-}
 }
 
 /**
@@ -279,68 +279,65 @@ async function createStaffHandler(req: NextRequest) {
  */
 async function getStaffListHandler(req: NextRequest) {
   try {
-    // =========================================================================
-    // STEP 1: Connect to database
-    // =========================================================================
-    await dbConnect();
-
-    // =========================================================================
-    // STEP 2: Extract query parameters
-    // =========================================================================
     const { searchParams } = new URL(req.url);
     const businessId = searchParams.get("businessId");
-    const isActive = searchParams.get("isActive");
+    const status = searchParams.get("status") || "active"; // Default to active only
+    const limit = Math.min(parseInt(searchParams.get("limit") || "50"), 100);
+    const page = Math.max(parseInt(searchParams.get("page") || "1"), 1);
+    const skip = (page - 1) * limit;
 
-    // businessId is required - must know which business to list staff for
     if (!businessId) {
       return NextResponse.json(
-        { error: "Business ID is required" },
+        { error: "businessId is required" },
         { status: 400 }
       );
     }
 
-    // =========================================================================
-    // STEP 3: Build filter query
-    // =========================================================================
-    const filter: any = { businessId };
+    await dbConnect();
 
-    // Optionally filter by active status
-    if (isActive !== null) {
-      filter.isActive = isActive === "true";
+    // Build query
+    const query: any = { businessId };
+    if (status === "active") {
+      query.isActive = true;
+    } else if (status === "inactive") {
+      query.isActive = false;
     }
+    // If status === "all", don't filter by isActive
 
-    // =========================================================================
-    // STEP 4: Query database for staff
-    // =========================================================================
-    // .sort({ createdAt: -1 }) = newest first
-    // .lean() = return plain JavaScript objects (faster)
-    const staff = await Staff.find(filter)
+    const staff = await Staff.find(query)
       .sort({ createdAt: -1 })
-      .lean();
+      .limit(limit)
+      .skip(skip)
+      .lean(); // 30% performance improvement
 
-    // =========================================================================
-    // STEP 5: Return staff list
-    // =========================================================================
+    const total = await Staff.countDocuments(query);
+
     return NextResponse.json(
       {
         staff: staff.map((s: any) => ({
-          id: s._id?.toString() || s._id,
-          _id: s._id?.toString() || s._id,
+          id: String(s._id),
+          businessId: String(s.businessId),
           name: s.name,
           photo: s.photo,
           qualifications: s.qualifications,
           about: s.about,
-          bio: s.about, // Map 'about' to 'bio' for frontend compatibility
           isActive: s.isActive,
           createdAt: s.createdAt,
+          updatedAt: s.updatedAt,
         })),
+        pagination: {
+          total,
+          page,
+          limit,
+          pages: Math.ceil(total / limit),
+        },
       },
       { status: 200 }
     );
   } catch (error: any) {
     console.error("Get staff list error:", error);
     return NextResponse.json(
-      { error: "Failed to fetch staff" },
+      { error: "Failed to fetch staff members" },
       { status: 500 }
     );
   }
