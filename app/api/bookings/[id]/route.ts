@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/db";
 import Booking from "@/lib/models/Booking";
-import User from "@/lib/models/User";
 import Business from "@/lib/models/Business";
 import Service from "@/lib/models/Service";
 import Staff from "@/lib/models/Staff";
