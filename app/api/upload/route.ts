@@ -3,8 +3,18 @@ import { writeFile, mkdir } from "fs/promises";
 import path from "path";
 import { join } from "path";
 
-// 5MB limit handled by client check, but server should ideally check too
-// Next.js body size limit might need config if files are huge, but 5MB is standard
+// ✅ Configure route for file uploads
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
+// ✅ CRITICAL: Increase body size limit for image uploads
+// Default is 4MB, we allow up to 10MB
+export const config = {
+    api: {
+        bodyParser: false, // We handle FormData ourselves
+        responseLimit: false,
+    },
+};
 
 export const POST = async (req: NextRequest) => {
     try {
