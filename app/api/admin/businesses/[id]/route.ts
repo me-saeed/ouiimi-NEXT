@@ -75,7 +75,7 @@ async function updateBusinessHandler(
         return NextResponse.json({
             message: "Business updated successfully",
             business: {
-                id: business._id.toString(),
+                id: String(business._id),
                 businessName: business.businessName,
                 status: business.status,
             },

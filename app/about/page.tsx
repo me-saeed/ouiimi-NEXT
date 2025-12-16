@@ -72,7 +72,7 @@ export default function AboutPage() {
                       Instant confirmation, stored safely in your ouiimi dashboard.
                     </p>
                     <p className="text-xl leading-relaxed text-color-gray">
-                      Feel confident knowing exactly what you've booked before you arrive.
+                      Feel confident knowing exactly what you&apos;ve booked before you arrive.
                     </p>
                   </div>
                 </div>

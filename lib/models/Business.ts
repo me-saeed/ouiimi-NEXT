@@ -41,7 +41,7 @@ export interface IBusiness extends Document {
   address: string;                    // Business address
   logo?: string;                      // Logo image URL
   story?: string;                     // About/description text
-  status: "pending" | "approved" | "rejected";  // Approval status
+  status: "pending" | "approved" | "rejected" | "suspended";  // Approval status
   bankDetails?: {                     // Bank details for payment release
     accountNumber?: string;           // Bank account number
     contactNumber?: string;           // Contact phone
@@ -123,9 +123,10 @@ const businessSchema = new Schema<IBusiness>(
     // "pending" - Waiting for admin approval
     // "approved" - Can list services
     // "rejected" - Cannot use platform
+    // "suspended" - Temporarily disabled by admin
     status: {
       type: String,
-      enum: ["pending", "approved", "rejected"],
+      enum: ["pending", "approved", "rejected", "suspended"],
       default: "pending",
     },
 

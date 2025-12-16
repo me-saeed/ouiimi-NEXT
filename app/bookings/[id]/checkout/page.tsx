@@ -168,7 +168,7 @@ export default function CheckoutPage() {
                                     <span>${booking.remainingAmount.toFixed(2)}</span>
                                 </div>
                                 <p className="text-xs text-gray-500 pt-2">
-                                    💡 You'll pay the remaining ${booking.remainingAmount.toFixed(2)} at the venue after service
+                                    💡 You&apos;ll pay the remaining ${booking.remainingAmount.toFixed(2)} at the venue after service
                                 </p>
                             </div>
                         </div>

@@ -7,14 +7,8 @@ import { join } from "path";
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-// ✅ CRITICAL: Increase body size limit for image uploads
-// Default is 4MB, we allow up to 10MB
-export const config = {
-    api: {
-        bodyParser: false, // We handle FormData ourselves
-        responseLimit: false,
-    },
-};
+// Note: In App Router, body size limits are configured in next.config.js
+// We don't need the deprecated 'config' export here
 
 export const POST = async (req: NextRequest) => {
     try {
