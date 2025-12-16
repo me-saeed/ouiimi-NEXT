@@ -15,24 +15,17 @@ import { AddressAutocomplete } from "@/components/ui/address-autocomplete";
 import { TimeSelect } from "@/components/ui/time-select";
 import { useToast } from "@/hooks/use-toast";
 import Image from "next/image";
+import { getAllCategories } from "@/lib/constants/categories";
 
-const CATEGORIES = [
-  "Hair Services",
-  "Nails",
-  "Beauty & Brows",
-  "Massage & Wellness",
-  "Skin & Facials",
-  "Dog Grooming",
-];
+// Get all category names
+const CATEGORIES = getAllCategories().map(cat => cat.name);
 
-const SUB_CATEGORIES: Record<string, string[]> = {
-  "Hair Services": ["Haircut", "Colouring", "Blow-Dry & Styling", "Treatment", "Extensions", "Men's Cut", "Women's Cut", "Kids Cut"],
-  "Nails": ["Manicure", "Pedicure", "Gel", "Acrylic", "Nail Art", "Removal"],
-  "Beauty & Brows": ["Brows", "Lashes", "Makeup", "Facial", "Waxing", "Threading", "Tinting"],
-  "Massage & Wellness": ["Massage", "Spa", "Sauna", "Physio", "Chiro", "Acupuncture"],
-  "Skin & Facials": ["Basic Facial", "Anti-Aging", "Acne Treatment", "Microdermabrasion", "Peel"],
-  "Dog Grooming": ["Wash", "Cut", "Nails", "Full Groom", "Puppy Groom", "De-shedding"],
-};
+// Build subcategories dynamically from constants
+const SUB_CATEGORIES: Record<string, string[]> = {};
+getAllCategories().forEach(category => {
+  const subs = Object.values(category.subcategories).map(sub => sub.name);
+  SUB_CATEGORIES[category.name] = subs.length > 0 ? subs : [];
+});
 
 const SUB_CATEGORY_ADDONS: Record<string, Array<{ name: string; cost: number }>> = {
   // Hair Services Add-Ons

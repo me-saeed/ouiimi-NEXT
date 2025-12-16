@@ -459,6 +459,49 @@ export const SERVICE_CATEGORIES: Record<string, Category> = {
         slug: "skin",
         description: "Professional facials, skin treatments, and anti-aging therapies",
         subcategories: {
+            // Old subcategories (kept for compatibility)
+            BASIC_FACIAL: {
+                name: "Basic Facial",
+                slug: "basic-facial",
+                services: [
+                    "Express Facial (30 mins)",
+                    "Classic / Deep Cleanse Facial (60 mins)",
+                ],
+            },
+            ANTI_AGING: {
+                name: "Anti-Aging",
+                slug: "anti-aging",
+                services: [
+                    "Anti-Ageing Facial",
+                    "Microdermabrasion",
+                    "LED Light Therapy",
+                ],
+            },
+            ACNE_TREATMENT: {
+                name: "Acne Treatment",
+                slug: "acne-treatment",
+                services: [
+                    "Acne / Problem Skin Facial",
+                    "Chemical Peel",
+                ],
+            },
+            MICRODERMABRASION: {
+                name: "Microdermabrasion",
+                slug: "microdermabrasion",
+                services: [
+                    "Microdermabrasion",
+                    "Skin Resurfacing",
+                ],
+            },
+            PEEL: {
+                name: "Peel",
+                slug: "peel",
+                services: [
+                    "Chemical Peel",
+                    "Enzyme Peel",
+                ],
+            },
+            // New comprehensive subcategories
             FACIALS: {
                 name: "Facials",
                 slug: "facials",
