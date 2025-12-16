@@ -18,23 +18,17 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useAuth } from "@/lib/contexts/AuthContext";
+import { getAllCategories, getSubcategoriesByCategory, getCategoryBySlug } from "@/lib/constants/categories";
 
-const SERVICE_CATEGORIES = [
-  "Hair Services",
-  "Nails",
-  "Beauty & Brows",
-  "Massage & Wellness",
-  "Dog Grooming",
-];
+// Get all category names
+const SERVICE_CATEGORIES = getAllCategories().map(cat => cat.name);
 
-// Mock sub-categories for demonstration - in real app, fetch from API
-const SUB_CATEGORIES: Record<string, string[]> = {
-  "Hair Services": ["Haircut", "Colouring", "Blow-Dry & Styling", "Treatment", "Extensions"],
-  "Nails": ["Manicure", "Pedicure", "Gel", "Acrylic", "Nail Art"],
-  "Beauty & Brows": ["Brows", "Lashes", "Makeup", "Facial", "Waxing"],
-  "Massage & Wellness": ["Massage", "Spa", "Sauna", "Physio", "Chiro"],
-  "Dog Grooming": ["Wash", "Cut", "Nails", "Full Groom", "Puppy Groom"],
-};
+// Build subcategories dynamically from constants
+const SUB_CATEGORIES: Record<string, string[]> = {};
+getAllCategories().forEach(category => {
+  const subs = Object.values(category.subcategories).map(sub => sub.name);
+  SUB_CATEGORIES[category.name] = subs.length > 0 ? subs : ["All"];
+});
 
 function ServicesContent() {
   const searchParams = useSearchParams();

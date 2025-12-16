@@ -9,15 +9,10 @@ import { ServiceCard } from "@/components/ui/service-card";
 import { ServiceCarousel } from "@/components/ui/service-carousel";
 import { ArrowRight, X } from "lucide-react";
 import { useAuth } from "@/lib/contexts/AuthContext";
+import { getAllCategories } from "@/lib/constants/categories";
 
-const SERVICE_CATEGORIES = [
-  "Hair Services",
-  "Skin & Facials",
-  "Nails",
-  "Beauty & Brows",
-  "Massage & Wellness",
-  "Dog Grooming",
-];
+// Get all category names for homepage display
+const SERVICE_CATEGORIES = getAllCategories().map(cat => cat.name);
 
 // Removed: Categories are now shown without subcategory grouping
 
