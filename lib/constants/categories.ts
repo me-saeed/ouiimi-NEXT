@@ -28,9 +28,68 @@ export const SERVICE_CATEGORIES: Record<string, Category> = {
         slug: "hair",
         description: "Professional hair cutting, styling, coloring, and treatments",
         subcategories: {
+            // Old subcategories (kept for compatibility)
+            HAIRCUT: {
+                name: "Haircut",
+                slug: "haircut",
+                services: [
+                    "Women's Cut – Short (above shoulders)",
+                    "Women's Cut – Medium (shoulder to mid-back)",
+                    "Women's Cut – Long (below mid-back / thick)",
+                    "Men's Cut",
+                    "Children's Cut",
+                ],
+            },
+            COLOURING: {
+                name: "Colouring",
+                slug: "colouring",
+                services: [
+                    "Root Touch-Up / Regrowth Colour",
+                    "All-Over Colour – Short",
+                    "All-Over Colour – Medium",
+                    "All-Over Colour – Long/Thick",
+                    "Foils / Highlights – 1/4 Head",
+                    "Foils / Highlights – 1/2 Head",
+                    "Foils / Highlights – Full Head",
+                    "Balayage / Ombre",
+                ],
+            },
+            BLOW_DRY_STYLING: {
+                name: "Blow-Dry & Styling",
+                slug: "blow-dry-styling",
+                services: [
+                    "Blow-Dry – Short Hair",
+                    "Blow-Dry – Medium Hair",
+                    "Blow-Dry – Long/Thick Hair",
+                    "Straighten / Flat Iron Finish",
+                    "Curls / Waves",
+                    "Updo / Occasion Style",
+                ],
+            },
+            TREATMENT: {
+                name: "Treatment",
+                slug: "treatment",
+                services: [
+                    "Deep Conditioning Treatment",
+                    "Scalp Detox / Scalp Treatment",
+                    "Moisture / Protein Mask",
+                    "Bond Repair Treatment (stand-alone)",
+                    "Keratin / Brazilian Smoothing",
+                ],
+            },
+            EXTENSIONS_OLD: {
+                name: "Extensions",
+                slug: "extensions-old",
+                services: [
+                    "Tape-In Extensions (Apply)",
+                    "Clip-In Extension Styling",
+                    "Micro-Bead / Weft Application",
+                ],
+            },
+            // New comprehensive subcategories
             HAIRCUTS: {
                 name: "Haircuts & Restyles",
-                slug: "haircuts",
+                slug: "haircuts-restyles",
                 services: [
                     "Women's Cut – Short (above shoulders)",
                     "Women's Cut – Medium (shoulder to mid-back)",
@@ -142,6 +201,49 @@ export const SERVICE_CATEGORIES: Record<string, Category> = {
         slug: "nails",
         description: "Professional nail care, manicures, pedicures, and nail art",
         subcategories: {
+            // Old subcategories (kept for compatibility)
+            MANICURE_OLD: {
+                name: "Manicure",
+                slug: "manicure-old",
+                services: [
+                    "Manicure – Classic",
+                    "Manicure – Gel/Shellac",
+                ],
+            },
+            PEDICURE_OLD: {
+                name: "Pedicure",
+                slug: "pedicure-old",
+                services: [
+                    "Pedicure – Classic",
+                    "Pedicure – Gel/Shellac",
+                ],
+            },
+            GEL: {
+                name: "Gel",
+                slug: "gel",
+                services: [
+                    "Manicure – Gel/Shellac",
+                    "Pedicure – Gel/Shellac",
+                    "Gel Polish Upgrade",
+                ],
+            },
+            ACRYLIC: {
+                name: "Acrylic",
+                slug: "acrylic",
+                services: [
+                    "Acrylic Extensions – Full Set",
+                    "Acrylic Infill / Refill",
+                ],
+            },
+            NAIL_ART: {
+                name: "Nail Art",
+                slug: "nail-art",
+                services: [
+                    "Nail Art (custom design)",
+                    "French Tip",
+                ],
+            },
+            // New comprehensive subcategories
             MANICURE: {
                 name: "Manicure",
                 slug: "manicure",
@@ -196,6 +298,51 @@ export const SERVICE_CATEGORIES: Record<string, Category> = {
         slug: "beauty",
         description: "Eyebrow shaping, lash treatments, waxing, and facial hair removal",
         subcategories: {
+            // Old subcategories (kept for compatibility)
+            BROWS_OLD: {
+                name: "Brows",
+                slug: "brows-old",
+                services: [
+                    "Eyebrow Shape / Wax / Thread",
+                    "Eyebrow Tint",
+                    "Brow Lamination",
+                ],
+            },
+            LASHES: {
+                name: "Lashes",
+                slug: "lashes",
+                services: [
+                    "Lash Tint",
+                    "Lash Lift & Tint Combo",
+                ],
+            },
+            MAKEUP_OLD: {
+                name: "Makeup",
+                slug: "makeup-old",
+                services: [
+                    "Natural/Everyday Makeup",
+                    "Glam/Event Makeup",
+                    "Bridal Makeup",
+                ],
+            },
+            FACIAL: {
+                name: "Facial",
+                slug: "facial",
+                services: [
+                    "Express Facial (30 mins)",
+                    "Classic Facial (60 mins)",
+                ],
+            },
+            WAXING_OLD: {
+                name: "Waxing",
+                slug: "waxing-old",
+                services: [
+                    "Facial Waxing",
+                    "Leg Wax",
+                    "Bikini Wax",
+                ],
+            },
+            // New comprehensive subcategories
             BROWS: {
                 name: "Brows & Lashes",
                 slug: "brows",
@@ -238,6 +385,49 @@ export const SERVICE_CATEGORIES: Record<string, Category> = {
         slug: "massage",
         description: "Therapeutic massage, relaxation, and wellness treatments",
         subcategories: {
+            // Old subcategories (kept for compatibility)
+            MASSAGE_OLD: {
+                name: "Massage",
+                slug: "massage-old",
+                services: [
+                    "Relaxation / Swedish Massage (60 mins)",
+                    "Remedial / Deep Tissue Massage (60 mins)",
+                    "Hot Stone Massage",
+                ],
+            },
+            SPA: {
+                name: "Spa",
+                slug: "spa",
+                services: [
+                    "Spa Package",
+                    "Aromatherapy Treatment",
+                ],
+            },
+            SAUNA: {
+                name: "Sauna",
+                slug: "sauna",
+                services: [
+                    "Sauna Session",
+                    "Steam Room",
+                ],
+            },
+            PHYSIO: {
+                name: "Physio",
+                slug: "physio",
+                services: [
+                    "Physiotherapy Session",
+                    "Sports Massage",
+                ],
+            },
+            CHIRO: {
+                name: "Chiro",
+                slug: "chiro",
+                services: [
+                    "Chiropractic Adjustment",
+                    "Spinal Manipulation",
+                ],
+            },
+            // New comprehensive subcategories
             MASSAGE: {
                 name: "Massage Therapy",
                 slug: "massage",
@@ -295,6 +485,50 @@ export const SERVICE_CATEGORIES: Record<string, Category> = {
         slug: "dog-grooming",
         description: "Professional dog grooming, bathing, styling, and pet care",
         subcategories: {
+            // Old subcategories (kept for compatibility)
+            WASH: {
+                name: "Wash",
+                slug: "wash",
+                services: [
+                    "Basic Wash",
+                    "Wash & Dry",
+                    "Flea/Tick Wash",
+                ],
+            },
+            CUT: {
+                name: "Cut",
+                slug: "cut",
+                services: [
+                    "Full Groom",
+                    "Breed-Specific Groom",
+                    "Puppy Groom",
+                ],
+            },
+            NAILS_OLD: {
+                name: "Nails",
+                slug: "nails-old",
+                services: [
+                    "Nail Trim",
+                    "Nail Grind",
+                ],
+            },
+            FULL_GROOM: {
+                name: "Full Groom",
+                slug: "full-groom",
+                services: [
+                    "Full Grooming Package",
+                    "De-shedding + Bath + Cut",
+                ],
+            },
+            PUPPY_GROOM: {
+                name: "Puppy Groom",
+                slug: "puppy-groom",
+                services: [
+                    "First Grooming Experience",
+                    "Puppy Bath & Trim",
+                ],
+            },
+            // New comprehensive subcategories
             BATHING: {
                 name: "Bathing & Cleaning",
                 slug: "bathing",
