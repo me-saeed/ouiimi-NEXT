@@ -105,7 +105,7 @@ export default function AdminDashboardPage() {
   const formatBookingForServiceCard = (booking: Booking) => {
     const service = typeof booking.serviceId === 'object' ? booking.serviceId : null;
     const businessData = typeof booking.businessId === 'object' ? booking.businessId : null;
-    
+
     return {
       id: booking.id,
       name: service?.serviceName || 'Service',
@@ -134,7 +134,9 @@ export default function AdminDashboardPage() {
     );
   }
 
-  const totalPendingAmount = pendingBookings.reduce((sum, b) => sum + (b.serviceAmount || b.totalCost), 0);
+  const totalDeposits = pendingBookings.reduce((sum, b) => sum + (b.totalCost * 0.10), 0);
+  const totalPlatformFees = pendingBookings.reduce((sum, b) => sum + (b.platformFee || 1.99), 0);
+  const totalRemaining = pendingBookings.reduce((sum, b) => sum + (b.totalCost * 0.90), 0);
 
   return (
     <PageLayout user={user}>
@@ -159,14 +161,21 @@ export default function AdminDashboardPage() {
 
           {/* Summary Card */}
           <div className="bg-gradient-to-br from-white to-gray-50 rounded-2xl p-6 mb-8 shadow-sm border border-gray-200">
-            <div className="flex items-center justify-between">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div>
-                <p className="text-sm text-gray-500 mb-1">Total Pending Payments</p>
-                <p className="text-3xl font-bold text-[#3A3A3A]">${totalPendingAmount.toFixed(2)}</p>
+                <p className="text-sm text-gray-500 mb-1">Total Deposits (10%)</p>
+                <p className="text-3xl font-bold text-[#3A3A3A]">${totalDeposits.toFixed(2)}</p>
                 <p className="text-sm text-gray-500 mt-1">{pendingBookings.length} bookings</p>
               </div>
-              <div className="w-16 h-16 rounded-full bg-[#EECFD1] flex items-center justify-center">
-                <DollarSign className="w-8 h-8 text-white" />
+              <div>
+                <p className="text-sm text-gray-500 mb-1">Platform Fees</p>
+                <p className="text-2xl font-bold text-blue-600">${totalPlatformFees.toFixed(2)}</p>
+                <p className="text-xs text-gray-500 mt-1">$1.99 per booking</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-500 mb-1">Remaining (90%)</p>
+                <p className="text-2xl font-bold text-orange-600">${totalRemaining.toFixed(2)}</p>
+                <p className="text-xs text-gray-500 mt-1">Paid at venue</p>
               </div>
             </div>
           </div>
@@ -174,7 +183,7 @@ export default function AdminDashboardPage() {
           {/* Pending Bookings */}
           <div className="space-y-6">
             <h2 className="text-2xl font-bold text-[#3A3A3A]">Pending Payments</h2>
-            
+
             {isLoading ? (
               <div className="text-center py-12">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
@@ -192,19 +201,27 @@ export default function AdminDashboardPage() {
                       <div className="mb-4">
                         <ServiceCard {...cardData} />
                       </div>
-                      
+
                       <div className="space-y-3 pt-4 border-t border-gray-200">
                         <div className="flex justify-between items-center">
-                          <span className="text-sm text-gray-500">Platform Fee:</span>
-                          <span className="font-semibold">${booking.platformFee?.toFixed(2) || "0.00"}</span>
+                          <span className="text-sm text-gray-500">Total Booking:</span>
+                          <span className="font-semibold">${booking.totalCost.toFixed(2)}</span>
                         </div>
                         <div className="flex justify-between items-center">
-                          <span className="text-sm text-gray-500">Service Amount:</span>
-                          <span className="font-semibold text-[#3A3A3A]">${booking.serviceAmount?.toFixed(2) || booking.totalCost.toFixed(2)}</span>
+                          <span className="text-sm text-gray-500">Deposit (10%):</span>
+                          <span className="font-semibold text-blue-600">${(booking.totalCost * 0.10).toFixed(2)}</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm text-gray-500">Platform Fee:</span>
+                          <span className="font-semibold text-green-600">${(booking.platformFee || 1.99).toFixed(2)}</span>
                         </div>
                         <div className="flex justify-between items-center pt-2 border-t border-gray-200">
-                          <span className="text-sm font-semibold">Total Paid:</span>
-                          <span className="font-bold text-lg">${booking.totalCost.toFixed(2)}</span>
+                          <span className="text-sm font-semibold">To Release to Business:</span>
+                          <span className="font-bold text-lg text-[#3A3A3A]">${((booking.totalCost * 0.10) - (booking.platformFee || 1.99)).toFixed(2)}</span>
+                        </div>
+                        <div className="flex justify-between items-center text-xs text-gray-500 mt-2">
+                          <span>Remaining (90%):</span>
+                          <span className="text-orange-600 font-medium">${(booking.totalCost * 0.90).toFixed(2)} (Paid at venue)</span>
                         </div>
                       </div>
 
@@ -213,7 +230,7 @@ export default function AdminDashboardPage() {
                         className="w-full mt-4 bg-[#3A3A3A] text-white hover:bg-[#2a2a2a] rounded-xl h-12 font-semibold"
                       >
                         <CheckCircle2 className="w-4 h-4 mr-2" />
-                        Release Payment
+                        Release Deposit to Business
                       </Button>
                     </div>
                   );

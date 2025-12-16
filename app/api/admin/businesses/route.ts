@@ -70,7 +70,7 @@ async function getBusinessesHandler(req: NextRequest) {
 
         // Get businesses with pagination
         const businesses = await Business.find(query)
-            .select("businessName email phone category status address logo createdAt userId")
+            .select("businessName email phone category status address logo createdAt userId bankDetails")
             .sort({ createdAt: -1 })
             .skip(skip)
             .limit(limit)
@@ -108,6 +108,7 @@ async function getBusinessesHandler(req: NextRequest) {
                 logo: b.logo,
                 createdAt: b.createdAt,
                 userId: b.userId?.toString(),
+                bankDetails: b.bankDetails || null,
             })),
             pagination: {
                 page,
