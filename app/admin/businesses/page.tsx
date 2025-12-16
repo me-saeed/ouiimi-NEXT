@@ -27,6 +27,12 @@ interface Business {
     address: string;
     logo?: string;
     createdAt: string;
+    bankDetails?: {
+        name?: string;
+        bsb?: string;
+        accountNumber?: string;
+        contactNumber?: string;
+    } | null;
 }
 
 interface Statistics {
@@ -309,10 +315,10 @@ export default function AdminBusinessesPage() {
                                                     <td className="px-6 py-4">
                                                         <span
                                                             className={`px-3 py-1 text-xs font-semibold rounded-full ${business.status === "approved"
-                                                                    ? "bg-green-100 text-green-800"
-                                                                    : business.status === "pending"
-                                                                        ? "bg-yellow-100 text-yellow-800"
-                                                                        : "bg-red-100 text-red-800"
+                                                                ? "bg-green-100 text-green-800"
+                                                                : business.status === "pending"
+                                                                    ? "bg-yellow-100 text-yellow-800"
+                                                                    : "bg-red-100 text-red-800"
                                                                 }`}
                                                         >
                                                             {business.status}

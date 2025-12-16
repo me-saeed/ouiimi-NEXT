@@ -109,7 +109,7 @@ export default function CheckoutPage() {
     const service = typeof booking.serviceId === "object" ? booking.serviceId : null;
     const business = typeof booking.businessId === "object" ? booking.businessId : null;
     const platformFee = booking.platformFee || 1.99;
-    const totalPayment = booking.depositAmount + platformFee;
+    const totalPayment = booking.depositAmount; // FIXED: User only pays deposit, platform fee deducted from business
 
     return (
         <PageLayout user={user}>
@@ -159,24 +159,16 @@ export default function CheckoutPage() {
                                     <span>Total Service Cost</span>
                                     <span>${booking.totalCost.toFixed(2)}</span>
                                 </div>
-                                <div className="flex justify-between text-sm">
-                                    <span>Deposit (10%)</span>
+                                <div className="flex justify-between font-bold text-lg border-t pt-2 text-[#EECFD1]">
+                                    <span>Pay Now (10% Deposit)</span>
                                     <span>${booking.depositAmount.toFixed(2)}</span>
                                 </div>
-                                <div className="flex justify-between text-sm">
-                                    <span>Platform Fee</span>
-                                    <span>${platformFee.toFixed(2)}</span>
-                                </div>
-                                <div className="flex justify-between font-bold text-lg border-t pt-2 text-[#EECFD1]">
-                                    <span>Pay Now</span>
-                                    <span>${totalPayment.toFixed(2)}</span>
-                                </div>
                                 <div className="flex justify-between text-sm text-gray-600">
-                                    <span>Pay at Venue</span>
+                                    <span>Pay at Venue (90%)</span>
                                     <span>${booking.remainingAmount.toFixed(2)}</span>
                                 </div>
                                 <p className="text-xs text-gray-500 pt-2">
-                                    💡 You&apos;ll pay the remaining ${booking.remainingAmount.toFixed(2)} at the venue after service
+                                    💡 You'll pay the remaining ${booking.remainingAmount.toFixed(2)} at the venue after service
                                 </p>
                             </div>
                         </div>
