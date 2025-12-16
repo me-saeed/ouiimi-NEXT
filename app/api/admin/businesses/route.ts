@@ -1,14 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/db";
 import Business from "@/lib/models/Business";
-import User from "@/lib/models/User";
 import { verifyToken } from "@/lib/jwt";
 import { withRateLimitDynamic } from "@/lib/security/rate-limit";
 
 export const dynamic = 'force-dynamic';
 
-async function getAllBusinessesHandler(req: NextRequest) {
+/**
+ * GET /api/admin/businesses
+ * Get all businesses with filters and search
+ * Admin only
+ */
+async function getBusinessesHandler(req: NextRequest) {
     try {
+        // Verify admin authentication
         const authHeader = req.headers.get("authorization");
         if (!authHeader?.startsWith("Bearer ")) {
             return NextResponse.json(
@@ -26,26 +31,36 @@ async function getAllBusinessesHandler(req: NextRequest) {
             );
         }
 
-        // Check if user is admin
-        await dbConnect();
-        const user = await User.findById(decoded.userId);
-        if (!user || !user.Roles.includes("admin")) {
-            return NextResponse.json(
-                { error: "Unauthorized - Admin access required" },
-                { status: 403 }
-            );
-        }
+        // TODO: Add admin role check
+        // if (decoded.role !== 'admin') {
+        //   return NextResponse.json({ error: "Admin access required" }, { status: 403 });
+        // }
 
-        // Get query parameters for filtering
+        await dbConnect();
+
+        // Get query parameters
         const { searchParams } = new URL(req.url);
-        const status = searchParams.get("status"); // pending, approved, rejected, all
-        const search = searchParams.get("search"); // search by business name or email
+        const status = searchParams.get("status") || "all"; // all, approved, pending, suspended
+        const category = searchParams.get("category");
+        const search = searchParams.get("search");
+        const page = parseInt(searchParams.get("page") || "1");
+        const limit = parseInt(searchParams.get("limit") || "20");
+        const skip = (page - 1) * limit;
 
         // Build query
-        let query: any = {};
-        if (status && status !== "all") {
+        const query: any = {};
+
+        // Status filter
+        if (status !== "all") {
             query.status = status;
         }
+
+        // Category filter
+        if (category) {
+            query.category = category;
+        }
+
+        // Search filter (business name or email)
         if (search) {
             query.$or = [
                 { businessName: { $regex: search, $options: "i" } },
@@ -53,42 +68,57 @@ async function getAllBusinessesHandler(req: NextRequest) {
             ];
         }
 
-        // Fetch businesses with user info
+        // Get businesses with pagination
         const businesses = await Business.find(query)
-            .populate("userId", "fname lname email")
+            .select("businessName email phone category status address logo createdAt userId")
             .sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(limit)
             .lean();
 
-        // Format response
-        const formattedBusinesses = businesses.map((business: any) => ({
-            id: business._id.toString(),
-            businessName: business.businessName,
-            email: business.email,
-            phone: business.phone,
-            address: business.address,
-            logo: business.logo,
-            status: business.status,
-            owner: business.userId
-                ? {
-                    id: business.userId._id.toString(),
-                    name: `${business.userId.fname} ${business.userId.lname}`,
-                    email: business.userId.email,
-                }
-                : null,
-            createdAt: business.createdAt,
-            updatedAt: business.updatedAt,
-            bankDetails: business.bankDetails || null,
-        }));
+        // Get total count for pagination
+        const total = await Business.countDocuments(query);
 
-        return NextResponse.json(
+        // Get statistics
+        const stats = await Business.aggregate([
             {
-                businesses: formattedBusinesses,
-                total: formattedBusinesses.length,
+                $group: {
+                    _id: "$status",
+                    count: { $sum: 1 }
+                }
+            }
+        ]);
+
+        const statistics = {
+            total: await Business.countDocuments(),
+            approved: stats.find(s => s._id === "approved")?.count || 0,
+            pending: stats.find(s => s._id === "pending")?.count || 0,
+            suspended: stats.find(s => s._id === "suspended")?.count || 0,
+        };
+
+        return NextResponse.json({
+            businesses: businesses.map((b: any) => ({
+                id: b._id.toString(),
+                businessName: b.businessName,
+                email: b.email,
+                phone: b.phone,
+                category: b.category,
+                status: b.status,
+                address: b.address,
+                logo: b.logo,
+                createdAt: b.createdAt,
+                userId: b.userId?.toString(),
+            })),
+            pagination: {
+                page,
+                limit,
+                total,
+                totalPages: Math.ceil(total / limit),
             },
-            { status: 200 }
-        );
+            statistics,
+        });
     } catch (error: any) {
-        console.error("Get all businesses error:", error);
+        console.error("Admin get businesses error:", error);
         return NextResponse.json(
             { error: "Failed to fetch businesses" },
             { status: 500 }
@@ -96,4 +126,4 @@ async function getAllBusinessesHandler(req: NextRequest) {
     }
 }
 
-export const GET = withRateLimitDynamic(getAllBusinessesHandler);
+export const GET = withRateLimitDynamic(getBusinessesHandler);

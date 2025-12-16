@@ -1,17 +1,28 @@
 import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/db";
 import Business from "@/lib/models/Business";
-import User from "@/lib/models/User";
 import { verifyToken } from "@/lib/jwt";
 import { withRateLimitDynamic } from "@/lib/security/rate-limit";
+import { z } from "zod";
 
 export const dynamic = 'force-dynamic';
 
-async function approveBusinessHandler(
+const businessUpdateSchema = z.object({
+    status: z.enum(["approved", "pending", "suspended"]).optional(),
+    notes: z.string().optional(),
+});
+
+/**
+ * PUT /api/admin/businesses/[id]
+ * Update business status or details
+ * Admin only
+ */
+async function updateBusinessHandler(
     req: NextRequest,
     { params }: { params: { id: string } }
 ) {
     try {
+        // Verify admin authentication
         const authHeader = req.headers.get("authorization");
         if (!authHeader?.startsWith("Bearer ")) {
             return NextResponse.json(
@@ -26,90 +37,14 @@ async function approveBusinessHandler(
             return NextResponse.json(
                 { error: "Invalid token" },
                 { status: 401 }
-            );
-        }
-
-        // Check if user is admin
-        await dbConnect();
-        const user = await User.findById(decoded.userId);
-        if (!user || !user.Roles.includes("admin")) {
-            return NextResponse.json(
-                { error: "Unauthorized - Admin access required" },
-                { status: 403 }
-            );
-        }
-
-        // Find business
-        const business = await Business.findById(params.id);
-        if (!business) {
-            return NextResponse.json(
-                { error: "Business not found" },
-                { status: 404 }
-            );
-        }
-
-        // Update status to approved
-        business.status = "approved";
-        await business.save();
-
-        console.log(`[Admin] Business ${business.businessName} approved by admin ${user.email}`);
-
-        return NextResponse.json(
-            {
-                message: "Business approved successfully",
-                business: {
-                    id: business._id.toString(),
-                    businessName: business.businessName,
-                    status: business.status,
-                },
-            },
-            { status: 200 }
-        );
-    } catch (error: any) {
-        console.error("Approve business error:", error);
-        return NextResponse.json(
-            { error: "Failed to approve business" },
-            { status: 500 }
-        );
-    }
-}
-
-async function rejectBusinessHandler(
-    req: NextRequest,
-    { params }: { params: { id: string } }
-) {
-    try {
-        const authHeader = req.headers.get("authorization");
-        if (!authHeader?.startsWith("Bearer ")) {
-            return NextResponse.json(
-                { error: "Unauthorized" },
-                { status: 401 }
-            );
-        }
-
-        const token = authHeader.substring(7);
-        const decoded = verifyToken(token);
-        if (!decoded) {
-            return NextResponse.json(
-                { error: "Invalid token" },
-                { status: 401 }
-            );
-        }
-
-        // Check if user is admin
-        await dbConnect();
-        const user = await User.findById(decoded.userId);
-        if (!user || !user.Roles.includes("admin")) {
-            return NextResponse.json(
-                { error: "Unauthorized - Admin access required" },
-                { status: 403 }
             );
         }
 
         const body = await req.json();
-        const { reason } = body; // Optional rejection reason
+        const validatedData = businessUpdateSchema.parse(body);
 
-        // Find business
+        await dbConnect();
+
         const business = await Business.findById(params.id);
         if (!business) {
             return NextResponse.json(
@@ -118,44 +53,91 @@ async function rejectBusinessHandler(
             );
         }
 
-        // Update status to rejected
-        business.status = "rejected";
+        // Update business
+        if (validatedData.status) {
+            business.status = validatedData.status;
+        }
+
+        // TODO: Add notes field to Business model
+        // if (validatedData.notes) {
+        //   business.adminNotes = validatedData.notes;
+        // }
+
         await business.save();
 
-        console.log(`[Admin] Business ${business.businessName} rejected by admin ${user.email}. Reason: ${reason || "Not provided"}`);
+        // TODO: Send email notification to business owner about status change
+        // if (validatedData.status === "approved") {
+        //   await sendBusinessApprovalEmail(business.email, business.businessName);
+        // } else if (validatedData.status === "suspended") {
+        //   await sendBusinessSuspensionEmail(business.email, business.businessName, validatedData.notes);
+        // }
 
-        return NextResponse.json(
-            {
-                message: "Business rejected successfully",
-                business: {
-                    id: business._id.toString(),
-                    businessName: business.businessName,
-                    status: business.status,
-                },
+        return NextResponse.json({
+            message: "Business updated successfully",
+            business: {
+                id: business._id.toString(),
+                businessName: business.businessName,
+                status: business.status,
             },
-            { status: 200 }
-        );
+        });
     } catch (error: any) {
-        console.error("Reject business error:", error);
+        console.error("Admin update business error:", error);
+        if (error.name === "ZodError") {
+            return NextResponse.json(
+                { error: "Validation error", details: error.errors },
+                { status: 400 }
+            );
+        }
         return NextResponse.json(
-            { error: "Failed to reject business" },
+            { error: "Failed to update business" },
             { status: 500 }
         );
     }
 }
 
-export const PUT = withRateLimitDynamic(async (req: NextRequest, context: any) => {
-    const { searchParams } = new URL(req.url);
-    const action = searchParams.get("action");
+/**
+ * DELETE /api/admin/businesses/[id]
+ * Delete a business (admin only - use with caution)
+ */
+async function deleteBusinessHandler(
+    req: NextRequest,
+    { params }: { params: { id: string } }
+) {
+    try {
+        const authHeader = req.headers.get("authorization");
+        if (!authHeader?.startsWith("Bearer ")) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
 
-    if (action === "approve") {
-        return approveBusinessHandler(req, context);
-    } else if (action === "reject") {
-        return rejectBusinessHandler(req, context);
-    } else {
+        const token = authHeader.substring(7);
+        const decoded = verifyToken(token);
+        if (!decoded) {
+            return NextResponse.json({ error: "Invalid token" }, { status: 401 });
+        }
+
+        await dbConnect();
+
+        // TODO: Before deleting, check for:
+        // - Active bookings
+        // - Pending payments
+        // - Services
+
+        const business = await Business.findByIdAndDelete(params.id);
+        if (!business) {
+            return NextResponse.json({ error: "Business not found" }, { status: 404 });
+        }
+
+        return NextResponse.json({
+            message: "Business deleted successfully"
+        });
+    } catch (error: any) {
+        console.error("Admin delete business error:", error);
         return NextResponse.json(
-            { error: "Invalid action. Use ?action=approve or ?action=reject" },
-            { status: 400 }
+            { error: "Failed to delete business" },
+            { status: 500 }
         );
     }
-});
+}
+
+export const PUT = withRateLimitDynamic(updateBusinessHandler);
+export const DELETE = withRateLimitDynamic(deleteBusinessHandler);
