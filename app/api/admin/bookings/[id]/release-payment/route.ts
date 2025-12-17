@@ -30,7 +30,7 @@ export async function PUT(
 
     await dbConnect();
 
-    // Check if user exists (for now, allow access - can be restricted later)
+    // Check if user is admin
     const user = await User.findById(decoded.userId);
     if (!user) {
       return NextResponse.json(
@@ -38,14 +38,14 @@ export async function PUT(
         { status: 404 }
       );
     }
-    
-    // Note: Admin role check can be enabled later
-    // if (!user.Roles?.includes("admin")) {
-    //   return NextResponse.json(
-    //     { error: "Admin access required" },
-    //     { status: 403 }
-    //   );
-    // }
+
+    // Verify user has admin role
+    if (!user.Roles?.includes("admin")) {
+      return NextResponse.json(
+        { error: "Admin access required" },
+        { status: 403 }
+      );
+    }
 
     const bookingId = params.id;
     const booking = await Booking.findById(bookingId);

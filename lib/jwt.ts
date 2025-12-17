@@ -16,20 +16,30 @@ export interface JWTPayload {
   userId: string;
   email: string;
   username?: string;
+  roles?: string[]; // User roles for authorization
 }
 
 export function generateToken(payload: JWTPayload): string {
-  return jwt.sign(payload, getJWTSecret(), {
-    expiresIn: JWT_EXPIRES_IN,
-  } as SignOptions);
+  return jwt.sign(
+    {
+      userId: payload.userId,
+      email: payload.email,
+      username: payload.username,
+      roles: payload.roles || ['user'], // Default to 'user' role
+    },
+    getJWTSecret(),
+    {
+      expiresIn: JWT_EXPIRES_IN,
+    } as SignOptions
+  );
 }
 
-export function verifyToken(token: string): JWTPayload | null {
+export function verifyToken(token: string): JWTPayload {
   try {
     const decoded = jwt.verify(token, getJWTSecret()) as JWTPayload;
     return decoded;
   } catch (error) {
-    return null;
+    throw new Error('Invalid token');
   }
 }
 

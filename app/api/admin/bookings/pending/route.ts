@@ -27,7 +27,7 @@ export async function GET(req: NextRequest) {
 
     await dbConnect();
 
-    // Check if user is admin (for now, allow access - can be restricted later)
+    // Check if user is admin
     const user = await User.findById(decoded.userId);
     if (!user) {
       return NextResponse.json(
@@ -35,17 +35,17 @@ export async function GET(req: NextRequest) {
         { status: 404 }
       );
     }
-    
-    // Note: Admin role check can be enabled later
-    // if (!user.Roles?.includes("admin")) {
-    //   return NextResponse.json(
-    //     { error: "Admin access required" },
-    //     { status: 403 }
-    //   );
-    // }
+
+    // Verify user has admin role
+    if (!user.Roles?.includes("admin")) {
+      return NextResponse.json(
+        { error: "Admin access required" },
+        { status: 403 }
+      );
+    }
 
     const now = new Date();
-    
+
     // Get all confirmed bookings first, then filter by end time
     const allBookings = await Booking.find({
       adminPaymentStatus: { $in: ["pending", null] },

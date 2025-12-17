@@ -9,6 +9,7 @@ interface User {
     lname: string;
     email: string;
     phone?: string;
+    roles?: string[]; // User roles for authorization
 }
 
 interface AuthContextType {
@@ -18,6 +19,8 @@ interface AuthContextType {
     logout: () => void;
     isAuthenticated: boolean;
     token: string | null;
+    hasRole: (role: string) => boolean; // Check if user has specific role
+    isAdmin: boolean; // Quick check for admin role
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -67,6 +70,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         document.cookie = "token=; path=/; max-age=0";
     };
 
+    // Role checking methods
+    const hasRole = (role: string): boolean => {
+        return user?.roles?.includes(role) || false;
+    };
+
+    const isAdmin = user?.roles?.includes('admin') || false;
+
     const value: AuthContextType = {
         user,
         setUser,
@@ -74,6 +84,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         logout,
         isAuthenticated: !!user && !!token,
         token,
+        hasRole,
+        isAdmin,
     };
 
     // Don't render children until we've checked auth state

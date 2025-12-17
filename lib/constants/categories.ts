@@ -1,671 +1,266 @@
 /**
  * Service Categories & Subcategories
- * Complete list of all service categories, subcategories, service types, and add-ons
+ * 2-Level Structure: Main Category → Subcategory (Service Name)
+ * Add-ons are defined at the main category level
+ * 
+ * Format: "Prefix - Service Name" (e.g., "Haircut - Women's Cut – Short")
  */
-
-export interface ServiceType {
-    name: string;
-    description?: string;
-}
 
 export interface SubCategory {
     name: string;
     slug: string;
-    services: string[];
-    addOns?: string[];
 }
 
 export interface Category {
     name: string;
     slug: string;
     description?: string;
-    subcategories: Record<string, SubCategory>;
+    subcategories: SubCategory[];
+    addOns?: string[];
 }
 
 export const SERVICE_CATEGORIES: Record<string, Category> = {
     HAIR: {
         name: "Hair Services",
-        slug: "hair",
+        slug: "hair-services",
         description: "Professional hair cutting, styling, coloring, and treatments",
-        subcategories: {
-            // Old subcategories (kept for compatibility)
-            HAIRCUT: {
-                name: "Haircut",
-                slug: "haircut",
-                services: [
-                    "Women's Cut – Short (above shoulders)",
-                    "Women's Cut – Medium (shoulder to mid-back)",
-                    "Women's Cut – Long (below mid-back / thick)",
-                    "Men's Cut",
-                    "Children's Cut",
-                ],
-            },
-            COLOURING: {
-                name: "Colouring",
-                slug: "colouring",
-                services: [
-                    "Root Touch-Up / Regrowth Colour",
-                    "All-Over Colour – Short",
-                    "All-Over Colour – Medium",
-                    "All-Over Colour – Long/Thick",
-                    "Foils / Highlights – 1/4 Head",
-                    "Foils / Highlights – 1/2 Head",
-                    "Foils / Highlights – Full Head",
-                    "Balayage / Ombre",
-                ],
-            },
-            BLOW_DRY_STYLING: {
-                name: "Blow-Dry & Styling",
-                slug: "blow-dry-styling",
-                services: [
-                    "Blow-Dry – Short Hair",
-                    "Blow-Dry – Medium Hair",
-                    "Blow-Dry – Long/Thick Hair",
-                    "Straighten / Flat Iron Finish",
-                    "Curls / Waves",
-                    "Updo / Occasion Style",
-                ],
-            },
-            TREATMENT: {
-                name: "Treatment",
-                slug: "treatment",
-                services: [
-                    "Deep Conditioning Treatment",
-                    "Scalp Detox / Scalp Treatment",
-                    "Moisture / Protein Mask",
-                    "Bond Repair Treatment (stand-alone)",
-                    "Keratin / Brazilian Smoothing",
-                ],
-            },
-            EXTENSIONS_OLD: {
-                name: "Extensions",
-                slug: "extensions-old",
-                services: [
-                    "Tape-In Extensions (Apply)",
-                    "Clip-In Extension Styling",
-                    "Micro-Bead / Weft Application",
-                ],
-            },
-            // New comprehensive subcategories
-            HAIRCUTS: {
-                name: "Haircuts & Restyles",
-                slug: "haircuts-restyles",
-                services: [
-                    "Women's Cut – Short (above shoulders)",
-                    "Women's Cut – Medium (shoulder to mid-back)",
-                    "Women's Cut – Long (below mid-back / thick)",
-                    "Restyle Cut (major change)",
-                    "Men's Cut",
-                    "Children's Cut",
-                    "Fringe / Bang Trim",
-                    "Clipper Cut / Fade",
-                ],
-                addOns: [
-                    "Scalp Massage",
-                    "Hydration/Repair Mask",
-                    "Toner",
-                    "Olaplex/Bonding Treatment",
-                    "Extra Blow-Dry",
-                ],
-            },
-            STYLING: {
-                name: "Styling & Finishing",
-                slug: "styling",
-                services: [
-                    "Blow-Dry – Short Hair",
-                    "Blow-Dry – Medium Hair",
-                    "Blow-Dry – Long/Thick Hair",
-                    "Straighten / Flat Iron Finish",
-                    "Curls / Waves",
-                    "Updo / Occasion Style",
-                    "Braids (Simple / Detailed)",
-                ],
-                addOns: [
-                    "Hot Tool Styling",
-                    "Braiding",
-                    "Occasion Finish",
-                ],
-            },
-            COLOUR: {
-                name: "Colour & Highlights",
-                slug: "colour",
-                services: [
-                    "Root Touch-Up / Regrowth Colour",
-                    "All-Over Colour – Short",
-                    "All-Over Colour – Medium",
-                    "All-Over Colour – Long/Thick",
-                    "Foils / Highlights – 1/4 Head",
-                    "Foils / Highlights – 1/2 Head",
-                    "Foils / Highlights – Full Head",
-                    "Balayage / Ombre",
-                    "Toner / Gloss Refresh",
-                    "Colour Correction (by consultation)",
-                    "Scalp Bleach & Tone",
-                ],
-                addOns: [
-                    "Extra Colour Bowl",
-                    "Root Shadow/Blend",
-                    "Gloss Refresh",
-                    "Colour Lock Treatment",
-                ],
-            },
-            CHEMICAL: {
-                name: "Chemical & Texture Services",
-                slug: "chemical",
-                services: [
-                    "Keratin / Brazilian Smoothing",
-                    "Permanent Straightening / Relaxer",
-                    "Perm (Short Hair)",
-                    "Perm (Long Hair)",
-                    "Bond Treatment (Olaplex / K18 / Similar)",
-                ],
-            },
-            EXTENSIONS: {
-                name: "Extensions",
-                slug: "extensions",
-                services: [
-                    "Tape-In Extensions (Apply)",
-                    "Tape-In Extensions (Remove)",
-                    "Tape-In Extensions (Reapply)",
-                    "Clip-In Extension Styling",
-                    "Micro-Bead / Weft Application",
-                    "Extension Removal Only",
-                ],
-            },
-            TREATMENTS: {
-                name: "Treatments (In-Salon Care)",
-                slug: "treatments",
-                services: [
-                    "Deep Conditioning Treatment",
-                    "Scalp Detox / Scalp Treatment",
-                    "Moisture / Protein Mask",
-                    "Bond Repair Treatment (stand-alone)",
-                ],
-            },
-            BRIDAL: {
-                name: "Bridal & Event Packages",
-                slug: "bridal",
-                services: [
-                    "Bridal Hair Trial",
-                    "Bridal Hair (Wedding Day)",
-                    "Bridesmaids / Bridal Party Hair",
-                    "Event Glam Styling (formal, photoshoot, etc.)",
-                    "On-Site Styling (Travel Fee applies)",
-                ],
-            },
-        },
+        subcategories: [
+            // Haircut services
+            { name: "Haircut - Women's Cut – Short (above shoulders)", slug: "haircut-womens-short" },
+            { name: "Haircut - Women's Cut – Medium (shoulder to mid-back)", slug: "haircut-womens-medium" },
+            { name: "Haircut - Women's Cut – Long (below mid-back / thick)", slug: "haircut-womens-long" },
+            { name: "Haircut - Restyle Cut (major change)", slug: "haircut-restyle" },
+            { name: "Haircut - Men's Cut", slug: "haircut-mens" },
+            { name: "Haircut - Children's Cut", slug: "haircut-children" },
+            { name: "Haircut - Fringe / Bang Trim", slug: "haircut-fringe" },
+            { name: "Haircut - Clipper Cut / Fade", slug: "haircut-clipper" },
+
+            // Styling services
+            { name: "Styling - Blow-Dry – Short Hair", slug: "styling-blowdry-short" },
+            { name: "Styling - Blow-Dry – Medium Hair", slug: "styling-blowdry-medium" },
+            { name: "Styling - Blow-Dry – Long/Thick Hair", slug: "styling-blowdry-long" },
+            { name: "Styling - Straighten / Flat Iron Finish", slug: "styling-straighten" },
+            { name: "Styling - Curls / Waves", slug: "styling-curls" },
+            { name: "Styling - Updo / Occasion Style", slug: "styling-updo" },
+            { name: "Styling - Braids (Simple / Detailed)", slug: "styling-braids" },
+
+            // Colouring services
+            { name: "Colouring - Root Touch-Up / Regrowth Colour", slug: "colouring-root-touchup" },
+            { name: "Colouring - All-Over Colour – Short", slug: "colouring-allover-short" },
+            { name: "Colouring - All-Over Colour – Medium", slug: "colouring-allover-medium" },
+            { name: "Colouring - All-Over Colour – Long/Thick", slug: "colouring-allover-long" },
+            { name: "Colouring - Foils / Highlights – 1/4 Head", slug: "colouring-foils-quarter" },
+            { name: "Colouring - Foils / Highlights – 1/2 Head", slug: "colouring-foils-half" },
+            { name: "Colouring - Foils / Highlights – Full Head", slug: "colouring-foils-full" },
+            { name: "Colouring - Balayage / Ombre", slug: "colouring-balayage" },
+            { name: "Colouring - Toner / Gloss Refresh", slug: "colouring-toner" },
+            { name: "Colour Correction (by consultation)", slug: "colour-correction" },
+            { name: "Colouring - Scalp Bleach & Tone", slug: "colouring-scalp-bleach" },
+
+            // Texture services
+            { name: "Texture - Keratin / Brazilian Smoothing", slug: "texture-keratin" },
+            { name: "Texture - Permanent Straightening / Relaxer", slug: "texture-straightening" },
+            { name: "Texture - Perm (Short / Long Hair)", slug: "texture-perm" },
+            { name: "Texture - Bond Treatment (Olaplex / K18 / Similar)", slug: "texture-bond" },
+
+            // Extensions
+            { name: "Extensions - Tape-In Extensions (Apply / Remove / Reapply)", slug: "extensions-tapein" },
+            { name: "Extensions - Clip-In Extension Styling", slug: "extensions-clipin" },
+            { name: "Extensions - Micro-Bead / Weft Application", slug: "extensions-microbead" },
+            { name: "Extensions - Removal Only", slug: "extensions-removal" },
+
+            // Treatments
+            { name: "Treatments - Deep Conditioning Treatment", slug: "treatments-conditioning" },
+            { name: "Treatments - Scalp Detox / Scalp Treatment", slug: "treatments-scalp" },
+            { name: "Treatments - Moisture / Protein Mask", slug: "treatments-moisture" },
+            { name: "Treatments - Bond Repair Treatment (stand-alone)", slug: "treatments-bond" },
+        ],
+        addOns: [
+            "Scalp Massage",
+            "Hydration/Repair Mask",
+            "Toner",
+            "Olaplex/Bonding Treatment",
+            "Extra Blow-Dry",
+            "Hot Tool Styling",
+            "Braiding",
+            "Occasion Finish",
+            "Extra Colour Bowl",
+            "Root Shadow/Blend",
+            "Gloss Refresh",
+            "Colour Lock Treatment",
+        ],
+    },
+
+    BRIDAL_EVENT: {
+        name: "Bridal & Event Packages",
+        slug: "bridal-event-packages",
+        description: "Complete bridal and event packages for hair, makeup, and styling",
+        subcategories: [
+            { name: "Bridal Hair Trial", slug: "bridal-hair-trial" },
+            { name: "Bridal Hair (Wedding Day)", slug: "bridal-hair-wedding" },
+            { name: "Bridesmaids / Bridal Party Hair", slug: "bridesmaids-hair" },
+            { name: "Bridal - Event Glam Styling (formal, photoshoot, etc.)", slug: "event-glam" },
+            { name: "Bridal - On-Site Styling (Travel Fee applies)", slug: "onsite-styling" },
+        ],
     },
 
     NAILS: {
         name: "Nails",
         slug: "nails",
         description: "Professional nail care, manicures, pedicures, and nail art",
-        subcategories: {
-            // Old subcategories (kept for compatibility)
-            MANICURE_OLD: {
-                name: "Manicure",
-                slug: "manicure-old",
-                services: [
-                    "Manicure – Classic",
-                    "Manicure – Gel/Shellac",
-                ],
-            },
-            PEDICURE_OLD: {
-                name: "Pedicure",
-                slug: "pedicure-old",
-                services: [
-                    "Pedicure – Classic",
-                    "Pedicure – Gel/Shellac",
-                ],
-            },
-            GEL: {
-                name: "Gel",
-                slug: "gel",
-                services: [
-                    "Manicure – Gel/Shellac",
-                    "Pedicure – Gel/Shellac",
-                    "Gel Polish Upgrade",
-                ],
-            },
-            ACRYLIC: {
-                name: "Acrylic",
-                slug: "acrylic",
-                services: [
-                    "Acrylic Extensions – Full Set",
-                    "Acrylic Infill / Refill",
-                ],
-            },
-            NAIL_ART: {
-                name: "Nail Art",
-                slug: "nail-art",
-                services: [
-                    "Nail Art (custom design)",
-                    "French Tip",
-                ],
-            },
-            // New comprehensive subcategories
-            MANICURE: {
-                name: "Manicure",
-                slug: "manicure",
-                services: [
-                    "Manicure – Classic",
-                    "Manicure – Gel/Shellac",
-                    "Manicure – Deluxe (spa, exfoliation, massage)",
-                ],
-                addOns: [
-                    "Nail Art",
-                    "French Tip",
-                    "Gel Polish Upgrade",
-                    "Paraffin Wax",
-                    "Cuticle Treatment",
-                ],
-            },
-            PEDICURE: {
-                name: "Pedicure",
-                slug: "pedicure",
-                services: [
-                    "Pedicure – Classic",
-                    "Pedicure – Gel/Shellac",
-                    "Pedicure – Deluxe (spa, exfoliation, massage)",
-                ],
-                addOns: [
-                    "Nail Art",
-                    "French Tip",
-                    "Gel Polish Upgrade",
-                    "Paraffin Wax",
-                    "Cuticle Treatment",
-                ],
-            },
-            EXTENSIONS: {
-                name: "Nail Extensions",
-                slug: "extensions",
-                services: [
-                    "Acrylic Extensions – Full Set",
-                    "Acrylic Infill / Refill",
-                    "SNS / Dip Powder – Full Set",
-                    "SNS / Dip Powder – Infill",
-                ],
-                addOns: [
-                    "Nail Art",
-                    "French Tip",
-                ],
-            },
-        },
+        subcategories: [
+            { name: "Manicure – Classic", slug: "manicure-classic" },
+            { name: "Manicure – Gel/Shellac", slug: "manicure-gel" },
+            { name: "Manicure – Deluxe (spa, exfoliation, massage)", slug: "manicure-deluxe" },
+            { name: "Pedicure – Classic", slug: "pedicure-classic" },
+            { name: "Pedicure – Gel/Shellac", slug: "pedicure-gel" },
+            { name: "Pedicure – Deluxe (spa, exfoliation, massage)", slug: "pedicure-deluxe" },
+            { name: "Acrylic Extensions – Full Set", slug: "acrylic-full" },
+            { name: "Acrylic Infill / Refill", slug: "acrylic-infill" },
+            { name: "SNS / Dip Powder – Full Set", slug: "sns-full" },
+        ],
+        addOns: [
+            "Nail Art",
+            "French Tip",
+            "Gel Polish Upgrade",
+            "Paraffin Wax",
+            "Cuticle Treatment",
+        ],
     },
 
     BEAUTY: {
         name: "Beauty & Brows",
-        slug: "beauty",
+        slug: "beauty-brows",
         description: "Eyebrow shaping, lash treatments, waxing, and facial hair removal",
-        subcategories: {
-            // Old subcategories (kept for compatibility)
-            BROWS_OLD: {
-                name: "Brows",
-                slug: "brows-old",
-                services: [
-                    "Eyebrow Shape / Wax / Thread",
-                    "Eyebrow Tint",
-                    "Brow Lamination",
-                ],
-            },
-            LASHES: {
-                name: "Lashes",
-                slug: "lashes",
-                services: [
-                    "Lash Tint",
-                    "Lash Lift & Tint Combo",
-                ],
-            },
-            MAKEUP_OLD: {
-                name: "Makeup",
-                slug: "makeup-old",
-                services: [
-                    "Natural/Everyday Makeup",
-                    "Glam/Event Makeup",
-                    "Bridal Makeup",
-                ],
-            },
-            FACIAL: {
-                name: "Facial",
-                slug: "facial",
-                services: [
-                    "Express Facial (30 mins)",
-                    "Classic Facial (60 mins)",
-                ],
-            },
-            WAXING_OLD: {
-                name: "Waxing",
-                slug: "waxing-old",
-                services: [
-                    "Facial Waxing",
-                    "Leg Wax",
-                    "Bikini Wax",
-                ],
-            },
-            // New comprehensive subcategories
-            BROWS: {
-                name: "Brows & Lashes",
-                slug: "brows",
-                services: [
-                    "Eyebrow Shape / Wax / Thread",
-                    "Eyebrow Tint",
-                    "Lash Tint",
-                    "Lash Lift & Tint Combo",
-                    "Brow Lamination",
-                    "Brow Henna / Hybrid Tint",
-                ],
-                addOns: [
-                    "Brow Tint",
-                    "Lash Tint",
-                ],
-            },
-            WAXING: {
-                name: "Waxing",
-                slug: "waxing",
-                services: [
-                    "Facial Waxing (lip, chin, sides)",
-                    "Full Face Waxing",
-                    "Underarm Wax",
-                    "Arm Wax",
-                    "Leg Wax – Half",
-                    "Leg Wax – Full",
-                    "Bikini Wax",
-                    "Brazilian Wax",
-                ],
-                addOns: [
-                    "Quick Facial",
-                    "Lip/Chin wax",
-                ],
-            },
-        },
+        subcategories: [
+            { name: "Eyebrow Shape / Wax / Thread", slug: "eyebrow-shape" },
+            { name: "Eyebrow Tint", slug: "eyebrow-tint" },
+            { name: "Lash Tint", slug: "lash-tint" },
+            { name: "Lash Lift & Tint Combo", slug: "lash-lift-tint" },
+            { name: "Brow Lamination", slug: "brow-lamination" },
+            { name: "Brow Henna / Hybrid Tint", slug: "brow-henna" },
+            { name: "Facial Waxing (lip, chin, sides)", slug: "facial-waxing" },
+            { name: "Full Face Waxing", slug: "full-face-waxing" },
+            { name: "Underarm / Arm Wax", slug: "underarm-arm-wax" },
+            { name: "Leg Wax – Half / Full", slug: "leg-wax" },
+            { name: "Bikini / Brazilian Wax", slug: "bikini-brazilian" },
+        ],
+        addOns: [
+            "Brow Tint",
+            "Lash Tint",
+            "Quick Facial",
+            "Lip/Chin wax",
+        ],
     },
 
     MASSAGE: {
         name: "Massage & Wellness",
-        slug: "massage",
+        slug: "massage-wellness",
         description: "Therapeutic massage, relaxation, and wellness treatments",
-        subcategories: {
-            // Old subcategories (kept for compatibility)
-            MASSAGE_OLD: {
-                name: "Massage",
-                slug: "massage-old",
-                services: [
-                    "Relaxation / Swedish Massage (60 mins)",
-                    "Remedial / Deep Tissue Massage (60 mins)",
-                    "Hot Stone Massage",
-                ],
-            },
-            SPA: {
-                name: "Spa",
-                slug: "spa",
-                services: [
-                    "Spa Package",
-                    "Aromatherapy Treatment",
-                ],
-            },
-            SAUNA: {
-                name: "Sauna",
-                slug: "sauna",
-                services: [
-                    "Sauna Session",
-                    "Steam Room",
-                ],
-            },
-            PHYSIO: {
-                name: "Physio",
-                slug: "physio",
-                services: [
-                    "Physiotherapy Session",
-                    "Sports Massage",
-                ],
-            },
-            CHIRO: {
-                name: "Chiro",
-                slug: "chiro",
-                services: [
-                    "Chiropractic Adjustment",
-                    "Spinal Manipulation",
-                ],
-            },
-            // New comprehensive subcategories
-            MASSAGE: {
-                name: "Massage Therapy",
-                slug: "massage",
-                services: [
-                    "Relaxation / Swedish Massage (30 mins)",
-                    "Relaxation / Swedish Massage (60 mins)",
-                    "Relaxation / Swedish Massage (90 mins)",
-                    "Remedial / Deep Tissue Massage (30 mins)",
-                    "Remedial / Deep Tissue Massage (60 mins)",
-                    "Remedial / Deep Tissue Massage (90 mins)",
-                    "Hot Stone Massage",
-                    "Aromatherapy Massage",
-                    "Pregnancy Massage",
-                    "Reflexology (Feet)",
-                    "Indian Head / Scalp Massage",
-                ],
-                addOns: [
-                    "Hot Stones",
-                    "Aromatherapy Oils",
-                    "Extra 15mins",
-                    "Cupping",
-                ],
-            },
-        },
+        subcategories: [
+            { name: "Relaxation / Swedish Massage (30 / 60 / 90 mins)", slug: "swedish-massage" },
+            { name: "Remedial / Deep Tissue Massage (30 / 60 / 90 mins)", slug: "deep-tissue" },
+            { name: "Hot Stone Massage", slug: "hot-stone" },
+            { name: "Aromatherapy Massage", slug: "aromatherapy" },
+            { name: "Pregnancy Massage", slug: "pregnancy" },
+            { name: "Reflexology (Feet)", slug: "reflexology" },
+            { name: "Indian Head / Scalp Massage", slug: "indian-head" },
+        ],
+        addOns: [
+            "Hot Stones",
+            "Aromatherapy Oils",
+            "Extra 15mins",
+            "Cupping",
+        ],
     },
 
     SKIN: {
         name: "Skin & Facial",
-        slug: "skin",
+        slug: "skin-facial",
         description: "Professional facials, skin treatments, and anti-aging therapies",
-        subcategories: {
-            // Old subcategories (kept for compatibility)
-            BASIC_FACIAL: {
-                name: "Basic Facial",
-                slug: "basic-facial",
-                services: [
-                    "Express Facial (30 mins)",
-                    "Classic / Deep Cleanse Facial (60 mins)",
-                ],
-            },
-            ANTI_AGING: {
-                name: "Anti-Aging",
-                slug: "anti-aging",
-                services: [
-                    "Anti-Ageing Facial",
-                    "Microdermabrasion",
-                    "LED Light Therapy",
-                ],
-            },
-            ACNE_TREATMENT: {
-                name: "Acne Treatment",
-                slug: "acne-treatment",
-                services: [
-                    "Acne / Problem Skin Facial",
-                    "Chemical Peel",
-                ],
-            },
-            MICRODERMABRASION: {
-                name: "Microdermabrasion",
-                slug: "microdermabrasion",
-                services: [
-                    "Microdermabrasion",
-                    "Skin Resurfacing",
-                ],
-            },
-            PEEL: {
-                name: "Peel",
-                slug: "peel",
-                services: [
-                    "Chemical Peel",
-                    "Enzyme Peel",
-                ],
-            },
-            // New comprehensive subcategories
-            FACIALS: {
-                name: "Facials",
-                slug: "facials",
-                services: [
-                    "Express Facial (30 mins)",
-                    "Classic / Deep Cleanse Facial (60 mins)",
-                    "Hydrating Facial",
-                    "Anti-Ageing Facial",
-                    "Acne / Problem Skin Facial",
-                    "Microdermabrasion",
-                    "LED Light Therapy",
-                    "Chemical Peel",
-                ],
-                addOns: [
-                    "Collagen / Firming Mask",
-                    "Extraction",
-                ],
-            },
-        },
+        subcategories: [
+            { name: "Express Facial (30 mins)", slug: "express-facial" },
+            { name: "Classic / Deep Cleanse Facial (60 mins)", slug: "classic-facial" },
+            { name: "Hydrating Facial", slug: "hydrating-facial" },
+            { name: "Anti-Ageing Facial", slug: "anti-ageing" },
+            { name: "Acne / Problem Skin Facial", slug: "acne-facial" },
+            { name: "Microdermabrasion", slug: "microdermabrasion" },
+            { name: "LED Light Therapy", slug: "led-therapy" },
+            { name: "Chemical Peel", slug: "chemical-peel" },
+        ],
+        addOns: [
+            "Collagen / Firming Mask",
+            "Extraction",
+        ],
     },
 
     DOG_GROOMING: {
         name: "Dog Grooming",
         slug: "dog-grooming",
         description: "Professional dog grooming, bathing, styling, and pet care",
-        subcategories: {
-            // Old subcategories (kept for compatibility)
-            WASH: {
-                name: "Wash",
-                slug: "wash",
-                services: [
-                    "Basic Wash",
-                    "Wash & Dry",
-                    "Flea/Tick Wash",
-                ],
-            },
-            CUT: {
-                name: "Cut",
-                slug: "cut",
-                services: [
-                    "Full Groom",
-                    "Breed-Specific Groom",
-                    "Puppy Groom",
-                ],
-            },
-            NAILS_OLD: {
-                name: "Nails",
-                slug: "nails-old",
-                services: [
-                    "Nail Trim",
-                    "Nail Grind",
-                ],
-            },
-            FULL_GROOM: {
-                name: "Full Groom",
-                slug: "full-groom",
-                services: [
-                    "Full Grooming Package",
-                    "De-shedding + Bath + Cut",
-                ],
-            },
-            PUPPY_GROOM: {
-                name: "Puppy Groom",
-                slug: "puppy-groom",
-                services: [
-                    "First Grooming Experience",
-                    "Puppy Bath & Trim",
-                ],
-            },
-            // New comprehensive subcategories
-            BATHING: {
-                name: "Bathing & Cleaning",
-                slug: "bathing",
-                services: [
-                    "Basic Wash",
-                    "Wash & Dry",
-                    "Flea/Tick Wash",
-                    "De-shedding Wash",
-                ],
-            },
-            HAIRCUTS: {
-                name: "Haircuts & Styling",
-                slug: "haircuts",
-                services: [
-                    "Full Groom",
-                    "Breed-Specific Groom",
-                    "Puppy Groom",
-                    "Partial Groom (Face, Feet, Sanitary Trim)",
-                ],
-            },
-            COAT: {
-                name: "Coat & Skin Care",
-                slug: "coat",
-                services: [
-                    "De-shedding Treatment",
-                    "Coat Conditioning",
-                    "Medicated Bath",
-                ],
-            },
-            NAILS: {
-                name: "Nails & Paws",
-                slug: "nails",
-                services: [
-                    "Nail Trim",
-                    "Nail Grind",
-                    "Paw Pad Trim",
-                    "Paw Balm Treatment",
-                ],
-            },
-            HYGIENE: {
-                name: "Ears, Eyes & Teeth",
-                slug: "hygiene",
-                services: [
-                    "Ear Cleaning",
-                    "Tear Stain Clean",
-                    "Teeth Brushing",
-                ],
-            },
-            ADDONS: {
-                name: "Add-Ons",
-                slug: "addons",
-                services: [],
-                addOns: [
-                    "Anal Gland Expression",
-                    "Extra Time for Large/Double-Coated Dogs",
-                    "Flea/Tick Treatment",
-                    "Bow/Bandana + Cologne Finish",
-                ],
-            },
-        },
+        subcategories: [
+            // Bath & Clean
+            { name: "Bath & Clean - Basic Wash", slug: "bath-basic" },
+            { name: "Bath & Clean - Wash & Dry", slug: "bath-wash-dry" },
+            { name: "Bath & Clean - Flea/Tick Wash", slug: "bath-flea" },
+            { name: "Bath & Clean - De-shedding Wash", slug: "bath-deshed" },
+
+            // Haircut
+            { name: "Haircut - Full Groom", slug: "haircut-full" },
+            { name: "Haircut - Breed-Specific Groom", slug: "haircut-breed" },
+            { name: "Haircut - Puppy Groom", slug: "haircut-puppy" },
+            { name: "Haircut - Partial Groom (Face, Feet, Sanitary Trim)", slug: "haircut-partial" },
+
+            // Skin Care
+            { name: "Skin Care - De-shedding Treatment", slug: "skincare-deshed" },
+            { name: "Skin Care - Coat Conditioning", slug: "skincare-coat" },
+            { name: "Skin Care - Medicated Bath", slug: "skincare-medicated" },
+
+            // Nails
+            { name: "Nails - Nail Trim", slug: "nails-trim" },
+            { name: "Nails - Nail Grind", slug: "nails-grind" },
+            { name: "Nails - Paw Pad Trim", slug: "nails-paw-pad" },
+            { name: "Nails - Paw Balm Treatment", slug: "nails-balm" },
+
+            // Other Services
+            { name: "Ear Cleaning", slug: "ear-cleaning" },
+            { name: "Tear Stain Clean", slug: "tear-stain" },
+            { name: "Teeth Brushing", slug: "teeth-brushing" },
+        ],
+        addOns: [
+            "Anal Gland Expression",
+            "Extra Time for Large/Double-Coated Dogs",
+            "Flea/Tick Treatment",
+            "Bow/Bandana + Cologne Finish",
+        ],
     },
 
     MAKEUP: {
         name: "Makeup Services",
-        slug: "makeup",
+        slug: "makeup-services",
         description: "Professional makeup application for events, bridal, and everyday looks",
-        subcategories: {
-            MAKEUP: {
-                name: "Makeup Application",
-                slug: "makeup",
-                services: [
-                    "Full Makeup Application",
-                    "Natural/Everyday Makeup",
-                    "Glam/Event Makeup",
-                    "Bridal Makeup",
-                    "Bridesmaid Makeup",
-                    "Photoshoot Makeup",
-                    "Makeup Trial",
-                    "Teen/School Formal Makeup",
-                    "Men's Grooming Makeup",
-                    "Makeup Lesson / Tutorial",
-                ],
-                addOns: [
-                    "Lashes (strip or individual)",
-                    "Airbrush finish",
-                    "Touch-up kit",
-                    "Early morning / travel fee",
-                ],
-            },
-        },
+        subcategories: [
+            { name: "Full Makeup Application", slug: "full-makeup" },
+            { name: "Natural/Everyday Makeup", slug: "everyday-makeup" },
+            { name: "Glam/Event Makeup", slug: "glam-event" },
+            { name: "Bridal Makeup", slug: "bridal-makeup" },
+            { name: "Bridesmaid Makeup", slug: "bridesmaid-makeup" },
+            { name: "Photoshoot Makeup", slug: "photoshoot-makeup" },
+            { name: "Makeup Trial", slug: "makeup-trial" },
+            { name: "Teen/School Formal Makeup", slug: "teen-formal" },
+            { name: "Men's Grooming Makeup", slug: "mens-grooming" },
+            { name: "Makeup Lesson / Tutorial", slug: "makeup-lesson" },
+        ],
+        addOns: [
+            "Lashes (strip or individual)",
+            "Airbrush finish",
+            "Touch-up kit",
+            "Early morning / travel fee",
+        ],
     },
 };
 
-// Helper functions for easy access
+// Helper functions
 export const getAllCategories = () => {
     return Object.values(SERVICE_CATEGORIES);
 };
@@ -674,22 +269,18 @@ export const getCategoryBySlug = (slug: string) => {
     return Object.values(SERVICE_CATEGORIES).find((cat) => cat.slug === slug);
 };
 
-export const getSubcategoriesByCategory = (categorySlug: string) => {
-    const category = getCategoryBySlug(categorySlug);
-    return category ? Object.values(category.subcategories) : [];
+export const getCategoryByName = (name: string) => {
+    return Object.values(SERVICE_CATEGORIES).find((cat) => cat.name === name);
 };
 
-export const getServicesBySubcategory = (
-    categorySlug: string,
-    subcategorySlug: string
-) => {
-    const category = getCategoryBySlug(categorySlug);
-    if (!category) return [];
+export const getSubcategoriesByCategory = (categoryNameOrSlug: string) => {
+    const category = getCategoryBySlug(categoryNameOrSlug) || getCategoryByName(categoryNameOrSlug);
+    return category ? category.subcategories : [];
+};
 
-    const subcategory = Object.values(category.subcategories).find(
-        (sub) => sub.slug === subcategorySlug
-    );
-    return subcategory?.services || [];
+export const getAddOnsByCategory = (categoryNameOrSlug: string) => {
+    const category = getCategoryBySlug(categoryNameOrSlug) || getCategoryByName(categoryNameOrSlug);
+    return category?.addOns || [];
 };
 
 // Get category name from slug (for display)
@@ -701,16 +292,16 @@ export const getCategoryName = (slug: string): string => {
 // Flatten all categories for dropdown
 export const getCategoryOptions = () => {
     return getAllCategories().map((cat) => ({
-        value: cat.slug,
+        value: cat.name,
         label: cat.name,
     }));
 };
 
 // Get subcategory options for a given category
-export const getSubcategoryOptions = (categorySlug: string) => {
-    const subcategories = getSubcategoriesByCategory(categorySlug);
+export const getSubcategoryOptions = (categoryNameOrSlug: string) => {
+    const subcategories = getSubcategoriesByCategory(categoryNameOrSlug);
     return subcategories.map((sub) => ({
-        value: sub.slug,
+        value: sub.name,
         label: sub.name,
     }));
 };

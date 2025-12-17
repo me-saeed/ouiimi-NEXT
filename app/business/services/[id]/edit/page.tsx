@@ -17,7 +17,7 @@ const CATEGORIES = getAllCategories().map(cat => cat.name);
 // Build subcategories dynamically from constants
 const SUB_CATEGORIES: Record<string, string[]> = {};
 getAllCategories().forEach(category => {
-  const subs = Object.values(category.subcategories).map(sub => sub.name);
+  const subs = category.subcategories.map(sub => sub.name);
   SUB_CATEGORIES[category.name] = subs.length > 0 ? subs : [];
 });
 

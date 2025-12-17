@@ -26,8 +26,8 @@ const SERVICE_CATEGORIES = getAllCategories().map(cat => cat.name);
 // Build subcategories dynamically from constants
 const SUB_CATEGORIES: Record<string, string[]> = {};
 getAllCategories().forEach(category => {
-  const subs = Object.values(category.subcategories).map(sub => sub.name);
-  SUB_CATEGORIES[category.name] = subs.length > 0 ? subs : ["All"];
+  const subs = category.subcategories.map(sub => sub.name);
+  SUB_CATEGORIES[category.name] = subs; // No 'All' - empty array means show all
 });
 
 function ServicesContent() {
@@ -37,7 +37,7 @@ function ServicesContent() {
 
   // State for filters
   const [category, setCategory] = useState(searchParams.get("category") || "Hair Services");
-  const [subCategory, setSubCategory] = useState(searchParams.get("subCategory") || "All");
+  const [subCategory, setSubCategory] = useState(searchParams.get("subCategory") || ""); // Empty = show all
   const [selectedDate, setSelectedDate] = useState(searchParams.get("date") || "");
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [locationAddress, setLocationAddress] = useState("");
@@ -53,73 +53,15 @@ function ServicesContent() {
 
   const locationValue = watch("location");
 
-  // Get user's current location or account location
-  useEffect(() => {
-    const getLocation = async () => {
-      // Priority 1: Try to get current location
-      if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-          (position) => {
-            setUserLocation({
-              lat: position.coords.latitude,
-              lng: position.coords.longitude,
-            });
-          },
-          async () => {
-            // If denied, try user account location (Priority 2)
-            if (user && (user as any).address) {
-              try {
-                // Geocode user account address
-                const { geocodeByAddress, getLatLng } = await import("react-google-places-autocomplete");
-                const userAddress = (user as any).address;
-                const results = await geocodeByAddress(userAddress);
-                const coordinates = await getLatLng(results[0]);
-                setUserLocation({
-                  lat: coordinates.lat,
-                  lng: coordinates.lng,
-                });
-                setLocationAddress(userAddress);
-                setValue("location", userAddress);
-              } catch (err) {
-                console.error("Error geocoding user address:", err);
-                setUserLocation(null);
-              }
-            } else {
-              // Priority 3: Manual input (already handled by AddressAutocomplete)
-              setUserLocation(null);
-            }
-          }
-        );
-      } else {
-        // Fallback to user account location or manual input
-        if (user && (user as any).address) {
-          try {
-            const { geocodeByAddress, getLatLng } = await import("react-google-places-autocomplete");
-            const userAddress = (user as any).address;
-            const results = await geocodeByAddress(userAddress);
-            const coordinates = await getLatLng(results[0]);
-            setUserLocation({
-              lat: coordinates.lat,
-              lng: coordinates.lng,
-            });
-            setLocationAddress(userAddress);
-            setValue("location", userAddress);
-          } catch (err) {
-            console.error("Error geocoding user address:", err);
-            setUserLocation(null);
-          }
-        }
-      }
-    };
-
-    getLocation();
-  }, [user, setValue]);
+  // Location is now only used when user explicitly enters address in search
+  // No automatic geolocation request on page load
 
   useEffect(() => {
     // Update URL when filters change
     const params = new URLSearchParams();
     if (category) params.set("category", category);
-    if (subCategory && subCategory !== "All") params.set("subCategory", subCategory);
+    // Only set subCategory param if one is selected (not empty)
+    if (subCategory && subCategory !== "") params.set("subCategory", subCategory);
     if (selectedDate) params.set("date", selectedDate);
     router.push(`/services?${params.toString()}`, { scroll: false });
 
@@ -132,6 +74,9 @@ function ServicesContent() {
     try {
       let url = "/api/services?status=listed";
       if (category) url += `&category=${encodeURIComponent(category)}`;
+      // Only add subCategory filter if one is selected (not empty)
+      if (subCategory && subCategory.trim() !== "")
+        url += `&subCategory=${encodeURIComponent(subCategory)}`;
       if (selectedDate) url += `&date=${encodeURIComponent(selectedDate)}`;
 
       // Add location parameters for geospatial query
@@ -345,10 +290,22 @@ function ServicesContent() {
 
           {/* Row 3: Sub-categories (Horizontal Scroll) */}
           <div className="flex gap-2 overflow-x-auto scrollbar-hide py-2 -mx-4 px-4 md:mx-0 md:px-0">
+            {/* All button to clear filter */}
+            <button
+              onClick={() => setSubCategory("")}
+              className={`whitespace-nowrap px-4 py-2 rounded-full text-sm font-medium transition-all ${subCategory === ""
+                ? "bg-[#3A3A3A] text-white"
+                : "bg-transparent text-[#888888] hover:text-[#3A3A3A]"
+                }`}
+            >
+              All
+            </button>
+
+            {/* Individual subcategory buttons */}
             {SUB_CATEGORIES[category]?.map((sub) => (
               <button
                 key={sub}
-                onClick={() => setSubCategory(sub === subCategory ? "All" : sub)}
+                onClick={() => setSubCategory(sub)}
                 className={`whitespace-nowrap px-4 py-2 rounded-full text-sm font-medium transition-all ${sub === subCategory
                   ? "bg-[#3A3A3A] text-white"
                   : "bg-transparent text-[#888888] hover:text-[#3A3A3A]"

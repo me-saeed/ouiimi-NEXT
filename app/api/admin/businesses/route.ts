@@ -31,10 +31,13 @@ async function getBusinessesHandler(req: NextRequest) {
             );
         }
 
-        // TODO: Add admin role check
-        // if (decoded.role !== 'admin') {
-        //   return NextResponse.json({ error: "Admin access required" }, { status: 403 });
-        // }
+        // Verify user has admin role
+        if (!decoded.roles?.includes('admin')) {
+            return NextResponse.json(
+                { error: "Admin access required" },
+                { status: 403 }
+            );
+        }
 
         await dbConnect();
 

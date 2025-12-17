@@ -82,9 +82,33 @@ export default function SigninPage() {
         localStorage.setItem("user", JSON.stringify(result.user));
       }
 
-      // Redirect to redirect url or home
+      // Smart redirect based on user role
       const searchParams = new URL(window.location.href).searchParams;
-      const redirectUrl = searchParams.get("redirect") || "/";
+      const requestedPath = searchParams.get("redirect");
+
+      let redirectUrl = "/";
+
+      // If there's a specific requested path (and it's not a signin/signup page), go there
+      if (
+        requestedPath &&
+        requestedPath !== "/" &&
+        !requestedPath.startsWith("/signin") &&
+        !requestedPath.startsWith("/signup")
+      ) {
+        redirectUrl = requestedPath;
+      } else {
+        // Otherwise, smart redirect based on role
+        const userRoles = result.user?.roles || [];
+
+        if (userRoles.includes('admin')) {
+          redirectUrl = '/admin/dashboard';
+        } else if (userRoles.includes('business')) {
+          // Business users might want to check their dashboard
+          // (will redirect to register if no business exists)
+          redirectUrl = '/business/dashboard';
+        }
+        // Regular users stay at "/"
+      }
 
       setTimeout(() => {
         router.push(redirectUrl);

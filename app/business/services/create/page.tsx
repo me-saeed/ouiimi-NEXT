@@ -15,7 +15,7 @@ import { AddressAutocomplete } from "@/components/ui/address-autocomplete";
 import { TimeSelect } from "@/components/ui/time-select";
 import { useToast } from "@/hooks/use-toast";
 import Image from "next/image";
-import { getAllCategories } from "@/lib/constants/categories";
+import { getAllCategories, getAddOnsByCategory } from "@/lib/constants/categories";
 
 // Get all category names
 const CATEGORIES = getAllCategories().map(cat => cat.name);
@@ -23,107 +23,11 @@ const CATEGORIES = getAllCategories().map(cat => cat.name);
 // Build subcategories dynamically from constants
 const SUB_CATEGORIES: Record<string, string[]> = {};
 getAllCategories().forEach(category => {
-  const subs = Object.values(category.subcategories).map(sub => sub.name);
+  const subs = category.subcategories.map(sub => sub.name);
   SUB_CATEGORIES[category.name] = subs.length > 0 ? subs : [];
 });
 
-const SUB_CATEGORY_ADDONS: Record<string, Array<{ name: string; cost: number }>> = {
-  // Hair Services Add-Ons
-  "Haircut": [
-    { name: "Scalp Massage", cost: 30 },
-    { name: "Hydration/Repair", cost: 10 },
-    { name: "Toner", cost: 20 },
-    { name: "Extra Blow-Dry", cost: 50 },
-  ],
-  "Colouring": [
-    { name: "Extra Colour Bowl", cost: 30 },
-    { name: "Root Shadow/Blend", cost: 40 },
-    { name: "Gloss Refresh", cost: 40 },
-    { name: "Colour Lock Treatment", cost: 25 },
-  ],
-  "Blow-Dry & Styling": [
-    { name: "Hot Tool Styling", cost: 20 },
-    { name: "Braiding", cost: 30 },
-    { name: "Occasion Finish", cost: 40 },
-  ],
-  "Treatment": [
-    { name: "Scalp Massage", cost: 30 },
-    { name: "Deep Conditioning", cost: 20 },
-  ],
-  "Extensions": [
-    { name: "Cut & Blend", cost: 50 },
-    { name: "Style Finish", cost: 30 },
-  ],
-  "Men's Cut": [
-    { name: "Beard Trim", cost: 15 },
-    { name: "Scalp Massage", cost: 20 },
-  ],
-  "Women's Cut": [
-    { name: "Scalp Massage", cost: 30 },
-    { name: "Hydration/Repair", cost: 10 },
-  ],
-  "Kids Cut": [
-    { name: "Detangling", cost: 15 },
-    { name: "Braiding", cost: 20 },
-  ],
-
-  // Nails Add-Ons
-  "Manicure": [
-    { name: "French Tip", cost: 10 },
-    { name: "Gel Polish Upgrade", cost: 15 },
-    { name: "Cuticle Treatment", cost: 10 },
-    { name: "Paraffin Wax", cost: 20 },
-  ],
-  "Pedicure": [
-    { name: "French Tip", cost: 10 },
-    { name: "Gel Polish Upgrade", cost: 15 },
-    { name: "Callus Removal", cost: 15 },
-    { name: "Paraffin Wax", cost: 20 },
-  ],
-  "Gel": [
-    { name: "Nail Art (per nail)", cost: 5 },
-    { name: "French Tip", cost: 10 },
-  ],
-  "Acrylic": [
-    { name: "Nail Art (per nail)", cost: 5 },
-    { name: "French Tip", cost: 10 },
-    { name: "Length Upgrade", cost: 10 },
-  ],
-  "Nail Art": [], // Typically custom
-  "Removal": [{ name: "Hydrating Oil", cost: 5 }],
-
-  // Beauty & Brows Add-Ons
-  "Brows": [
-    { name: "Brow Tint", cost: 15 },
-    { name: "Lash Tint", cost: 20 },
-    { name: "Quick Facial", cost: 30 },
-    { name: "Lip Wax", cost: 10 },
-    { name: "Chin Wax", cost: 10 },
-  ],
-  "Lashes": [
-    { name: "Lash Tint", cost: 20 },
-    { name: "Brow Wax", cost: 20 },
-  ],
-  "Makeup": [
-    { name: "False Lashes", cost: 15 },
-    { name: "Airbrush Upgrade", cost: 30 },
-  ],
-  "Facial": [
-    { name: "LED Light Therapy", cost: 30 },
-    { name: "Extractions", cost: 20 },
-    { name: "Eye Treatment", cost: 15 },
-  ],
-  "Waxing": [
-    { name: "Soothing Gel", cost: 5 },
-  ],
-  "Threading": [
-    { name: "Soothing Gel", cost: 5 },
-  ],
-  "Tinting": [
-    { name: "Brow Wax", cost: 20 },
-  ],
-};
-
+// Add-ons are now dynamically loaded from category data
 
 
 export default function CreateServicePage() {
@@ -1123,23 +1027,59 @@ export default function CreateServicePage() {
 
                       {isAddOnsDropdownOpen && (
                         <div className="p-4 bg-gray-50 rounded-xl border border-gray-200 mb-3">
-                          <p className="text-sm text-gray-500 mb-3">Select available add-ons:</p>
-                          <div className="flex flex-wrap gap-2">
-                            {selectedSubCategory && SUB_CATEGORY_ADDONS[selectedSubCategory]?.map((addOn, idx) => (
-                              <button
-                                key={idx}
-                                type="button"
-                                onClick={() => handleToggleAddOn(addOn)}
-                                className={`px-3 py-1.5 rounded-full text-sm transition-colors border ${selectedAddOns.some(a => a.name === addOn.name)
-                                  ? "bg-primary text-white border-primary"
-                                  : "bg-white text-gray-700 border-gray-300 hover:border-primary"
-                                  }`}
-                              >
-                                {addOn.name} (+${addOn.cost})
-                              </button>
-                            ))}
-                            {(!selectedSubCategory || !SUB_CATEGORY_ADDONS[selectedSubCategory]) && (
-                              <p className="text-sm text-gray-400 italic">Select a sub-category to see add-ons</p>
+                          <p className="text-sm text-gray-500 mb-3">Select available add-ons and set pricing:</p>
+                          <div className="space-y-3">
+                            {selectedCategory && getAddOnsByCategory(selectedCategory).map((addOnName, idx: number) => {
+                              const existingAddOn = selectedAddOns.find(a => a.name === addOnName);
+                              const isSelected = !!existingAddOn;
+
+                              return (
+                                <div key={idx} className="flex items-center gap-3">
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      if (isSelected) {
+                                        // Remove add-on
+                                        setSelectedAddOns(prev => prev.filter(a => a.name !== addOnName));
+                                      } else {
+                                        // Add add-on with default price (business owner will set)
+                                        setSelectedAddOns(prev => [...prev, { name: addOnName, cost: 0 }]);
+                                      }
+                                    }}
+                                    className={`px-3 py-1.5 rounded-full text-sm transition-colors border flex-shrink-0 ${isSelected
+                                        ? "bg-primary text-white border-primary"
+                                        : "bg-white text-gray-700 border-gray-300 hover:border-primary"
+                                      }`}
+                                  >
+                                    {addOnName}
+                                  </button>
+
+                                  {isSelected && (
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-sm text-gray-600">$</span>
+                                      <input
+                                        type="number"
+                                        min="0"
+                                        step="0.01"
+                                        value={existingAddOn.cost || ''}
+                                        onChange={(e) => {
+                                          const newCost = parseFloat(e.target.value) || 0;
+                                          setSelectedAddOns(prev =>
+                                            prev.map(a =>
+                                              a.name === addOnName ? { ...a, cost: newCost } : a
+                                            )
+                                          );
+                                        }}
+                                        placeholder="0.00"
+                                        className="w-24 px-3 py-1 border border-gray-300 rounded-lg text-sm"
+                                      />
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
+                            {(!selectedCategory || getAddOnsByCategory(selectedCategory).length === 0) && (
+                              <p className="text-sm text-gray-400 italic">Select a category to see add-ons</p>
                             )}
                           </div>
                         </div>

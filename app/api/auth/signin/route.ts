@@ -157,12 +157,13 @@ async function signinHandler(req: NextRequest) {
     // STEP 7: Generate JWT token
     // =========================================================================
     // generateToken() creates a signed JWT with user info
-    // Token contains: { userId, email, username }
+    // Token contains: { userId, email, username, roles }
     // Token is used for authentication in subsequent requests
     const token = generateToken({
       userId: String(user._id),
       email: user.email,
       username: user.username || "",
+      roles: user.Roles || ["user"], // Include user roles for RBAC
     });
 
     // =========================================================================
@@ -197,16 +198,35 @@ async function signinHandler(req: NextRequest) {
       lname: user.lname,
       email: user.email,
       username: user.username,
+      roles: user.Roles || ["user"], // Include roles for client-side checks
       token,
     };
 
-    return NextResponse.json(
+    // Create response with user data
+    const response = NextResponse.json(
       {
         message: "Login successful",
         user: userData,
       },
       { status: 200 }
     );
+
+    // =========================================================================
+    // STEP 10: Set HTTP-only cookie for middleware authentication
+    // =========================================================================
+    // HTTP-only cookies are more secure than localStorage (protected from XSS)
+    // Both cookie and localStorage token are set for gradual migration
+    response.cookies.set({
+      name: 'auth-token',
+      value: token,
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 60 * 60 * 24 * 7, // 7 days
+      path: '/',
+    });
+
+    return response;
   } catch (error: any) {
     console.error("Signin error:", error);
 
