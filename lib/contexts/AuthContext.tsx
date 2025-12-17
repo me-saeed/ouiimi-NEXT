@@ -19,6 +19,7 @@ interface AuthContextType {
     logout: () => void;
     isAuthenticated: boolean;
     token: string | null;
+    isLoading: boolean; // Indicates if auth state is being initialized
     hasRole: (role: string) => boolean; // Check if user has specific role
     isAdmin: boolean; // Quick check for admin role
 }
@@ -84,15 +85,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         logout,
         isAuthenticated: !!user && !!token,
         token,
+        isLoading,
         hasRole,
         isAdmin,
     };
 
-    // Don't render children until we've checked auth state
-    if (isLoading) {
-        return null;
-    }
-
+    // Always render children to prevent white screen
+    // Components can check isLoading from context if needed
     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 

@@ -5,6 +5,7 @@ import Script from "next/script";
 import "./globals.css";
 import { Providers } from "@/lib/providers";
 import { Toaster } from "@/components/ui/toaster";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -38,8 +39,10 @@ export default function RootLayout({
         )}
       </head>
       <body className={inter.className}>
-        <Providers>{children}</Providers>
-        <Toaster />
+        <ErrorBoundary>
+          <Providers>{children}</Providers>
+          <Toaster />
+        </ErrorBoundary>
       </body>
     </html>
   );
