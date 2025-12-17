@@ -1,3 +1,4 @@
+// Build version: 2025-12-18-02:24 - Force CSS rebuild
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import Script from "next/script";
