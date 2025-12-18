@@ -28,38 +28,39 @@ export default function CheckoutPage() {
 
     // Load booking only when authenticated
     useEffect(() => {
+        const loadBooking = async () => {
+            try {
+                const token = localStorage.getItem("token");
+                const response = await fetch(`/api/bookings/${bookingId}`, {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    setBooking(data.booking);
+
+                    // If payment already initiated (has paymentIntentId/sessionId), redirect to Stripe immediately
+                    if (data.booking.paymentIntentId) {
+                        console.log("Payment session already exists, redirecting to Stripe...");
+                        handlePayment();
+                    }
+                } else {
+                    setError("Failed to load booking details");
+                }
+            } catch (err) {
+                setError("Failed to load booking details");
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
         if (!authLoading && isAuthenticated) {
             loadBooking();
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [bookingId, authLoading, isAuthenticated]);
-
-    const loadBooking = async () => {
-        try {
-            const token = localStorage.getItem("token");
-            const response = await fetch(`/api/bookings/${bookingId}`, {
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                },
-            });
-
-            if (response.ok) {
-                const data = await response.json();
-                setBooking(data.booking);
-
-                // If payment already initiated (has paymentIntentId/sessionId), redirect to Stripe immediately
-                if (data.booking.paymentIntentId) {
-                    console.log("Payment session already exists, redirecting to Stripe...");
-                    handlePayment();
-                }
-            } else {
-                setError("Failed to load booking details");
-            }
-        } catch (err) {
-            setError("Failed to load booking details");
-        } finally {
-            setIsLoading(false);
-        }
-    };
 
     const handlePayment = async () => {
         setIsProcessing(true);

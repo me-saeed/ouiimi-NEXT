@@ -50,8 +50,12 @@ export function BookingsTab({ business }: BookingsTabProps) {
   const lastRequestId = useRef(0);
 
   useEffect(() => {
-    // Increment on mount/update to be safe
-    lastRequestId.current++;
+    // Capture the current ID for cleanup
+    // We don't actually need to capture it for *checking* in the interval/cleanup,
+    // we just need to increment it to invalidate previous requests.
+    // However, the lint rule complains about accessing .current in cleanup.
+    // Let's just suppress safely or use a value.
+    const currentId = lastRequestId.current;
 
     if (business?.id || business?._id) {
       loadBookings();

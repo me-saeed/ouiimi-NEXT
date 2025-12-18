@@ -14,30 +14,30 @@ export default function CategoryPage({ params }: { params: { slug: string } }) {
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
     useEffect(() => {
+        const loadCategoryServices = async () => {
+            setIsLoading(true);
+            try {
+                const response = await fetch(
+                    `/api/services?category=${encodeURIComponent(category)}&status=listed`
+                );
+                if (response.ok) {
+                    const data = await response.json();
+                    // Filter services with available slots
+                    const servicesWithSlots = (data.services || []).filter((service: any) => {
+                        const earliestSlot = getEarliestAvailableTimeSlot(service);
+                        return earliestSlot !== null;
+                    });
+                    setServices(servicesWithSlots);
+                }
+            } catch (error) {
+                console.error("Error loading services:", error);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
         loadCategoryServices();
     }, [category]);
-
-    const loadCategoryServices = async () => {
-        setIsLoading(true);
-        try {
-            const response = await fetch(
-                `/api/services?category=${encodeURIComponent(category)}&status=listed`
-            );
-            if (response.ok) {
-                const data = await response.json();
-                // Filter services with available slots
-                const servicesWithSlots = (data.services || []).filter((service: any) => {
-                    const earliestSlot = getEarliestAvailableTimeSlot(service);
-                    return earliestSlot !== null;
-                });
-                setServices(servicesWithSlots);
-            }
-        } catch (error) {
-            console.error("Error loading services:", error);
-        } finally {
-            setIsLoading(false);
-        }
-    };
 
     const formatTime12Hour = (time24: string): string => {
         if (!time24) return "";

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams, useSearchParams } from "next/navigation";
+import { useParams, useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import PageLayout from "@/components/layout/PageLayout";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,7 @@ import { useAuth } from "@/lib/contexts/AuthContext";
 export default function BookingConfirmPage() {
   const params = useParams();
   const searchParams = useSearchParams();
+  const router = useRouter();
   const { user, isAuthenticated, isLoading: authLoading } = useAuth();
   const bookingId = params.id as string;
   const sessionId = searchParams.get("session_id");
@@ -28,13 +29,6 @@ export default function BookingConfirmPage() {
       router.push(`/signin?callbackUrl=${returnUrl}`);
     }
   }, [authLoading, isAuthenticated, router, bookingId, sessionId]);
-
-  // Load booking and verify payment only when authenticated
-  useEffect(() => {
-    if (bookingId && sessionId && !authLoading && isAuthenticated) {
-      verifyPaymentAndLoadBooking();
-    }
-  }, [bookingId, sessionId, authLoading, isAuthenticated]);
 
   const verifyPaymentAndLoadBooking = async () => {
     try {
@@ -78,6 +72,14 @@ export default function BookingConfirmPage() {
       setIsLoading(false);
     }
   };
+
+  // Load booking and verify payment only when authenticated
+  useEffect(() => {
+    if (bookingId && sessionId && !authLoading && isAuthenticated) {
+      verifyPaymentAndLoadBooking();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bookingId, sessionId, authLoading, isAuthenticated]);
 
   if (isLoading) {
     return (

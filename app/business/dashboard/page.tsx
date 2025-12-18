@@ -134,7 +134,7 @@ export default function BusinessDashboardPage() {
         );
     }
 
-    if (isLoading) {
+    if (businessLoading) {
         return <BusinessDashboardSkeleton />;
     }
 
