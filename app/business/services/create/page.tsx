@@ -613,6 +613,22 @@ export default function CreateServicePage() {
         return;
       }
 
+      // Collect all unique add-ons from all time slots for service-level addOns
+      const allAddOnsMap = new Map<string, { name: string; cost: number }>();
+      timeSlotsForSubmission.forEach(slot => {
+        if (slot.addOns && Array.isArray(slot.addOns)) {
+          slot.addOns.forEach(addon => {
+            if (addon && addon.name) {
+              // Use name as key to avoid duplicates, keep the first cost encountered
+              if (!allAddOnsMap.has(addon.name)) {
+                allAddOnsMap.set(addon.name, { name: addon.name, cost: addon.cost || 0 });
+              }
+            }
+          });
+        }
+      });
+      const serviceAddOns = Array.from(allAddOnsMap.values());
+
       // Ensure all data is serializable
       const requestBody = {
         category: data.category,
@@ -622,7 +638,7 @@ export default function CreateServicePage() {
         address: data.address,
         businessId: foundBusinessId,
 
-        addOns: selectedAddOns, // Include selected add-ons
+        addOns: serviceAddOns, // ✅ FIXED: Include ALL unique add-ons from all time slots
         timeSlots: timeSlotsForSubmission.map(slot => ({
           date: typeof slot.date === 'string' ? slot.date : new Date(slot.date).toISOString().split('T')[0],
           startTime: String(slot.startTime),
@@ -1047,8 +1063,8 @@ export default function CreateServicePage() {
                                       }
                                     }}
                                     className={`px-3 py-1.5 rounded-full text-sm transition-colors border flex-shrink-0 ${isSelected
-                                        ? "bg-primary text-white border-primary"
-                                        : "bg-white text-gray-700 border-gray-300 hover:border-primary"
+                                      ? "bg-primary text-white border-primary"
+                                      : "bg-white text-gray-700 border-gray-300 hover:border-primary"
                                       }`}
                                   >
                                     {addOnName}
