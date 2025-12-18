@@ -9,6 +9,9 @@
 # testing
 /coverage
 
+# uploads (user-uploaded files)
+/uploads
+
 # next.js
 /.next/
 /out/
