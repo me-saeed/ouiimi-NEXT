@@ -38,18 +38,12 @@ export function middleware(request: NextRequest) {
     const token = request.cookies.get("token")?.value;
 
     // If no token, redirect to signin
-    /*
     if (!token) {
       const url = request.nextUrl.clone();
       url.pathname = "/signin";
       // Optional: Add return URL
       url.searchParams.set("callbackUrl", request.nextUrl.pathname);
       return NextResponse.redirect(url);
-    }
-    */
-    if (!token) {
-      console.log("Middleware: No token found for protected route:", request.nextUrl.pathname);
-      // Allowing through temporarily for debugging
     }
   }
 

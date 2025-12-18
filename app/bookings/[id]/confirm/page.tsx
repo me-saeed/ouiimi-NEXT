@@ -12,7 +12,7 @@ import { useAuth } from "@/lib/contexts/AuthContext";
 export default function BookingConfirmPage() {
   const params = useParams();
   const searchParams = useSearchParams();
-  const { user } = useAuth();
+  const { user, isAuthenticated, isLoading: authLoading } = useAuth();
   const bookingId = params.id as string;
   const sessionId = searchParams.get("session_id");
 
@@ -21,12 +21,20 @@ export default function BookingConfirmPage() {
   const [error, setError] = useState("");
   const [paymentVerified, setPaymentVerified] = useState(false);
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+  // Redirect if not authenticated
   useEffect(() => {
-    if (bookingId && sessionId) {
+    if (!authLoading && !isAuthenticated) {
+      const returnUrl = encodeURIComponent(`/bookings/${bookingId}/confirm?session_id=${sessionId || ''}`);
+      router.push(`/signin?callbackUrl=${returnUrl}`);
+    }
+  }, [authLoading, isAuthenticated, router, bookingId, sessionId]);
+
+  // Load booking and verify payment only when authenticated
+  useEffect(() => {
+    if (bookingId && sessionId && !authLoading && isAuthenticated) {
       verifyPaymentAndLoadBooking();
     }
-  }, [bookingId, sessionId]);
+  }, [bookingId, sessionId, authLoading, isAuthenticated]);
 
   const verifyPaymentAndLoadBooking = async () => {
     try {

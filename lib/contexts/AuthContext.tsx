@@ -63,12 +63,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         document.cookie = `token=${newToken}; path=/`;
     };
 
-    const logout = () => {
-        setToken(null);
-        setUser(null);
-        localStorage.removeItem("token");
-        localStorage.removeItem("user");
-        document.cookie = "token=; path=/; max-age=0";
+    const logout = async () => {
+        try {
+            // Call server to clear HttpOnly cookie
+            await fetch("/api/auth/logout", { method: "POST" });
+        } catch (error) {
+            console.error("Logout API error:", error);
+        } finally {
+            setToken(null);
+            setUser(null);
+            localStorage.removeItem("token");
+            localStorage.removeItem("user");
+            // Also try to clear client-side cookie just in case
+            document.cookie = "token=; path=/; max-age=0";
+        }
     };
 
     // Role checking methods

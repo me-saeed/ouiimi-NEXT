@@ -18,13 +18,13 @@ import { BusinessDashboardSkeleton } from "@/components/skeletons/BusinessDashbo
 
 export default function BusinessDashboardPage() {
     const router = useRouter();
-    const { user, isAuthenticated } = useAuth();
+    const { user, isAuthenticated, isLoading: authLoading } = useAuth();
     const fileInputRef = useRef<HTMLInputElement>(null);
     const { toast } = useToast();
     const [activeTab, setActiveTab] = useState<"bookings" | "list" | "staff" | "details">("bookings");
 
     // Use SWR hook for business data
-    const { business, isLoading, error, mutate } = useBusiness(user?.id || user?._id);
+    const { business, isLoading: businessLoading, error, mutate } = useBusiness(user?.id || user?._id);
 
     const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
@@ -115,10 +115,10 @@ export default function BusinessDashboardPage() {
 
     // Redirect to signin if not authenticated
     useEffect(() => {
-        if (!isAuthenticated && typeof window !== 'undefined') {
+        if (!authLoading && !isAuthenticated && typeof window !== 'undefined') {
             router.push("/signin");
         }
-    }, [isAuthenticated, router]);
+    }, [isAuthenticated, authLoading, router]);
 
     if (!user) {
         return (

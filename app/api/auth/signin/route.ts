@@ -217,7 +217,7 @@ async function signinHandler(req: NextRequest) {
     // HTTP-only cookies are more secure than localStorage (protected from XSS)
     // Both cookie and localStorage token are set for gradual migration
     response.cookies.set({
-      name: 'auth-token',
+      name: 'token',
       value: token,
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',

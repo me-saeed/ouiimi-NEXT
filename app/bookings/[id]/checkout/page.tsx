@@ -10,7 +10,7 @@ import { useAuth } from "@/lib/contexts/AuthContext";
 export default function CheckoutPage() {
     const params = useParams();
     const router = useRouter();
-    const { user } = useAuth();
+    const { user, isAuthenticated, isLoading: authLoading } = useAuth();
     const bookingId = params.id as string;
 
     const [booking, setBooking] = useState<any>(null);
@@ -18,10 +18,20 @@ export default function CheckoutPage() {
     const [isProcessing, setIsProcessing] = useState(false);
     const [error, setError] = useState("");
 
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // Redirect if not authenticated
     useEffect(() => {
-        loadBooking();
-    }, [bookingId]);
+        if (!authLoading && !isAuthenticated) {
+            const returnUrl = encodeURIComponent(`/bookings/${bookingId}/checkout`);
+            router.push(`/signin?callbackUrl=${returnUrl}`);
+        }
+    }, [authLoading, isAuthenticated, router, bookingId]);
+
+    // Load booking only when authenticated
+    useEffect(() => {
+        if (!authLoading && isAuthenticated) {
+            loadBooking();
+        }
+    }, [bookingId, authLoading, isAuthenticated]);
 
     const loadBooking = async () => {
         try {
