@@ -1,177 +1,126 @@
-import Link from "next/link";
+"use client";
+
 import PageLayout from "@/components/layout/PageLayout";
 
 export default function AboutPage() {
   return (
     <PageLayout>
-      <div className="bg-color-bg py-12 sm:py-16">
-        <div className="container">
-          <div className="mx-auto max-w-5xl">
-            <div className="bg-white rounded-xl shadow-md p-8 md:p-12">
-              {/* Title - Centered */}
-              <h1 className="text-5xl font-bold text-color-primary mb-12 text-center">
-                How ouiimi Works
-              </h1>
+      <div className="bg-white min-h-screen py-16">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-4xl">
 
-              {/* Intro - Centered */}
-              <div className="text-center mb-16">
-                <p className="text-2xl leading-relaxed text-color-gray max-w-3xl mx-auto">
-                  ouiimi makes booking everyday services simple, reliable, and stress-free — for both customers and small businesses.
-                </p>
-              </div>
+          {/* Main Title */}
+          <div className="text-center mb-16 space-y-6">
+            <h1 className="text-4xl font-bold text-[#3A3A3A] uppercase tracking-wide">About Us</h1>
 
-              {/* Booking Process Section */}
-              <section className="mb-20">
-                <h2 className="text-4xl font-bold text-color-primary mb-12 text-center">
-                  Booking Process (For Customers)
-                </h2>
-
-                {/* 3 Steps - Centered */}
-                <div className="flex justify-center gap-8 mb-12 text-xl font-semibold text-color-primary flex-wrap">
-                  <span>Browse</span>
-                  <span>→</span>
-                  <span>Check availability</span>
-                  <span>→</span>
-                  <span>Book</span>
-                </div>
-
-                {/* Step 1: Browse */}
-                <div className="mb-12 text-center">
-                  <h3 className="text-3xl font-bold text-color-primary mb-4">Browse</h3>
-                  <div className="max-w-3xl mx-auto">
-                    <p className="text-xl leading-relaxed text-color-gray mb-3">
-                      Discover trusted local services — hair, nails, beauty, massage, wellness, dog grooming, and more.
-                    </p>
-                    <p className="text-xl leading-relaxed text-color-gray">
-                      Find what you need fast, without endless searching or Instagram DMs.
-                    </p>
-                  </div>
-                </div>
-
-                {/* Step 2: Check Availability */}
-                <div className="mb-12 text-center">
-                  <h3 className="text-3xl font-bold text-color-primary mb-4">Check Availability</h3>
-                  <div className="max-w-3xl mx-auto">
-                    <p className="text-xl leading-relaxed text-color-gray mb-3">
-                      Choose your preferred date and time instantly.
-                    </p>
-                    <p className="text-xl leading-relaxed text-color-gray">
-                      Real-time availability means no waiting, no back-and-forth messages, and no uncertainty.
-                    </p>
-                  </div>
-                </div>
-
-                {/* Step 3: Book */}
-                <div className="mb-12 text-center">
-                  <h3 className="text-3xl font-bold text-color-primary mb-4">Book</h3>
-                  <div className="max-w-3xl mx-auto">
-                    <p className="text-xl leading-relaxed text-color-gray mb-3">
-                      Secure your appointment with a 10% deposit + $1.99 service fee.
-                    </p>
-                    <p className="text-xl leading-relaxed text-color-gray mb-3">
-                      Instant confirmation, stored safely in your ouiimi dashboard.
-                    </p>
-                    <p className="text-xl leading-relaxed text-color-gray">
-                      Feel confident knowing exactly what you&apos;ve booked before you arrive.
-                    </p>
-                  </div>
-                </div>
-
-                {/* Why Customers Love It */}
-                <div className="bg-gray-50 rounded-lg p-8 text-center">
-                  <h3 className="text-3xl font-bold text-color-primary mb-4">Why Customers Love It</h3>
-                  <p className="text-xl leading-relaxed text-color-gray max-w-3xl mx-auto">
-                    Everything is clear, secure, and organised — so you spend less time planning and more time enjoying your appointment.
-                  </p>
-                </div>
-              </section>
-
-              {/* Business Process Section */}
-              <section className="mb-20">
-                <h2 className="text-4xl font-bold text-color-primary mb-12 text-center">
-                  3-Step Process (For Small Businesses)
-                </h2>
-
-                {/* 3 Steps - Centered */}
-                <div className="flex justify-center gap-8 mb-12 text-xl font-semibold text-color-primary flex-wrap">
-                  <span>Register Your Business</span>
-                  <span>→</span>
-                  <span>Set Your Availability</span>
-                  <span>→</span>
-                  <span>Get Booked</span>
-                </div>
-
-                {/* Step 1: Register */}
-                <div className="mb-12 text-center">
-                  <h3 className="text-3xl font-bold text-color-primary mb-4">Register Your Business</h3>
-                  <div className="max-w-3xl mx-auto">
-                    <p className="text-xl leading-relaxed text-color-gray mb-3">
-                      Submit a quick application to join ouiimi.
-                    </p>
-                    <p className="text-xl leading-relaxed text-color-gray mb-3">
-                      Once approved, your dashboard is activated — with no listing fees, no subscriptions, and no hidden charges.
-                    </p>
-                    <p className="text-xl leading-relaxed text-color-gray">
-                      Your services, your pricing — ouiimi simply helps you get booked.
-                    </p>
-                  </div>
-                </div>
-
-                {/* Step 2: Set Availability */}
-                <div className="mb-12 text-center">
-                  <h3 className="text-3xl font-bold text-color-primary mb-4">Set Your Availability</h3>
-                  <div className="max-w-3xl mx-auto">
-                    <p className="text-xl leading-relaxed text-color-gray mb-4">
-                      Add your services in minutes:
-                    </p>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xl text-color-gray max-w-2xl mx-auto">
-                      <div>• Prices</div>
-                      <div>• Add-ons</div>
-                      <div>• Durations</div>
-                      <div>• Opening hours & availability</div>
-                      <div>• Descriptions</div>
-                      <div></div>
-                    </div>
-                    <p className="text-xl leading-relaxed text-color-gray mt-6">
-                      Your dashboard becomes your digital storefront — clean, professional, and easy to manage.
-                    </p>
-                  </div>
-                </div>
-
-                {/* Step 3: Get Booked */}
-                <div className="mb-12 text-center">
-                  <h3 className="text-3xl font-bold text-color-primary mb-4">Get Booked</h3>
-                  <div className="max-w-3xl mx-auto">
-                    <p className="text-xl leading-relaxed text-color-gray mb-4">
-                      Customers can now instantly book your available times. You receive:
-                    </p>
-                    <ul className="list-none space-y-2 text-xl text-color-gray">
-                      <li>• Instant email notifications</li>
-                      <li>• Bookings added to your calendar</li>
-                      <li>• A secured percentage of each deposit every time</li>
-                    </ul>
-                    <p className="text-xl leading-relaxed text-color-gray mt-6">
-                      Spend less time replying to messages and more time doing what you do best.
-                    </p>
-                  </div>
-                </div>
-
-                {/* Why Businesses Love It */}
-                <div className="bg-gray-50 rounded-lg p-8 text-center">
-                  <h3 className="text-3xl font-bold text-color-primary mb-4">Why Businesses Love It</h3>
-                  <p className="text-xl leading-relaxed text-color-gray max-w-3xl mx-auto">
-                    ouiimi brings you new customers, reduces admin, and helps you grow — without extra fees or complicated systems.
-                  </p>
-                </div>
-              </section>
-
-              {/* Final Message */}
-              <div className="mt-16 pt-8 border-t text-center">
-                <p className="text-3xl font-bold text-color-primary">
-                  Welcome to ouiimi.
-                </p>
-              </div>
+            <div className="space-y-4 text-lg text-gray-600 max-w-3xl mx-auto leading-relaxed">
+              <p>
+                At ouiimi, we believe booking your everyday services should be simple, fast, and stress-free.
+              </p>
+              <p>
+                No more juggling multiple apps, endless DMs, messy spreadsheets, or searching for availability across different pages.
+              </p>
+              <p>
+                Just one clean, modern platform where you can discover, book, and manage all your essential services — effortlessly.
+              </p>
+              <p>
+                From haircuts and nails to massage, beauty, dog grooming and more, ouiimi brings your favourite local businesses together in one place. Designed with simplicity at its core, ouiimi makes it easier for customers to find quality services, and easier for businesses to focus on what they do best.
+              </p>
             </div>
+          </div>
+
+          <div className="space-y-20">
+            {/* For Customers */}
+            <section className="text-center">
+              <h2 className="text-3xl font-bold text-[#3A3A3A] mb-8">For Customers</h2>
+              <div className="text-lg text-gray-600 max-w-3xl mx-auto space-y-6">
+                <p className="font-medium italic">Life is busy — booking shouldn&apos;t be.</p>
+                <p>ouiimi gives you:</p>
+                <ul className="space-y-3 list-none">
+                  <li>• A single home for all your everyday services</li>
+                  <li>• Verified, high-quality providers</li>
+                  <li>• Clear pricing and easy-to-understand services</li>
+                  <li>• A secure 10% deposit that protects your booking</li>
+                  <li>• Pay the remaining 90% during/after your booking directly to the business.</li>
+                  <li>• A modern, intuitive experience designed for your life style</li>
+                </ul>
+                <p className="pt-4">
+                  Whether you want a fresh haircut, a relaxing massage, a quick manicure, or your dog groomed — ouiimi helps you book it in minutes.
+                </p>
+              </div>
+            </section>
+
+            {/* For Businesses */}
+            <section className="text-center">
+              <h2 className="text-3xl font-bold text-[#3A3A3A] mb-8">For Businesses</h2>
+              <div className="text-lg text-gray-600 max-w-3xl mx-auto space-y-6">
+                <p>
+                  We know how hard it is to run a service business today. No-shows. Admin overload. Unpredictable income, spending hours replying to messages. Platforms that charge high fees but bring you no customers. ouiimi fixes this.
+                </p>
+                <p>Businesses get:</p>
+                <ul className="space-y-3 list-none">
+                  <li>• A digital storefront in a growing marketplace</li>
+                  <li>• New customer discovery (not just bookings from your existing clients)</li>
+                  <li>• A reliable 10% deposit system to reduce no-shows</li>
+                  <li>• Easy service listings, availability management, and payouts</li>
+                  <li>• A clean, professional presence without paying for complicated software</li>
+                </ul>
+                <p className="pt-4 font-medium italic">
+                  We&apos;re here to help you grow, not overwhelm you.
+                </p>
+              </div>
+            </section>
+
+            {/* Our Mission */}
+            <section className="text-center">
+              <h2 className="text-3xl font-bold text-[#3A3A3A] mb-8">Our Mission</h2>
+              <div className="text-lg text-gray-600 max-w-3xl mx-auto space-y-6">
+                <p>
+                  To bring the everyday services industry into the relatable modern world — with tools that are simple, fair, and built for people.
+                </p>
+                <div className="font-medium space-y-2">
+                  <p>We&apos;re building a community where:</p>
+                  <p>• customers feel confident</p>
+                  <p>• businesses feel supported</p>
+                  <p>• and booking feels effortless</p>
+                </div>
+                <p className="pt-4">
+                  ouiimi is more than a booking platform.<br />
+                  It&apos;s a smarter way to manage your everyday life.
+                </p>
+              </div>
+            </section>
+
+            {/* Our Promise */}
+            <section className="text-center">
+              <h2 className="text-3xl font-bold text-[#3A3A3A] mb-8">Our Promise</h2>
+              <div className="text-xl text-[#3A3A3A] font-bold space-y-2 mb-6 uppercase tracking-wider">
+                <p>Simplicity.</p>
+                <p>Transparency.</p>
+                <p>Community.</p>
+                <p>Fairness.</p>
+              </div>
+              <p className="text-lg text-gray-600 italic">
+                These aren&apos;t slogans — they&apos;re the foundations ouiimi is built on.
+              </p>
+            </section>
+
+            {/* Meaning Behind Name */}
+            <section className="text-center bg-gray-50 rounded-3xl p-10">
+              <h2 className="text-3xl font-bold text-[#3A3A3A] mb-6">The Meaning Behind the Name</h2>
+              <div className="text-lg text-gray-600 max-w-3xl mx-auto space-y-4">
+                <p>
+                  Inspired by the spirit of &quot;yes&quot; — <span className="font-bold text-[#3A3A3A]">oui</span> — and the personal connection of &quot;<span className="font-bold text-[#3A3A3A]">me</span>,&quot; ouiimi represents a future where booking is not only simple, but tailored for you.
+                </p>
+                <p>
+                  It&apos;s a name that feels welcoming, positive, and modern — just like the platform itself.
+                </p>
+              </div>
+            </section>
+
+            <div className="text-center pt-8">
+              <h2 className="text-4xl font-bold text-[#3A3A3A]">Welcome to ouiimi.</h2>
+            </div>
+
           </div>
         </div>
       </div>

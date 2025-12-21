@@ -30,12 +30,13 @@ interface Booking {
   customerNotes?: string;
   cancelledAt?: string;
   cancellationReason?: string;
+  bookingNumber?: number;  // Sequential booking number (5000, 5001, etc.)
 }
 
 export default function ShopperProfilePage() {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
-  const [activeTab, setActiveTab] = useState<"upcoming" | "pending" | "finished" | "details">("upcoming");
+  const [activeTab, setActiveTab] = useState<"upcoming" | "finished" | "details">("upcoming");
   const [upcomingBookings, setUpcomingBookings] = useState<Booking[]>([]);
   const [pendingBookings, setPendingBookings] = useState<Booking[]>([]);
   const [finishedBookings, setFinishedBookings] = useState<Booking[]>([]);
@@ -47,6 +48,7 @@ export default function ShopperProfilePage() {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [isMobile, setIsMobile] = useState(false);
   const [expandedCardId, setExpandedCardId] = useState<string | null>(null);
+  const [showDatePicker, setShowDatePicker] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -356,6 +358,8 @@ export default function ShopperProfilePage() {
       date: formatDateForDisplay(booking.timeSlot.date),
       time: `${formatTime12Hour(booking.timeSlot.startTime)} - ${formatTime12Hour(booking.timeSlot.endTime)}`,
       bookingId: booking.id,
+      bookingNumber: booking.bookingNumber,
+      status: booking.status,
     };
   };
 
@@ -364,8 +368,6 @@ export default function ShopperProfilePage() {
 
     if (activeTab === "upcoming") {
       bookingsToFilter = upcomingBookings;
-    } else if (activeTab === "pending") {
-      bookingsToFilter = pendingBookings;
     } else if (activeTab === "finished") {
       bookingsToFilter = finishedBookings;
     }
@@ -377,6 +379,25 @@ export default function ShopperProfilePage() {
       });
     }
     return bookingsToFilter;
+  };
+
+  // Group bookings by service category
+  const groupBookingsByCategory = (bookings: Booking[]) => {
+    const groups: Record<string, Booking[]> = {};
+
+    bookings.forEach((booking) => {
+      const category = typeof booking.serviceId === 'object' && booking.serviceId?.category
+        ? booking.serviceId.category
+        : 'Other';
+
+      if (!groups[category]) {
+        groups[category] = [];
+      }
+      groups[category].push(booking);
+    });
+
+    // Sort categories alphabetically
+    return Object.entries(groups).sort(([a], [b]) => a.localeCompare(b));
   };
 
   if (!user) {
@@ -406,10 +427,46 @@ export default function ShopperProfilePage() {
                 {user.fname} {user.lname}
               </h2>
 
-              <button className="flex items-center gap-2 text-muted-foreground hover:text-foreground">
-                <Calendar className="w-5 h-5" />
-                <span className="text-sm">Calendar</span>
-              </button>
+              <div className="relative">
+                <button
+                  onClick={() => setShowDatePicker(!showDatePicker)}
+                  className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <Calendar className="w-5 h-5" />
+                  <span className="text-sm">
+                    {selectedDate ? selectedDate.toLocaleDateString() : "Filter by Date"}
+                  </span>
+                  {selectedDate && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedDate(null);
+                        setShowDatePicker(false);
+                      }}
+                      className="ml-1 text-gray-400 hover:text-red-500"
+                    >
+                      ×
+                    </button>
+                  )}
+                </button>
+                {showDatePicker && (
+                  <div className="absolute top-full mt-2 bg-white rounded-lg shadow-lg border p-3 z-20">
+                    <input
+                      type="date"
+                      className="px-3 py-2 border rounded-md text-sm"
+                      value={selectedDate ? selectedDate.toISOString().split('T')[0] : ''}
+                      onChange={(e) => {
+                        if (e.target.value) {
+                          setSelectedDate(new Date(e.target.value));
+                        } else {
+                          setSelectedDate(null);
+                        }
+                        setShowDatePicker(false);
+                      }}
+                    />
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -427,18 +484,6 @@ export default function ShopperProfilePage() {
               >
                 Upcoming
                 {activeTab === "upcoming" && (
-                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
-                )}
-              </button>
-              <button
-                onClick={() => setActiveTab("pending")}
-                className={`flex-1 py-4 text-sm font-medium transition-colors relative ${activeTab === "pending"
-                  ? "text-foreground"
-                  : "text-muted-foreground hover:text-foreground"
-                  }`}
-              >
-                Pending
-                {activeTab === "pending" && (
                   <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
                 )}
               </button>
@@ -483,7 +528,7 @@ export default function ShopperProfilePage() {
             </Alert>
           )}
 
-          {(activeTab === "upcoming" || activeTab === "pending" || activeTab === "finished") && (
+          {(activeTab === "upcoming" || activeTab === "finished") && (
             <div className="space-y-6">
               {isLoading ? (
                 <div className="text-center py-12">
@@ -493,61 +538,76 @@ export default function ShopperProfilePage() {
                 <div className="text-center py-12 card-polished">
                   <p className="text-muted-foreground">
                     {activeTab === "upcoming" && "No upcoming bookings found."}
-                    {activeTab === "pending" && "No pending bookings found."}
                     {activeTab === "finished" && "No finished bookings found."}
                   </p>
                 </div>
               ) : isMobile ? (
                 // Mobile: Single column with expandable details under each card
                 <div className="space-y-3">
-                  {getFilteredBookings().map((booking) => {
-                    const cardData = formatBookingForServiceCard(booking);
-                    const isExpanded = expandedCardId === booking.id;
-                    return (
-                      <div key={booking.id} className="space-y-3">
-                        <div
-                          onClick={() => {
-                            if (isExpanded) {
-                              setExpandedCardId(null);
-                            } else {
-                              setExpandedCardId(booking.id);
-                            }
-                          }}
-                          className="cursor-pointer [&_a]:pointer-events-none"
-                        >
-                          <ServiceCard {...cardData} />
-                        </div>
-                        {isExpanded && (
-                          <BookingDetailView
-                            booking={booking}
-                            onCancel={() => handleCancelBooking(booking.id)}
-                            onReschedule={() => handleRebook(booking)}
-                            onContact={() => setShowContact(true)}
-                            showContact={showContact}
-                            onCloseContact={() => setShowContact(false)}
-                          />
-                        )}
+                  {groupBookingsByCategory(getFilteredBookings()).map(([category, categoryBookings]) => (
+                    <div key={category} className="mb-6">
+                      {/* Category Header */}
+                      <h3 className="text-lg font-semibold text-[#4A4A4A] mb-3">{category}</h3>
+                      <div className="space-y-2">
+                        {categoryBookings.map((booking) => {
+                          const cardData = formatBookingForServiceCard(booking);
+                          const isExpanded = expandedCardId === booking.id;
+                          return (
+                            <div key={booking.id} className="space-y-3">
+                              <div
+                                onClick={() => {
+                                  if (isExpanded) {
+                                    setExpandedCardId(null);
+                                  } else {
+                                    setExpandedCardId(booking.id);
+                                  }
+                                }}
+                                className="cursor-pointer [&_a]:pointer-events-none"
+                              >
+                                <ServiceCard {...cardData} />
+                              </div>
+                              {isExpanded && (
+                                <BookingDetailView
+                                  booking={booking}
+                                  onCancel={() => handleCancelBooking(booking.id)}
+                                  onReschedule={() => handleRebook(booking)}
+                                  onContact={() => setShowContact(true)}
+                                  showContact={showContact}
+                                  onCloseContact={() => setShowContact(false)}
+                                />
+                              )}
+                            </div>
+                          );
+                        })}
                       </div>
-                    );
-                  })}
+                    </div>
+                  ))}
                 </div>
               ) : (
                 // Desktop: Two-column grid with side panel
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   {/* Booking Cards */}
-                  <div className="space-y-3">
-                    {getFilteredBookings().map((booking) => {
-                      const cardData = formatBookingForServiceCard(booking);
-                      return (
-                        <div
-                          key={booking.id}
-                          onClick={() => setSelectedBooking(booking)}
-                          className="cursor-pointer [&_a]:pointer-events-none"
-                        >
-                          <ServiceCard {...cardData} />
+                  <div className="space-y-4">
+                    {groupBookingsByCategory(getFilteredBookings()).map(([category, categoryBookings]) => (
+                      <div key={category} className="mb-4">
+                        {/* Category Header */}
+                        <h3 className="text-lg font-semibold text-[#4A4A4A] mb-3">{category}</h3>
+                        <div className="space-y-3">
+                          {categoryBookings.map((booking) => {
+                            const cardData = formatBookingForServiceCard(booking);
+                            return (
+                              <div
+                                key={booking.id}
+                                onClick={() => setSelectedBooking(booking)}
+                                className="cursor-pointer [&_a]:pointer-events-none"
+                              >
+                                <ServiceCard {...cardData} />
+                              </div>
+                            );
+                          })}
                         </div>
-                      );
-                    })}
+                      </div>
+                    ))}
                   </div>
 
                   {/* Booking Details */}
@@ -579,49 +639,65 @@ export default function ShopperProfilePage() {
               ) : isMobile ? (
                 // Mobile: Single column with expandable details under each card
                 <div className="space-y-3">
-                  {finishedBookings.map((booking) => {
-                    const cardData = formatBookingForServiceCard(booking);
-                    const isExpanded = expandedCardId === booking.id;
-                    return (
-                      <div key={booking.id} className="space-y-3">
-                        <div
-                          onClick={() => {
-                            if (isExpanded) {
-                              setExpandedCardId(null);
-                            } else {
-                              setExpandedCardId(booking.id);
-                            }
-                          }}
-                          className="cursor-pointer [&_a]:pointer-events-none"
-                        >
-                          <ServiceCard {...cardData} />
-                        </div>
-                        {isExpanded && (
-                          <FinishedBookingDetailView
-                            booking={booking}
-                            onRebook={() => handleRebook(booking)}
-                          />
-                        )}
+                  {groupBookingsByCategory(finishedBookings).map(([category, categoryBookings]) => (
+                    <div key={category} className="mb-6">
+                      {/* Category Header */}
+                      <h3 className="text-lg font-semibold text-[#4A4A4A] mb-3">{category}</h3>
+                      <div className="space-y-2">
+                        {categoryBookings.map((booking) => {
+                          const cardData = formatBookingForServiceCard(booking);
+                          const isExpanded = expandedCardId === booking.id;
+                          return (
+                            <div key={booking.id} className="space-y-3">
+                              <div
+                                onClick={() => {
+                                  if (isExpanded) {
+                                    setExpandedCardId(null);
+                                  } else {
+                                    setExpandedCardId(booking.id);
+                                  }
+                                }}
+                                className="cursor-pointer [&_a]:pointer-events-none"
+                              >
+                                <ServiceCard {...cardData} />
+                              </div>
+                              {isExpanded && (
+                                <FinishedBookingDetailView
+                                  booking={booking}
+                                  onRebook={() => handleRebook(booking)}
+                                />
+                              )}
+                            </div>
+                          );
+                        })}
                       </div>
-                    );
-                  })}
+                    </div>
+                  ))}
                 </div>
               ) : (
                 // Desktop: Two-column grid with side panel
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  <div className="space-y-3">
-                    {finishedBookings.map((booking) => {
-                      const cardData = formatBookingForServiceCard(booking);
-                      return (
-                        <div
-                          key={booking.id}
-                          onClick={() => setSelectedBooking(booking)}
-                          className="cursor-pointer [&_a]:pointer-events-none"
-                        >
-                          <ServiceCard {...cardData} />
+                  <div className="space-y-4">
+                    {groupBookingsByCategory(finishedBookings).map(([category, categoryBookings]) => (
+                      <div key={category} className="mb-4">
+                        {/* Category Header */}
+                        <h3 className="text-lg font-semibold text-[#4A4A4A] mb-3">{category}</h3>
+                        <div className="space-y-3">
+                          {categoryBookings.map((booking) => {
+                            const cardData = formatBookingForServiceCard(booking);
+                            return (
+                              <div
+                                key={booking.id}
+                                onClick={() => setSelectedBooking(booking)}
+                                className="cursor-pointer [&_a]:pointer-events-none"
+                              >
+                                <ServiceCard {...cardData} />
+                              </div>
+                            );
+                          })}
                         </div>
-                      );
-                    })}
+                      </div>
+                    ))}
                   </div>
 
                   {selectedBooking && (
@@ -686,6 +762,7 @@ function BookingDetailView({
   onContact,
   showContact,
   onCloseContact,
+  isFinished = false,
 }: {
   booking: Booking;
   onCancel: () => void;
@@ -693,6 +770,7 @@ function BookingDetailView({
   onContact: () => void;
   showContact: boolean;
   onCloseContact: () => void;
+  isFinished?: boolean;
 }) {
 
   const formatDate = (dateString: string) => {
@@ -727,7 +805,7 @@ function BookingDetailView({
                 : "Business"}
             </h3>
             <p className="text-sm text-muted-foreground">
-              Booking ID: {booking.id.slice(-8)}
+              Booking #{booking.bookingNumber || booking.id.slice(-8)}
             </p>
           </div>
         </div>
@@ -756,6 +834,12 @@ function BookingDetailView({
           <div>
             <p className="text-sm font-medium text-muted-foreground">Address</p>
             <p>{booking.businessId.address}</p>
+          </div>
+        )}
+        {typeof booking.serviceId === 'object' && booking.serviceId.description && (
+          <div>
+            <p className="text-sm font-medium text-muted-foreground">Service Description</p>
+            <p className="text-sm text-gray-600">{booking.serviceId.description}</p>
           </div>
         )}
       </div>
@@ -802,29 +886,43 @@ function BookingDetailView({
       </div>
 
       <div className="flex flex-col gap-3">
-        <div className="flex gap-3">
+        {isFinished ? (
+          // Finished bookings: Only Re-book button
           <Button
             onClick={onReschedule}
             variant="outline"
-            className="flex-1"
+            className="w-full"
           >
-            Reschedule
+            Re-book
           </Button>
-          <Button
-            onClick={onContact}
-            variant="outline"
-            className="flex-1 border-red-500 text-red-500 hover:bg-red-50"
-          >
-            Contact
-          </Button>
-        </div>
-        <Button
-          onClick={onCancel}
-          variant="outline"
-          className="w-full border-red-500 text-red-500 hover:bg-red-50"
-        >
-          Cancel Booking
-        </Button>
+        ) : (
+          // Upcoming bookings: Reschedule, Contact, Cancel
+          <>
+            <div className="flex gap-3">
+              <Button
+                onClick={onReschedule}
+                variant="outline"
+                className="flex-1"
+              >
+                Reschedule
+              </Button>
+              <Button
+                onClick={onContact}
+                variant="outline"
+                className="flex-1 border-red-500 text-red-500 hover:bg-red-50"
+              >
+                Contact
+              </Button>
+            </div>
+            <Button
+              onClick={onCancel}
+              variant="outline"
+              className="w-full border-red-500 text-red-500 hover:bg-red-50"
+            >
+              Cancel Booking
+            </Button>
+          </>
+        )}
       </div>
 
       {showContact && (
@@ -877,7 +975,7 @@ function FinishedBookingDetailView({
                 : "Business"}
             </h3>
             <p className="text-sm text-muted-foreground">
-              Booking ID: {booking.id.slice(-8)}
+              Booking #{booking.bookingNumber || booking.id.slice(-8)}
             </p>
           </div>
         </div>
@@ -912,6 +1010,12 @@ function FinishedBookingDetailView({
           <p className="text-sm font-medium text-muted-foreground">Time</p>
           <p>{booking.timeSlot.startTime} - {booking.timeSlot.endTime}</p>
         </div>
+        {typeof booking.serviceId === 'object' && booking.serviceId.description && (
+          <div>
+            <p className="text-sm font-medium text-muted-foreground">Service Description</p>
+            <p className="text-sm text-gray-600">{booking.serviceId.description}</p>
+          </div>
+        )}
       </div>
 
       <div className="border-t pt-4 space-y-2">
@@ -957,9 +1061,9 @@ function FinishedBookingDetailView({
       <Button
         onClick={onRebook}
         variant="outline"
-        className="w-full border-red-500 text-red-500 hover:bg-red-50"
+        className="w-full"
       >
-        Rebook
+        Re-book
       </Button>
     </div>
   );

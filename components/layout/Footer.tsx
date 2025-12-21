@@ -9,7 +9,7 @@ export default function Footer() {
           <div className="text-center md:text-left">
             <h3 className="text-2xl font-bold text-[#EECFD1] mb-3">ouiimi</h3>
             <p className="text-sm text-[#888888] leading-relaxed">
-              Bringing authenticity back to shopping.
+              Book Better
             </p>
           </div>
 
@@ -61,6 +61,6 @@ export default function Footer() {
           </p>
         </div>
       </div>
-    </footer>
+    </footer >
   );
 }

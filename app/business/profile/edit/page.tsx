@@ -229,7 +229,7 @@ export default function BusinessProfileEditPage() {
                 Edit Business Profile
               </h1>
               <button
-                onClick={() => router.back()}
+                onClick={() => router.push("/business/dashboard")}
                 className="btn-polished btn-polished-secondary"
               >
                 Cancel
@@ -366,7 +366,7 @@ export default function BusinessProfileEditPage() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => router.back()}
+                  onClick={() => router.push("/business/dashboard")}
                   className="flex-1 btn-polished btn-polished-secondary"
                 >
                   Cancel

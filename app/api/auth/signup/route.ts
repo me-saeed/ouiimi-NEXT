@@ -159,14 +159,29 @@ async function signupHandler(req: NextRequest) {
     await user.save();
 
     // =========================================================================
-    // STEP 8: Send welcome email
+    // STEP 8: Send verification email
     // =========================================================================
-    // Uses Mailjet email service
+    // Uses Mailjet email service with verification token
     // Wrapped in try-catch so email failure doesn't fail signup
     try {
-      await sendWelcomeEmail(user.email, user.fname);
+      const crypto = require('crypto');
+      const verificationToken = crypto.randomBytes(32).toString('hex');
+      const verificationTokenExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+
+      // Save verification token to user
+      user.verificationToken = verificationToken;
+      user.verificationTokenExpiry = verificationTokenExpiry;
+      await user.save();
+
+      // Build verification URL
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://ouiimi.com';
+      const verificationLink = `${baseUrl}/api/auth/verify-email?token=${verificationToken}`;
+
+      // Import and send verification email
+      const { sendAccountVerificationEmail } = require('@/lib/services/mailjet');
+      await sendAccountVerificationEmail(user.email, user.fname, verificationLink);
     } catch (emailError) {
-      console.error("Error sending welcome email:", emailError);
+      console.error("Error sending verification email:", emailError);
       // Don't fail the signup if email fails - user is still created
     }
 

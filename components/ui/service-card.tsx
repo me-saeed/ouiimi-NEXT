@@ -14,6 +14,8 @@ interface ServiceCardProps {
     date?: string | null;
     time?: string | null;
     bookingId?: string;
+    bookingNumber?: number | null;  // Sequential booking number (5000, 5001, etc.)
+    status?: string;
 }
 
 export const ServiceCard = React.memo(function ServiceCard({
@@ -27,16 +29,20 @@ export const ServiceCard = React.memo(function ServiceCard({
     duration,
     date,
     time,
-    bookingId
+    bookingId,
+    bookingNumber,
+    status
 }: ServiceCardProps) {
+    const isBooked = !!bookingNumber || !!bookingId;
+
     return (
         <Link
             href={`/services/${id}`}
-            className="group block bg-white rounded-[12px] overflow-hidden shadow-sm hover:shadow-md transition-all duration-200 flex-shrink-0 w-[320px] sm:w-[320px] md:w-[340px] lg:w-[360px] border border-[#E5E5E5] h-[100px]"
+            className="group block bg-white rounded-[12px] overflow-hidden shadow-sm hover:shadow-md transition-all duration-200 flex-shrink-0 w-[265px] sm:w-[336px] md:w-[360px] lg:w-[380px] border border-[#E5E5E5]"
         >
-            <div className="p-4 flex gap-4 items-center h-full">
-                {/* Left: Business Logo - Large circular placeholder */}
-                <div className="w-16 h-16 rounded-full bg-white border border-[#E5E5E5] flex items-center justify-center overflow-hidden flex-shrink-0">
+            <div className="p-2.5 sm:p-3 flex gap-2.5 sm:gap-3 items-start">
+                {/* Left: Business Logo */}
+                <div className="w-10 h-10 sm:w-14 sm:h-14 rounded-full bg-white border border-[#E5E5E5] flex items-center justify-center overflow-hidden flex-shrink-0 mt-1">
                     {image && image !== "/placeholder-logo.png" ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img
@@ -45,43 +51,56 @@ export const ServiceCard = React.memo(function ServiceCard({
                             className="w-full h-full object-cover"
                         />
                     ) : (
-                        <span className="text-lg font-bold text-[#3A3A3A] bg-[#EECFD1] w-full h-full flex items-center justify-center">
+                        <span className="text-sm sm:text-lg font-bold text-[#3A3A3A] bg-[#EECFD1] w-full h-full flex items-center justify-center">
                             {businessName?.charAt(0) || "B"}
                         </span>
                     )}
                 </div>
 
-                {/* Right: Content Area - Three lines, all left-aligned */}
-                <div className="flex-1 min-w-0 flex flex-col justify-center gap-2">
-                    {/* Line 1: Business/Staff Name - 10% smaller, 15% lighter color */}
-                    <p className="text-[14px] font-semibold text-[#4a4a4a] truncate leading-none">
-                        {businessName || "Business Name"}
-                    </p>
-
-                    {/* Line 2: Service Name + Duration + Price - Same line, normal weight, lighter */}
-                    <div className="flex items-baseline gap-2.5 flex-wrap">
-                        <span className="text-[14px] text-[#5a5a5a] leading-none">{name}</span>
-                        {duration && (
-                            <span className="text-[14px] text-[#5a5a5a] leading-none">{duration}</span>
+                {/* Right: Content Grid */}
+                <div className="flex-1 min-w-0 flex flex-col gap-1 sm:gap-1.5">
+                    {/* Row 1: Business Name | Booking ID */}
+                    <div className="flex justify-between items-start">
+                        <p className="text-[13px] sm:text-[15px] font-semibold text-[#3A3A3A] truncate pr-1 sm:pr-2">
+                            {businessName || "Business Name"}
+                        </p>
+                        {bookingNumber && (
+                            <span className="text-[10px] sm:text-[13px] text-[#666666] whitespace-nowrap pt-0.5 sm:pt-0">
+                                ID: {bookingNumber}
+                            </span>
                         )}
-                        <span className="text-[14px] text-[#5a5a5a] leading-none">${(price || 0).toFixed(2)}</span>
                     </div>
 
-                    {/* Line 3: Date + Time - Smallest, lighter gray, normal weight */}
-                    {(date || time) && (
-                        <div className="flex items-center gap-2.5">
-                            {date && (
-                                <span className="text-[12px] text-[#888888] leading-none">{date}</span>
-                            )}
-                            {time && (
-                                <span className="text-[12px] text-[#888888] leading-none">{time}</span>
+                    {/* Row 2: Service Name | Duration (Price in browse mode) */}
+                    <div className="flex justify-between items-center">
+                        <p className="text-[12px] sm:text-[14px] text-[#4a4a4a] truncate pr-1 sm:pr-2 flex-1">
+                            {name}
+                        </p>
+                        <div className="flex items-center gap-2 sm:gap-4 text-[11px] sm:text-[13px] text-[#666666] flex-shrink-0">
+                            {duration && <span>{duration}</span>}
+                            {!isBooked && price > 0 && (
+                                <span className="font-medium text-[#3A3A3A]">${price.toFixed(0)}</span>
                             )}
                         </div>
+                    </div>
+
+                    {/* Row 3: Date | Time */}
+                    {(date || time) && (
+                        <div className="flex justify-between items-center text-[10px] sm:text-[13px] text-[#666666] mt-0.5">
+                            <span>{date}</span>
+                            <span>{time}</span>
+                        </div>
                     )}
-                    {/* Line 4: Booking ID - Only shown if provided */}
-                    {bookingId && (
-                        <div className="flex items-center gap-2.5">
-                            <span className="text-[12px] text-[#888888] leading-none">Booking ID: {bookingId.slice(-4)}</span>
+
+                    {/* Row 4: Status (Booked only) */}
+                    {status && (
+                        <div className="mt-0.5 sm:mt-1 text-center">
+                            {status === "completed" && (
+                                <span className="text-green-500 font-medium text-[11px] sm:text-sm">Finished</span>
+                            )}
+                            {status === "cancelled" && (
+                                <span className="text-red-500 font-medium text-[11px] sm:text-sm">Cancelled</span>
+                            )}
                         </div>
                     )}
                 </div>

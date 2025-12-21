@@ -111,42 +111,51 @@ export function DetailsTab({ business }: DetailsTabProps) {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Business Details */}
-        <div className="space-y-5">
-          <div className="flex justify-between items-center pb-3 border-b border-gray-200">
-            <h2 className="text-2xl font-bold text-[#3A3A3A]">Business Details</h2>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => router.push("/business/profile/edit")}
-              className="border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400 rounded-lg px-4 py-2 text-sm font-medium transition-all"
-            >
-              Edit
-            </Button>
-          </div>
+        <div className="space-y-6">
+          <h2 className="text-2xl font-bold text-[#3A3A3A] mx-auto text-center">Details</h2>
 
-          <div className="bg-gradient-to-br from-white to-gray-50 rounded-2xl p-6 space-y-6 shadow-sm">
-            <div className="space-y-2 pb-4 border-b border-gray-100">
-              <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">NAME</label>
-              <p className="text-lg font-bold text-[#3A3A3A]">{business?.businessName || "-"}</p>
-            </div>
-            <div className="space-y-2 pb-4 border-b border-gray-100">
-              <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">EMAIL</label>
-              <p className="text-lg font-bold text-[#3A3A3A] break-words">{business?.email || "-"}</p>
-            </div>
-            <div className="space-y-2 pb-4 border-b border-gray-100">
-              <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">PHONE</label>
-              <p className="text-lg font-bold text-[#3A3A3A]">{business?.phone || "-"}</p>
-            </div>
-            <div className="space-y-2 pb-4 border-b border-gray-100">
-              <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">ADDRESS</label>
-              <p className="text-lg font-bold text-[#3A3A3A]">{business?.address || "-"}</p>
-            </div>
-            {business?.story && (
-              <div className="space-y-2">
-                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">STORY</label>
-                <p className="text-base font-medium text-[#3A3A3A] leading-relaxed">{business.story}</p>
+          <div className="border border-gray-200 rounded-[24px] p-8 shadow-sm bg-white max-w-lg mx-auto">
+            <h3 className="text-lg font-medium text-[#3A3A3A] border-b border-gray-200 pb-2 mb-6 inline-block">Business</h3>
+
+            <div className="space-y-4">
+              <div className="grid grid-cols-[80px_1fr] items-baseline gap-4">
+                <span className="text-sm text-gray-500 text-right">Name:</span>
+                <span className="text-sm text-[#3A3A3A]">{business?.businessName || "-"}</span>
               </div>
-            )}
+
+              <div className="grid grid-cols-[80px_1fr] items-baseline gap-4">
+                <span className="text-sm text-gray-500 text-right">Email:</span>
+                <span className="text-sm text-[#3A3A3A] break-all">{business?.email || "-"}</span>
+              </div>
+
+              <div className="grid grid-cols-[80px_1fr] items-baseline gap-4">
+                <span className="text-sm text-gray-500 text-right">Number:</span>
+                <span className="text-sm text-[#3A3A3A]">{business?.phone || "-"}</span>
+              </div>
+
+              <div className="grid grid-cols-[80px_1fr] items-baseline gap-4">
+                <span className="text-sm text-gray-500 text-right">Address:</span>
+                <span className="text-sm text-[#3A3A3A]">{business?.address || "-"}</span>
+              </div>
+
+              {business?.story && (
+                <div className="grid grid-cols-[80px_1fr] items-baseline gap-4">
+                  <span className="text-sm text-gray-500 text-right">Story:</span>
+                  <span className="text-sm text-[#3A3A3A]">{business.story}</span>
+                </div>
+              )}
+            </div>
+
+            <div className="mt-8 flex justify-end">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => router.push("/business/profile/edit")}
+                className="text-gray-600 hover:text-gray-900 border-gray-300 rounded-lg px-6"
+              >
+                Edit
+              </Button>
+            </div>
           </div>
         </div>
 

@@ -3,7 +3,7 @@
  * 2-Level Structure: Main Category → Subcategory (Service Name)
  * Add-ons are defined at the main category level
  * 
- * Format: "Prefix - Service Name" (e.g., "Haircut - Women's Cut – Short")
+ * Verified List - December 2025
  */
 
 export interface SubCategory {
@@ -26,54 +26,54 @@ export const SERVICE_CATEGORIES: Record<string, Category> = {
         description: "Professional hair cutting, styling, coloring, and treatments",
         subcategories: [
             // Haircut services
-            { name: "Haircut - Women's Cut – Short (above shoulders)", slug: "haircut-womens-short" },
-            { name: "Haircut - Women's Cut – Medium (shoulder to mid-back)", slug: "haircut-womens-medium" },
-            { name: "Haircut - Women's Cut – Long (below mid-back / thick)", slug: "haircut-womens-long" },
-            { name: "Haircut - Restyle Cut (major change)", slug: "haircut-restyle" },
-            { name: "Haircut - Men's Cut", slug: "haircut-mens" },
-            { name: "Haircut - Children's Cut", slug: "haircut-children" },
-            { name: "Haircut - Fringe / Bang Trim", slug: "haircut-fringe" },
-            { name: "Haircut - Clipper Cut / Fade", slug: "haircut-clipper" },
+            { name: "Women's Cut – Short", slug: "womens-cut-short" },
+            { name: "Women's Cut – Medium", slug: "womens-cut-medium" },
+            { name: "Women's Cut – Long", slug: "womens-cut-long" },
+            { name: "Restyle Cut", slug: "restyle-cut" },
+            { name: "Men's Cut", slug: "mens-cut" },
+            { name: "Kids' Cut", slug: "kids-cut" },
+            { name: "Fringe Trim", slug: "fringe-trim" },
+            { name: "Clipper Cut / Fade", slug: "clipper-cut-fade" },
 
             // Styling services
-            { name: "Styling - Blow-Dry – Short Hair", slug: "styling-blowdry-short" },
-            { name: "Styling - Blow-Dry – Medium Hair", slug: "styling-blowdry-medium" },
-            { name: "Styling - Blow-Dry – Long/Thick Hair", slug: "styling-blowdry-long" },
-            { name: "Styling - Straighten / Flat Iron Finish", slug: "styling-straighten" },
-            { name: "Styling - Curls / Waves", slug: "styling-curls" },
-            { name: "Styling - Updo / Occasion Style", slug: "styling-updo" },
-            { name: "Styling - Braids (Simple / Detailed)", slug: "styling-braids" },
+            { name: "Blow-Dry – Short", slug: "blow-dry-short" },
+            { name: "Blow-Dry – Medium", slug: "blow-dry-medium" },
+            { name: "Blow-Dry – Long", slug: "blow-dry-long" },
+            { name: "Straight Finish", slug: "straight-finish" },
+            { name: "Curls / Waves", slug: "curls-waves" },
+            { name: "Upstyle", slug: "upstyle" },
+            { name: "Braids", slug: "braids" },
 
             // Colouring services
-            { name: "Colouring - Root Touch-Up / Regrowth Colour", slug: "colouring-root-touchup" },
-            { name: "Colouring - All-Over Colour – Short", slug: "colouring-allover-short" },
-            { name: "Colouring - All-Over Colour – Medium", slug: "colouring-allover-medium" },
-            { name: "Colouring - All-Over Colour – Long/Thick", slug: "colouring-allover-long" },
-            { name: "Colouring - Foils / Highlights – 1/4 Head", slug: "colouring-foils-quarter" },
-            { name: "Colouring - Foils / Highlights – 1/2 Head", slug: "colouring-foils-half" },
-            { name: "Colouring - Foils / Highlights – Full Head", slug: "colouring-foils-full" },
-            { name: "Colouring - Balayage / Ombre", slug: "colouring-balayage" },
-            { name: "Colouring - Toner / Gloss Refresh", slug: "colouring-toner" },
-            { name: "Colour Correction (by consultation)", slug: "colour-correction" },
-            { name: "Colouring - Scalp Bleach & Tone", slug: "colouring-scalp-bleach" },
+            { name: "Regrowth Colour", slug: "regrowth-colour" },
+            { name: "All-Over Colour – Short", slug: "all-over-colour-short" },
+            { name: "All-Over Colour – Medium", slug: "all-over-colour-medium" },
+            { name: "All-Over Colour – Long", slug: "all-over-colour-long" },
+            { name: "Highlights – ¼ Head", slug: "highlights-quarter-head" },
+            { name: "Highlights – ½ Head", slug: "highlights-half-head" },
+            { name: "Highlights – Full", slug: "highlights-full" },
+            { name: "Balayage / Ombre", slug: "balayage-ombre" },
+            { name: "Toner / Gloss", slug: "toner-gloss" },
+            { name: "Colour Correction", slug: "colour-correction" },
+            { name: "Scalp Bleach + Tone", slug: "scalp-bleach-tone" },
 
             // Texture services
-            { name: "Texture - Keratin / Brazilian Smoothing", slug: "texture-keratin" },
-            { name: "Texture - Permanent Straightening / Relaxer", slug: "texture-straightening" },
-            { name: "Texture - Perm (Short / Long Hair)", slug: "texture-perm" },
-            { name: "Texture - Bond Treatment (Olaplex / K18 / Similar)", slug: "texture-bond" },
+            { name: "Keratin Smoothing", slug: "keratin-smoothing" },
+            { name: "Permanent Straightening", slug: "permanent-straightening" },
+            { name: "Perm", slug: "perm" },
+            { name: "Bond Treatment", slug: "bond-treatment" },
 
             // Extensions
-            { name: "Extensions - Tape-In Extensions (Apply / Remove / Reapply)", slug: "extensions-tapein" },
-            { name: "Extensions - Clip-In Extension Styling", slug: "extensions-clipin" },
-            { name: "Extensions - Micro-Bead / Weft Application", slug: "extensions-microbead" },
-            { name: "Extensions - Removal Only", slug: "extensions-removal" },
+            { name: "Tape-In Extensions", slug: "tape-in-extensions" },
+            { name: "Clip-In Styling", slug: "clip-in-styling" },
+            { name: "Micro-Bead / Weft", slug: "micro-bead-weft" },
+            { name: "Extension Removal", slug: "extension-removal" },
 
             // Treatments
-            { name: "Treatments - Deep Conditioning Treatment", slug: "treatments-conditioning" },
-            { name: "Treatments - Scalp Detox / Scalp Treatment", slug: "treatments-scalp" },
-            { name: "Treatments - Moisture / Protein Mask", slug: "treatments-moisture" },
-            { name: "Treatments - Bond Repair Treatment (stand-alone)", slug: "treatments-bond" },
+            { name: "Deep Conditioning", slug: "deep-conditioning" },
+            { name: "Scalp Treatment", slug: "scalp-treatment" },
+            { name: "Moisture / Protein Mask", slug: "moisture-protein-mask" },
+            { name: "Bond Repair", slug: "bond-repair" },
         ],
         addOns: [
             "Scalp Massage",
@@ -158,8 +158,8 @@ export const SERVICE_CATEGORIES: Record<string, Category> = {
         slug: "massage-wellness",
         description: "Therapeutic massage, relaxation, and wellness treatments",
         subcategories: [
-            { name: "Relaxation / Swedish Massage (30 / 60 / 90 mins)", slug: "swedish-massage" },
-            { name: "Remedial / Deep Tissue Massage (30 / 60 / 90 mins)", slug: "deep-tissue" },
+            { name: "Relaxation / Swedish Massage", slug: "swedish-massage" },
+            { name: "Remedial / Deep Tissue Massage", slug: "deep-tissue" },
             { name: "Hot Stone Massage", slug: "hot-stone" },
             { name: "Aromatherapy Massage", slug: "aromatherapy" },
             { name: "Pregnancy Massage", slug: "pregnancy" },
@@ -179,8 +179,8 @@ export const SERVICE_CATEGORIES: Record<string, Category> = {
         slug: "skin-facial",
         description: "Professional facials, skin treatments, and anti-aging therapies",
         subcategories: [
-            { name: "Express Facial (30 mins)", slug: "express-facial" },
-            { name: "Classic / Deep Cleanse Facial (60 mins)", slug: "classic-facial" },
+            { name: "Express Facial", slug: "express-facial" },
+            { name: "Classic / Deep Cleanse Facial", slug: "classic-facial" },
             { name: "Hydrating Facial", slug: "hydrating-facial" },
             { name: "Anti-Ageing Facial", slug: "anti-ageing" },
             { name: "Acne / Problem Skin Facial", slug: "acne-facial" },
@@ -199,30 +199,21 @@ export const SERVICE_CATEGORIES: Record<string, Category> = {
         slug: "dog-grooming",
         description: "Professional dog grooming, bathing, styling, and pet care",
         subcategories: [
-            // Bath & Clean
-            { name: "Bath & Clean - Basic Wash", slug: "bath-basic" },
-            { name: "Bath & Clean - Wash & Dry", slug: "bath-wash-dry" },
-            { name: "Bath & Clean - Flea/Tick Wash", slug: "bath-flea" },
-            { name: "Bath & Clean - De-shedding Wash", slug: "bath-deshed" },
-
-            // Haircut
-            { name: "Haircut - Full Groom", slug: "haircut-full" },
-            { name: "Haircut - Breed-Specific Groom", slug: "haircut-breed" },
-            { name: "Haircut - Puppy Groom", slug: "haircut-puppy" },
-            { name: "Haircut - Partial Groom (Face, Feet, Sanitary Trim)", slug: "haircut-partial" },
-
-            // Skin Care
-            { name: "Skin Care - De-shedding Treatment", slug: "skincare-deshed" },
-            { name: "Skin Care - Coat Conditioning", slug: "skincare-coat" },
-            { name: "Skin Care - Medicated Bath", slug: "skincare-medicated" },
-
-            // Nails
-            { name: "Nails - Nail Trim", slug: "nails-trim" },
-            { name: "Nails - Nail Grind", slug: "nails-grind" },
-            { name: "Nails - Paw Pad Trim", slug: "nails-paw-pad" },
-            { name: "Nails - Paw Balm Treatment", slug: "nails-balm" },
-
-            // Other Services
+            { name: "Basic Bath", slug: "basic-bath" },
+            { name: "Wash & Dry", slug: "wash-dry" },
+            { name: "Flea & Tick Bath", slug: "flea-tick-bath" },
+            { name: "De-Shedding Bath", slug: "deshedding-bath" },
+            { name: "Full Groom", slug: "full-groom" },
+            { name: "Breed Groom", slug: "breed-groom" },
+            { name: "Puppy Groom", slug: "puppy-groom" },
+            { name: "Partial Groom", slug: "partial-groom" },
+            { name: "De-Shedding Treatment", slug: "deshedding-treatment" },
+            { name: "Coat Conditioning", slug: "coat-conditioning" },
+            { name: "Medicated Bath", slug: "medicated-bath" },
+            { name: "Nail Trim", slug: "nail-trim" },
+            { name: "Nail Grind", slug: "nail-grind" },
+            { name: "Paw Pad Trim", slug: "paw-pad-trim" },
+            { name: "Paw Balm", slug: "paw-balm" },
             { name: "Ear Cleaning", slug: "ear-cleaning" },
             { name: "Tear Stain Clean", slug: "tear-stain" },
             { name: "Teeth Brushing", slug: "teeth-brushing" },

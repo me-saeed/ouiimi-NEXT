@@ -62,7 +62,15 @@ export async function GET(req: NextRequest) {
       .filter((b: any) => {
         const bookingDate = new Date(b.timeSlot.date);
         const bookingDateTime = new Date(`${bookingDate.toISOString().split('T')[0]}T${b.timeSlot.endTime}`);
-        return bookingDateTime <= now;
+        const todayMidnight = new Date();
+        todayMidnight.setHours(0, 0, 0, 0);
+
+        // Use booking date at midnight
+        const bookingDateMidnight = new Date(bookingDate);
+        bookingDateMidnight.setHours(0, 0, 0, 0);
+
+        // Only show bookings where the day has fully passed (yesterday or older)
+        return bookingDateMidnight.getTime() < todayMidnight.getTime();
       })
       .sort((a: any, b: any) => {
         const dateA = new Date(a.timeSlot.date).getTime();

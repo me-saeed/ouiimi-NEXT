@@ -432,6 +432,46 @@ export default function BusinessRegisterPage() {
                     </div>
                   </div>
 
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-gray-700">
+                        Website
+                      </label>
+                      <input
+                        {...register("website")}
+                        type="url"
+                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 transition-all duration-200"
+                        placeholder="https://www.yourbusiness.com"
+                        disabled={isLoading}
+                      />
+                      {errors.website && (
+                        <p className="text-red-500 text-xs mt-1.5 font-medium flex items-center gap-1">
+                          <span className="inline-block w-1 h-1 rounded-full bg-red-500" />
+                          {errors.website.message}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-gray-700">
+                        Social Media
+                      </label>
+                      <input
+                        {...register("socialMedia")}
+                        type="text"
+                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 transition-all duration-200"
+                        placeholder="@yourbusiness or instagram.com/yourbusiness"
+                        disabled={isLoading}
+                      />
+                      {errors.socialMedia && (
+                        <p className="text-red-500 text-xs mt-1.5 font-medium flex items-center gap-1">
+                          <span className="inline-block w-1 h-1 rounded-full bg-red-500" />
+                          {errors.socialMedia.message}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-gray-700">
                       About Your Business

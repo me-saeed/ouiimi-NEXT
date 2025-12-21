@@ -200,3 +200,11 @@ export async function sendBookingCancellationEmail(email: string, fname: string,
 export async function sendBookingCancellationToBusiness(email: string, fname: string, data: any): Promise<boolean> {
   return sendEmail([email], "Booking Cancelled - Ouiimi", { fname, email, ...data }, "booking_cancellation_business");
 }
+
+export async function sendAccountVerificationEmail(email: string, fname: string, verificationLink: string): Promise<boolean> {
+  return sendEmail([email], "Verify Your Email - Ouiimi", { fname, email, uniquelink: verificationLink }, "account_verification");
+}
+
+export async function sendBusinessApprovedEmail(email: string, fname: string, businessName: string): Promise<boolean> {
+  return sendEmail([email], "Your Business is Approved - Ouiimi", { fname, email, businessName }, "business_approved");
+}

@@ -18,6 +18,7 @@ export default function Header({ user: userProp }: HeaderProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
+  const [cartCount, setCartCount] = useState(0);
 
   // Check authentication on mount and when localStorage changes
   useEffect(() => {
@@ -47,6 +48,36 @@ export default function Header({ user: userProp }: HeaderProps) {
     return () => window.removeEventListener("storage", checkAuth);
   }, []);
 
+  // Check cart count on mount and storage changes
+  useEffect(() => {
+    const checkCart = () => {
+      if (typeof window === "undefined") return;
+      const savedCart = localStorage.getItem("cart");
+      if (savedCart) {
+        try {
+          const cart = JSON.parse(savedCart);
+          setCartCount(Array.isArray(cart) ? cart.length : 0);
+        } catch (e) {
+          setCartCount(0);
+        }
+      } else {
+        setCartCount(0);
+      }
+    };
+
+    checkCart();
+
+    // Listen for storage changes (cart updates from other tabs)
+    window.addEventListener("storage", checkCart);
+    // Also check periodically for same-tab updates
+    const interval = setInterval(checkCart, 1000);
+
+    return () => {
+      window.removeEventListener("storage", checkCart);
+      clearInterval(interval);
+    };
+  }, []);
+
   const handleLogout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
@@ -66,7 +97,7 @@ export default function Header({ user: userProp }: HeaderProps) {
   const sidebarLinks = [
     { href: "/about", label: "About" },
     { href: "/profile", label: "Shopper" },
-    { href: "/business/dashboard", label: "Small Business" },
+    { href: user ? "/business/dashboard" : "/business/register", label: "Small Business" },
     { href: "/admin/dashboard", label: "Admin" },
     { href: "/how-it-works", label: "How it works" },
   ];
@@ -97,16 +128,16 @@ export default function Header({ user: userProp }: HeaderProps) {
               </svg>
             </button>
 
-            {/* Mobile: Logo (Center) */}
+            {/* Mobile: Logo (Center) - 10% bigger */}
             <Link href="/" className="md:hidden flex items-center group absolute left-1/2 -translate-x-1/2">
-              <h1 className="text-[22px] font-serif text-white tracking-tight group-hover:text-white/90 transition-colors duration-200" style={{ fontFamily: 'Didot, "Bodoni MT", "Noto Serif Display", "URW Palladio L", P052, Sylfaen, serif' }}>
+              <h1 className="text-[24px] font-serif text-white tracking-tight group-hover:text-white/90 transition-colors duration-200" style={{ fontFamily: 'Didot, "Bodoni MT", "Noto Serif Display", "URW Palladio L", P052, Sylfaen, serif' }}>
                 ouiimi
               </h1>
             </Link>
 
-            {/* Desktop: Logo (Left) */}
-            <Link href="/" className="hidden md:flex items-center group">
-              <h1 className="text-[26px] font-serif text-white tracking-tight group-hover:text-white/90 transition-colors duration-200" style={{ fontFamily: 'Didot, "Bodoni MT", "Noto Serif Display", "URW Palladio L", P052, Sylfaen, serif' }}>
+            {/* Desktop: Logo (Left) - increased letter spacing, closer to nav */}
+            <Link href="/" className="hidden md:flex items-center group mr-6">
+              <h1 className="text-[26px] font-serif text-white tracking-widest group-hover:text-white/90 transition-colors duration-200" style={{ fontFamily: 'Didot, "Bodoni MT", "Noto Serif Display", "URW Palladio L", P052, Sylfaen, serif' }}>
                 ouiimi
               </h1>
             </Link>
@@ -134,7 +165,7 @@ export default function Header({ user: userProp }: HeaderProps) {
             <div className="flex items-center gap-3">
               {user ? (
                 // Logged in - Show profile dropdown
-                <div className="relative">
+                <div className="relative hidden md:block">
                   <button
                     onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
                     className="flex items-center gap-2 text-white hover:bg-white/10 transition-all duration-200 px-3 py-2 rounded-lg"
@@ -164,9 +195,8 @@ export default function Header({ user: userProp }: HeaderProps) {
                       <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg py-2 z-50 border border-gray-100">
                         <div className="px-4 py-3 border-b border-gray-100">
                           <p className="text-sm font-semibold text-gray-900">
-                            {user.fname} {user.lname}
+                            {user.username || `${user.fname} ${user.lname}`}
                           </p>
-                          <p className="text-xs text-gray-500 truncate">{user.email}</p>
                         </div>
                         <Link
                           href="/profile"
@@ -186,17 +216,17 @@ export default function Header({ user: userProp }: HeaderProps) {
                   )}
                 </div>
               ) : (
-                // Not logged in - Show Sign In/Sign Up buttons
+                // Not logged in - Show Sign In/Sign Up as underlined text
                 <>
                   <Link
                     href="/signin"
-                    className="hidden sm:block text-white hover:bg-white/10 transition-all duration-200 px-4 py-2 rounded-lg text-sm font-medium"
+                    className="hidden sm:block text-white underline hover:text-white/80 transition-all duration-200 px-3 py-2 text-sm font-medium"
                   >
                     Sign In
                   </Link>
                   <Link
                     href="/signup"
-                    className="hidden sm:block bg-white text-[#EECFD1] hover:bg-white/90 transition-all duration-200 px-4 py-2 rounded-lg text-sm font-semibold shadow-sm"
+                    className="hidden sm:block text-white underline hover:text-white/80 transition-all duration-200 px-3 py-2 text-sm font-medium"
                   >
                     Sign Up
                   </Link>
@@ -222,6 +252,11 @@ export default function Header({ user: userProp }: HeaderProps) {
                     d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 00-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 00-16.536-1.84M7.5 14.25L5.106 5.272M6 20.25a.75.75 0 11-1.5 0 .75.75 0 011.5 0zm12.75 0a.75.75 0 11-1.5 0 .75.75 0 011.5 0z"
                   />
                 </svg>
+                {cartCount > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold w-5 h-5 flex items-center justify-center rounded-full">
+                    {cartCount > 9 ? '9+' : cartCount}
+                  </span>
+                )}
               </Link>
             </div>
           </div>
@@ -269,9 +304,8 @@ export default function Header({ user: userProp }: HeaderProps) {
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-semibold text-gray-900 truncate">
-                        {user.fname} {user.lname}
+                        {user.username || `${user.fname} ${user.lname}`}
                       </p>
-                      <p className="text-xs text-gray-500 truncate">{user.email}</p>
                     </div>
                   </div>
                   <button
@@ -282,18 +316,18 @@ export default function Header({ user: userProp }: HeaderProps) {
                   </button>
                 </div>
               ) : (
-                <div className="mb-6 pb-6 border-b border-gray-200 space-y-2">
+                <div className="mb-6 pb-6 border-b border-gray-200 space-y-3">
                   <Link
                     href="/signin"
                     onClick={() => setSidebarOpen(false)}
-                    className="block px-5 py-3 bg-[#EECFD1] text-white font-semibold rounded-lg text-center hover:bg-[#e5c4c7] transition-all"
+                    className="block px-5 py-3 text-[#3A3A3A] font-medium underline text-center hover:text-[#888] transition-all"
                   >
                     Sign In
                   </Link>
                   <Link
                     href="/signup"
                     onClick={() => setSidebarOpen(false)}
-                    className="block px-5 py-3 border-2 border-[#EECFD1] text-[#EECFD1] font-semibold rounded-lg text-center hover:bg-[#EECFD1]/10 transition-all"
+                    className="block px-5 py-3 text-[#3A3A3A] font-medium underline text-center hover:text-[#888] transition-all"
                   >
                     Sign Up
                   </Link>

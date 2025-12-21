@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -30,6 +30,7 @@ export default function EditServicePage() {
   const [success, setSuccess] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingService, setIsLoadingService] = useState(true);
+  const [timeSlotError, setTimeSlotError] = useState<string>("");
   const [service, setService] = useState<any>(null);
   const [business, setBusiness] = useState<any>(null);
   const [staff, setStaff] = useState<any[]>([]);
@@ -42,8 +43,8 @@ export default function EditServicePage() {
     staffIds: string[];
   }>>>({});
   const [selectedDate, setSelectedDate] = useState<string>("");
-  const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimeSlotForm, setShowTimeSlotForm] = useState(false);
+  const dateInputRef = useRef<HTMLInputElement>(null);
   const [newTimeSlot, setNewTimeSlot] = useState({
     startTime: "",
     endTime: "",
@@ -409,7 +410,6 @@ export default function EditServicePage() {
 
   const handleSelectDate = (date: string) => {
     setSelectedDate(date);
-    setShowDatePicker(false);
     if (!showTimeSlotForm) {
       setShowTimeSlotForm(true);
     }
@@ -437,7 +437,7 @@ export default function EditServicePage() {
     const endDate = new Date(startDate.getTime() + defaultDurationMins * 60000);
     const endHours = String(endDate.getHours()).padStart(2, "0");
     const endMinutes = String(endDate.getMinutes()).padStart(2, "0");
-    return `${endHours}:${endMinutes}`;
+    return `${endHours}:${endMinutes} `;
   };
 
   // Calculate duration in minutes from start and end time
@@ -459,15 +459,14 @@ export default function EditServicePage() {
 
   const handleAddTimeSlot = async () => {
     if (!selectedDate || !newTimeSlot.startTime || !newTimeSlot.endTime) {
-      setError("Please select a date and fill in start time and end time");
+      setTimeSlotError("Please select a date and fill in start time and end time");
       return;
     }
 
     if (!newTimeSlot.price || newTimeSlot.price === "") {
-      setError("Price is required for this time slot");
+      setTimeSlotError("Price is required for this time slot");
       return;
     }
-
     try {
       // Calculate duration from start and end time
       const duration = calculateDuration(newTimeSlot.startTime, newTimeSlot.endTime);
@@ -489,7 +488,9 @@ export default function EditServicePage() {
       });
 
       if (isDuplicate) {
-        setError(`This time slot (${formatTime12Hour(slot.startTime)} - ${formatTime12Hour(slot.endTime)}) with the same staff already exists for this date.`);
+        setTimeSlotError(`This time slot(${formatTime12Hour(slot.startTime)
+          } - ${formatTime12Hour(slot.endTime)
+          }) with the same staff already exists for this date.`);
         return;
       }
 
@@ -503,11 +504,11 @@ export default function EditServicePage() {
       // Convert to flat array and save to API
       const timeSlotsForSubmission = getTimeSlotsForSubmission(updatedDates);
       const token = localStorage.getItem("token");
-      const response = await fetch(`/api/services/${serviceId}`, {
+      const response = await fetch(`/ api / services / ${serviceId}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${token} `,
         },
         body: JSON.stringify({
           timeSlots: timeSlotsForSubmission,
@@ -522,17 +523,25 @@ export default function EditServicePage() {
           staffIds: [],
         });
         setError("");
+        setTimeSlotError("");
         setSuccess("Time slot added successfully!");
         setTimeout(() => setSuccess(""), 3000);
+        // Scroll to show the newly added time slot
+        setTimeout(() => {
+          const container = document.getElementById('time-slots-container');
+          if (container) {
+            container.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        }, 100);
       } else {
         // Revert on error
         setDatesWithSlots(datesWithSlots);
         const result = await response.json();
-        setError(result.error || "Failed to add time slot");
+        setTimeSlotError(result.error || "Failed to add time slot");
       }
     } catch (err: any) {
       console.error("Error adding time slot:", err);
-      setError("Failed to add time slot");
+      setTimeSlotError("Failed to add time slot");
     }
   };
 
@@ -555,11 +564,11 @@ export default function EditServicePage() {
       // Convert to flat array and save to API
       const timeSlotsForSubmission = getTimeSlotsForSubmission(updatedDates);
       const token = localStorage.getItem("token");
-      const response = await fetch(`/api/services/${serviceId}`, {
+      const response = await fetch(`/ api / services / ${serviceId} `, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${token} `,
         },
         body: JSON.stringify({
           timeSlots: timeSlotsForSubmission,
@@ -588,11 +597,11 @@ export default function EditServicePage() {
       // Convert to flat array and save to API
       const timeSlotsForSubmission = getTimeSlotsForSubmission(updatedDates);
       const token = localStorage.getItem("token");
-      const response = await fetch(`/api/services/${serviceId}`, {
+      const response = await fetch(`/ api / services / ${serviceId} `, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${token} `,
         },
         body: JSON.stringify({
           timeSlots: timeSlotsForSubmission,
@@ -635,7 +644,7 @@ export default function EditServicePage() {
       });
 
       if (isConflict) {
-        setError(`This time slot (${formatTime12Hour(newTimeSlot.startTime)} - ${formatTime12Hour(newTimeSlot.endTime)}) with the selected staff is already booked for this date.`);
+        setError(`This time slot(${formatTime12Hour(newTimeSlot.startTime)} - ${formatTime12Hour(newTimeSlot.endTime)}) with the selected staff is already booked for this date.`);
       } else {
         setError("");
       }
@@ -717,12 +726,13 @@ export default function EditServicePage() {
               <div className="p-8 space-y-6">
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Category <span className="text-red-500">*</span>
+                    Category <span className="text-gray-400">(locked)</span>
                   </label>
                   <div className="relative">
                     <select
                       {...register("category")}
-                      className="w-full px-4 py-3 pr-10 rounded-xl border border-gray-200 bg-white text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-[#EECFD1] focus:border-[#EECFD1] transition-all appearance-none hover:border-gray-300 cursor-pointer"
+                      disabled={true}
+                      className="w-full px-4 py-3 pr-10 rounded-xl border border-gray-200 bg-gray-100 text-gray-600 text-sm cursor-not-allowed opacity-75"
                     >
                       <option value="">Select category</option>
                       {CATEGORIES.map((cat) => (
@@ -733,26 +743,22 @@ export default function EditServicePage() {
                     </select>
                     <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
                       <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                       </svg>
                     </div>
                   </div>
-                  {errors.category && (
-                    <p className="text-red-500 text-sm mt-1.5">
-                      {errors.category.message}
-                    </p>
-                  )}
+                  <p className="text-xs text-gray-500 mt-1">Category cannot be changed after creation</p>
                 </div>
 
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Service Name <span className="text-red-500">*</span>
+                    Service Name <span className="text-gray-400">(locked)</span>
                   </label>
                   <div className="relative">
                     <select
                       {...register("subCategory", { required: "Service name is required" })}
-                      disabled={!selectedCategory || !SUB_CATEGORIES[selectedCategory]}
-                      className="w-full px-4 py-3 pr-10 rounded-xl border border-gray-200 bg-white text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-[#EECFD1] focus:border-[#EECFD1] transition-all appearance-none hover:border-gray-300 cursor-pointer disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed disabled:opacity-60"
+                      disabled={true}
+                      className="w-full px-4 py-3 pr-10 rounded-xl border border-gray-200 bg-gray-100 text-gray-600 text-sm cursor-not-allowed opacity-75"
                     >
                       <option value="">{selectedCategory && SUB_CATEGORIES[selectedCategory] ? "Select Service Name" : "Select Category First"}</option>
                       {selectedCategory && SUB_CATEGORIES[selectedCategory] && SUB_CATEGORIES[selectedCategory].map((subCat) => (
@@ -763,15 +769,11 @@ export default function EditServicePage() {
                     </select>
                     <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
                       <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                       </svg>
                     </div>
                   </div>
-                  {errors.subCategory && (
-                    <p className="text-red-500 text-sm mt-1.5">
-                      {errors.subCategory.message}
-                    </p>
-                  )}
+                  <p className="text-xs text-gray-500 mt-1">Service name cannot be changed after creation</p>
                 </div>
 
 
@@ -825,7 +827,7 @@ export default function EditServicePage() {
                           onClick={() => {
                             setShowTimeSlotForm(true);
                             if (!selectedDate) {
-                              setShowDatePicker(true);
+                              dateInputRef.current?.showPicker();
                             }
                           }}
                           variant="outline"
@@ -836,31 +838,17 @@ export default function EditServicePage() {
                         </Button>
                         <Button
                           type="button"
-                          onClick={() => setShowDatePicker(true)}
+                          onClick={() => dateInputRef.current?.showPicker()}
                           variant="outline"
                           size="sm"
                           className="rounded-xl border-gray-300 bg-white hover:bg-gray-50 text-gray-700 font-medium whitespace-nowrap"
                         >
                           + Add Date
                         </Button>
-                      </div>
-                    </div>
-                  </div>
 
-                  {/* Date Picker Modal */}
-                  {showDatePicker && (
-                    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                      <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl">
-                        <div className="flex items-center justify-between mb-4">
-                          <h3 className="text-lg font-bold text-[#3A3A3A]">Select Date</h3>
-                          <button
-                            onClick={() => setShowDatePicker(false)}
-                            className="text-gray-500 hover:text-[#3A3A3A]"
-                          >
-                            ✕
-                          </button>
-                        </div>
+                        {/* Hidden Date Input for Native Picker */}
                         <input
+                          ref={dateInputRef}
                           type="date"
                           min={new Date().toISOString().split('T')[0]}
                           onChange={(e) => {
@@ -868,15 +856,12 @@ export default function EditServicePage() {
                               handleSelectDate(e.target.value);
                             }
                           }}
-                          className="w-full px-4 py-3 rounded-xl border-2 border-gray-300 bg-white text-[#3A3A3A] focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary font-medium"
-                          autoFocus
+                          className="w-0 h-0 opacity-0 absolute pointer-events-none"
+                          tabIndex={-1}
                         />
-                        <p className="text-xs text-gray-500 mt-2">
-                          Select a date to add time slots
-                        </p>
                       </div>
                     </div>
-                  )}
+                  </div>
 
                   {/* Time Slot Form - Always visible but disabled until date is selected */}
                   {showTimeSlotForm && (
@@ -910,6 +895,12 @@ export default function EditServicePage() {
                           </svg>
                         </button>
                       </div>
+
+                      {timeSlotError && (
+                        <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-r-lg">
+                          <p className="text-sm text-red-700">{timeSlotError}</p>
+                        </div>
+                      )}
 
                       {/* Time Selection - Clean and Professional */}
                       <div className="space-y-3">
@@ -948,7 +939,7 @@ export default function EditServicePage() {
                               >
                                 <option value="">--</option>
                                 {Array.from({ length: 12 }, (_, i) => i + 1).map((h) => (
-                                  <option key={h} value={String(h)}>{String(h).padStart(2, '0')}</option>
+                                  <option key={h} value={String(h)}>{h}</option>
                                 ))}
                               </select>
                               <div className="absolute inset-y-0 right-2 flex items-center pointer-events-none">
@@ -1019,10 +1010,10 @@ export default function EditServicePage() {
                                   }
                                 }}
                                 disabled={!selectedDate || !startHour}
-                                className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${startPeriod === "AM"
-                                  ? "bg-[#EECFD1] text-[#3A3A3A] shadow-sm"
-                                  : "text-gray-500 hover:text-[#3A3A3A] hover:bg-gray-50"
-                                  } disabled:opacity-50 disabled:cursor-not-allowed`}
+                                className={`px - 4 py - 2 rounded - md text - sm font - medium transition - all ${startPeriod === "AM"
+                                    ? "bg-[#EECFD1] text-[#3A3A3A] shadow-sm"
+                                    : "text-gray-500 hover:text-[#3A3A3A] hover:bg-gray-50"
+                                  } disabled: opacity - 50 disabled: cursor - not - allowed`}
                               >
                                 AM
                               </button>
@@ -1048,10 +1039,10 @@ export default function EditServicePage() {
                                   }
                                 }}
                                 disabled={!selectedDate || !startHour}
-                                className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${startPeriod === "PM"
-                                  ? "bg-[#EECFD1] text-[#3A3A3A] shadow-sm"
-                                  : "text-gray-500 hover:text-[#3A3A3A] hover:bg-gray-50"
-                                  } disabled:opacity-50 disabled:cursor-not-allowed`}
+                                className={`px - 4 py - 2 rounded - md text - sm font - medium transition - all ${startPeriod === "PM"
+                                    ? "bg-[#EECFD1] text-[#3A3A3A] shadow-sm"
+                                    : "text-gray-500 hover:text-[#3A3A3A] hover:bg-gray-50"
+                                  } disabled: opacity - 50 disabled: cursor - not - allowed`}
                               >
                                 PM
                               </button>
@@ -1079,7 +1070,7 @@ export default function EditServicePage() {
                                 >
                                   <option value="">--</option>
                                   {Array.from({ length: 12 }, (_, i) => i + 1).map((h) => (
-                                    <option key={h} value={String(h)}>{String(h).padStart(2, '0')}</option>
+                                    <option key={h} value={String(h)}>{h}</option>
                                   ))}
                                 </select>
                                 <div className="absolute inset-y-0 right-2 flex items-center pointer-events-none">
@@ -1118,10 +1109,10 @@ export default function EditServicePage() {
                                     setNewTimeSlot({ ...newTimeSlot, endTime: "" });
                                   }}
                                   disabled={!selectedDate || !newTimeSlot.startTime || !endHour}
-                                  className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${endPeriod === "AM"
-                                    ? "bg-[#EECFD1] text-[#3A3A3A] shadow-sm"
-                                    : "text-gray-500 hover:text-[#3A3A3A] hover:bg-gray-50"
-                                    } disabled:opacity-50 disabled:cursor-not-allowed`}
+                                  className={`px - 4 py - 2 rounded - md text - sm font - medium transition - all ${endPeriod === "AM"
+                                      ? "bg-[#EECFD1] text-[#3A3A3A] shadow-sm"
+                                      : "text-gray-500 hover:text-[#3A3A3A] hover:bg-gray-50"
+                                    } disabled: opacity - 50 disabled: cursor - not - allowed`}
                                 >
                                   AM
                                 </button>
@@ -1132,10 +1123,10 @@ export default function EditServicePage() {
                                     setNewTimeSlot({ ...newTimeSlot, endTime: "" });
                                   }}
                                   disabled={!selectedDate || !newTimeSlot.startTime || !endHour}
-                                  className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${endPeriod === "PM"
-                                    ? "bg-[#EECFD1] text-[#3A3A3A] shadow-sm"
-                                    : "text-gray-500 hover:text-[#3A3A3A] hover:bg-gray-50"
-                                    } disabled:opacity-50 disabled:cursor-not-allowed`}
+                                  className={`px - 4 py - 2 rounded - md text - sm font - medium transition - all ${endPeriod === "PM"
+                                      ? "bg-[#EECFD1] text-[#3A3A3A] shadow-sm"
+                                      : "text-gray-500 hover:text-[#3A3A3A] hover:bg-gray-50"
+                                    } disabled: opacity - 50 disabled: cursor - not - allowed`}
                                 >
                                   PM
                                 </button>
@@ -1244,7 +1235,7 @@ export default function EditServicePage() {
 
                   {/* Dates with Time Slots - Grouped Display */}
                   {Object.keys(datesWithSlots).length > 0 ? (
-                    <div className="space-y-4">
+                    <div id="time-slots-container" className="space-y-4">
                       {Object.entries(datesWithSlots)
                         .sort(([dateA], [dateB]) => new Date(dateA).getTime() - new Date(dateB).getTime())
                         .map(([date, slots]) => (
@@ -1349,7 +1340,7 @@ export default function EditServicePage() {
                   </Button>
                   <Button
                     type="button"
-                    onClick={() => router.back()}
+                    onClick={() => router.push("/business/dashboard")}
                     className="flex-1 h-12 rounded-xl bg-gray-100 text-gray-700 hover:bg-gray-200 font-semibold transition-all"
                   >
                     Cancel

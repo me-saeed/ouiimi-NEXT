@@ -4,8 +4,8 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import Link from "next/link";
 import { User } from "lucide-react";
+import { StaffModal } from "./StaffModal";
 
 interface StaffTabProps {
   business: any;
@@ -27,6 +27,8 @@ export function StaffTab({ business }: StaffTabProps) {
   const [staff, setStaff] = useState<Staff[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string>("");
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingStaffId, setEditingStaffId] = useState<string | undefined>(undefined);
 
   useEffect(() => {
     if (business?.id || business?._id) {
@@ -87,6 +89,21 @@ export function StaffTab({ business }: StaffTabProps) {
     }
   };
 
+  const handleOpenAddModal = () => {
+    setEditingStaffId(undefined); // Clear ID for add mode
+    setIsModalOpen(true);
+  };
+
+  const handleOpenEditModal = (id: string) => {
+    setEditingStaffId(id);
+    setIsModalOpen(true);
+  };
+
+  const handleSuccess = () => {
+    setIsModalOpen(false);
+    loadStaff();
+  };
+
   return (
     <div className="max-w-6xl mx-auto space-y-8 px-4">
       {error && (
@@ -100,12 +117,13 @@ export function StaffTab({ business }: StaffTabProps) {
           <h2 className="text-2xl font-bold text-[#3A3A3A]">Staff Members</h2>
           <p className="text-[#888888] text-sm mt-1">Manage your team members</p>
         </div>
-        <Link href="/business/staff/add">
-          <Button className="bg-[#EECFD1] text-white hover:bg-[#e5c4c7] rounded-xl px-6 py-2.5 font-semibold shadow-sm hover:shadow-md transition-all flex items-center gap-2">
-            <User className="w-4 h-4" />
-            Add Staff
-          </Button>
-        </Link>
+        <Button
+          onClick={handleOpenAddModal}
+          className="bg-[#EECFD1] text-white hover:bg-[#e5c4c7] rounded-xl px-6 py-2.5 font-semibold shadow-sm hover:shadow-md transition-all flex items-center gap-2"
+        >
+          <User className="w-4 h-4" />
+          Add Staff
+        </Button>
       </div>
 
       {isLoading ? (
@@ -119,18 +137,19 @@ export function StaffTab({ business }: StaffTabProps) {
           </div>
           <h3 className="text-xl font-bold text-[#3A3A3A] mb-2">No staff members yet</h3>
           <p className="text-[#888888] text-sm mb-6">Add your team members to get started</p>
-          <Link href="/business/staff/add">
-            <Button className="bg-[#EECFD1] text-white hover:bg-[#e5c4c7] rounded-xl px-6 py-3 font-semibold shadow-sm hover:shadow-md transition-all">
-              Add Your First Staff Member
-            </Button>
-          </Link>
+          <Button
+            onClick={handleOpenAddModal}
+            className="bg-[#EECFD1] text-white hover:bg-[#e5c4c7] rounded-xl px-6 py-3 font-semibold shadow-sm hover:shadow-md transition-all"
+          >
+            Add Your First Staff Member
+          </Button>
         </div>
       ) : (
         <div className="space-y-2">
           {staff.map((member) => (
             <div
               key={member.id}
-              onClick={() => router.push(`/business/staff/${member.id}`)}
+              onClick={() => handleOpenEditModal(member.id)}
               className="flex items-center gap-4 p-4 bg-white rounded-lg hover:bg-gray-50 transition-all cursor-pointer"
             >
               {/* Avatar */}
@@ -144,8 +163,8 @@ export function StaffTab({ business }: StaffTabProps) {
                   />
                 ) : (
                   <span className="text-lg font-bold text-[#3A3A3A]">
-                      {member.name?.charAt(0)?.toUpperCase() || "S"}
-                    </span>
+                    {member.name?.charAt(0)?.toUpperCase() || "S"}
+                  </span>
                 )}
               </div>
 
@@ -157,6 +176,12 @@ export function StaffTab({ business }: StaffTabProps) {
           ))}
         </div>
       )}
+      <StaffModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        staffId={editingStaffId}
+        onSuccess={handleSuccess}
+      />
     </div>
   );
 }

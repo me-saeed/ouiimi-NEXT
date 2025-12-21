@@ -8,6 +8,7 @@ import PageLayout from "@/components/layout/PageLayout";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { X } from "lucide-react";
+import { parseLocalDate, formatDateLocal } from "@/lib/utils/date-utils";
 
 function ServiceDetailContent() {
   const params = useParams();
@@ -179,7 +180,7 @@ function BookingForm({ service, business, user }: { service: any; business: any;
         .filter((slot: any) => {
           if (!slot || slot.isBooked) return false;
           try {
-            const slotDate = new Date(slot.date);
+            const slotDate = parseLocalDate(slot.date);
             if (isNaN(slotDate.getTime())) return false;
             slotDate.setHours(0, 0, 0, 0);
             return slotDate >= today;
@@ -190,9 +191,7 @@ function BookingForm({ service, business, user }: { service: any; business: any;
         })
         .map((slot: any) => {
           try {
-            const date = new Date(slot.date);
-            if (isNaN(date.getTime())) return null;
-            return date.toISOString().split('T')[0];
+            return formatDateLocal(slot.date);
           } catch (e) {
             console.error("Error mapping slot date:", e, slot);
             return null;
@@ -200,7 +199,7 @@ function BookingForm({ service, business, user }: { service: any; business: any;
         })
         .filter((date: string | null): date is string => date !== null);
       return [...new Set(dateStrings)].sort((a: string, b: string) =>
-        new Date(a).getTime() - new Date(b).getTime()
+        parseLocalDate(a).getTime() - parseLocalDate(b).getTime()
       );
     })()
     : [];
@@ -209,9 +208,7 @@ function BookingForm({ service, business, user }: { service: any; business: any;
     ? (service.timeSlots || []).filter((slot: any) => {
       if (!slot || slot.isBooked) return false;
       try {
-        const slotDate = new Date(slot.date);
-        if (isNaN(slotDate.getTime())) return false;
-        const slotDateStr = slotDate.toISOString().split('T')[0];
+        const slotDateStr = formatDateLocal(slot.date);
 
         // Only include slots for the selected date
         if (slotDateStr !== selectedDate) return false;
@@ -232,7 +229,6 @@ function BookingForm({ service, business, user }: { service: any; business: any;
     : [];
 
 
-
   // ✅ CANONICAL FORMAT: staffIds = [{staffId, isBooked, name?, photo?}]
   // Filter to show only available (not booked) staff
   const availableStaff = selectedTimeSlot?.staffIds
@@ -241,6 +237,11 @@ function BookingForm({ service, business, user }: { service: any; business: any;
       id: staff.staffId.toString(),
       name: staff.name || "Staff"
     })) || [];
+
+  // ✅ Get available add-ons from: 1) selected time slot, 2) service-level (fallback)
+  const availableAddOns = selectedTimeSlot?.addOns?.length > 0
+    ? selectedTimeSlot.addOns
+    : (service.addOns || []);
 
 
 
@@ -317,6 +318,16 @@ function BookingForm({ service, business, user }: { service: any; business: any;
   };
 
   const handleAddToCart = () => {
+    // Check if user is logged in
+    const token = localStorage.getItem("token");
+    if (!token) {
+      // Store current URL to return after login
+      const returnUrl = window.location.pathname;
+      localStorage.setItem("returnUrl", returnUrl);
+      router.push(`/signin?redirect=${encodeURIComponent(returnUrl)}`);
+      return;
+    }
+
     if (!selectedDate || !selectedTimeSlot) {
       setError("Please select a date and time slot");
       return;
@@ -354,6 +365,20 @@ function BookingForm({ service, business, user }: { service: any; business: any;
       const firstItem = cart[0];
       if (firstItem.businessId !== cartItem.businessId) {
         setError("You can only add services from one business at a time. Please checkout your current cart first.");
+        return;
+      }
+
+      // Check for date/time conflicts with existing cart items
+      const hasTimeConflict = cart.some((item: any) => {
+        if (item.date !== cartItem.date) return false;
+        // Same date - check if times overlap
+        if (item.time === cartItem.time) return true;
+        // Could add more sophisticated time overlap check here if needed
+        return false;
+      });
+
+      if (hasTimeConflict) {
+        setError("You already have a booking at this date and time. Please choose a different time slot.");
         return;
       }
     }
@@ -563,7 +588,7 @@ function BookingForm({ service, business, user }: { service: any; business: any;
         </div>
 
         {/* Add-ons */}
-        {service.addOns && service.addOns.length > 0 && (
+        {availableAddOns && availableAddOns.length > 0 && (
           <div className="space-y-2">
             <label className="text-sm font-semibold text-gray-700 mb-2 block">
               Add-Ons
@@ -572,7 +597,7 @@ function BookingForm({ service, business, user }: { service: any; business: any;
               value=""
               onChange={(e) => {
                 if (e.target.value) {
-                  const addon = service.addOns.find((a: any) => a.name === e.target.value);
+                  const addon = availableAddOns.find((a: any) => a.name === e.target.value);
                   if (addon && !selectedAddOns.some((a) => a.name === addon.name)) {
                     setSelectedAddOns([...selectedAddOns, { name: addon.name, cost: addon.cost || 0 }]);
                   }
@@ -582,7 +607,7 @@ function BookingForm({ service, business, user }: { service: any; business: any;
               className="w-full px-4 py-3.5 rounded-xl border border-gray-200 bg-white text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-[#EECFD1] focus:border-[#EECFD1] transition-all appearance-none bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTIiIGhlaWdodD0iOCIgdmlld0JveD0iMCAwIDEyIDgiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0iTTEgMUw2IDZMMTEgMSIgc3Ryb2tlPSIjNjY2IiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPjwvc3ZnPg==')] bg-no-repeat bg-right-4 pr-10 hover:border-gray-300"
             >
               <option value="">Select Add-Ons</option>
-              {service.addOns.map((addon: any, idx: number) => (
+              {availableAddOns.map((addon: any, idx: number) => (
                 <option key={idx} value={addon.name}>
                   {addon.name} - ${addon.cost?.toFixed(2) || "0.00"}
                 </option>

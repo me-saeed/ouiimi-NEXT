@@ -32,20 +32,7 @@ export function middleware(request: NextRequest) {
   // HTTPS enforcement - DISABLED when behind proxy (Cloudflare/Nginx)
   // Cloudflare and Nginx handle HTTPS redirects, so we don't need to do it here
   // Only redirect if directly accessed (no proxy headers)
-  // Auth Protection for Business Routes
-  // Check if accessing a protected business route
-  if (request.nextUrl.pathname.startsWith("/business/register") || request.nextUrl.pathname.startsWith("/business/dashboard")) {
-    const token = request.cookies.get("token")?.value;
 
-    // If no token, redirect to signin
-    if (!token) {
-      const url = request.nextUrl.clone();
-      url.pathname = "/signin";
-      // Optional: Add return URL
-      url.searchParams.set("callbackUrl", request.nextUrl.pathname);
-      return NextResponse.redirect(url);
-    }
-  }
 
   return response;
 }

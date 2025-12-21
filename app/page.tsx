@@ -259,16 +259,16 @@ export default function HomePage() {
               return (
                 <div key={category}>
                   <div className="flex items-center justify-between mb-4 sm:mb-6">
-                    <h2 className="text-[20px] md:text-[24px] font-bold text-[#3A3A3A]">{category}</h2>
+                    <h2 className="text-[20px] md:text-[24px] font-bold text-[#4A4A4A]">{category}</h2>
                   </div>
 
                   {/* Horizontal Scroll Container */}
                   <div className="relative">
-                    <div className="flex gap-4 overflow-x-auto scrollbar-hide pb-4 -mx-4 px-4 sm:mx-0 sm:px-0">
+                    <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-4 -mx-4 px-4 sm:mx-0 sm:px-0">
                       {filteredServices
                         .slice(0, 6)
                         .map((service) => (
-                          <div key={service.id} className="min-w-[300px] sm:min-w-[320px] flex-shrink-0">
+                          <div key={service.id} className="flex-shrink-0">
                             <ServiceCard
                               {...formatServiceForCard(service)}
                             />

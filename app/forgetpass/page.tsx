@@ -5,6 +5,8 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { forgotPasswordSchema, type ForgotPasswordInput } from "@/lib/validation";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import PageLayout from "@/components/layout/PageLayout";
+import Link from "next/link";
 
 export default function ForgetPasswordPage() {
   const [error, setError] = useState<string>("");
@@ -43,7 +45,7 @@ export default function ForgetPasswordPage() {
 
       setSuccess(
         result.message ||
-          "If an account with that email exists, a password reset link has been sent."
+        "If an account with that email exists, a password reset link has been sent."
       );
       setIsLoading(false);
     } catch (err: any) {
@@ -53,18 +55,19 @@ export default function ForgetPasswordPage() {
   };
 
   return (
-    <div className="min-h-screen bg-color-bg p-4">
-      <div className="max-w-md mx-auto">
-        <form className="w-full relative mt-20" onSubmit={handleSubmit(onSubmit)}>
-          <div className="space-y-3">
-            <div>
-              <div className="text-xl antialiased font-bold items-center mb-4">
-                Forget Password
-              </div>
+    <PageLayout>
+      <div className="min-h-screen bg-white flex items-center justify-center px-4">
+        <div className="w-full max-w-md">
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
+            <h1 className="text-2xl font-bold text-[#3A3A3A] mb-2">Forgot Password</h1>
+            <p className="text-[#888888] text-sm mb-6">
+              Enter your email and we&apos;ll send you a link to reset your password.
+            </p>
 
-              <div className="mt-4">
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+              <div>
                 <label
-                  className="block uppercase text-gray-700 text-xs font-bold mb-2"
+                  className="block text-sm font-medium text-[#3A3A3A] mb-2"
                   htmlFor="email"
                 >
                   Email
@@ -72,57 +75,55 @@ export default function ForgetPasswordPage() {
                 <input
                   type="email"
                   id="email"
-                  className={`input-styl px-2 py-2 h-10 ${
-                    errors.email ? "border-red-600" : ""
-                  }`}
+                  className={`w-full px-4 py-3 rounded-lg border ${errors.email ? "border-red-500" : "border-gray-200"
+                    } focus:outline-none focus:ring-2 focus:ring-[#EECFD1] focus:border-transparent transition-all`}
                   placeholder="Enter your email"
                   {...register("email")}
                 />
                 {errors.email && (
-                  <div className="text-red-600 text-sm mt-1">
-                    {errors.email.message}
-                  </div>
+                  <p className="text-red-500 text-sm mt-1">{errors.email.message}</p>
                 )}
               </div>
-            </div>
 
-            {error && (
-              <div className="mt-4">
+              {error && (
                 <Alert variant="destructive">
                   <AlertDescription>{error}</AlertDescription>
                 </Alert>
-              </div>
-            )}
+              )}
 
-            {success && (
-              <div className="mt-4">
+              {success && (
                 <Alert variant="success">
                   <AlertDescription>{success}</AlertDescription>
                 </Alert>
-              </div>
-            )}
-
-            <div className="mt-4">
-              {isLoading ? (
-                <div className="flex justify-center items-center">
-                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
-                </div>
-              ) : (
-                <button className="btn-styl" type="submit">
-                  Send Reset Link
-                </button>
               )}
-            </div>
 
-            <div className="mt-4">
-              <a className="text-primary text-sm hover:underline" href="/signin">
-                Back to Sign In
-              </a>
-            </div>
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="w-full py-3 px-4 bg-[#EECFD1] hover:bg-[#e5c3c5] text-[#3A3A3A] font-medium rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isLoading ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <span className="animate-spin rounded-full h-4 w-4 border-b-2 border-[#3A3A3A]"></span>
+                    Sending...
+                  </span>
+                ) : (
+                  "Send Reset Link"
+                )}
+              </button>
+
+              <div className="text-center">
+                <Link
+                  href="/signin"
+                  className="text-[#3A3A3A] text-sm underline hover:text-[#888888] transition-colors"
+                >
+                  Back to Sign In
+                </Link>
+              </div>
+            </form>
           </div>
-        </form>
+        </div>
       </div>
-    </div>
+    </PageLayout>
   );
 }
-

@@ -4,8 +4,11 @@ import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { resetPasswordFormSchema, resetPasswordSchema, type ResetPasswordFormInput, type ResetPasswordInput } from "@/lib/validation";
+import { resetPasswordFormSchema, type ResetPasswordFormInput } from "@/lib/validation";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import PageLayout from "@/components/layout/PageLayout";
+import Link from "next/link";
+import { Eye, EyeOff } from "lucide-react";
 
 function ResetPasswordForm() {
   const router = useRouter();
@@ -15,6 +18,8 @@ function ResetPasswordForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [email, setEmail] = useState<string>("");
   const [token, setToken] = useState<string>("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   useEffect(() => {
     const emailParam = searchParams.get("email");
@@ -33,10 +38,9 @@ function ResetPasswordForm() {
     register,
     handleSubmit,
     formState: { errors },
-    getValues,
   } = useForm<ResetPasswordFormInput>({
     resolver: zodResolver(resetPasswordFormSchema),
-    mode: "onChange", // Validate on change to show errors immediately
+    mode: "onChange",
   });
 
   const onSubmit = async (data: ResetPasswordFormInput) => {
@@ -50,8 +54,6 @@ function ResetPasswordForm() {
     setSuccess("");
 
     try {
-
-
       const response = await fetch("/api/auth/reset-password", {
         method: "POST",
         headers: {
@@ -65,28 +67,22 @@ function ResetPasswordForm() {
         }),
       });
 
-
-
       const result = await response.json();
 
       if (!response.ok) {
         const errorMsg = result.error || result.message || "Failed to reset password. Please try again.";
-        console.error("Reset password error:", errorMsg);
         setError(errorMsg);
         setIsLoading(false);
         return;
       }
 
-
       setSuccess("Password has been updated successfully! Redirecting to sign in...");
       setIsLoading(false);
 
-      // Redirect to signin after 2 seconds
       setTimeout(() => {
         router.push("/signin");
       }, 2000);
     } catch (err: any) {
-      console.error("Reset password catch error:", err);
       setError(err.message || "Something went wrong. Please try again.");
       setIsLoading(false);
     }
@@ -94,147 +90,152 @@ function ResetPasswordForm() {
 
   if (!email || !token) {
     return (
-      <div className="min-h-screen bg-color-bg p-4 flex items-center justify-center">
-        <div className="max-w-md w-full">
-          <Alert variant="destructive">
-            <AlertDescription>
-              Invalid reset link. Please request a new password reset.
-            </AlertDescription>
-          </Alert>
-          <div className="mt-4">
-            <a className="text-primary text-sm hover:underline" href="/forgetpass">
-              Request Password Reset
-            </a>
+      <PageLayout>
+        <div className="min-h-screen bg-white flex items-center justify-center px-4">
+          <div className="w-full max-w-md">
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
+              <Alert variant="destructive">
+                <AlertDescription>
+                  Invalid reset link. Please request a new password reset.
+                </AlertDescription>
+              </Alert>
+              <div className="mt-4 text-center">
+                <Link
+                  href="/forgetpass"
+                  className="text-[#3A3A3A] text-sm underline hover:text-[#888888] transition-colors"
+                >
+                  Request Password Reset
+                </Link>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
+      </PageLayout>
     );
   }
 
   return (
-    <div className="min-h-screen bg-color-bg p-4">
-      <div className="max-w-md mx-auto">
-        <form
-          className="w-full relative mt-20"
-          onSubmit={handleSubmit(
-            (data) => {
-              onSubmit(data);
-            },
-            (errors) => {
-              console.error("Form validation errors:", errors);
-              setError("Please fix the form errors before submitting.");
-            }
-          )}
-        >
-          <div className="space-y-3">
-            <div>
-              <div className="text-xl antialiased font-bold items-center mb-4">
-                Reset Password
-              </div>
+    <PageLayout>
+      <div className="min-h-screen bg-white flex items-center justify-center px-4">
+        <div className="w-full max-w-md">
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
+            <h1 className="text-2xl font-bold text-[#3A3A3A] mb-2">Reset Password</h1>
+            <p className="text-[#888888] text-sm mb-6">
+              Enter your new password below.
+            </p>
 
-              <div className="mt-4">
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+              {/* Password Field */}
+              <div>
                 <label
-                  className="block uppercase text-gray-700 text-xs font-bold mb-2"
+                  className="block text-sm font-medium text-[#3A3A3A] mb-2"
                   htmlFor="password"
                 >
                   New Password
                 </label>
-                <input
-                  type="password"
-                  id="password"
-                  className={`input-styl px-2 py-2 h-10 ${errors.password ? "border-red-600" : ""
-                    }`}
-                  placeholder="Enter new password"
-                  {...register("password")}
-                />
+                <div className="relative">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    id="password"
+                    className={`w-full px-4 py-3 rounded-lg border ${errors.password ? "border-red-500" : "border-gray-200"
+                      } focus:outline-none focus:ring-2 focus:ring-[#EECFD1] focus:border-transparent transition-all pr-12`}
+                    placeholder="Enter new password"
+                    {...register("password")}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  >
+                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  </button>
+                </div>
                 {errors.password && (
-                  <div className="text-red-600 text-sm mt-1">
-                    {errors.password.message}
-                  </div>
+                  <p className="text-red-500 text-sm mt-1">{errors.password.message}</p>
                 )}
               </div>
-            </div>
 
-            <div>
-              <div className="mt-4">
+              {/* Confirm Password Field */}
+              <div>
                 <label
-                  className="block uppercase text-gray-700 text-xs font-bold mb-2"
+                  className="block text-sm font-medium text-[#3A3A3A] mb-2"
                   htmlFor="confirmPassword"
                 >
                   Confirm Password
                 </label>
-                <input
-                  type="password"
-                  id="confirmPassword"
-                  className={`input-styl px-2 py-2 h-10 ${errors.confirmPassword ? "border-red-600" : ""
-                    }`}
-                  placeholder="Confirm new password"
-                  {...register("confirmPassword")}
-                />
+                <div className="relative">
+                  <input
+                    type={showConfirmPassword ? "text" : "password"}
+                    id="confirmPassword"
+                    className={`w-full px-4 py-3 rounded-lg border ${errors.confirmPassword ? "border-red-500" : "border-gray-200"
+                      } focus:outline-none focus:ring-2 focus:ring-[#EECFD1] focus:border-transparent transition-all pr-12`}
+                    placeholder="Confirm new password"
+                    {...register("confirmPassword")}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  >
+                    {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  </button>
+                </div>
                 {errors.confirmPassword && (
-                  <div className="text-red-600 text-sm mt-1">
-                    {errors.confirmPassword.message}
-                  </div>
+                  <p className="text-red-500 text-sm mt-1">{errors.confirmPassword.message}</p>
                 )}
               </div>
-            </div>
 
-            {error && (
-              <div className="mt-4">
+              {error && (
                 <Alert variant="destructive">
                   <AlertDescription>{error}</AlertDescription>
                 </Alert>
-              </div>
-            )}
+              )}
 
-            {success && (
-              <div className="mt-4">
+              {success && (
                 <Alert variant="success">
                   <AlertDescription>{success}</AlertDescription>
                 </Alert>
-              </div>
-            )}
-
-            <div className="mt-4">
-              {isLoading ? (
-                <div className="flex justify-center items-center">
-                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
-                </div>
-              ) : (
-                <button
-                  className="btn-styl w-full"
-                  type="submit"
-                  onClick={(e) => {
-                  }}
-                >
-                  Reset Password
-                </button>
               )}
-            </div>
 
-            <div className="mt-4">
-              <a className="text-primary text-sm hover:underline" href="/signin">
-                Back to Sign In
-              </a>
-            </div>
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="w-full py-3 px-4 bg-[#EECFD1] hover:bg-[#e5c3c5] text-[#3A3A3A] font-medium rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isLoading ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <span className="animate-spin rounded-full h-4 w-4 border-b-2 border-[#3A3A3A]"></span>
+                    Resetting...
+                  </span>
+                ) : (
+                  "Reset Password"
+                )}
+              </button>
+
+              <div className="text-center">
+                <Link
+                  href="/signin"
+                  className="text-[#3A3A3A] text-sm underline hover:text-[#888888] transition-colors"
+                >
+                  Back to Sign In
+                </Link>
+              </div>
+            </form>
           </div>
-        </form>
+        </div>
       </div>
-    </div>
+    </PageLayout>
   );
 }
 
 export default function ResetPasswordPage() {
   return (
-    <Suspense
-      fallback={
-        <div className="min-h-screen bg-color-bg p-4 flex items-center justify-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-        </div>
-      }
-    >
+    <Suspense fallback={
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#EECFD1]"></div>
+      </div>
+    }>
       <ResetPasswordForm />
     </Suspense>
   );
 }
-

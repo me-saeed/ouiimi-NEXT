@@ -13,6 +13,13 @@ import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AddressAutocomplete } from "@/components/ui/address-autocomplete";
 import { TimeSelect } from "@/components/ui/time-select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import Image from "next/image";
 import { getAllCategories, getAddOnsByCategory } from "@/lib/constants/categories";
@@ -762,7 +769,7 @@ export default function CreateServicePage() {
   return (
     <PageLayout user={user}>
       <div className="bg-white min-h-screen py-8 md:py-12">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-[40rem]">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-4xl">
           {/* Header Section */}
           <div className="text-center mb-8">
             <h1 className="text-3xl md:text-4xl font-bold text-[#3A3A3A] mb-2">
@@ -774,7 +781,7 @@ export default function CreateServicePage() {
           </div>
 
           {/* Form Card */}
-          <div className="bg-white rounded-lg border border-[#E5E5E5] p-6 md:p-8 shadow-sm">
+          <div className="bg-white rounded-xl border border-[#E5E5E5] p-6 md:p-8 shadow-sm">
 
             {error && (
               <Alert className="mb-6 border-red-200 bg-red-50">
@@ -824,24 +831,21 @@ export default function CreateServicePage() {
                   <label className="block text-sm font-semibold text-[#3A3A3A] mb-2">
                     Category <span className="text-red-500">*</span>
                   </label>
-                  <div className="relative">
-                    <select
-                      {...register("category")}
-                      className="w-full px-4 py-2.5 pr-10 rounded-lg border border-[#E5E5E5] bg-white text-[#3A3A3A] focus:outline-none focus:ring-2 focus:ring-[#EECFD1]/20 focus:border-[#EECFD1] transition-all appearance-none cursor-pointer disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed"
-                    >
-                      <option value="">Select Category</option>
+                  <Select
+                    value={selectedCategory}
+                    onValueChange={(val) => setValue("category", val)}
+                  >
+                    <SelectTrigger className="w-full h-[46px] px-4 rounded-xl border-gray-200 bg-white focus:ring-2 focus:ring-[#EECFD1]/50 focus:border-[#EECFD1] text-[#3A3A3A] font-normal shadow-sm hover:border-[#EECFD1] transition-all">
+                      <SelectValue placeholder="Select Category" />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-[300px]">
                       {CATEGORIES.map((cat) => (
-                        <option key={cat} value={cat}>
+                        <SelectItem key={cat} value={cat} className="cursor-pointer py-3 hover:bg-[#FFF5F6] hover:text-[#3A3A3A] focus:bg-[#FFF5F6] focus:text-[#3A3A3A]">
                           {cat}
-                        </option>
+                        </SelectItem>
                       ))}
-                    </select>
-                    <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none">
-                      <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                      </svg>
-                    </div>
-                  </div>
+                    </SelectContent>
+                  </Select>
                   {errors.category && (
                     <p className="text-red-500 text-sm mt-1">
                       {errors.category.message}
@@ -853,25 +857,22 @@ export default function CreateServicePage() {
                   <label className="block text-sm font-semibold text-[#3A3A3A] mb-2">
                     Service Name <span className="text-red-500">*</span>
                   </label>
-                  <div className="relative">
-                    <select
-                      {...register("subCategory", { required: "Service name is required" })}
-                      disabled={!selectedCategory || !SUB_CATEGORIES[selectedCategory]}
-                      className="w-full px-4 py-2.5 pr-10 rounded-lg border border-[#E5E5E5] bg-white text-[#3A3A3A] focus:outline-none focus:ring-2 focus:ring-[#EECFD1]/20 focus:border-[#EECFD1] transition-all appearance-none cursor-pointer disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed disabled:opacity-60"
-                    >
-                      <option value="">{selectedCategory && SUB_CATEGORIES[selectedCategory] ? "Select Service Name" : "Select Category First"}</option>
+                  <Select
+                    value={watch("subCategory")}
+                    onValueChange={(val) => setValue("subCategory", val)}
+                    disabled={!selectedCategory || !SUB_CATEGORIES[selectedCategory]}
+                  >
+                    <SelectTrigger className={`w-full h-[46px] px-4 rounded-xl border-gray-200 shadow-sm transition-all text-[#3A3A3A] font-normal ${!selectedCategory ? "bg-gray-50 cursor-not-allowed opacity-75" : "bg-white hover:border-[#EECFD1] focus:ring-2 focus:ring-[#EECFD1]/50 focus:border-[#EECFD1]"}`}>
+                      <SelectValue placeholder={selectedCategory && SUB_CATEGORIES[selectedCategory] ? "Select Service Name" : "Select Category First"} />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-[300px]">
                       {selectedCategory && SUB_CATEGORIES[selectedCategory] && SUB_CATEGORIES[selectedCategory].map((subCat) => (
-                        <option key={subCat} value={subCat}>
+                        <SelectItem key={subCat} value={subCat} className="cursor-pointer py-3 hover:bg-[#FFF5F6] hover:text-[#3A3A3A] focus:bg-[#FFF5F6] focus:text-[#3A3A3A]">
                           {subCat}
-                        </option>
+                        </SelectItem>
                       ))}
-                    </select>
-                    <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none">
-                      <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                      </svg>
-                    </div>
-                  </div>
+                    </SelectContent>
+                  </Select>
                   {errors.subCategory && (
                     <p className="text-red-500 text-sm mt-1">
                       {errors.subCategory.message}
@@ -903,7 +904,7 @@ export default function CreateServicePage() {
                 <textarea
                   {...register("description")}
                   rows={3}
-                  className="w-full px-4 py-2.5 rounded-lg border border-[#E5E5E5] bg-white text-[#3A3A3A] placeholder:text-[#888888] focus:outline-none focus:ring-2 focus:ring-[#EECFD1]/20 focus:border-[#EECFD1] transition-all resize-none"
+                  className="w-full px-4 py-2.5 rounded-xl border border-[#E5E5E5] bg-white text-[#3A3A3A] placeholder:text-[#888888] focus:outline-none focus:ring-2 focus:ring-[#EECFD1]/20 focus:border-[#EECFD1] transition-all resize-none"
                   placeholder="Describe your service"
                 />
                 {errors.description && (
@@ -913,13 +914,14 @@ export default function CreateServicePage() {
                 )}
               </div>
 
-              {/* Dates and Time Slots Section */}
+              {/* Dates and Time Slots Section - Master-Detail Layout */}
               <div className="space-y-4 pt-6 border-t border-[#E5E5E5]">
                 <div className="flex items-center justify-between mb-4">
                   <label className="block text-base font-bold text-[#3A3A3A]">
                     Dates & Time Slots <span className="text-red-500">*</span>
                   </label>
-                  <div className="flex gap-2">
+                  {/* Global Add Date Button (Mobile mostly) */}
+                  <div className="md:hidden">
                     <Button
                       type="button"
                       onClick={() => setShowDatePicker(true)}
@@ -931,374 +933,318 @@ export default function CreateServicePage() {
                   </div>
                 </div>
 
-                {/* Date Picker Modal */}
-                {showDatePicker && (
-                  <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white rounded-lg p-6 max-w-md w-full shadow-xl">
-                      <div className="flex items-center justify-between mb-4">
-                        <h3 className="text-lg font-bold text-[#3A3A3A]">Select Date</h3>
-                        <button
-                          onClick={() => setShowDatePicker(false)}
-                          className="w-8 h-8 flex items-center justify-center rounded-lg text-[#888888] hover:text-[#3A3A3A] hover:bg-[#F5F5F5] transition-colors"
-                          aria-label="Close"
+                {/* Master-Detail Container */}
+                <div className="flex flex-col md:flex-row h-[600px] border border-gray-200 rounded-xl overflow-hidden bg-white shadow-sm">
+
+                  {/* LEFT PANEL: Date List */}
+                  <div className="w-full md:w-1/3 border-r border-gray-100 bg-gray-50/50 flex flex-col">
+                    <div className="p-4 border-b border-gray-100 bg-white sticky top-0 z-10">
+                      <div className="flex justify-between items-center mb-3">
+                        <h4 className="font-bold text-[#3A3A3A]">Dates</h4>
+                        <Button
+                          type="button"
+                          size="sm"
+                          onClick={() => setShowDatePicker(true)}
+                          className="h-8 text-xs bg-[#3A3A3A] hover:bg-black text-white rounded-lg shadow-none"
                         >
-                          ×
-                        </button>
-                      </div>
-                      <input
-                        type="date"
-                        min={new Date().toISOString().split('T')[0]}
-                        onChange={(e) => {
-                          if (e.target.value) {
-                            handleSelectDate(e.target.value);
-                          }
-                        }}
-                        className="w-full px-4 py-2.5 rounded-lg border border-[#E5E5E5] bg-white text-[#3A3A3A] focus:outline-none focus:ring-2 focus:ring-[#EECFD1]/20 focus:border-[#EECFD1] transition-all"
-                        autoFocus
-                      />
-                      <p className="text-xs text-[#888888] mt-2">
-                        Select a date to add time slots
-                      </p>
-                    </div>
-                  </div>
-                )}
-
-                {/* Time Slot Form - Always visible but disabled until date is selected */}
-                {showTimeSlotForm && (
-                  <div className="bg-white rounded-2xl p-6 md:p-8 space-y-6 border border-gray-100 shadow-lg">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h3 className="text-xl font-bold text-[#3A3A3A]">
-                          {selectedDate ? `Add Time Slot` : "Add Time Slot"}
-                        </h3>
-                        {selectedDate && (
-                          <p className="text-sm text-gray-500 mt-1">
-                            {new Date(selectedDate).toLocaleDateString("en-GB", {
-                              day: "numeric",
-                              month: "long",
-                              year: "numeric",
-                              weekday: "long"
-                            })}
-                          </p>
-                        )}
-                      </div>
-                      <button
-                        onClick={() => {
-                          setShowTimeSlotForm(false);
-                          setSelectedDate("");
-                        }}
-                        className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-[#3A3A3A] hover:bg-gray-100 transition-colors"
-                        aria-label="Close"
-                      >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                      </button>
-                    </div>
-
-                    <div className="space-y-6 pt-2">
-                      <div className="space-y-5">
-                        {/* Start Time */}
-                        <TimeSelect
-                          label="Start Time"
-                          value={newTimeSlot.startTime}
-                          onChange={handleStartTimeChange}
-                          required
-                        />
-
-                        {/* End Time */}
-                        <TimeSelect
-                          label="End Time"
-                          value={newTimeSlot.endTime}
-                          onChange={handleEndTimeChange}
-                          required
-                        />
+                          + Add Date
+                        </Button>
                       </div>
 
-                      {/* Duration Display */}
-                      {duration > 0 && (
-                        <div className="flex justify-center">
-                          <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-gray-50 rounded-lg text-sm text-[#3A3A3A]">
-                            <span className="text-gray-500">Duration:</span>
-                            <span className="font-bold">{formatDuration(duration)}</span>
+                      {/* Date Picker Input (Inline-ish) */}
+                      {showDatePicker && (
+                        <div className="absolute top-14 left-4 right-4 z-20 bg-white p-3 rounded-xl shadow-xl border border-gray-100 animate-in fade-in zoom-in-95">
+                          <div className="flex justify-between items-center mb-2">
+                            <span className="text-xs font-semibold text-gray-700">Select Date</span>
+                            <button type="button" onClick={() => setShowDatePicker(false)} className="text-gray-400 hover:text-gray-600">✕</button>
                           </div>
+                          <input
+                            type="date"
+                            min={new Date().toISOString().split('T')[0]}
+                            onChange={(e) => {
+                              if (e.target.value) {
+                                handleSelectDate(e.target.value);
+                                setShowDatePicker(false);
+                              }
+                            }}
+                            className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:ring-2 focus:ring-[#EECFD1]"
+                            autoFocus
+                          />
                         </div>
                       )}
                     </div>
 
-                    {/* Add-Ons Selection */}
-                    <div className="space-y-3 pt-4 border-t border-[#E5E5E5]">
-                      <div className="flex items-center justify-between">
-                        <label className="block text-sm font-semibold text-[#3A3A3A]">
-                          Add-Ons for this Slot <span className="text-[#888888] text-xs font-normal">(Optional)</span>
-                        </label>
-                        <button
-                          type="button"
-                          onClick={() => setIsAddOnsDropdownOpen(!isAddOnsDropdownOpen)}
-                          className="text-sm font-medium text-primary hover:text-primary/80"
-                        >
-                          {isAddOnsDropdownOpen ? "Close" : "+ Add Add-On"}
-                        </button>
-                      </div>
+                    <div className="flex-1 overflow-y-auto p-2 space-y-2 custom-scrollbar">
+                      {Object.keys(datesWithSlots).length === 0 ? (
+                        <div className="text-center py-10 px-4 text-gray-400 text-xs italic">
+                          No dates added.<br />Use the button above to add a date.
+                        </div>
+                      ) : (
+                        Object.keys(datesWithSlots)
+                          .sort((a, b) => new Date(a).getTime() - new Date(b).getTime())
+                          .map((date) => {
+                            const slotCount = datesWithSlots[date]?.length || 0;
+                            const isSelected = selectedDate === date;
+                            return (
+                              <div
+                                key={date}
+                                onClick={() => {
+                                  setSelectedDate(date);
+                                  setShowTimeSlotForm(false);
+                                }}
+                                className={`p-3 rounded-xl cursor-pointer transition-all border group relative ${isSelected
+                                    ? 'bg-white border-[#EECFD1] shadow-md ring-1 ring-[#EECFD1]/30'
+                                    : 'bg-white border-transparent hover:border-gray-200 hover:shadow-sm'
+                                  }`}
+                              >
+                                <div className="flex justify-between items-start">
+                                  <div>
+                                    <div className="font-bold text-[#3A3A3A] text-sm">
+                                      {new Date(date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+                                    </div>
+                                    <div className="text-xs text-gray-500 capitalize">
+                                      {new Date(date).toLocaleDateString('en-US', { weekday: 'long' })}
+                                    </div>
+                                  </div>
+                                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${slotCount > 0 ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'
+                                    }`}>
+                                    {slotCount} Slots
+                                  </span>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleRemoveDate(date);
+                                  }}
+                                  className="absolute bottom-2 right-2 text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity p-1"
+                                  title="Remove Date"
+                                >
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                </button>
+                              </div>
+                            );
+                          })
+                      )}
+                    </div>
+                  </div>
 
-                      {isAddOnsDropdownOpen && (
-                        <div className="p-4 bg-gray-50 rounded-xl border border-gray-200 mb-3">
-                          <p className="text-sm text-gray-500 mb-3">Select available add-ons and set pricing:</p>
-                          <div className="space-y-3">
-                            {selectedCategory && getAddOnsByCategory(selectedCategory).map((addOnName, idx: number) => {
-                              const existingAddOn = selectedAddOns.find(a => a.name === addOnName);
-                              const isSelected = !!existingAddOn;
+                  {/* RIGHT PANEL: Slots for Selected Date */}
+                  <div className="w-full md:w-2/3 bg-white flex flex-col h-full relative">
+                    {selectedDate ? (
+                      <>
+                        <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-white sticky top-0 z-10">
+                          <div>
+                            <h4 className="font-bold text-[#3A3A3A]">
+                              {new Date(selectedDate).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+                            </h4>
+                            <p className="text-xs text-gray-500">Manage time slots for this date</p>
+                          </div>
+                          <Button
+                            type="button"
+                            size="sm"
+                            onClick={() => setShowTimeSlotForm(true)}
+                            className={`bg-[#EECFD1] hover:bg-[#e5c4c7] text-white shadow-sm transition-all ${showTimeSlotForm ? 'opacity-50 cursor-not-allowed' : ''}`}
+                            disabled={showTimeSlotForm}
+                          >
+                            + Add Time Slot
+                          </Button>
+                        </div>
 
-                              return (
-                                <div key={idx} className="flex items-center gap-3">
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      if (isSelected) {
-                                        // Remove add-on
-                                        setSelectedAddOns(prev => prev.filter(a => a.name !== addOnName));
+                        <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
+                          {/* Add Slot Form */}
+                          {showTimeSlotForm && (
+                            <div className="mb-6 bg-gray-50 p-4 rounded-xl border border-[#EECFD1]/50 animate-in slide-in-from-top-2 duration-200">
+                              <div className="flex justify-between items-center mb-4">
+                                <h5 className="font-semibold text-sm text-[#3A3A3A]">New Time Slot</h5>
+                                <Button variant="ghost" size="sm" onClick={() => setShowTimeSlotForm(false)} className="h-6 w-6 p-0 rounded-full hover:bg-gray-200">✕</Button>
+                              </div>
+
+                              {/* Start/End Time */}
+                              <div className="grid grid-cols-2 gap-4 mb-4">
+                                <TimeSelect
+                                  label="Start"
+                                  value={newTimeSlot.startTime}
+                                  onChange={handleStartTimeChange}
+                                  required
+                                />
+                                <TimeSelect
+                                  label="End"
+                                  value={newTimeSlot.endTime}
+                                  onChange={handleEndTimeChange}
+                                  required
+                                />
+                              </div>
+
+                              {/* Price */}
+                              <div className="grid grid-cols-1 mb-4">
+                                <label className="block text-xs font-semibold text-gray-700 mb-1">Price ($)</label>
+                                <div className="relative">
+                                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-xs">$</span>
+                                  <input
+                                    type="number"
+                                    step="0.01"
+                                    min="0"
+                                    value={newTimeSlot.price === "" ? "" : newTimeSlot.price}
+                                    onChange={(e) => {
+                                      const value = e.target.value;
+                                      if (value === "") {
+                                        setNewTimeSlot({ ...newTimeSlot, price: "" });
                                       } else {
-                                        // Add add-on with default price (business owner will set)
-                                        setSelectedAddOns(prev => [...prev, { name: addOnName, cost: 0 }]);
+                                        const price = parseFloat(value);
+                                        if (!isNaN(price) && price >= 0) {
+                                          setNewTimeSlot({ ...newTimeSlot, price });
+                                        }
                                       }
                                     }}
-                                    className={`px-3 py-1.5 rounded-full text-sm transition-colors border flex-shrink-0 ${isSelected
-                                      ? "bg-primary text-white border-primary"
-                                      : "bg-white text-gray-700 border-gray-300 hover:border-primary"
-                                      }`}
-                                  >
-                                    {addOnName}
-                                  </button>
-
-                                  {isSelected && (
-                                    <div className="flex items-center gap-2">
-                                      <span className="text-sm text-gray-600">$</span>
-                                      <input
-                                        type="number"
-                                        min="0"
-                                        step="0.01"
-                                        value={existingAddOn.cost || ''}
-                                        onChange={(e) => {
-                                          const newCost = parseFloat(e.target.value) || 0;
-                                          setSelectedAddOns(prev =>
-                                            prev.map(a =>
-                                              a.name === addOnName ? { ...a, cost: newCost } : a
-                                            )
-                                          );
-                                        }}
-                                        placeholder="0.00"
-                                        className="w-24 px-3 py-1 border border-gray-300 rounded-lg text-sm"
-                                      />
-                                    </div>
-                                  )}
+                                    className="w-full pl-6 pr-4 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-[#EECFD1]"
+                                    placeholder="0.00"
+                                  />
                                 </div>
-                              );
-                            })}
-                            {(!selectedCategory || getAddOnsByCategory(selectedCategory).length === 0) && (
-                              <p className="text-sm text-gray-400 italic">Select a category to see add-ons</p>
-                            )}
-                          </div>
-                        </div>
-                      )}
-
-                      {selectedAddOns.length > 0 && (
-                        <div className="flex flex-wrap gap-2">
-                          {selectedAddOns.map((addOn, idx) => (
-                            <div key={idx} className="bg-[#EECFD1]/20 border border-[#EECFD1] rounded-full px-3 py-1 flex items-center gap-2">
-                              <span className="text-sm font-medium text-[#3A3A3A]">{addOn.name} (${addOn.cost})</span>
-                              <button
-                                type="button"
-                                onClick={() => handleToggleAddOn(addOn)}
-                                className="text-[#3A3A3A]/60 hover:text-[#3A3A3A]"
-                              >
-                                ×
-                              </button>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Price Field for Time Slot */}
-                    <div className="space-y-2">
-                      <label className="block text-sm font-semibold text-[#3A3A3A]">
-                        Price ($) <span className="text-red-500">*</span>
-                      </label>
-                      <div className="relative">
-                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[#888888]">$</span>
-                        <input
-                          type="number"
-                          step="0.01"
-                          min="0"
-                          value={newTimeSlot.price === "" ? "" : newTimeSlot.price}
-                          onChange={(e) => {
-                            const value = e.target.value;
-                            if (value === "") {
-                              setNewTimeSlot({ ...newTimeSlot, price: "" });
-                            } else {
-                              const price = parseFloat(value);
-                              if (!isNaN(price) && price >= 0) {
-                                setNewTimeSlot({ ...newTimeSlot, price });
-                              }
-                            }
-                          }}
-                          disabled={!selectedDate || !newTimeSlot.startTime || !newTimeSlot.endTime}
-                          className="w-full pl-8 pr-4 py-3 rounded-lg border border-[#E5E5E5] bg-white text-[#3A3A3A] placeholder:text-[#888888] focus:outline-none focus:ring-2 focus:ring-[#EECFD1]/20 focus:border-[#EECFD1] transition-all disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed disabled:opacity-60"
-                          placeholder="50.00"
-                          required
-                        />
-                      </div>
-                      <p className="text-xs text-[#888888]">
-                        Price for this specific time slot
-                      </p>
-                    </div>
-
-
-                    <div className="space-y-2">
-                      <label className="text-sm font-semibold text-[#3A3A3A]">Assign Staff <span className="text-[#888888] text-xs font-normal">(Optional)</span></label>
-                      <div className={`border border-[#E5E5E5] rounded-lg p-3 bg-white max-h-40 overflow-y-auto space-y-2 ${!selectedDate ? 'opacity-60 pointer-events-none' : ''}`}>
-                        {staff.length > 0 ? (
-                          staff.map((member) => (
-                            <label key={member.id || member._id} className="flex items-center gap-2.5 p-2.5 hover:bg-[#F5F5F5] rounded-lg cursor-pointer transition-colors">
-                              <input
-                                type="checkbox"
-                                checked={newTimeSlot.staffIds.includes(member.id || member._id)}
-                                onChange={() => handleToggleStaff(member.id || member._id)}
-                                disabled={!selectedDate}
-                                className="w-4 h-4 text-[#EECFD1] border-[#E5E5E5] rounded focus:ring-[#EECFD1] disabled:cursor-not-allowed"
-                              />
-                              <div className="flex items-center gap-2.5">
-                                {member.photo ? (
-                                  <Image src={member.photo} alt={member.name} width={24} height={24} className="rounded-full object-cover" />
-                                ) : (
-                                  <div className="w-6 h-6 rounded-full bg-[#EECFD1] flex items-center justify-center text-xs font-bold text-[#3A3A3A]">
-                                    {member.name.charAt(0)}
-                                  </div>
-                                )}
-                                <span className="text-sm font-medium text-[#3A3A3A]">{member.name}</span>
                               </div>
-                            </label>
-                          ))
-                        ) : (
-                          <p className="text-sm text-[#888888] text-center py-2">No staff members available</p>
-                        )}
-                      </div>
-                    </div>
 
-                    <div className="flex gap-3 pt-2">
-                      <Button
-                        type="button"
-                        onClick={handleAddTimeSlot}
-                        variant="pink"
-                        disabled={!selectedDate}
-                        className="flex-1 h-10 rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        Add Time Slot
-                      </Button>
-                      <Button
-                        type="button"
-                        onClick={() => {
-                          setShowTimeSlotForm(false);
-                          setSelectedDate("");
-                        }}
-                        variant="outline"
-                        className="h-10 px-6 rounded-lg border border-[#E5E5E5] bg-white hover:bg-[#F5F5F5] text-[#3A3A3A] font-medium transition-colors"
-                      >
-                        Cancel
-                      </Button>
-                    </div>
-                  </div>
-                )}
+                              {/* Add-Ons Section (Newly Added) */}
+                              <div className="space-y-3 pt-3 border-t border-gray-200 mb-4">
+                                <div className="flex items-center justify-between">
+                                  <label className="block text-xs font-semibold text-gray-700">
+                                    Add-Ons <span className="text-gray-400 font-normal">(Optional)</span>
+                                  </label>
+                                  <button
+                                    type="button"
+                                    onClick={() => setIsAddOnsDropdownOpen(!isAddOnsDropdownOpen)}
+                                    className="text-xs font-medium text-[#EECFD1] hover:text-[#dcb0b3]"
+                                  >
+                                    {isAddOnsDropdownOpen ? "Close" : "+ Add Add-On"}
+                                  </button>
+                                </div>
 
-                {/* Dates with Time Slots - Grouped Display */}
-                {Object.keys(datesWithSlots).length > 0 ? (
-                  <div className="space-y-4">
-                    {Object.entries(datesWithSlots)
-                      .sort(([dateA], [dateB]) => new Date(dateA).getTime() - new Date(dateB).getTime())
-                      .map(([date, slots]) => (
-                        <div key={date} className="bg-white rounded-lg p-5 border border-[#E5E5E5] shadow-sm">
-                          <div className="flex items-center justify-between mb-4">
-                            <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 rounded-full bg-[#EECFD1]/20 flex items-center justify-center">
-                                <span className="text-lg">📅</span>
-                              </div>
-                              <div>
-                                <h4 className="font-bold text-base text-[#3A3A3A]">
-                                  {new Date(date).toLocaleDateString("en-GB", {
-                                    day: "2-digit",
-                                    month: "2-digit",
-                                    year: "numeric"
-                                  })}
-                                </h4>
-                                <p className="text-xs text-[#888888]">
-                                  {new Date(date).toLocaleDateString("en-US", { weekday: "long" })} • {new Date(date).toLocaleDateString("en-GB", {
-                                    day: "numeric",
-                                    month: "long",
-                                    year: "numeric"
-                                  })}
-                                </p>
-                              </div>
-                            </div>
-                            <div className="flex gap-2">
-                              <Button
-                                type="button"
-                                onClick={() => handleSelectDate(date)}
-                                variant="outline"
-                                className="h-8 px-3 text-xs rounded-lg border border-[#E5E5E5] bg-white hover:bg-[#F5F5F5] text-[#3A3A3A] font-medium transition-colors"
-                              >
-                                + Add Slot
-                              </Button>
-                              <Button
-                                type="button"
-                                onClick={() => handleRemoveDate(date)}
-                                variant="outline"
-                                className="h-8 px-3 text-xs rounded-lg border border-red-200 bg-white hover:bg-red-50 text-red-500 hover:text-red-600 font-medium transition-colors"
-                              >
-                                Remove
-                              </Button>
-                            </div>
-                          </div>
-
-                          <div className="space-y-2">
-                            {slots.map((slot, index) => {
-                              const assignedStaff = staff.filter((s: any) =>
-                                slot.staffIds.includes(s.id || s._id)
-                              );
-                              const slotDuration = slot.duration || calculateDuration(slot.startTime, slot.endTime);
-
-                              return (
-                                <div
-                                  key={index}
-                                  className="flex items-center justify-between p-3 bg-[#F5F5F5] rounded-lg border border-[#E5E5E5]"
-                                >
-                                  <div className="flex-1">
-                                    <p className="text-sm font-semibold text-[#3A3A3A]">
-                                      {formatTime12Hour(slot.startTime)} - {formatTime12Hour(slot.endTime)} • ${slot.price?.toFixed(2) || "0.00"} • {formatDuration(slotDuration)}
-                                    </p>
-                                    <div className="flex items-center gap-4 mt-1 text-xs text-[#888888]">
-                                      {assignedStaff.length > 0 && (
-                                        <span className="text-[#3A3A3A] font-medium">
-                                          Staff: {assignedStaff.map((s: any) => s.name).join(", ")}
-                                        </span>
+                                {isAddOnsDropdownOpen && (
+                                  <div className="p-3 bg-white rounded-lg border border-gray-200 mb-3">
+                                    <p className="text-xs text-gray-500 mb-2">Select available add-ons:</p>
+                                    <div className="flex flex-wrap gap-2">
+                                      {selectedCategory && getAddOnsByCategory(selectedCategory).map((addOnName, idx) => {
+                                        const existingAddOn = selectedAddOns.find(a => a.name === addOnName);
+                                        const isSelected = !!existingAddOn;
+                                        return (
+                                          <div key={idx} className="flex items-center gap-1 bg-gray-50 rounded-lg p-1 pr-2 border border-gray-100">
+                                            <button
+                                              type="button"
+                                              onClick={() => handleToggleAddOn({ name: addOnName, cost: 0 })}
+                                              className={`px-2 py-1 rounded text-xs transition-colors border ${isSelected
+                                                ? "bg-[#3A3A3A] text-white border-[#3A3A3A]"
+                                                : "bg-white text-gray-600 border-gray-200 hover:border-gray-300"}`}
+                                            >
+                                              {addOnName}
+                                            </button>
+                                            {isSelected && (
+                                              <div className="flex items-center gap-0.5">
+                                                <span className="text-xs text-gray-400">$</span>
+                                                <input
+                                                  type="number"
+                                                  min="0"
+                                                  step="0.01"
+                                                  className="w-12 text-xs p-1 border rounded"
+                                                  placeholder="0"
+                                                  value={existingAddOn?.cost || ''}
+                                                  onChange={(e) => {
+                                                    const val = parseFloat(e.target.value) || 0;
+                                                    setSelectedAddOns(prev => prev.map(p => p.name === addOnName ? { ...p, cost: val } : p));
+                                                  }}
+                                                />
+                                              </div>
+                                            )}
+                                          </div>
+                                        );
+                                      })}
+                                      {(!selectedCategory || getAddOnsByCategory(selectedCategory).length === 0) && (
+                                        <span className="text-xs text-gray-400 italic">No add-ons available.</span>
                                       )}
                                     </div>
                                   </div>
-                                  <Button
+                                )}
+                              </div>
+
+                              {/* Staff */}
+                              <div className="mb-4">
+                                <label className="block text-xs font-semibold text-gray-700 mb-2">Assign Staff</label>
+                                <div className="flex flex-wrap gap-2">
+                                  {staff.map((member) => (
+                                    <button
+                                      key={member.id || member._id}
+                                      type="button"
+                                      onClick={() => handleToggleStaff(member.id || member._id)}
+                                      className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${newTimeSlot.staffIds.includes(member.id || member._id)
+                                          ? "bg-[#3A3A3A] border-[#3A3A3A] text-white"
+                                          : "bg-white border-gray-200 text-gray-600 hover:border-gray-300"
+                                        }`}
+                                    >
+                                      {member.name}
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+
+                              <Button onClick={handleAddTimeSlot} className="w-full bg-[#3A3A3A] hover:bg-black text-white h-9 text-xs uppercase tracking-wide">
+                                Add Time Slot
+                              </Button>
+                            </div>
+                          )}
+
+                          {/* Slot List */}
+                          <div className="space-y-3">
+                            {(datesWithSlots[selectedDate] || []).map((slot, index) => {
+                              const assignedStaff = staff.filter((s: any) => slot.staffIds.includes(s.id || s._id));
+                              return (
+                                <div key={index} className="flex items-center justify-between p-4 bg-white border border-gray-100 rounded-xl hover:border-[#EECFD1] hover:shadow-md transition-all group">
+                                  <div className="flex items-center gap-4">
+                                    <div className="bg-[#FFF5F6] px-4 py-2.5 rounded-xl text-base font-bold text-[#3A3A3A] border border-[#ffebed] whitespace-nowrap">
+                                      {formatTime12Hour(slot.startTime)} - {formatTime12Hour(slot.endTime)}
+                                    </div>
+                                    <div className="flex flex-col">
+                                      <span className="text-base font-bold text-gray-800">${typeof slot.price === 'number' ? slot.price.toFixed(2) : slot.price}</span>
+                                      {assignedStaff.length > 0 && (
+                                        <span className="text-xs text-gray-500 mt-0.5 flex items-center gap-1">
+                                          Staff: {assignedStaff.map((s: any) => s.name?.split(' ')[0]).join(', ')}
+                                        </span>
+                                      )}
+                                      {slot.addOns && slot.addOns.length > 0 && (
+                                        <div className="flex flex-wrap gap-1 mt-1">
+                                          {slot.addOns.map((addon, aIdx) => (
+                                            <span key={aIdx} className="text-[10px] bg-gray-100 px-1.5 py-0.5 rounded text-gray-600">
+                                              {addon.name} (+${addon.cost})
+                                            </span>
+                                          ))}
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                  <button
                                     type="button"
-                                    onClick={() => handleRemoveTimeSlot(date, index)}
-                                    variant="outline"
-                                    className="h-8 px-3 text-xs rounded-lg border border-red-200 bg-white hover:bg-red-50 text-red-500 hover:text-red-600 font-medium transition-colors"
+                                    onClick={() => handleRemoveTimeSlot(selectedDate, index)}
+                                    className="text-gray-300 hover:text-red-500 p-2 rounded-lg transition-colors opacity-0 group-hover:opacity-100 bg-gray-50 hover:bg-red-50"
                                   >
-                                    Remove
-                                  </Button>
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                  </button>
                                 </div>
                               );
                             })}
+                            {(datesWithSlots[selectedDate] || []).length === 0 && !showTimeSlotForm && (
+                              <div className="flex flex-col items-center justify-center h-40 text-gray-400">
+                                <p className="text-sm">No slots for this date yet.</p>
+                                <Button variant="link" onClick={() => setShowTimeSlotForm(true)} className="text-[#EECFD1]">Add First Slot</Button>
+                              </div>
+                            )}
                           </div>
                         </div>
-                      ))}
+                      </>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center h-full text-gray-400 bg-gray-50/50">
+                        <span className="text-4xl mb-2">👈</span>
+                        <p>Select a date to manage slots</p>
+                      </div>
+                    )}
                   </div>
-                ) : null}
+                </div>
               </div>
 
               <div className="flex flex-col sm:flex-row gap-3 pt-6 border-t border-[#E5E5E5]">
@@ -1319,7 +1265,7 @@ export default function CreateServicePage() {
                 </Button>
                 <Button
                   type="button"
-                  onClick={() => router.back()}
+                  onClick={() => router.push("/business/dashboard")}
                   variant="outline"
                   className="flex-1 h-11 rounded-lg border border-[#E5E5E5] bg-white hover:bg-[#F5F5F5] text-[#3A3A3A] font-medium transition-colors"
                 >

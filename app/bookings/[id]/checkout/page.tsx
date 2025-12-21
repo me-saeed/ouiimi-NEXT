@@ -3,9 +3,10 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import PageLayout from "@/components/layout/PageLayout";
-import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useAuth } from "@/lib/contexts/AuthContext";
+import StripeProvider from "@/components/payments/StripeProvider";
+import CheckoutForm from "@/components/payments/CheckoutForm";
 
 export default function CheckoutPage() {
     const params = useParams();
@@ -14,8 +15,9 @@ export default function CheckoutPage() {
     const bookingId = params.id as string;
 
     const [booking, setBooking] = useState<any>(null);
+    const [clientSecret, setClientSecret] = useState<string>("");
+    const [paymentAmount, setPaymentAmount] = useState<number>(0);
     const [isLoading, setIsLoading] = useState(true);
-    const [isProcessing, setIsProcessing] = useState(false);
     const [error, setError] = useState("");
 
     // Redirect if not authenticated
@@ -26,78 +28,70 @@ export default function CheckoutPage() {
         }
     }, [authLoading, isAuthenticated, router, bookingId]);
 
-    // Load booking only when authenticated
+    // Load booking and create payment intent
     useEffect(() => {
-        const loadBooking = async () => {
+        const initializeCheckout = async () => {
             try {
                 const token = localStorage.getItem("token");
-                const response = await fetch(`/api/bookings/${bookingId}`, {
+
+                // First, load booking details
+                const bookingResponse = await fetch(`/api/bookings/${bookingId}`, {
                     headers: {
                         Authorization: `Bearer ${token}`,
                     },
                 });
 
-                if (response.ok) {
-                    const data = await response.json();
-                    setBooking(data.booking);
-
-                    // If payment already initiated (has paymentIntentId/sessionId), redirect to Stripe immediately
-                    if (data.booking.paymentIntentId) {
-                        console.log("Payment session already exists, redirecting to Stripe...");
-                        handlePayment();
-                    }
-                } else {
+                if (!bookingResponse.ok) {
                     setError("Failed to load booking details");
+                    setIsLoading(false);
+                    return;
                 }
-            } catch (err) {
-                setError("Failed to load booking details");
+
+                const bookingData = await bookingResponse.json();
+                setBooking(bookingData.booking);
+
+                // Then, create payment intent for embedded checkout
+                const intentResponse = await fetch("/api/payments/create-intent", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        Authorization: `Bearer ${token}`,
+                    },
+                    body: JSON.stringify({ bookingId }),
+                });
+
+                if (!intentResponse.ok) {
+                    throw new Error("Failed to initialize payment");
+                }
+
+                const intentData = await intentResponse.json();
+                setClientSecret(intentData.clientSecret);
+                setPaymentAmount(intentData.amount || bookingData.booking.depositAmount);
+            } catch (err: any) {
+                console.error("Checkout initialization error:", err);
+                setError(err.message || "Failed to initialize checkout");
             } finally {
                 setIsLoading(false);
             }
         };
 
         if (!authLoading && isAuthenticated) {
-            loadBooking();
+            initializeCheckout();
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [bookingId, authLoading, isAuthenticated]);
 
-    const handlePayment = async () => {
-        setIsProcessing(true);
-        setError("");
-
-        try {
-            const token = localStorage.getItem("token");
-
-            // Create Stripe Checkout Session
-            const response = await fetch("/api/payments/create-checkout", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${token}`,
-                },
-                body: JSON.stringify({ bookingId }),
-            });
-
-            if (!response.ok) {
-                throw new Error("Failed to create checkout session");
-            }
-
-            const { url } = await response.json();
-
-            // Redirect to Stripe Checkout
-            window.location.href = url;
-        } catch (err: any) {
-            setError(err.message || "An error occurred");
-            setIsProcessing(false);
-        }
+    const handlePaymentSuccess = () => {
+        router.push(`/bookings/${bookingId}/confirm`);
     };
 
     if (isLoading) {
         return (
             <PageLayout user={user}>
                 <div className="min-h-screen bg-gray-50 py-12 flex items-center justify-center">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#EECFD1]"></div>
+                    <div className="text-center">
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#EECFD1] mx-auto mb-4"></div>
+                        <p className="text-gray-600">Preparing secure checkout...</p>
+                    </div>
                 </div>
             </PageLayout>
         );
@@ -119,8 +113,6 @@ export default function CheckoutPage() {
 
     const service = typeof booking.serviceId === "object" ? booking.serviceId : null;
     const business = typeof booking.businessId === "object" ? booking.businessId : null;
-    const platformFee = booking.platformFee || 1.99;
-    const totalPayment = booking.depositAmount; // FIXED: User only pays deposit, platform fee deducted from business
 
     return (
         <PageLayout user={user}>
@@ -184,42 +176,31 @@ export default function CheckoutPage() {
                             </div>
                         </div>
 
-                        {/* Payment Details */}
+                        {/* Payment Form - Embedded Stripe Elements */}
                         <div className="bg-white rounded-lg shadow-sm p-6 space-y-6">
                             <h2 className="text-xl font-semibold border-b pb-3">Payment Details</h2>
 
-                            <div className="space-y-4">
-                                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                                    <p className="text-sm font-medium text-blue-900 mb-2">Secure Payment by Stripe</p>
-                                    <p className="text-xs text-blue-700">
-                                        You&apos;ll be redirected to Stripe&apos;s secure checkout page to complete your payment.
-                                        We don&apos;t store your card details.
-                                    </p>
+                            {clientSecret ? (
+                                <StripeProvider clientSecret={clientSecret} amount={paymentAmount}>
+                                    <CheckoutForm
+                                        bookingId={bookingId}
+                                        amount={paymentAmount}
+                                        onSuccess={handlePaymentSuccess}
+                                    />
+                                </StripeProvider>
+                            ) : (
+                                <div className="text-center py-8">
+                                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#EECFD1] mx-auto mb-3"></div>
+                                    <p className="text-sm text-gray-600">Loading payment form...</p>
                                 </div>
+                            )}
 
-                                <div className="bg-[#EECFD1]/10 border border-[#EECFD1] rounded-lg p-4">
-                                    <p className="font-semibold text-lg text-center text-[#3A3A3A]">
-                                        Pay ${totalPayment.toFixed(2)}
-                                    </p>
-                                </div>
-
-                                <Button
-                                    onClick={handlePayment}
-                                    disabled={isProcessing}
-                                    className="w-full h-12 bg-[#EECFD1] hover:bg-[#EECFD1]/90 text-white text-lg font-semibold"
-                                >
-                                    {isProcessing ? (
-                                        <div className="flex items-center justify-center gap-2">
-                                            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white" />
-                                            Redirecting to Stripe...
-                                        </div>
-                                    ) : (
-                                        `Proceed to Payment`
-                                    )}
-                                </Button>
-
-                                <p className="text-xs text-center text-gray-500">
-                                    Your payment is secured by Stripe. We do not store your card details.
+                            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                                <p className="text-sm text-green-800 flex items-center gap-2">
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                                    </svg>
+                                    Secure payment powered by Stripe
                                 </p>
                             </div>
                         </div>

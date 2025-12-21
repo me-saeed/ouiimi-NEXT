@@ -101,14 +101,14 @@ export const TimeSelect: React.FC<TimeSelectProps> = ({
                 </label>
             )}
 
-            {/* Unified Container */}
-            <div className="flex items-center justify-between h-[52px] bg-white border border-gray-200 hover:border-gray-300 rounded-xl px-4 transition-all focus-within:ring-2 focus-within:ring-[#EECFD1]/50 focus-within:border-[#EECFD1] focus-within:ring-offset-0 shadow-sm hover:shadow-md">
+            {/* Unified Container - Compacted padding and gap */}
+            <div className="flex items-center justify-between h-[52px] bg-white border border-gray-200 hover:border-gray-300 rounded-xl px-2 transition-all focus-within:ring-2 focus-within:ring-[#EECFD1]/50 focus-within:border-[#EECFD1] focus-within:ring-offset-0 shadow-sm hover:shadow-md overflow-hidden">
 
                 {/* Time Inputs Group */}
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-0.5 shrink-0">
                     {/* Hour */}
                     <Select value={selectedHour} onValueChange={handleHourChange}>
-                        <SelectTrigger className="w-[54px] border-none shadow-none bg-transparent p-0 h-9 focus:ring-0 focus:ring-offset-0 text-base font-medium text-[#3A3A3A] px-0 justify-center gap-1 cursor-pointer">
+                        <SelectTrigger className="w-[48px] border-none shadow-none bg-transparent p-0 h-9 focus:ring-0 focus:ring-offset-0 text-base font-medium text-[#3A3A3A] px-0 justify-center gap-0 cursor-pointer">
                             <SelectValue placeholder="09" />
                         </SelectTrigger>
                         <SelectContent>
@@ -120,11 +120,11 @@ export const TimeSelect: React.FC<TimeSelectProps> = ({
                         </SelectContent>
                     </Select>
 
-                    <span className="text-[#3A3A3A] font-bold px-1 pb-0.5">:</span>
+                    <span className="text-[#3A3A3A] font-bold px-0.5 pb-0.5">:</span>
 
                     {/* Minute */}
                     <Select value={selectedMinute} onValueChange={handleMinuteChange}>
-                        <SelectTrigger className="w-[54px] border-none shadow-none bg-transparent p-0 h-9 focus:ring-0 focus:ring-offset-0 text-base font-medium text-[#3A3A3A] px-0 justify-center gap-1 cursor-pointer">
+                        <SelectTrigger className="w-[48px] border-none shadow-none bg-transparent p-0 h-9 focus:ring-0 focus:ring-offset-0 text-base font-medium text-[#3A3A3A] px-0 justify-center gap-0 cursor-pointer">
                             <SelectValue placeholder="00" />
                         </SelectTrigger>
                         <SelectContent>
@@ -137,15 +137,15 @@ export const TimeSelect: React.FC<TimeSelectProps> = ({
                     </Select>
                 </div>
 
-                {/* AM/PM Toggle Pill */}
-                <div className="flex items-center bg-gray-50 border border-gray-100 rounded-lg p-1 gap-1 h-9">
+                {/* AM/PM Toggle Pill - Compact */}
+                <div className="flex items-center bg-gray-50 border border-gray-100 rounded-lg p-0.5 gap-0.5 h-8 shrink-0 ml-1">
                     <button
                         type="button"
                         onClick={(e) => handlePeriodChange(e, 'AM')}
                         className={cn(
-                            "flex-1 px-3 h-full flex items-center justify-center rounded-md text-sm font-bold transition-all cursor-pointer select-none min-w-[36px]",
+                            "px-2 h-full flex items-center justify-center rounded-md text-xs font-bold transition-all cursor-pointer select-none min-w-[32px]",
                             selectedPeriod === 'AM'
-                                ? "bg-[#EECFD1] text-[#3A3A3A] shadow-sm transform scale-105"
+                                ? "bg-[#EECFD1] text-[#3A3A3A] shadow-sm"
                                 : "text-gray-400 hover:text-gray-600 hover:bg-white/50"
                         )}
                     >
@@ -155,9 +155,9 @@ export const TimeSelect: React.FC<TimeSelectProps> = ({
                         type="button"
                         onClick={(e) => handlePeriodChange(e, 'PM')}
                         className={cn(
-                            "flex-1 px-3 h-full flex items-center justify-center rounded-md text-sm font-bold transition-all cursor-pointer select-none min-w-[36px]",
+                            "px-2 h-full flex items-center justify-center rounded-md text-xs font-bold transition-all cursor-pointer select-none min-w-[32px]",
                             selectedPeriod === 'PM'
-                                ? "bg-[#EECFD1] text-[#3A3A3A] shadow-sm transform scale-105"
+                                ? "bg-[#EECFD1] text-[#3A3A3A] shadow-sm"
                                 : "text-gray-400 hover:text-gray-600 hover:bg-white/50"
                         )}
                     >

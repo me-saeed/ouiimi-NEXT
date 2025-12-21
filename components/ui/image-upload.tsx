@@ -52,15 +52,22 @@ export function ImageUpload({
                 body: formData,
             });
 
+            const data = await response.json();
+
             if (!response.ok) {
-                throw new Error("Upload failed");
+                console.error("Upload failed:", data);
+                throw new Error(data.error || "Upload failed");
             }
 
-            const data = await response.json();
+            if (!data.url) {
+                console.error("No URL in response:", data);
+                throw new Error("No URL returned from upload");
+            }
+
             onChange(data.url);
-        } catch (err) {
+        } catch (err: any) {
             console.error("Upload error:", err);
-            setError("Failed to upload image. Please try again.");
+            setError(err.message || "Failed to upload image. Please try again.");
         } finally {
             setIsUploading(false);
             // Reset input value to allow uploading same file again if needed

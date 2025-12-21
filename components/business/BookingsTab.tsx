@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ServiceCard } from "@/components/ui/service-card";
 import { Calendar } from "lucide-react";
+import { parseLocalDate, formatDateLocal, formatDateForDisplay as formatDateDisplay } from "@/lib/utils/date-utils";
 
 interface BookingsTabProps {
   business: any;
@@ -34,6 +35,7 @@ interface Booking {
   businessNotes?: string;
   cancelledAt?: string;
   cancellationReason?: string;
+  bookingNumber?: number;  // Sequential booking number (5000, 5001, etc.)
 }
 
 export function BookingsTab({ business }: BookingsTabProps) {
@@ -115,13 +117,18 @@ export function BookingsTab({ business }: BookingsTabProps) {
         }
       );
 
-      // Check if stale
-      if (requestId !== lastRequestId.current) return;
+      // Check if stale - if stale, do NOT update any state
+      if (requestId !== lastRequestId.current) {
+        // Don't update state for stale requests
+        return;
+      }
 
       if (response.ok) {
         const data = await response.json();
         // Check again after async json()
-        if (requestId !== lastRequestId.current) return;
+        if (requestId !== lastRequestId.current) {
+          return;
+        }
 
         let filteredBookings = data.bookings || [];
 
@@ -136,25 +143,16 @@ export function BookingsTab({ business }: BookingsTabProps) {
                 return false;
               }
 
-              // Handle date format - could be Date object, ISO string, or date string
-              let bookingDate: Date;
-              const dateValue = b.timeSlot.date as any;
-              if (dateValue && typeof dateValue === 'object' && dateValue instanceof Date) {
-                bookingDate = dateValue;
-              } else if (typeof dateValue === 'string') {
-                // Parse the date string - could be ISO format or just date
-                bookingDate = new Date(dateValue);
-              } else {
-                return false;
-              }
+              // Use parseLocalDate to avoid timezone issues
+              const bookingDate = parseLocalDate(b.timeSlot.date);
 
               // Check if date is valid
               if (isNaN(bookingDate.getTime())) {
                 return false;
               }
 
-              // Extract date part only (YYYY-MM-DD) from the booking date
-              const dateStr = bookingDate.toISOString().split('T')[0];
+              // Get the date string in local format
+              const dateStr = formatDateLocal(b.timeSlot.date);
 
               // Combine date with endTime (handle time format - might be HH:MM or HH:MM:SS)
               const endTime = (b.timeSlot.endTime || '').trim();
@@ -186,8 +184,19 @@ export function BookingsTab({ business }: BookingsTabProps) {
                 return false;
               }
 
-              // Show future bookings
-              return localBookingDateTime > now;
+              // Show future bookings (from today onwards)
+              // Logic: Upcoming = Date is Today or Future
+              // Pending = Date is Yesterday or Older (passed 11:59pm of that day)
+
+              // We compare dates at midnight to include "today" in upcoming
+              const todayMidnight = new Date();
+              todayMidnight.setHours(0, 0, 0, 0);
+
+              const bookingMidnight = new Date(bookingDate);
+              bookingMidnight.setHours(0, 0, 0, 0);
+
+              // Upcoming includes today
+              return bookingMidnight.getTime() >= todayMidnight.getTime();
             } catch (error) {
               console.error('Error filtering booking:', error, b);
               return false;
@@ -223,7 +232,15 @@ export function BookingsTab({ business }: BookingsTabProps) {
               }
 
               // Past bookings where admin payment is still pending
-              return bookingDateTime <= now &&
+              // Logic: Pending = Date is Yesterday or Older (passed 11:59pm of that day)
+
+              const todayMidnight = new Date();
+              todayMidnight.setHours(0, 0, 0, 0);
+
+              const bookingMidnight = new Date(bookingDate);
+              bookingMidnight.setHours(0, 0, 0, 0);
+
+              return bookingMidnight.getTime() < todayMidnight.getTime() &&
                 b.status === "confirmed" &&
                 (b.adminPaymentStatus === "pending" || !b.adminPaymentStatus);
             } catch (error) {
@@ -238,16 +255,24 @@ export function BookingsTab({ business }: BookingsTabProps) {
         }
 
         setBookings(filteredBookings);
+        setIsLoading(false);
       } else {
-        setError("Failed to load bookings");
+        // Only set error if this is still the current request
+        if (requestId === lastRequestId.current) {
+          setError("Failed to load bookings");
+          setIsLoading(false);
+        }
       }
     } catch (e: any) {
+      // Only handle error if this is still the current request
+      if (requestId !== lastRequestId.current) {
+        return;
+      }
       if (e.name === "AbortError") {
         return;
       }
       console.error("Error loading bookings:", e);
       setError("Failed to load bookings");
-    } finally {
       setIsLoading(false);
     }
   };
@@ -269,7 +294,11 @@ export function BookingsTab({ business }: BookingsTabProps) {
 
     for (let day = 1; day <= daysInMonth; day++) {
       const date = new Date(currentYear, currentMonth, day);
-      const dateStr = date.toISOString().split('T')[0];
+      const dateStr = [
+        date.getFullYear(),
+        String(date.getMonth() + 1).padStart(2, '0'),
+        String(date.getDate()).padStart(2, '0')
+      ].join('-');
       dates.push({
         date,
         dateStr,
@@ -308,6 +337,25 @@ export function BookingsTab({ business }: BookingsTabProps) {
     setSelectedDate(null);
   };
 
+  // Group bookings by service category
+  const groupBookingsByCategory = (bookingsToGroup: Booking[]) => {
+    const groups: Record<string, Booking[]> = {};
+
+    bookingsToGroup.forEach((booking) => {
+      const category = typeof booking.serviceId === 'object' && booking.serviceId?.category
+        ? booking.serviceId.category
+        : 'Other';
+
+      if (!groups[category]) {
+        groups[category] = [];
+      }
+      groups[category].push(booking);
+    });
+
+    // Sort categories alphabetically
+    return Object.entries(groups).sort(([a], [b]) => a.localeCompare(b));
+  };
+
   const handleCompleteBooking = async (bookingId: string) => {
     try {
       const token = localStorage.getItem("token");
@@ -324,6 +372,25 @@ export function BookingsTab({ business }: BookingsTabProps) {
       });
 
       if (response.ok) {
+        // Notify admin about completed booking
+        try {
+          await fetch("/api/admin/notifications", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+              type: "booking_completed",
+              bookingId: bookingId,
+              message: `Booking #${selectedBooking?.bookingNumber || bookingId.slice(-8)} has been marked as completed`,
+            }),
+          });
+        } catch (notifyError) {
+          console.error("Failed to notify admin:", notifyError);
+          // Don't block the completion flow if notification fails
+        }
+
         setSuccess("Booking completed successfully");
         loadBookings();
         setSelectedBooking(null);
@@ -367,8 +434,7 @@ export function BookingsTab({ business }: BookingsTabProps) {
   };
 
   const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString("en-GB", { day: "2-digit", month: "2-digit", year: "numeric" });
+    return formatDateDisplay(dateString);
   };
 
   const formatTime = (time: string) => {
@@ -376,13 +442,11 @@ export function BookingsTab({ business }: BookingsTabProps) {
   };
 
   const formatDateForInput = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toISOString().split('T')[0];
+    return formatDateLocal(dateString);
   };
 
   const formatDateForDisplay = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString("en-GB", { day: "2-digit", month: "2-digit", year: "numeric" });
+    return formatDateDisplay(dateString);
   };
 
   const formatTimeForDisplay = (time: string) => {
@@ -399,16 +463,7 @@ export function BookingsTab({ business }: BookingsTabProps) {
     const grouped: Record<string, Booking[]> = {};
     bookings.forEach((booking) => {
       try {
-        let dateKey: string;
-        const dateValue = booking.timeSlot.date as any;
-        if (dateValue && typeof dateValue === 'object' && dateValue instanceof Date) {
-          dateKey = dateValue.toISOString().split('T')[0];
-        } else if (typeof dateValue === 'string') {
-          dateKey = dateValue.split('T')[0];
-        } else {
-          console.warn('Invalid date format in bookingsByDate:', booking.timeSlot.date);
-          return;
-        }
+        const dateKey = formatDateLocal(booking.timeSlot.date);
         if (!grouped[dateKey]) {
           grouped[dateKey] = [];
         }
@@ -446,9 +501,10 @@ export function BookingsTab({ business }: BookingsTabProps) {
       category: service?.category || '',
       businessName: businessData?.businessName || business?.businessName || 'Business',
       location: businessData?.address || business?.address || '',
-      duration: service?.duration ? `${service.duration}mins` : undefined,
+      duration: service?.duration ? `${service.duration} min` : undefined,
       date: formatDateForDisplay(booking.timeSlot.date),
       time: `${formatTimeForDisplay(booking.timeSlot.startTime)} - ${formatTimeForDisplay(booking.timeSlot.endTime)}`,
+      bookingNumber: booking.bookingNumber || null,
     };
   };
 
@@ -538,8 +594,8 @@ export function BookingsTab({ business }: BookingsTabProps) {
             </div>
           </div>
 
-          {/* Swipeable Date Picker - All dates of month */}
-          <div className="relative">
+          {/* Swipeable Date Picker - Cleaner Minimal Design */}
+          <div className="relative border-b border-gray-100 pb-4">
             <div
               ref={(el) => {
                 if (el) {
@@ -549,15 +605,15 @@ export function BookingsTab({ business }: BookingsTabProps) {
 
                   if (isCurrentMonth) {
                     const day = today.getDate();
-                    // Calculate position: (Day - 1) * (ItemWidth + Gap)
-                    // Item width is approx 55px padding + borders, gap is 6px (1.5rem/4)
-                    // Adjusting to ensure it is the first visible block (align left)
-                    const scrollPos = (day - 1) * 65; // Approx width + gap
-                    el.scrollLeft = scrollPos;
+                    // Center today: (DayIndex * ItemWidth) - (ContainerWidth / 2) + (ItemWidth / 2)
+                    // ItemWidth approx 60px
+                    const itemWidth = 60;
+                    const scrollPos = (day - 1) * itemWidth - (el.offsetWidth / 2) + (itemWidth / 2);
+                    el.scrollLeft = Math.max(0, scrollPos);
                   }
                 }
               }}
-              className="flex gap-1.5 overflow-x-auto pb-2 scrollbar-hide"
+              className="flex items-center gap-2 overflow-x-auto scrollbar-hide px-2"
               style={{
                 scrollbarWidth: 'none',
                 msOverflowStyle: 'none',
@@ -574,26 +630,41 @@ export function BookingsTab({ business }: BookingsTabProps) {
                   <button
                     key={dateStr}
                     onClick={() => setSelectedDate(isSelected ? null : dateStr)}
-                    className={`flex flex-col items-center justify-center min-w-[55px] px-2 py-2 rounded-lg border transition-all ${isSelected
-                      ? "border-[#EECFD1] bg-[#EECFD1] text-[#3A3A3A] shadow-sm"
-                      : isPast
-                        ? "border-gray-100 bg-gray-50 text-gray-400"
-                        : "border-gray-200 bg-white text-[#3A3A3A] hover:border-[#EECFD1] hover:bg-[#EECFD1]/10"
+                    className={`flex flex-col items-center justify-center min-w-[50px] h-[70px] rounded-2xl transition-all duration-200 relative group ${isSelected
+                        ? "bg-[#3A3A3A] text-white shadow-md transform scale-105"
+                        : isPast
+                          ? "text-gray-300"
+                          : "text-gray-500 hover:bg-gray-50"
                       }`}
                   >
-                    <span className={`text-[10px] font-medium mb-0.5 ${isPast ? 'text-gray-400' : 'text-gray-600'}`}>
+                    <span className={`text-[10px] font-medium uppercase tracking-wide mb-1 ${isSelected ? 'text-white/80' : ''
+                      }`}>
                       {weekday}
                     </span>
-                    <span className={`text-base font-bold mb-0.5 ${isPast ? 'text-gray-400' : 'text-[#3A3A3A]'}`}>
+                    <span className={`text-lg font-bold ${isSelected ? 'text-white' : 'text-[#3A3A3A]'
+                      }`}>
                       {day}
                     </span>
-                    {count > 0 && (
-                      <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${isSelected
-                        ? "bg-white text-[#EECFD1]"
-                        : "bg-[#EECFD1] text-white"
-                        }`}>
-                        {count}
-                      </span>
+
+                    {/* Dots for bookings */}
+                    <div className="flex gap-0.5 mt-1 h-1">
+                      {count > 0 && (
+                        <div className={`w-1 h-1 rounded-full ${isSelected ? 'bg-white' : 'bg-[#EECFD1]'
+                          }`} />
+                      )}
+                      {count > 1 && (
+                        <div className={`w-1 h-1 rounded-full ${isSelected ? 'bg-white' : 'bg-[#EECFD1]'
+                          }`} />
+                      )}
+                      {count > 2 && (
+                        <span className={`text-[6px] leading-none ${isSelected ? 'text-white' : 'text-[#EECFD1]'
+                          }`}>+</span>
+                      )}
+                    </div>
+
+                    {/* Today Indicator */}
+                    {isToday && !isSelected && (
+                      <div className="absolute top-1 right-1 w-1.5 h-1.5 bg-[#EECFD1] rounded-full" />
                     )}
                   </button>
                 );
@@ -648,36 +719,38 @@ export function BookingsTab({ business }: BookingsTabProps) {
               })}
             </div>
           ) : (
-            bookings.map((booking) => (
-              <div
-                key={booking.id}
-                onClick={() => setSelectedBooking(booking)}
-                className={`p-4 border rounded-lg cursor-pointer transition-colors ${selectedBooking?.id === booking.id
-                  ? "border-primary bg-primary/5"
-                  : "border-border hover:border-primary/50"
-                  }`}
-              >
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <p className="font-medium">
-                      {typeof booking.serviceId === 'object'
-                        ? booking.serviceId.serviceName
-                        : 'Service'}
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      {formatDate(booking.timeSlot.date)} • {formatTime(booking.timeSlot.startTime)} - {formatTime(booking.timeSlot.endTime)}
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Booking ID: {booking.id.slice(-4)}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-semibold">${booking.totalCost.toFixed(2)}</p>
-                    <p className="text-xs text-muted-foreground capitalize">{booking.status}</p>
+            <div className="space-y-3">
+              {bookings.map((booking) => (
+                <div
+                  key={booking.id}
+                  onClick={() => setSelectedBooking(booking)}
+                  className={`p-4 border rounded-lg cursor-pointer transition-colors ${selectedBooking?.id === booking.id
+                    ? "border-primary bg-primary/5"
+                    : "border-border hover:border-primary/50"
+                    }`}
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <p className="font-medium">
+                        {typeof booking.serviceId === 'object'
+                          ? booking.serviceId.serviceName
+                          : 'Service'}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        {formatDate(booking.timeSlot.date)} • {formatTime(booking.timeSlot.startTime)} - {formatTime(booking.timeSlot.endTime)}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Booking #{booking.bookingNumber || booking.id.slice(-4)}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-semibold">${booking.totalCost.toFixed(2)}</p>
+                      <p className="text-xs text-muted-foreground capitalize">{booking.status}</p>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))
+              ))}
+            </div>
           )}
         </div>
 
@@ -692,7 +765,7 @@ export function BookingsTab({ business }: BookingsTabProps) {
                     : 'Service'}
                 </h3>
                 <p className="text-sm text-muted-foreground">
-                  Booking ID: {selectedBooking.id.slice(-8)}
+                  Booking #{selectedBooking.bookingNumber || selectedBooking.id.slice(-8)}
                 </p>
               </div>
               {selectedBooking.status === "cancelled" && (

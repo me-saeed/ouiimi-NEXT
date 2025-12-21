@@ -51,6 +51,8 @@ export interface IUser extends Document {
   sellerPoints?: number;      // Points for sellers (rewards feature)
   expotoken?: string;         // Expo push notification token
   verify: string;             // "yes" or "no" - email verified
+  verificationToken?: string;       // Token for email verification
+  verificationTokenExpiry?: Date;   // Expiry time for verification token
   counterId: number;          // Unique counter ID
   date: Date;                 // Registration date
   lastLoginDate?: Date;       // Last login timestamp (for welcome email tracking)
@@ -111,7 +113,9 @@ const userSchema = new Schema<IUser>(
     expotoken: { type: String, default: null },
 
     // Email verification status
-    verify: { type: String, default: "yes" },  // Auto-verified for now
+    verify: { type: String, default: "no" },  // "no" until email verified
+    verificationToken: { type: String },       // Token for email verification
+    verificationTokenExpiry: { type: Date },   // Expiry time for verification token
 
     // Counter for unique user IDs
     counterId: { type: Number },

@@ -54,6 +54,45 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
     }, []);
 
+    // Auto-logout after 15 minutes of inactivity
+    useEffect(() => {
+        if (!user || !token) return;
+
+        const INACTIVITY_TIMEOUT = 15 * 60 * 1000; // 15 minutes in milliseconds
+        let timeoutId: NodeJS.Timeout;
+
+        const resetTimer = () => {
+            clearTimeout(timeoutId);
+            timeoutId = setTimeout(() => {
+                console.log("Auto-logout due to inactivity");
+                logout();
+                // Redirect to signin with message
+                if (typeof window !== 'undefined') {
+                    window.location.href = '/signin?reason=timeout';
+                }
+            }, INACTIVITY_TIMEOUT);
+        };
+
+        // Activity events to track
+        const activityEvents = ['mousedown', 'mousemove', 'keydown', 'scroll', 'touchstart', 'click'];
+
+        // Add event listeners
+        activityEvents.forEach(event => {
+            document.addEventListener(event, resetTimer, { passive: true });
+        });
+
+        // Start the timer
+        resetTimer();
+
+        // Cleanup
+        return () => {
+            clearTimeout(timeoutId);
+            activityEvents.forEach(event => {
+                document.removeEventListener(event, resetTimer);
+            });
+        };
+    }, [user, token]);
+
     const login = (newToken: string, userData: User) => {
         setToken(newToken);
         setUser(userData);

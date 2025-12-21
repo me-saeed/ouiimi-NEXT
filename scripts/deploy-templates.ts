@@ -1,5 +1,5 @@
 
-try { require('dotenv').config(); } catch (e) { }
+try { require('dotenv').config({ path: '.env.local' }); } catch (e) { console.log('dotenv not loaded:', e); }
 const Mailjet = require("node-mailjet");
 
 const apiKey = process.env.MAILJET_API_KEY;
@@ -69,6 +69,18 @@ const UPDATES = [
         <a href="https://ouiimi.com/signin" class="btn">Explore Services</a>
       </div>
     `, "Welcome")
+  },
+  {
+    id: 7579447, // Account Email Verification
+    html: wrap(`
+      <h1 class="h1">Verify Your Email</h1>
+      <p class="p">Hi {{var:fname}},</p>
+      <p class="p">Thank you for signing up! Please click the button below to verify your email address.</p>
+      <div style="text-align: center; margin-top: 35px;">
+        <a href="{{var:uniquelink}}" class="btn">Verify Email</a>
+      </div>
+      <p class="p" style="font-size: 12px; margin-top: 20px; color: #888;">This link expires in 24 hours. If you didn't create an account, please ignore this email.</p>
+    `, "Verify Email")
   },
   {
     id: 7470222, // Welcome Business

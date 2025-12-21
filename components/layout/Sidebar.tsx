@@ -6,15 +6,16 @@ import { usePathname } from "next/navigation";
 interface SidebarProps {
   isOpen: boolean;
   onClose: () => void;
+  user?: any;
 }
 
-export default function Sidebar({ isOpen, onClose }: SidebarProps) {
+export default function Sidebar({ isOpen, onClose, user }: SidebarProps) {
   const pathname = usePathname();
 
   const links = [
     { href: "/about", label: "About" },
     { href: "/shopper", label: "Shopper" },
-    { href: "/business/dashboard", label: "Small Business" },
+    { href: user ? "/business/dashboard" : "/business/register", label: "Small Business" },
     { href: "/how-it-works", label: "How it works" },
   ];
 
@@ -30,9 +31,8 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
 
       {/* Sidebar */}
       <aside
-        className={`fixed top-0 left-0 h-full w-64 bg-white shadow-xl z-50 transform transition-transform duration-300 ease-in-out ${
-          isOpen ? "translate-x-0" : "-translate-x-full"
-        } lg:translate-x-0 lg:static lg:shadow-none`}
+        className={`fixed top-0 left-0 h-full w-64 bg-white shadow-xl z-50 transform transition-transform duration-300 ease-in-out ${isOpen ? "translate-x-0" : "-translate-x-full"
+          } lg:translate-x-0 lg:static lg:shadow-none`}
       >
         <div className="flex flex-col h-full">
           {/* Close button for mobile */}
@@ -69,11 +69,10 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                     <Link
                       href={link.href}
                       onClick={onClose}
-                      className={`block px-4 py-3 rounded-md transition-colors ${
-                        isActive
+                      className={`block px-4 py-3 rounded-md transition-colors ${isActive
                           ? "bg-[#EECFD1] text-[#3A3A3A] font-medium"
                           : "text-[#3A3A3A] hover:bg-gray-100"
-                      }`}
+                        }`}
                     >
                       {link.label}
                     </Link>

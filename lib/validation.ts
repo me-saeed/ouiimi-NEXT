@@ -75,6 +75,8 @@ export const businessCreateSchema = z.object({
     }),
   ]),
   story: z.string().optional(),
+  website: z.string().url("Please enter a valid URL").optional().or(z.literal("")),
+  socialMedia: z.string().optional(),
 });
 
 export const businessUpdateSchema = z.object({
@@ -94,6 +96,8 @@ export const businessUpdateSchema = z.object({
   logo: z.string().optional(),
   story: z.string().optional(),
   status: z.enum(["pending", "approved", "rejected"]).optional(),
+  website: z.string().url().optional().or(z.literal("")),
+  socialMedia: z.string().optional(),
 });
 
 export const bankDetailsSchema = z.object({
