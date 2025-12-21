@@ -50,7 +50,7 @@ export default function CheckoutForm({
             }
 
             if (paymentIntent && paymentIntent.status === "succeeded") {
-                // Confirm payment on backend
+                // Update booking status on backend (payment already confirmed by Stripe)
                 const response = await fetch("/api/payments/confirm", {
                     method: "POST",
                     headers: {
@@ -58,11 +58,13 @@ export default function CheckoutForm({
                     },
                     body: JSON.stringify({
                         paymentIntentId: paymentIntent.id,
+                        bookingId: bookingId,
                     }),
                 });
 
                 if (!response.ok) {
-                    throw new Error("Failed to confirm payment on server");
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || "Failed to update booking status");
                 }
 
                 // Payment successful

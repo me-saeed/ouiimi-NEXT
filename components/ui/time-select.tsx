@@ -96,40 +96,42 @@ export const TimeSelect: React.FC<TimeSelectProps> = ({
     return (
         <div className={cn("space-y-2", className)}>
             {label && (
-                <label className="text-sm font-semibold text-[#3A3A3A]">
+                <label className="text-sm font-semibold text-[#3A3A3A] block">
                     {label} {required && <span className="text-red-500">*</span>}
                 </label>
             )}
 
-            {/* Unified Container - Compacted padding and gap */}
-            <div className="flex items-center justify-between h-[52px] bg-white border border-gray-200 hover:border-gray-300 rounded-xl px-2 transition-all focus-within:ring-2 focus-within:ring-[#EECFD1]/50 focus-within:border-[#EECFD1] focus-within:ring-offset-0 shadow-sm hover:shadow-md overflow-hidden">
+            {/* Clean Time Input Container */}
+            <div className="relative w-full h-[52px] bg-white border border-[#E5E5E5] hover:border-gray-300 rounded-xl transition-all focus-within:ring-2 focus-within:ring-[#EECFD1]/20 focus-within:border-[#EECFD1] flex items-center overflow-hidden">
 
-                {/* Time Inputs Group */}
-                <div className="flex items-center gap-0.5 shrink-0">
-                    {/* Hour */}
+                {/* Hour Select */}
+                <div className="flex-1 h-full">
                     <Select value={selectedHour} onValueChange={handleHourChange}>
-                        <SelectTrigger className="w-[48px] border-none shadow-none bg-transparent p-0 h-9 focus:ring-0 focus:ring-offset-0 text-base font-medium text-[#3A3A3A] px-0 justify-center gap-0 cursor-pointer">
+                        <SelectTrigger className="w-full h-full border-none shadow-none bg-transparent hover:bg-gray-50/50 focus:ring-0 text-center text-base font-medium text-[#3A3A3A] px-2 gap-0 rounded-none [&>svg]:hidden">
                             <SelectValue placeholder="09" />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent className="max-h-[200px] z-[9999] min-w-[70px]">
                             {hours.map((h) => (
-                                <SelectItem key={h} value={h.toString().padStart(2, '0')} className="cursor-pointer">
+                                <SelectItem key={h} value={h.toString().padStart(2, '0')} className="text-center justify-center">
                                     {h.toString().padStart(2, '0')}
                                 </SelectItem>
                             ))}
                         </SelectContent>
                     </Select>
+                </div>
 
-                    <span className="text-[#3A3A3A] font-bold px-0.5 pb-0.5">:</span>
+                {/* Divider */}
+                <span className="text-gray-400 font-normal text-base select-none">:</span>
 
-                    {/* Minute */}
+                {/* Minute Select */}
+                <div className="flex-1 h-full">
                     <Select value={selectedMinute} onValueChange={handleMinuteChange}>
-                        <SelectTrigger className="w-[48px] border-none shadow-none bg-transparent p-0 h-9 focus:ring-0 focus:ring-offset-0 text-base font-medium text-[#3A3A3A] px-0 justify-center gap-0 cursor-pointer">
+                        <SelectTrigger className="w-full h-full border-none shadow-none bg-transparent hover:bg-gray-50/50 focus:ring-0 text-center text-base font-medium text-[#3A3A3A] px-2 gap-0 rounded-none [&>svg]:hidden">
                             <SelectValue placeholder="00" />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent className="max-h-[200px] z-[9999] min-w-[70px]">
                             {minutes.map((m) => (
-                                <SelectItem key={m} value={m.toString().padStart(2, '0')} className="cursor-pointer">
+                                <SelectItem key={m} value={m.toString().padStart(2, '0')} className="text-center justify-center">
                                     {m.toString().padStart(2, '0')}
                                 </SelectItem>
                             ))}
@@ -137,33 +139,22 @@ export const TimeSelect: React.FC<TimeSelectProps> = ({
                     </Select>
                 </div>
 
-                {/* AM/PM Toggle Pill - Compact */}
-                <div className="flex items-center bg-gray-50 border border-gray-100 rounded-lg p-0.5 gap-0.5 h-8 shrink-0 ml-1">
-                    <button
-                        type="button"
-                        onClick={(e) => handlePeriodChange(e, 'AM')}
-                        className={cn(
-                            "px-2 h-full flex items-center justify-center rounded-md text-xs font-bold transition-all cursor-pointer select-none min-w-[32px]",
-                            selectedPeriod === 'AM'
-                                ? "bg-[#EECFD1] text-[#3A3A3A] shadow-sm"
-                                : "text-gray-400 hover:text-gray-600 hover:bg-white/50"
-                        )}
-                    >
-                        AM
-                    </button>
-                    <button
-                        type="button"
-                        onClick={(e) => handlePeriodChange(e, 'PM')}
-                        className={cn(
-                            "px-2 h-full flex items-center justify-center rounded-md text-xs font-bold transition-all cursor-pointer select-none min-w-[32px]",
-                            selectedPeriod === 'PM'
-                                ? "bg-[#EECFD1] text-[#3A3A3A] shadow-sm"
-                                : "text-gray-400 hover:text-gray-600 hover:bg-white/50"
-                        )}
-                    >
-                        PM
-                    </button>
+                {/* Vertical Divider */}
+                <div className="w-px h-6 bg-gray-200 mx-2" />
+
+                {/* AM/PM Select */}
+                <div className="w-16 h-full">
+                    <Select value={selectedPeriod} onValueChange={(val) => onChange(constructTime(selectedHour, selectedMinute, val))}>
+                        <SelectTrigger className="w-full h-full border-none shadow-none bg-transparent hover:bg-gray-50/50 focus:ring-0 text-center text-sm font-semibold text-gray-600 px-2 justify-center rounded-none [&>svg]:hidden">
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="z-[9999] min-w-[70px]">
+                            <SelectItem value="AM" className="text-center justify-center font-medium">AM</SelectItem>
+                            <SelectItem value="PM" className="text-center justify-center font-medium">PM</SelectItem>
+                        </SelectContent>
+                    </Select>
                 </div>
+
             </div>
         </div>
     )

@@ -47,7 +47,7 @@ function getStripe(): Stripe {
 
 export async function POST(request: NextRequest) {
     try {
-        const { paymentIntentId } = await request.json();
+        const { paymentIntentId, bookingId } = await request.json();
 
         if (!paymentIntentId) {
             return NextResponse.json(
@@ -60,6 +60,8 @@ export async function POST(request: NextRequest) {
         const stripe = getStripe();
 
         // Retrieve payment intent from Stripe to verify status
+        // NOTE: We're just VERIFYING the status, not confirming it
+        // The payment was already confirmed client-side via stripe.confirmPayment()
         const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
 
         if (paymentIntent.status !== "succeeded") {
@@ -72,10 +74,16 @@ export async function POST(request: NextRequest) {
         // Connect to database
         await dbConnect();
 
-        // Find booking associated with this payment
-        const booking = await Booking.findOne({ paymentIntentId })
+        // Find booking - try by paymentIntentId first, then by bookingId if provided
+        let booking = await Booking.findOne({ paymentIntentId })
             .populate("serviceId")
             .populate("businessId");
+
+        if (!booking && bookingId) {
+            booking = await Booking.findById(bookingId)
+                .populate("serviceId")
+                .populate("businessId");
+        }
 
         if (!booking) {
             return NextResponse.json(
@@ -84,10 +92,13 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Update booking payment status
-        booking.paymentStatus = "deposit_paid";
-        booking.status = "confirmed"; // Move from pending to confirmed
-        await booking.save();
+        // Update booking payment status (only if not already updated)
+        if (booking.paymentStatus !== "deposit_paid") {
+            booking.paymentStatus = "deposit_paid";
+            booking.status = "confirmed"; // Move from pending to confirmed
+            booking.paymentIntentId = paymentIntentId; // Store the payment intent ID
+            await booking.save();
+        }
 
         return NextResponse.json({
             success: true,

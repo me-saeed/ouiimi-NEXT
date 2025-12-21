@@ -227,7 +227,12 @@ async function updateServiceHandler(
               // Frontend sends array of string IDs
               const staffId = typeof staffIdInput === 'string'
                 ? staffIdInput
-                : staffIdInput.staffId || staffIdInput;
+                : (staffIdInput?.staffId?.toString() || staffIdInput?.toString());
+
+              // Skip invalid IDs
+              if (!staffId || staffId === 'undefined' || staffId === 'null' || staffId.trim() === '') {
+                return null;
+              }
 
               // Preserve isBooked status if this staff was already booked
               const wasBooked = existingSlot?.staffIds?.find((s: any) =>
@@ -238,7 +243,7 @@ async function updateServiceHandler(
                 staffId: new mongoose.Types.ObjectId(staffId),
                 isBooked: wasBooked ? true : false
               };
-            })
+            }).filter(Boolean) // Remove null entries
             : [],
           addOns: slot.addOns || [],
           isBooked: existingSlot?.isBooked || false,

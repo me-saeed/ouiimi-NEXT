@@ -240,7 +240,7 @@ async function updateBookingHandler(
           const timeSlot = booking.timeSlot;
           const mongoose = (await import("mongoose")).default;
 
-          // Atomic update: Set isBooked=false for the specific staff
+          // Atomic update: Set isBooked=false for the specific staff AND the slot
           await Service.updateOne(
             {
               _id: serviceId,
@@ -251,6 +251,7 @@ async function updateBookingHandler(
             {
               $set: {
                 "timeSlots.$[slot].staffIds.$[staff].isBooked": false,
+                "timeSlots.$[slot].isBooked": false,  // ✅ Explicitly mark slot as available
                 "timeSlots.$[slot].bookingId": null
               }
             },
@@ -274,7 +275,7 @@ async function updateBookingHandler(
             await service.save(); // Hook recalculates isBooked = bookedStaff >= totalStaff
           }
 
-          console.log(`[Cancellation] Released staff ${booking.staffId} from slot`);
+          console.log(`[Cancellation] Released staff ${booking.staffId} and marked slot as available`);
         }
       } else if (validatedData.status === "completed") {
         booking.paymentStatus = "fully_paid";
@@ -605,7 +606,7 @@ async function deleteBookingHandler(
     if (booking.serviceId && booking.staffId) {
       const mongoose = (await import("mongoose")).default;
 
-      // Atomic update: Set isBooked=false for the specific staff
+      // Atomic update: Set isBooked=false for the specific staff AND the slot
       await Service.updateOne(
         {
           _id: booking.serviceId,
@@ -616,6 +617,7 @@ async function deleteBookingHandler(
         {
           $set: {
             "timeSlots.$[slot].staffIds.$[staff].isBooked": false,
+            "timeSlots.$[slot].isBooked": false,  // ✅ Explicitly mark slot as available
             "timeSlots.$[slot].bookingId": null
           }
         },
@@ -639,7 +641,7 @@ async function deleteBookingHandler(
         await service.save(); // Hook recalculates isBooked = bookedStaff >= totalStaff
       }
 
-      console.log(`[Delete Booking] Released staff ${booking.staffId} from slot for service ${booking.serviceId}`);
+      console.log(`[Delete Booking] Released staff ${booking.staffId} and marked slot as available for service ${booking.serviceId}`);
     }
 
     await Booking.findByIdAndDelete(params.id);
