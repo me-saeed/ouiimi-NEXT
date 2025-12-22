@@ -1,76 +1,72 @@
-import { NextRequest, NextResponse } from "next/server";
+/**
+ * =============================================================================
+ * ADMIN RELEASED PAYMENTS - /api/admin/bookings/released
+ * =============================================================================
+ * 
+ * Admin-only endpoint to view all bookings with released payments.
+ */
+
+import { NextRequest } from "next/server";
 import dbConnect from "@/lib/db";
 import Booking from "@/lib/models/Booking";
-import { verifyToken } from "@/lib/jwt";
+import { authenticateAdmin } from "@/lib/api-auth";
+import { applyRateLimit } from "@/lib/rate-limit";
+import { asyncHandler, successResponse } from "@/lib/api-response";
 
 export const dynamic = 'force-dynamic';
 
-export async function GET(req: NextRequest) {
-    try {
-        const authHeader = req.headers.get("authorization");
-        if (!authHeader?.startsWith("Bearer ")) {
-            return NextResponse.json(
-                { error: "Unauthorized" },
-                { status: 401 }
-            );
-        }
+async function getReleasedPaymentsHandler(req: NextRequest) {
+    // Rate limiting
+    const rateLimitResponse = applyRateLimit(req, 30);
+    if (rateLimitResponse) return rateLimitResponse;
 
-        const token = authHeader.substring(7);
-        const decoded = verifyToken(token);
-        if (!decoded) {
-            return NextResponse.json(
-                { error: "Invalid token" },
-                { status: 401 }
-            );
-        }
+    // Admin authentication
+    await authenticateAdmin(req);
 
-        // Verify user has admin role
-        if (!decoded.roles?.includes('admin')) {
-            return NextResponse.json(
-                { error: "Admin access required" },
-                { status: 403 }
-            );
-        }
+    const { searchParams } = new URL(req.url);
+    const limit = Math.min(parseInt(searchParams.get("limit") || "50"), 100);
+    const page = Math.max(parseInt(searchParams.get("page") || "1"), 1);
+    const skip = (page - 1) * limit;
 
-        await dbConnect();
+    await dbConnect();
 
-        // Get all bookings with released payment status
-        const releasedBookings = await Booking.find({
-            adminPaymentStatus: "released",
-            status: "completed"
-        })
-            .populate("userId", "fname lname email")
-            .populate("businessId", "businessName logo address")
-            .populate("serviceId", "serviceName category")
-            .sort({ updatedAt: -1 })
-            .limit(100); // Limit to last 100 released payments
+    const bookings = await Booking.find({ adminPaymentStatus: "released" })
+        .populate("businessId", "businessName email")
+        .populate("serviceId", "serviceName")
+        .populate("userId", "fname lname")
+        .sort({ updatedAt: -1 })
+        .limit(limit)
+        .skip(skip)
+        .lean();
 
-        return NextResponse.json({
-            bookings: releasedBookings.map((booking: any) => ({
-                id: String(booking._id),
-                bookingNumber: booking.bookingNumber,
-                userId: booking.userId,
-                businessId: booking.businessId,
-                serviceId: booking.serviceId,
-                timeSlot: booking.timeSlot,
-                addOns: booking.addOns,
-                totalCost: booking.totalCost,
-                depositAmount: booking.depositAmount,
-                remainingAmount: booking.remainingAmount,
-                platformFee: booking.platformFee || 1.99,
-                serviceAmount: booking.serviceAmount,
-                status: booking.status,
-                paymentStatus: booking.paymentStatus,
-                adminPaymentStatus: booking.adminPaymentStatus,
-                createdAt: booking.createdAt,
-                updatedAt: booking.updatedAt,
-            })),
-        });
-    } catch (error: any) {
-        console.error("Error fetching payment history:", error);
-        return NextResponse.json(
-            { error: "Failed to fetch payment history" },
-            { status: 500 }
-        );
-    }
+    const total = await Booking.countDocuments({ adminPaymentStatus: "released" });
+
+    // Calculate total released amount
+    const totalReleased = await Booking.aggregate([
+        { $match: { adminPaymentStatus: "released" } },
+        { $group: { _id: null, total: { $sum: "$serviceAmount" } } }
+    ]);
+
+    return successResponse({
+        bookings: bookings.map((b: any) => ({
+            id: String(b._id),
+            bookingNumber: b.bookingNumber,
+            business: b.businessId,
+            service: b.serviceId,
+            user: b.userId,
+            serviceAmount: b.serviceAmount,
+            updatedAt: b.updatedAt,
+        })),
+        pagination: {
+            total,
+            page,
+            limit,
+            pages: Math.ceil(total / limit),
+        },
+        summary: {
+            totalReleased: totalReleased[0]?.total || 0,
+        },
+    });
 }
+
+export const GET = asyncHandler(getReleasedPaymentsHandler);

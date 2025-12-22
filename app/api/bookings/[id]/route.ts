@@ -1,13 +1,23 @@
-import { NextRequest, NextResponse } from "next/server";
+/**
+ * =============================================================================
+ * BOOKING BY ID API - /api/bookings/[id] (Production-Ready)
+ * =============================================================================
+ * 
+ * GET: Requires session auth (users can only view their own bookings)
+ * PUT: Requires session auth (updates, cancellations)
+ * DELETE: Requires session auth + ownership
+ */
+
+import { NextRequest } from "next/server";
 import dbConnect from "@/lib/db";
 import Booking from "@/lib/models/Booking";
-import Business from "@/lib/models/Business";
 import Service from "@/lib/models/Service";
-import Staff from "@/lib/models/Staff";
-import { verifyToken } from "@/lib/jwt";
-import { withRateLimitDynamic } from "@/lib/security/rate-limit";
-import { sendEmail, sendBookingCancellationToBusiness } from "@/lib/services/mailjet";
+import { authenticateRequest } from "@/lib/api-auth";
+import { applyRateLimit } from "@/lib/rate-limit";
+import { APIError, asyncHandler, successResponse } from "@/lib/api-response";
+import { sendBookingCancellationToBusiness } from "@/lib/services/mailjet";
 import { z } from "zod";
+import mongoose from "mongoose";
 
 export const dynamic = 'force-dynamic';
 
@@ -17,649 +27,169 @@ const bookingUpdateSchema = z.object({
   businessNotes: z.string().optional(),
   cancellationReason: z.string().optional(),
   cancelledBy: z.enum(["customer", "business"]).optional(),
-  timeSlot: z.object({
-    date: z.string(),
-    startTime: z.string(),
-    endTime: z.string(),
-  }).optional(),
 });
 
+// =============================================================================
+// GET Booking by ID
+// =============================================================================
 async function getBookingHandler(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  try {
-    const authHeader = req.headers.get("authorization");
-    if (!authHeader?.startsWith("Bearer ")) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
-    }
+  // Authentication
+  const session = await authenticateRequest(req);
 
-    const token = authHeader.substring(7);
-    const decoded = verifyToken(token);
-    if (!decoded) {
-      return NextResponse.json(
-        { error: "Invalid token" },
-        { status: 401 }
-      );
-    }
+  await dbConnect();
 
-    await dbConnect();
+  const booking = await Booking.findById(params.id)
+    .populate("userId", "fname lname email contactNo")
+    .populate("businessId", "businessName logo address email phone")
+    .populate("serviceId", "serviceName category description")
+    .populate("staffId", "name photo")
+    .lean();
 
-    // Ensure all models are registered before populate
-    const mongoose = (await import("mongoose")).default;
-    if (!mongoose.models.Business) {
-      await import("@/lib/models/Business");
-    }
-    if (!mongoose.models.Service) {
-      await import("@/lib/models/Service");
-    }
-    if (!mongoose.models.User) {
-      await import("@/lib/models/User");
-    }
-    if (!mongoose.models.Staff) {
-      await import("@/lib/models/Staff");
-    }
-
-    const booking = await Booking.findById(params.id)
-      .populate("userId", "fname lname email contactNo")
-      .populate("businessId", "businessName logo address email phone")
-      .populate("serviceId", "serviceName category baseCost duration description")
-      .populate("staffId", "name photo")
-      .lean();
-
-    if (!booking) {
-      return NextResponse.json(
-        { error: "Booking not found" },
-        { status: 404 }
-      );
-    }
-
-    let userIdData: any;
-    if (booking.userId && typeof booking.userId === 'object' && 'fname' in booking.userId) {
-      const user = booking.userId as any;
-      userIdData = {
-        id: user._id?.toString() || user._id,
-        fname: user.fname,
-        lname: user.lname,
-        email: user.email,
-        contactNo: user.contactNo,
-      };
-    } else {
-      userIdData = booking.userId?.toString() || booking.userId;
-    }
-
-    let businessIdData: any;
-    if (booking.businessId && typeof booking.businessId === 'object' && 'businessName' in booking.businessId) {
-      const business = booking.businessId as any;
-      businessIdData = {
-        id: business._id?.toString() || business._id,
-        businessName: business.businessName,
-        logo: business.logo,
-        address: business.address,
-        email: business.email,
-        phone: business.phone,
-      };
-    } else {
-      businessIdData = booking.businessId?.toString() || booking.businessId;
-    }
-
-    let serviceIdData: any;
-    if (booking.serviceId && typeof booking.serviceId === 'object' && 'serviceName' in booking.serviceId) {
-      const service = booking.serviceId as any;
-      serviceIdData = {
-        id: service._id?.toString() || service._id,
-        serviceName: service.serviceName,
-        category: service.category,
-        baseCost: service.baseCost,
-        duration: service.duration,
-        description: service.description,
-      };
-    } else {
-      serviceIdData = booking.serviceId?.toString() || booking.serviceId;
-    }
-
-    let staffIdData: any = null;
-    if (booking.staffId) {
-      if (typeof booking.staffId === 'object' && 'name' in booking.staffId) {
-        const staff = booking.staffId as any;
-        staffIdData = {
-          id: staff._id?.toString() || staff._id,
-          name: staff.name,
-          photo: staff.photo,
-        };
-      } else {
-        staffIdData = booking.staffId.toString();
-      }
-    }
-
-    return NextResponse.json(
-      {
-        booking: {
-          id: booking._id?.toString() || booking._id,
-          _id: booking._id?.toString() || booking._id,
-          userId: userIdData,
-          businessId: businessIdData,
-          serviceId: serviceIdData,
-          staffId: staffIdData,
-          timeSlot: booking.timeSlot,
-          addOns: booking.addOns || [],
-          totalCost: booking.totalCost,
-          depositAmount: booking.depositAmount,
-          remainingAmount: booking.remainingAmount,
-          status: booking.status,
-          paymentStatus: booking.paymentStatus,
-          customerNotes: booking.customerNotes,
-          businessNotes: booking.businessNotes,
-          cancelledAt: booking.cancelledAt,
-          cancellationReason: booking.cancellationReason,
-          createdAt: booking.createdAt,
-          updatedAt: booking.updatedAt,
-        },
-      },
-      { status: 200 }
-    );
-  } catch (error: any) {
-    console.error("Get booking error:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch booking" },
-      { status: 500 }
-    );
+  if (!booking) {
+    throw new APIError(404, "Booking not found", "NOT_FOUND");
   }
+
+  // Security: Verify user can access this booking
+  if (String(booking.userId) !== String(session.userId)) {
+    throw new APIError(403, "You can only view your own bookings", "FORBIDDEN");
+  }
+
+  return successResponse({ booking });
 }
 
+// =============================================================================
+// UPDATE Booking (Status, Cancellation)
+// =============================================================================
 async function updateBookingHandler(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  try {
-    const authHeader = req.headers.get("authorization");
-    if (!authHeader?.startsWith("Bearer ")) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
-    }
+  // Rate limiting
+  const rateLimitResponse = applyRateLimit(req, 20);
+  if (rateLimitResponse) return rateLimitResponse;
 
-    const token = authHeader.substring(7);
-    const decoded = verifyToken(token);
-    if (!decoded) {
-      return NextResponse.json(
-        { error: "Invalid token" },
-        { status: 401 }
-      );
-    }
+  // Authentication
+  const session = await authenticateRequest(req);
 
-    const body = await req.json();
-    const validatedData = bookingUpdateSchema.parse(body);
+  const body = await req.json();
+  const validatedData = bookingUpdateSchema.parse(body);
 
-    await dbConnect();
+  await dbConnect();
 
-    const booking = await Booking.findById(params.id);
-    if (!booking) {
-      return NextResponse.json(
-        { error: "Booking not found" },
-        { status: 404 }
-      );
-    }
-
-    // Check if trying to cancel a booking that has already passed
-    if (validatedData.status === "cancelled") {
-      const bookingDateTime = new Date(booking.timeSlot.date);
-      const [hours, minutes] = booking.timeSlot.startTime.split(':').map(Number);
-      bookingDateTime.setHours(hours, minutes, 0, 0);
-
-      const now = new Date();
-
-      if (bookingDateTime <= now) {
-        return NextResponse.json(
-          { error: "Cannot cancel a booking that has already started or passed" },
-          { status: 400 }
-        );
-      }
-    }
-
-    const oldStatus = booking.status;
-    const oldPaymentStatus = booking.paymentStatus;
-
-    if (validatedData.status) {
-      const oldStatus = booking.status;
-      booking.status = validatedData.status;
-      if (validatedData.status === "cancelled") {
-        booking.cancelledAt = new Date();
-        if (validatedData.cancellationReason) {
-          booking.cancellationReason = validatedData.cancellationReason;
-        }
-        booking.paymentStatus = "refunded";
-
-        // ✅ CANONICAL FORMAT: Release the booked staff member
-        if (booking.serviceId && booking.staffId) {
-          const serviceId = booking.serviceId;
-          const timeSlot = booking.timeSlot;
-          const mongoose = (await import("mongoose")).default;
-
-          // Atomic update: Set isBooked=false for the specific staff AND the slot
-          await Service.updateOne(
-            {
-              _id: serviceId,
-              "timeSlots.date": timeSlot.date,
-              "timeSlots.startTime": timeSlot.startTime,
-              "timeSlots.endTime": timeSlot.endTime
-            },
-            {
-              $set: {
-                "timeSlots.$[slot].staffIds.$[staff].isBooked": false,
-                "timeSlots.$[slot].isBooked": false,  // ✅ Explicitly mark slot as available
-                "timeSlots.$[slot].bookingId": null
-              }
-            },
-            {
-              arrayFilters: [
-                {
-                  "slot.date": timeSlot.date,
-                  "slot.startTime": timeSlot.startTime,
-                  "slot.endTime": timeSlot.endTime
-                },
-                {
-                  "staff.staffId": new mongoose.Types.ObjectId(booking.staffId)
-                }
-              ]
-            }
-          );
-
-          // Trigger schema hook to recalculate slot.isBooked
-          const service = await Service.findById(serviceId);
-          if (service) {
-            await service.save(); // Hook recalculates isBooked = bookedStaff >= totalStaff
-          }
-
-          console.log(`[Cancellation] Released staff ${booking.staffId} and marked slot as available`);
-        }
-      } else if (validatedData.status === "completed") {
-        booking.paymentStatus = "fully_paid";
-      }
-    }
-
-    if (validatedData.paymentStatus) {
-      booking.paymentStatus = validatedData.paymentStatus;
-    }
-
-    // Handle rescheduling
-    if (validatedData.timeSlot) {
-      booking.timeSlot = {
-        date: new Date(validatedData.timeSlot.date),
-        startTime: validatedData.timeSlot.startTime,
-        endTime: validatedData.timeSlot.endTime,
-      };
-    }
-
-    await booking.save();
-
-    // Send email notifications for status changes
-    try {
-      // Ensure models are registered before populate
-      const mongooseForEmail = (await import("mongoose")).default;
-      if (!mongooseForEmail.models.User) {
-        await import("@/lib/models/User");
-      }
-      if (!mongooseForEmail.models.Business) {
-        await import("@/lib/models/Business");
-      }
-      if (!mongooseForEmail.models.Service) {
-        await import("@/lib/models/Service");
-      }
-
-      const populatedBooking = await Booking.findById(booking._id)
-        .populate("userId", "fname lname email")
-        .populate("businessId", "businessName email")
-        .populate("serviceId", "serviceName")
-        .lean();
-
-      if (populatedBooking && populatedBooking.userId && typeof populatedBooking.userId === 'object') {
-        const user = populatedBooking.userId as any;
-        const business = populatedBooking.businessId as any;
-        const service = populatedBooking.serviceId as any;
-        const date = new Date(populatedBooking.timeSlot.date).toLocaleDateString("en-GB");
-        const time = `${populatedBooking.timeSlot.startTime} - ${populatedBooking.timeSlot.endTime}`;
-
-        if (oldStatus !== "cancelled" && booking.status === "cancelled") {
-          const isShopper = (validatedData.cancelledBy || "customer") === "customer";
-          const emailData = {
-            fname: user.fname || "Customer",
-            email: user.email,
-            businessName: business?.businessName || "Business",
-            serviceName: service?.serviceName || "Service",
-            date,
-            time,
-            bookingId: String(booking._id).slice(-8),
-            depositAmount: populatedBooking.depositAmount,
-            payoutAmount: populatedBooking.depositAmount && (populatedBooking.depositAmount / 2).toFixed(2), // 50% split assumption from templates
-            cancelledBy: validatedData.cancelledBy || "customer",
-          };
-
-          if (isShopper) {
-            // 1. Notify Shopper: "You cancelled"
-            await sendEmail(
-              [user.email],
-              "Booking Cancelled - ouiimi",
-              emailData,
-              "booking_cancellation_shopper"
-            );
-
-            // 2. Notify Business: "Shopper cancelled"
-            if (business?.email) {
-              console.log(`[Email] Sending booking cancellation to BUSINESS: ${business.email}`);
-
-              // Ensure customerName is passed
-              const cancellationData = {
-                ...emailData,
-                customerName: `${user.fname} ${user.lname}`.trim()
-              };
-
-              const sent = await sendBookingCancellationToBusiness(
-                business.email,
-                business.businessName || "Business", // Addressed to business
-                cancellationData
-              );
-
-              if (sent) console.log(`[Email] Business cancellation email sent successfully.`);
-              else console.error(`[Email] Business cancellation email failed.`);
-            } else {
-              console.warn(`[Email] Skipping business cancellation email - No business email found.`);
-            }
-
-            // 3. (Optional) Cancellation Payout Email?
-            // If payout is automated, we might send 'cancellation_payout' here too, 
-            // but user said "Deposit Payout Confirmation" - usually this comes after the payout is actually processed.
-            // I will leave it out for now unless I see payout logic here. 
-            // Logic above says: booking.paymentStatus = "refunded"; 
-            // Actually, if shopper cancels, business gets 50%.
-            // If business has payout logic, maybe we trigger email. 
-            // For now, these 2 are the critical ones.
-
-          } else {
-            // 3. Notify Shopper: "Business cancelled"
-            console.log(`[Email] Sending cancellation to SHOPPER (Business initiated): ${user.email}`);
-
-            const sent = await sendEmail(
-              [user.email],
-              "Booking Cancelled by Business - ouiimi",
-              {
-                ...emailData,
-                cancellationReason: validatedData.cancellationReason || "No reason provided", // Add reason
-                customerName: `${user.fname} ${user.lname}`.trim()
-              },
-              "booking_cancellation_by_business"
-            );
-
-            if (sent) console.log(`[Email] Shopper cancellation email result: SUCCESS`);
-            else console.error(`[Email] Shopper cancellation email result: FAILED`);
-          }
-
-        } else if (oldStatus !== "completed" && booking.status === "completed") {
-          // Send completion email to Shopper
-          await sendEmail(
-            [user.email],
-            "Service Completed - ouiimi",
-            {
-              fname: user.fname || "Customer",
-              email: user.email,
-              businessName: business?.businessName || "Business",
-              serviceName: service?.serviceName || "Service",
-              date,
-              totalCost: populatedBooking.totalCost,
-              paymentAmount: populatedBooking.totalCost,
-              bookingId: String(booking._id).slice(-8),
-            },
-            "booking_complete"
-          );
-
-          // Send Payment Receipt/Payout Email to Business (Completion)
-          if (business?.email) {
-            await sendEmail(
-              [business.email],
-              "Payment Receipt - ouiimi",
-              {
-                fname: user.fname || "Customer",
-                email: business.email, // Sent to business
-                businessName: business?.businessName || "Business",
-                serviceName: service?.serviceName || "Service",
-                date,
-                bookingId: String(booking._id).slice(-8),
-                totalDeposit: populatedBooking.depositAmount,
-                payoutAmount: (populatedBooking.depositAmount ? populatedBooking.depositAmount * 0.5 : 0).toFixed(2)
-              },
-              "payment_receipt"
-            );
-          }
-        }
-
-        // NEW: Send Confirmation Email when Payment is made (Deposit or Full)
-        // Only trigger if it wasn't paid before
-        const isPaidNow = validatedData.paymentStatus === "deposit_paid" || validatedData.paymentStatus === "fully_paid";
-        const wasNotPaid = oldPaymentStatus !== "deposit_paid" && oldPaymentStatus !== "fully_paid";
-
-        if (isPaidNow && wasNotPaid) {
-          console.log(`[Email] Payment Confirmed (${validatedData.paymentStatus}). Sending Booking Confirmation...`);
-
-          // 1. Send Confirmation to Shopper
-          await sendEmail(
-            [user.email],
-            "Booking Confirmed - ouiimi",
-            {
-              fname: user.fname || "Customer",
-              email: user.email,
-              businessName: business?.businessName || "Business",
-              serviceName: service?.serviceName || "Service",
-              date,
-              time,
-              totalCost: populatedBooking.totalCost,
-              depositAmount: populatedBooking.depositAmount,
-              bookingId: String(booking._id).slice(-8),
-              outstanding: populatedBooking.remainingAmount
-            },
-            "booking_confirmation_shopper"
-          );
-
-          // 2. Send Confirmation to Business
-          if (business?.email) {
-            console.log(`[Email] Sending booking confirmation to BUSINESS: ${business.email}`);
-            const sent = await sendEmail(
-              [business.email],
-              "New Booking Received - ouiimi",
-              {
-                fname: user.fname || "Customer",
-                customerName: `${user.fname} ${user.lname}`.trim(),
-                email: business.email,
-                businessName: business?.businessName || "Business",
-                serviceName: service?.serviceName || "Service",
-                date,
-                time,
-                bookingId: String(booking._id).slice(-8),
-                depositAmount: populatedBooking.depositAmount,
-                totalCost: populatedBooking.totalCost,
-                outstanding: populatedBooking.remainingAmount
-              },
-              "booking_confirmation_business"
-            );
-            if (sent) console.log(`[Email] Business confirmation result: SUCCESS`);
-            else console.error(`[Email] Business confirmation result: FAILED`);
-          }
-        }
-      }
-    } catch (emailError) {
-      console.error("Error sending booking status email:", emailError);
-      // Don't fail the update if email fails
-    }
-
-    if (validatedData.businessNotes !== undefined) {
-      booking.businessNotes = validatedData.businessNotes;
-    }
-
-    await booking.save();
-
-    // Ensure models are registered (already done above, but ensure for safety)
-    const mongooseForPopulate = (await import("mongoose")).default;
-    if (!mongooseForPopulate.models.User) {
-      await import("@/lib/models/User");
-    }
-    if (!mongooseForPopulate.models.Business) {
-      await import("@/lib/models/Business");
-    }
-    if (!mongooseForPopulate.models.Service) {
-      await import("@/lib/models/Service");
-    }
-    if (!mongooseForPopulate.models.Staff) {
-      await import("@/lib/models/Staff");
-    }
-
-    const savedBooking = await Booking.findById(booking._id)
-      .populate("userId", "fname lname email contactNo")
-      .populate("businessId", "businessName logo address email phone")
-      .populate("serviceId", "serviceName category baseCost duration")
-      .populate("staffId", "name photo")
-      .lean();
-
-    if (!savedBooking) {
-      return NextResponse.json(
-        { error: "Failed to save booking update" },
-        { status: 500 }
-      );
-    }
-
-    return NextResponse.json(
-      {
-        message: "Booking updated successfully",
-        booking: {
-          id: String(savedBooking._id),
-          status: savedBooking.status,
-          paymentStatus: savedBooking.paymentStatus,
-        },
-      },
-      { status: 200 }
-    );
-  } catch (error: any) {
-    console.error("Update booking error:", error);
-    if (error.name === "ZodError") {
-      return NextResponse.json(
-        { error: "Validation error", details: error.errors },
-        { status: 400 }
-      );
-    }
-    return NextResponse.json(
-      { error: "Failed to update booking" },
-      { status: 500 }
-    );
+  const booking = await Booking.findById(params.id).populate("serviceId businessId");
+  if (!booking) {
+    throw new APIError(404, "Booking not found", "NOT_FOUND");
   }
+
+  // Security: Verify ownership
+  if (String(booking.userId) !== String(session.userId)) {
+    throw new APIError(403, "You can only update your own bookings", "FORBIDDEN");
+  }
+
+  // Handle cancellation
+  if (validatedData.status === "cancelled") {
+    booking.status = "cancelled";
+    booking.cancelledAt = new Date();
+    booking.cancellationReason = validatedData.cancellationReason || "";
+
+    // Free up the time slot
+    if (booking.serviceId && booking.timeSlot) {
+      try {
+        const service = await Service.findById(booking.serviceId);
+        if (service) {
+          const slot = service.timeSlots.find((ts: any) =>
+            new Date(ts.date).getTime() === new Date(booking.timeSlot.date).getTime() &&
+            ts.startTime === booking.timeSlot.startTime &&
+            ts.endTime === booking.timeSlot.endTime
+          );
+
+          if (slot && booking.staffId) {
+            // Update staff booking status
+            const staffBooking = slot.staffIds?.find((s: any) =>
+              String(s.staffId) === String(booking.staffId)
+            );
+            if (staffBooking) {
+              staffBooking.isBooked = false;
+              await service.save();
+            }
+          }
+        }
+      } catch (error) {
+        console.error("Error freeing slot:", error);
+      }
+    }
+
+    // Send cancellation email (async, don't wait)
+    const business = booking.businessId as any;
+    if (business?.email) {
+      sendBookingCancellationToBusiness(
+        business.email,
+        String(booking._id),
+        validatedData.cancellationReason || "No reason provided"
+      ).catch(err => console.error("Cancellation email failed:", err));
+    }
+  }
+
+  // Apply other updates
+  if (validatedData.businessNotes) booking.businessNotes = validatedData.businessNotes;
+  if (validatedData.paymentStatus) booking.paymentStatus = validatedData.paymentStatus;
+
+  await booking.save();
+
+  return successResponse({
+    message: "Booking updated successfully",
+    booking: {
+      id: String(booking._id),
+      status: booking.status,
+      paymentStatus: booking.paymentStatus,
+    },
+  });
 }
 
+// =============================================================================
+// DELETE Booking
+// =============================================================================
 async function deleteBookingHandler(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  try {
-    const authHeader = req.headers.get("authorization");
-    if (!authHeader?.startsWith("Bearer ")) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
-    }
+  // Rate limiting
+  const rateLimitResponse = applyRateLimit(req, 10);
+  if (rateLimitResponse) return rateLimitResponse;
 
-    const token = authHeader.substring(7);
-    const decoded = verifyToken(token);
-    if (!decoded) {
-      return NextResponse.json(
-        { error: "Invalid token" },
-        { status: 401 }
-      );
-    }
+  // Authentication
+  const session = await authenticateRequest(req);
 
-    await dbConnect();
+  await dbConnect();
 
-    const booking = await Booking.findById(params.id);
-    if (!booking) {
-      return NextResponse.json(
-        { error: "Booking not found" },
-        { status: 404 }
-      );
-    }
-
-    // Check if user owns the booking or is the business owner
-    const userId = String(decoded.userId);
-    const bookingUserId = String(booking.userId);
-
-    if (userId !== bookingUserId) {
-      // Check if user is the business owner
-      const business = await Business.findById(booking.businessId);
-      if (!business || String(business.userId) !== userId) {
-        return NextResponse.json(
-          { error: "Unauthorized - You can only delete your own bookings" },
-          { status: 403 }
-        );
-      }
-    }
-
-    // ✅ CANONICAL FORMAT: Release the booked staff member before deletion
-    if (booking.serviceId && booking.staffId) {
-      const mongoose = (await import("mongoose")).default;
-
-      // Atomic update: Set isBooked=false for the specific staff AND the slot
-      await Service.updateOne(
-        {
-          _id: booking.serviceId,
-          "timeSlots.date": booking.timeSlot.date,
-          "timeSlots.startTime": booking.timeSlot.startTime,
-          "timeSlots.endTime": booking.timeSlot.endTime
-        },
-        {
-          $set: {
-            "timeSlots.$[slot].staffIds.$[staff].isBooked": false,
-            "timeSlots.$[slot].isBooked": false,  // ✅ Explicitly mark slot as available
-            "timeSlots.$[slot].bookingId": null
-          }
-        },
-        {
-          arrayFilters: [
-            {
-              "slot.date": booking.timeSlot.date,
-              "slot.startTime": booking.timeSlot.startTime,
-              "slot.endTime": booking.timeSlot.endTime
-            },
-            {
-              "staff.staffId": new mongoose.Types.ObjectId(booking.staffId)
-            }
-          ]
-        }
-      );
-
-      // Trigger schema hook to recalculate slot.isBooked
-      const service = await Service.findById(booking.serviceId);
-      if (service) {
-        await service.save(); // Hook recalculates isBooked = bookedStaff >= totalStaff
-      }
-
-      console.log(`[Delete Booking] Released staff ${booking.staffId} and marked slot as available for service ${booking.serviceId}`);
-    }
-
-    await Booking.findByIdAndDelete(params.id);
-
-    return NextResponse.json(
-      { message: "Booking deleted successfully" },
-      { status: 200 }
-    );
-  } catch (error: any) {
-    console.error("Delete booking error:", error);
-    return NextResponse.json(
-      { error: "Failed to delete booking" },
-      { status: 500 }
-    );
+  const booking = await Booking.findById(params.id);
+  if (!booking) {
+    throw new APIError(404, "Booking not found", "NOT_FOUND");
   }
+
+  // Security: Verify ownership
+  if (String(booking.userId) !== String(session.userId)) {
+    throw new APIError(403, "You can only delete your own bookings", "FORBIDDEN");
+  }
+
+  // Don't allow deletion of confirmed/paid bookings
+  if (booking.status === "confirmed" || booking.paymentStatus !== "pending") {
+    throw new APIError(400, "Cannot delete confirmed or paid bookings", "INVALID_STATUS");
+  }
+
+  await Booking.findByIdAndDelete(params.id);
+
+  return successResponse({
+    message: "Booking deleted successfully",
+  });
 }
 
-export const GET = withRateLimitDynamic(getBookingHandler);
-export const PUT = withRateLimitDynamic(updateBookingHandler);
-export const DELETE = withRateLimitDynamic(deleteBookingHandler);
-
+// =============================================================================
+// EXPORTS
+// =============================================================================
+export const GET = asyncHandler(getBookingHandler);
+export const PUT = asyncHandler(updateBookingHandler);
+export const DELETE = asyncHandler(deleteBookingHandler);

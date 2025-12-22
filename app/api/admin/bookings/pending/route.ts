@@ -1,124 +1,66 @@
-import { NextRequest, NextResponse } from "next/server";
+/**
+ * =============================================================================
+ * ADMIN PENDING BOOKINGS - /api/admin/bookings/pending
+ * =============================================================================
+ * 
+ * Admin-only endpoint to view all pending bookings.
+ */
+
+import { NextRequest } from "next/server";
 import dbConnect from "@/lib/db";
 import Booking from "@/lib/models/Booking";
-import { verifyToken } from "@/lib/jwt";
-import User from "@/lib/models/User";
+import { authenticateAdmin } from "@/lib/api-auth";
+import { applyRateLimit } from "@/lib/rate-limit";
+import { asyncHandler, successResponse } from "@/lib/api-response";
 
 export const dynamic = 'force-dynamic';
 
-export async function GET(req: NextRequest) {
-  try {
-    const authHeader = req.headers.get("authorization");
-    if (!authHeader?.startsWith("Bearer ")) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
-    }
+async function getPendingBookingsHandler(req: NextRequest) {
+  // Rate limiting
+  const rateLimitResponse = applyRateLimit(req, 30);
+  if (rateLimitResponse) return rateLimitResponse;
 
-    const token = authHeader.substring(7);
-    const decoded = verifyToken(token);
-    if (!decoded) {
-      return NextResponse.json(
-        { error: "Invalid token" },
-        { status: 401 }
-      );
-    }
+  // Admin authentication
+  await authenticateAdmin(req);
 
-    await dbConnect();
+  const { searchParams } = new URL(req.url);
+  const limit = Math.min(parseInt(searchParams.get("limit") || "50"), 100);
+  const page = Math.max(parseInt(searchParams.get("page") || "1"), 1);
+  const skip = (page - 1) * limit;
 
-    // Check if user is admin
-    const user = await User.findById(decoded.userId);
-    if (!user) {
-      return NextResponse.json(
-        { error: "User not found" },
-        { status: 404 }
-      );
-    }
+  await dbConnect();
 
-    // Verify user has admin role
-    if (!user.Roles?.includes("admin")) {
-      return NextResponse.json(
-        { error: "Admin access required" },
-        { status: 403 }
-      );
-    }
+  const bookings = await Booking.find({ status: "pending" })
+    .populate("userId", "fname lname email")
+    .populate("businessId", "businessName")
+    .populate("serviceId", "serviceName")
+    .sort({ createdAt: -1 })
+    .limit(limit)
+    .skip(skip)
+    .lean();
 
-    const now = new Date();
+  const total = await Booking.countDocuments({ status: "pending" });
 
-    // Get all confirmed bookings first, then filter by end time
-    const allBookings = await Booking.find({
-      adminPaymentStatus: { $in: ["pending", null] },
-      status: "confirmed",
-    })
-      .populate("userId", "fname lname email")
-      .populate("businessId", "businessName logo address")
-      .populate("serviceId", "serviceName category")
-      .populate("staffId", "name")
-      .lean();
-
-    // Filter bookings where service end time has passed, then sort
-    const bookings = allBookings
-      .filter((b: any) => {
-        const bookingDate = new Date(b.timeSlot.date);
-        const bookingDateTime = new Date(`${bookingDate.toISOString().split('T')[0]}T${b.timeSlot.endTime}`);
-        const todayMidnight = new Date();
-        todayMidnight.setHours(0, 0, 0, 0);
-
-        // Use booking date at midnight
-        const bookingDateMidnight = new Date(bookingDate);
-        bookingDateMidnight.setHours(0, 0, 0, 0);
-
-        // Only show bookings where the day has fully passed (yesterday or older)
-        return bookingDateMidnight.getTime() < todayMidnight.getTime();
-      })
-      .sort((a: any, b: any) => {
-        const dateA = new Date(a.timeSlot.date).getTime();
-        const dateB = new Date(b.timeSlot.date).getTime();
-        if (dateA !== dateB) return dateB - dateA;
-        return b.timeSlot.startTime.localeCompare(a.timeSlot.startTime);
-      });
-
-    return NextResponse.json({
-      bookings: bookings.map((b: any) => ({
-        id: b._id?.toString() || b._id,
-        userId: typeof b.userId === 'object' ? {
-          id: b.userId._id?.toString(),
-          fname: b.userId.fname,
-          lname: b.userId.lname,
-          email: b.userId.email,
-        } : b.userId?.toString(),
-        businessId: typeof b.businessId === 'object' ? {
-          id: b.businessId._id?.toString(),
-          businessName: b.businessId.businessName,
-          logo: b.businessId.logo,
-          address: b.businessId.address,
-        } : b.businessId?.toString(),
-        serviceId: typeof b.serviceId === 'object' ? {
-          id: b.serviceId._id?.toString(),
-          serviceName: b.serviceId.serviceName,
-          category: b.serviceId.category,
-          baseCost: 0, // Price is now in time slots
-          duration: b.serviceId.duration,
-        } : b.serviceId?.toString(),
-        staffId: b.staffId ? (typeof b.staffId === 'object' ? {
-          id: b.staffId._id?.toString(),
-          name: b.staffId.name,
-        } : b.staffId.toString()) : null,
-        timeSlot: b.timeSlot,
-        totalCost: b.totalCost,
-        platformFee: b.platformFee || 0,
-        serviceAmount: b.serviceAmount || (b.totalCost - (b.platformFee || 0)),
-        adminPaymentStatus: b.adminPaymentStatus || "pending",
-        status: b.status,
-        paymentStatus: b.paymentStatus,
-      })),
-    });
-  } catch (error: any) {
-    console.error("Error fetching pending bookings:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch pending bookings" },
-      { status: 500 }
-    );
-  }
+  return successResponse({
+    bookings: bookings.map((b: any) => ({
+      id: String(b._id),
+      bookingNumber: b.bookingNumber,
+      user: b.userId,
+      business: b.businessId,
+      service: b.serviceId,
+      timeSlot: b.timeSlot,
+      totalCost: b.totalCost,
+      status: b.status,
+      paymentStatus: b.paymentStatus,
+      createdAt: b.createdAt,
+    })),
+    pagination: {
+      total,
+      page,
+      limit,
+      pages: Math.ceil(total / limit),
+    },
+  });
 }
+
+export const GET = asyncHandler(getPendingBookingsHandler);

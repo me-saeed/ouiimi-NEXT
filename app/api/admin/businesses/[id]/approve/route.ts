@@ -1,82 +1,55 @@
 /**
- * Approve Business API
- * PUT /api/admin/businesses/[id]/approve
+ * =============================================================================
+ * ADMIN BUSINESS APPROVE - /api/admin/businesses/[id]/approve
+ * =============================================================================
+ * 
+ * Admin-only endpoint to approve pending businesses.
  */
-import { NextRequest, NextResponse } from "next/server";
+
+import { NextRequest } from "next/server";
 import dbConnect from "@/lib/db";
 import Business from "@/lib/models/Business";
-import User from "@/lib/models/User";
-import { verifyToken } from "@/lib/jwt";
+import { authenticateAdmin } from "@/lib/api-auth";
+import { applyRateLimit } from "@/lib/rate-limit";
+import { APIError, asyncHandler, successResponse } from "@/lib/api-response";
 
 export const dynamic = 'force-dynamic';
 
-export async function PUT(
+async function approveBusinessHandler(
     req: NextRequest,
     { params }: { params: { id: string } }
 ) {
-    try {
-        // Verify admin auth
-        const authHeader = req.headers.get("authorization");
-        if (!authHeader?.startsWith("Bearer ")) {
-            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-        }
+    // Rate limiting (strict for admin actions)
+    const rateLimitResponse = applyRateLimit(req, 10);
+    if (rateLimitResponse) return rateLimitResponse;
 
-        const token = authHeader.substring(7);
-        const decoded = verifyToken(token);
+    // Admin authentication
+    const adminSession = await authenticateAdmin(req);
 
-        if (!decoded.roles?.includes('admin')) {
-            return NextResponse.json({ error: "Admin access required" }, { status: 403 });
-        }
+    await dbConnect();
 
-        await dbConnect();
-
-        const businessId = params.id;
-        const body = await req.json();
-        const { adminNote } = body;
-
-        // Find and update business
-        const business = await Business.findById(businessId).populate(
-            "userId",
-            "fname lname email"
-        );
-
-        if (!business) {
-            return NextResponse.json({ error: "Business not found" }, { status: 404 });
-        }
-
-        if (business.status === "approved") {
-            return NextResponse.json(
-                { error: "Business already approved" },
-                { status: 400 }
-            );
-        }
-
-        // Update status
-        business.status = "approved";
-        await business.save();
-
-        // TODO: Send approval email to business owner
-        // const user = business.userId;
-        // await sendBusinessApprovalEmail(user.email, user.fname, business.businessName);
-
-        console.log(
-            `[Admin] Business approved: ${business.businessName} (ID: ${businessId})${adminNote ? ` - Note: ${adminNote}` : ""
-            }`
-        );
-
-        return NextResponse.json({
-            message: "Business approved successfully",
-            business: {
-                id: String(business._id),
-                businessName: business.businessName,
-                status: business.status,
-            },
-        });
-    } catch (error: any) {
-        console.error("Error approving business:", error);
-        return NextResponse.json(
-            { error: "Failed to approve business" },
-            { status: 500 }
-        );
+    const business = await Business.findById(params.id);
+    if (!business) {
+        throw new APIError(404, "Business not found", "NOT_FOUND");
     }
+
+    if (business.status !== "pending") {
+        throw new APIError(400, "Only pending businesses can be approved", "INVALID_STATUS");
+    }
+
+    business.status = "approved";
+    await business.save();
+
+    console.log(`[ADMIN] Business ${params.id} approved by ${adminSession.email}`);
+
+    return successResponse({
+        message: "Business approved successfully",
+        business: {
+            id: String(business._id),
+            businessName: business.businessName,
+            status: business.status,
+        },
+    });
 }
+
+export const POST = asyncHandler(approveBusinessHandler);

@@ -1,18 +1,10 @@
 /**
  * =============================================================================
- * STAFF API ROUTES - /api/staff
+ * STAFF API - /api/staff (Production-Ready)
  * =============================================================================
  * 
- * This file handles staff member management for businesses.
- * Staff can be assigned to time slots when creating services.
- * 
- * ENDPOINTS:
- * - POST /api/staff  - Create a new staff member (Multipart/FormData)
- * - GET /api/staff   - List staff members for a business
- * 
- * AUTHENTICATION: Required (JWT Bearer token) for POST
- * 
- * =============================================================================
+ * GET: Public (no auth) - List staff for a business
+ * POST: Requires session auth + business ownership
  */
 
 import { NextRequest, NextResponse } from "next/server";
@@ -20,331 +12,158 @@ import dbConnect from "@/lib/db";
 import Staff from "@/lib/models/Staff";
 import Business from "@/lib/models/Business";
 import { staffCreateSchema } from "@/lib/validation";
-import { withRateLimit } from "@/lib/security/rate-limit";
-import { verifyToken } from "@/lib/jwt";
+import { authenticateRequest } from "@/lib/api-auth";
+import { applyRateLimit } from "@/lib/rate-limit";
+import { APIError, asyncHandler, createdResponse } from "@/lib/api-response";
 import { writeFile, mkdir } from "fs/promises";
 import { join } from "path";
 
-// Force dynamic rendering (no caching)
 export const dynamic = 'force-dynamic';
 
-/**
- * =============================================================================
- * POST /api/staff - Create Staff Member
- * =============================================================================
- * 
- * REQUEST HEADERS:
- * {
- *   "Authorization": "Bearer <jwt_token>"
- * }
- * 
- * REQUEST BODY (FormData):
- * - businessId: string
- * - name: string
- * - photo: File (Optional)
- * - qualifications: string (Optional)
- * - about: string (Optional)
- * 
- * RESPONSE (Success - 201):
- * {
- *   "message": "Staff member added successfully",
- *   "staff": { id, name, photo, qualifications, about, isActive, businessId }
- * }
- */
+// =============================================================================
+// POST - Create Staff (Requires Auth)
+// =============================================================================
 async function createStaffHandler(req: NextRequest) {
-  try {
-    // =========================================================================
-    // STEP 1: Verify authentication
-    // =========================================================================
-    const authHeader = req.headers.get("authorization");
-    if (!authHeader?.startsWith("Bearer ")) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
-    }
+  // Rate limiting
+  const rateLimitResponse = applyRateLimit(req, 20);
+  if (rateLimitResponse) return rateLimitResponse;
 
-    const token = authHeader.substring(7);
-    const decoded = verifyToken(token);
-    if (!decoded) {
-      return NextResponse.json(
-        { error: "Invalid token" },
-        { status: 401 }
-      );
-    }
+  // Authentication
+  const session = await authenticateRequest(req);
 
-    // =========================================================================
-    // STEP 2: Parse FormData
-    // =========================================================================
-    const formData = await req.formData();
+  // Parse FormData
+  const formData = await req.formData();
+  const businessId = formData.get("businessId") as string;
+  const name = formData.get("name") as string;
+  const qualifications = formData.get("qualifications") as string | null;
+  const about = formData.get("about") as string | null;
+  const photoFile = formData.get("photo") as File | null;
 
-    // Extract fields
-    const businessId = formData.get("businessId") as string;
-    const name = formData.get("name") as string;
-    const qualifications = formData.get("qualifications") as string | null;
-    const about = formData.get("about") as string | null;
-    const photoFile = formData.get("photo") as File | null;
+  const dataToValidate = {
+    businessId,
+    name,
+    qualifications: qualifications || undefined,
+    about: about || undefined,
+  };
 
-    // Validate using Zod (we construct an object to validate)
-    const dataToValidate = {
-      businessId,
-      name,
-      qualifications: qualifications || undefined,
-      about: about || undefined,
-      // photo is validated separately
-    };
+  const schemaWithoutPhoto = staffCreateSchema.omit({ photo: true });
+  const validatedData = schemaWithoutPhoto.parse(dataToValidate);
 
-    // We use a partial schema or specific checks because 'photo' in schema might expect a string URL
-    // Let's use the schema but omit 'photo' for validation
-    const schemaWithoutPhoto = staffCreateSchema.omit({ photo: true });
-    const validatedData = schemaWithoutPhoto.parse(dataToValidate);
+  await dbConnect();
 
-    // =========================================================================
-    // STEP 3: Connect to database
-    // =========================================================================
-    await dbConnect();
-
-    // =========================================================================
-    // STEP 4: Verify business exists and ownership
-    // =========================================================================
-    // Only business owner can add staff to their business
-    const business = await Business.findById(validatedData.businessId);
-    if (!business) {
-      return NextResponse.json(
-        { error: "Business not found" },
-        { status: 404 }
-      );
-    }
-
-    if (String(business.userId) !== String(decoded.userId)) {
-      return NextResponse.json(
-        { error: "Unauthorized - You can only add staff to your own business" },
-        { status: 403 }
-      );
-    }
-
-    if (business.status === "rejected") {
-      return NextResponse.json(
-        { error: "Cannot add staff to a rejected business" },
-        { status: 403 }
-      );
-    }
-
-    // =========================================================================
-    // STEP 5: Handle File Upload
-    // =========================================================================
-    let photoUrl = "";
-    if (photoFile && photoFile.size > 0) {
-      // Validate file type
-      if (!photoFile.type.startsWith("image/")) {
-        return NextResponse.json(
-          { error: "Invalid file type. Only images are allowed." },
-          { status: 400 }
-        );
-      }
-
-      // Validate size (e.g. 5MB)
-      if (photoFile.size > 5 * 1024 * 1024) {
-        return NextResponse.json(
-          { error: "Image too large. Max 5MB." },
-          { status: 400 }
-        );
-      }
-
-      const bytes = await photoFile.arrayBuffer();
-      const buffer = Buffer.from(bytes);
-
-      // Create unique filename
-      const originalName = photoFile.name.replace(/[^a-zA-Z0-9.-]/g, "_");
-      const filename = `staff-${Date.now()}-${originalName}`;
-
-      // Ensure uploads directory exists
-      const relativeUploadDir = "/uploads/staff";
-      const uploadDir = join(process.cwd(), "public", relativeUploadDir);
-
-      try {
-        await mkdir(uploadDir, { recursive: true });
-        const filePath = join(uploadDir, filename);
-        await writeFile(filePath, buffer);
-        photoUrl = `${relativeUploadDir}/${filename}`;
-      } catch (e) {
-        console.error("Error saving file:", e);
-        return NextResponse.json(
-          { error: "Failed to save image file" },
-          { status: 500 }
-        );
-      }
-    }
-
-    // =========================================================================
-    // STEP 6: Create staff member in database
-    // =========================================================================
-    const staff = await Staff.create({
-      businessId: validatedData.businessId,
-      name: validatedData.name.trim(),
-      photo: photoUrl || undefined,
-      qualifications: validatedData.qualifications || undefined,
-      about: validatedData.about || undefined,
-      isActive: true, // Default to active
-    });
-
-    console.log("Staff created, ID:", String(staff._id));
-
-    // Verify staff was saved (paranoid check)
-    const savedStaff = await Staff.findById(staff._id);
-    if (!savedStaff) {
-      console.error("Staff was not saved to database!");
-      return NextResponse.json(
-        { error: "Failed to save staff to database. Please try again." },
-        { status: 500 }
-      );
-    }
-
-    console.log("Staff created and verified. ID:", String(savedStaff._id));
-    console.log("Staff details:", {
-      id: String(savedStaff._id),
-      name: savedStaff.name,
-      businessId: String(savedStaff.businessId),
-      isActive: savedStaff.isActive,
-      photo: savedStaff.photo,
-      qualifications: savedStaff.qualifications,
-      about: savedStaff.about,
-    });
-
-    // =========================================================================
-    // STEP 7: Return success response
-    // =========================================================================
-    return NextResponse.json(
-      {
-        message: "Staff member added successfully",
-        staff: {
-          id: String(savedStaff._id),
-          _id: String(savedStaff._id),  // Include both formats for compatibility
-          name: savedStaff.name,
-          photo: savedStaff.photo,
-          qualifications: savedStaff.qualifications,
-          about: savedStaff.about,
-          isActive: savedStaff.isActive,
-          businessId: String(savedStaff.businessId),
-        },
-      },
-      { status: 201 }  // 201 = Created
-    );
-  } catch (error: any) {
-    console.error("Create staff error:", error);
-    console.error("Error details:", {
-      message: error.message,
-      stack: error.stack,
-      name: error.name,
-    });
-
-    if (error.name === "ZodError") {
-      return NextResponse.json(
-        { error: "Validation error", details: error.errors },
-        { status: 400 }
-      );
-    }
-
-    return NextResponse.json(
-      {
-        error: "Failed to add staff member",
-        details: error.message || "Unknown error occurred"
-      },
-      { status: 500 }
-    );
+  // Verify business ownership
+  const business = await Business.findById(validatedData.businessId);
+  if (!business) {
+    throw new APIError(404, "Business not found", "BUSINESS_NOT_FOUND");
   }
+
+  if (String(business.userId) !== String(session.userId)) {
+    throw new APIError(403, "You can only add staff to your own business", "FORBIDDEN");
+  }
+
+  if (business.status === "rejected") {
+    throw new APIError(403, "Cannot add staff to a rejected business", "BUSINESS_REJECTED");
+  }
+
+  // Handle file upload
+  let photoUrl = "";
+  if (photoFile && photoFile.size > 0) {
+    if (!photoFile.type.startsWith("image/")) {
+      throw new APIError(400, "Invalid file type. Only images allowed.", "INVALID_FILE_TYPE");
+    }
+
+    if (photoFile.size > 5 * 1024 * 1024) {
+      throw new APIError(400, "Image too large. Max 5MB.", "FILE_TOO_LARGE");
+    }
+
+    const bytes = await photoFile.arrayBuffer();
+    const buffer = Buffer.from(bytes);
+    const originalName = photoFile.name.replace(/[^a-zA-Z0-9.-]/g, "_");
+    const filename = `staff-${Date.now()}-${originalName}`;
+    const relativeUploadDir = "/uploads/staff";
+    const uploadDir = join(process.cwd(), "public", relativeUploadDir);
+
+    await mkdir(uploadDir, { recursive: true });
+    const filePath = join(uploadDir, filename);
+    await writeFile(filePath, buffer);
+    photoUrl = `${relativeUploadDir}/${filename}`;
+  }
+
+  // Create staff member
+  const staff = await Staff.create({
+    businessId: validatedData.businessId,
+    name: validatedData.name.trim(),
+    photo: photoUrl || undefined,
+    qualifications: validatedData.qualifications || undefined,
+    about: validatedData.about || undefined,
+    isActive: true,
+  });
+
+  return createdResponse({
+    message: "Staff member added successfully",
+    staff: {
+      id: String(staff._id),
+      name: staff.name,
+      photo: staff.photo,
+      qualifications: staff.qualifications,
+      about: staff.about,
+      isActive: staff.isActive,
+      businessId: String(staff.businessId),
+    },
+  });
 }
 
-/**
- * =============================================================================
- * GET /api/staff - List Staff Members
- * =============================================================================
- * 
- * QUERY PARAMETERS:
- * - businessId (required): Which business to list staff for
- * - isActive (optional): Filter by active status ("true" or "false")
- * 
- * EXAMPLE:
- *   GET /api/staff?businessId=abc123&isActive=true
- * 
- * RESPONSE (Success - 200):
- * {
- *   "staff": [
- *     { id, name, photo, qualifications, about, bio, isActive, createdAt },
- *     ...
- *   ]
- * }
- * 
- * NOTE: This endpoint is public (no auth required) so customers can see staff
- */
+// =============================================================================
+// GET - List Staff (Public)
+// =============================================================================
 async function getStaffListHandler(req: NextRequest) {
-  try {
-    const { searchParams } = new URL(req.url);
-    const businessId = searchParams.get("businessId");
-    const status = searchParams.get("status") || "active"; // Default to active only
-    const limit = Math.min(parseInt(searchParams.get("limit") || "50"), 100);
-    const page = Math.max(parseInt(searchParams.get("page") || "1"), 1);
-    const skip = (page - 1) * limit;
+  const { searchParams } = new URL(req.url);
+  const businessId = searchParams.get("businessId");
+  const status = searchParams.get("status") || "active";
+  const limit = Math.min(parseInt(searchParams.get("limit") || "50"), 100);
+  const page = Math.max(parseInt(searchParams.get("page") || "1"), 1);
+  const skip = (page - 1) * limit;
 
-    if (!businessId) {
-      return NextResponse.json(
-        { error: "businessId is required" },
-        { status: 400 }
-      );
-    }
-
-    await dbConnect();
-
-    // Build query
-    const query: any = { businessId };
-    if (status === "active") {
-      query.isActive = true;
-    } else if (status === "inactive") {
-      query.isActive = false;
-    }
-    // If status === "all", don't filter by isActive
-
-    const staff = await Staff.find(query)
-      .sort({ createdAt: -1 })
-      .limit(limit)
-      .skip(skip)
-      .lean(); // 30% performance improvement
-
-    const total = await Staff.countDocuments(query);
-
-    return NextResponse.json(
-      {
-        staff: staff.map((s: any) => ({
-          id: String(s._id),
-          businessId: String(s.businessId),
-          name: s.name,
-          photo: s.photo,
-          qualifications: s.qualifications,
-          about: s.about,
-          isActive: s.isActive,
-          createdAt: s.createdAt,
-          updatedAt: s.updatedAt,
-        })),
-        pagination: {
-          total,
-          page,
-          limit,
-          pages: Math.ceil(total / limit),
-        },
-      },
-      { status: 200 }
-    );
-  } catch (error: any) {
-    console.error("Get staff list error:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch staff members" },
-      { status: 500 }
-    );
+  if (!businessId) {
+    throw new APIError(400, "businessId is required", "MISSING_PARAM");
   }
+
+  await dbConnect();
+
+  const query: any = { businessId };
+  if (status === "active") query.isActive = true;
+  else if (status === "inactive") query.isActive = false;
+
+  const staff = await Staff.find(query)
+    .sort({ createdAt: -1 })
+    .limit(limit)
+    .skip(skip)
+    .lean();
+
+  const total = await Staff.countDocuments(query);
+
+  return NextResponse.json({
+    staff: staff.map((s: any) => ({
+      id: String(s._id),
+      businessId: String(s.businessId),
+      name: s.name,
+      photo: s.photo,
+      qualifications: s.qualifications,
+      about: s.about,
+      isActive: s.isActive,
+      createdAt: s.createdAt,
+    })),
+    pagination: {
+      total,
+      page,
+      limit,
+      pages: Math.ceil(total / limit),
+    },
+  });
 }
 
 // =============================================================================
-// EXPORTS: Wrap handlers with rate limiting
+// EXPORTS
 // =============================================================================
-export const POST = withRateLimit(createStaffHandler);
-export const GET = withRateLimit(getStaffListHandler);
+export const POST = asyncHandler(createStaffHandler);
+export const GET = asyncHandler(getStaffListHandler);

@@ -1,150 +1,128 @@
-import { NextRequest, NextResponse } from "next/server";
+/**
+ * =============================================================================
+ * BUSINESS BY ID API - /api/business/[id] (Production-Ready)
+ * =============================================================================
+ * 
+ * GET: Public (no auth needed)
+ * PUT: Requires session auth + ownership
+ * DELETE: Requires session auth + ownership
+ */
+
+import { NextRequest } from "next/server";
 import dbConnect from "@/lib/db";
 import Business from "@/lib/models/Business";
-import { businessUpdateSchema } from "@/lib/validation";
-import { withRateLimitDynamic } from "@/lib/security/rate-limit";
+import { authenticateRequest } from "@/lib/api-auth";
+import { applyRateLimit } from "@/lib/rate-limit";
+import { APIError, asyncHandler, successResponse } from "@/lib/api-response";
 
 export const dynamic = 'force-dynamic';
 
+// =============================================================================
+// GET Business by ID (Public)
+// =============================================================================
 async function getBusinessHandler(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  try {
-    await dbConnect();
+  await dbConnect();
 
-    const business = await Business.findById(params.id).populate("userId", "fname lname email");
-
-    if (!business) {
-      return NextResponse.json(
-        { error: "Business not found" },
-        { status: 404 }
-      );
-    }
-
-    // Type-safe userId handling
-    let userIdData: any;
-    if (business.userId && typeof business.userId === 'object' && 'fname' in business.userId) {
-      // Populated user object
-      const user = business.userId as any;
-      userIdData = {
-        id: user._id?.toString() || user._id,
-        fname: user.fname,
-        lname: user.lname,
-        email: user.email,
-      };
-    } else {
-      // Just ObjectId
-      userIdData = business.userId?.toString() || business.userId;
-    }
-
-    return NextResponse.json(
-      {
-        business: {
-          id: business._id?.toString() || business._id,
-          _id: business._id?.toString() || business._id,
-          userId: userIdData,
-          businessName: business.businessName,
-          email: business.email,
-          phone: business.phone,
-          address: business.address,
-          location: business.location, // Return GeoJSON location
-          logo: business.logo,
-          story: business.story,
-          status: business.status,
-          bankDetails: business.bankDetails,
-          createdAt: business.createdAt,
-          updatedAt: business.updatedAt,
-        },
-      },
-      { status: 200 }
-    );
-  } catch (error: any) {
-    console.error("Get business error:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch business" },
-      { status: 500 }
-    );
+  const business = await Business.findById(params.id).lean();
+  if (!business) {
+    throw new APIError(404, "Business not found", "NOT_FOUND");
   }
+
+  return successResponse({ business });
 }
 
+// =============================================================================
+// UPDATE Business (Requires Auth + Ownership)
+// =============================================================================
 async function updateBusinessHandler(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  try {
-    const body = await req.json();
-    const validatedData = businessUpdateSchema.parse(body);
+  // Rate limiting
+  const rateLimitResponse = applyRateLimit(req, 20);
+  if (rateLimitResponse) return rateLimitResponse;
 
-    await dbConnect();
+  // Authentication
+  const session = await authenticateRequest(req);
 
-    const business = await Business.findById(params.id);
+  await dbConnect();
 
-    if (!business) {
-      return NextResponse.json(
-        { error: "Business not found" },
-        { status: 404 }
-      );
-    }
-
-    // Extract address and location if present
-    if (validatedData.address) {
-      if (typeof validatedData.address === 'string') {
-        business.address = validatedData.address;
-        // Don't touch location if only string address provided (unless we geo-code, but sticking to simple logic for now)
-      } else if (typeof validatedData.address === 'object') {
-        business.address = validatedData.address.street;
-        if (validatedData.address.location) {
-          business.location = validatedData.address.location;
-        }
-      }
-      // Remove address from validatedData so it doesn't overwrite with object
-      delete (validatedData as any).address;
-    }
-
-    Object.assign(business, validatedData);
-    await business.save();
-
-    // Verify business was saved
-    const savedBusiness = await Business.findById(business._id);
-    if (!savedBusiness) {
-      console.error("Business update was not saved to database!");
-      return NextResponse.json(
-        { error: "Failed to save business update. Please try again." },
-        { status: 500 }
-      );
-    }
-
-
-
-    return NextResponse.json(
-      {
-        message: "Business updated successfully",
-        business: {
-          id: String(business._id),
-          businessName: business.businessName,
-          email: business.email,
-          status: business.status,
-        },
-      },
-      { status: 200 }
-    );
-  } catch (error: any) {
-    if (error.name === "ZodError") {
-      return NextResponse.json(
-        { error: "Validation error", details: error.errors },
-        { status: 400 }
-      );
-    }
-
-    console.error("Update business error:", error);
-    return NextResponse.json(
-      { error: "Failed to update business" },
-      { status: 500 }
-    );
+  const business = await Business.findById(params.id);
+  if (!business) {
+    throw new APIError(404, "Business not found", "NOT_FOUND");
   }
+
+  // Verify ownership
+  if (String(business.userId) !== String(session.userId)) {
+    throw new APIError(403, "You can only update your own business", "FORBIDDEN");
+  }
+
+  const body = await req.json();
+
+  // Update allowed fields (excluding sensitive ones like userId, status)
+  const allowedFields = [
+    'businessName', 'description', 'address', 'phone',
+    'email', 'logo', 'operatingHours', 'website'
+  ];
+
+  allowedFields.forEach(field => {
+    if (body[field] !== undefined) {
+      (business as any)[field] = body[field];
+    }
+  });
+
+  await business.save();
+
+  return successResponse({
+    message: "Business updated successfully",
+    business: {
+      id: String(business._id),
+      businessName: business.businessName,
+    },
+  });
 }
 
-export const GET = withRateLimitDynamic(getBusinessHandler);
-export const PUT = withRateLimitDynamic(updateBusinessHandler);
+// =============================================================================
+// DELETE Business (Requires Auth + Ownership)
+// =============================================================================
+async function deleteBusinessHandler(
+  req: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  // Rate limiting
+  const rateLimitResponse = applyRateLimit(req, 5);
+  if (rateLimitResponse) return rateLimitResponse;
 
+  // Authentication
+  const session = await authenticateRequest(req);
+
+  await dbConnect();
+
+  const business = await Business.findById(params.id);
+  if (!business) {
+    throw new APIError(404, "Business not found", "NOT_FOUND");
+  }
+
+  // Verify ownership
+  if (String(business.userId) !== String(session.userId)) {
+    throw new APIError(403, "You can only delete your own business", "FORBIDDEN");
+  }
+
+  // Soft delete - mark as suspended instead of hard delete
+  business.status = "suspended";
+  await business.save();
+
+  return successResponse({
+    message: "Business deactivated successfully",
+  });
+}
+
+// =============================================================================
+// EXPORTS
+// =============================================================================
+export const GET = asyncHandler(getBusinessHandler);
+export const PUT = asyncHandler(updateBusinessHandler);
+export const DELETE = asyncHandler(deleteBusinessHandler);

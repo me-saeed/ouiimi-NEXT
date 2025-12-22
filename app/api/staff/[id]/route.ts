@@ -1,170 +1,131 @@
+/**
+ * =============================================================================
+ * STAFF BY ID API - /api/staff/[id] (Production-Ready)
+ * =============================================================================
+ * 
+ * GET: Public (no auth needed)
+ * PUT/DELETE: Requires session auth + business ownership
+ */
+
 import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/db";
 import Staff from "@/lib/models/Staff";
-import { staffUpdateSchema } from "@/lib/validation";
-import { withRateLimitDynamic } from "@/lib/security/rate-limit";
+import Business from "@/lib/models/Business";
+import { authenticateRequest } from "@/lib/api-auth";
+import { applyRateLimit } from "@/lib/rate-limit";
+import { APIError, asyncHandler, successResponse } from "@/lib/api-response";
 
 export const dynamic = 'force-dynamic';
 
+// =============================================================================
+// GET Staff by ID (Public)
+// =============================================================================
 async function getStaffHandler(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  try {
-    await dbConnect();
+  await dbConnect();
 
-    const staff = await Staff.findById(params.id).populate("businessId", "businessName");
-
-    if (!staff) {
-      return NextResponse.json(
-        { error: "Staff member not found" },
-        { status: 404 }
-      );
-    }
-
-    // Type-safe businessId handling
-    let businessIdData: any;
-    if (staff.businessId && typeof staff.businessId === 'object' && 'businessName' in staff.businessId) {
-      // Populated business object
-      const business = staff.businessId as any;
-      businessIdData = {
-        id: business._id?.toString() || business._id,
-        businessName: business.businessName,
-      };
-    } else {
-      // Just ObjectId
-      businessIdData = staff.businessId?.toString() || staff.businessId;
-    }
-
-    return NextResponse.json(
-      {
-        staff: {
-          id: staff._id?.toString() || staff._id,
-          _id: staff._id?.toString() || staff._id,
-          businessId: businessIdData,
-          name: staff.name,
-          photo: staff.photo,
-          qualifications: staff.qualifications,
-          about: staff.about,
-          isActive: staff.isActive,
-          createdAt: staff.createdAt,
-          updatedAt: staff.updatedAt,
-        },
-      },
-      { status: 200 }
-    );
-  } catch (error: any) {
-    console.error("Get staff error:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch staff member" },
-      { status: 500 }
-    );
+  const staff = await Staff.findById(params.id).lean();
+  if (!staff) {
+    throw new APIError(404, "Staff member not found", "NOT_FOUND");
   }
+
+  return successResponse({ staff });
 }
 
+// =============================================================================
+// UPDATE Staff (Requires Auth + Ownership)
+// =============================================================================
 async function updateStaffHandler(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  try {
-    const body = await req.json();
-    const validatedData = staffUpdateSchema.parse(body);
+  // Rate limiting
+  const rateLimitResponse = applyRateLimit(req, 20);
+  if (rateLimitResponse) return rateLimitResponse;
 
-    await dbConnect();
+  // Authentication
+  const session = await authenticateRequest(req);
 
-    const staff = await Staff.findById(params.id);
+  await dbConnect();
 
-    if (!staff) {
-      return NextResponse.json(
-        { error: "Staff member not found" },
-        { status: 404 }
-      );
-    }
-
-    Object.assign(staff, validatedData);
-    await staff.save();
-
-    // Verify staff was saved
-    const savedStaff = await Staff.findById(staff._id);
-    if (!savedStaff) {
-      console.error("Staff update was not saved to database!");
-      return NextResponse.json(
-        { error: "Failed to save staff update. Please try again." },
-        { status: 500 }
-      );
-    }
-
-    return NextResponse.json(
-      {
-        message: "Staff member updated successfully",
-        staff: {
-          id: String(staff._id),
-          name: staff.name,
-          isActive: staff.isActive,
-        },
-      },
-      { status: 200 }
-    );
-  } catch (error: any) {
-    if (error.name === "ZodError") {
-      return NextResponse.json(
-        { error: "Validation error", details: error.errors },
-        { status: 400 }
-      );
-    }
-
-    console.error("Update staff error:", error);
-    return NextResponse.json(
-      { error: "Failed to update staff member" },
-      { status: 500 }
-    );
+  const staff = await Staff.findById(params.id);
+  if (!staff) {
+    throw new APIError(404, "Staff member not found", "NOT_FOUND");
   }
+
+  // Verify ownership
+  const business = await Business.findById(staff.businessId);
+  if (!business) {
+    throw new APIError(404, "Business not found", "BUSINESS_NOT_FOUND");
+  }
+
+  if (String(business.userId) !== String(session.userId)) {
+    throw new APIError(403, "You can only update your own staff", "FORBIDDEN");
+  }
+
+  const body = await req.json();
+
+  // Update allowed fields
+  if (body.name) staff.name = body.name;
+  if (body.qualifications !== undefined) staff.qualifications = body.qualifications;
+  if (body.about !== undefined) staff.about = body.about;
+  if (body.isActive !== undefined) staff.isActive = body.isActive;
+
+  await staff.save();
+
+  return successResponse({
+    message: "Staff updated successfully",
+    staff: {
+      id: String(staff._id),
+      name: staff.name,
+      isActive: staff.isActive,
+    },
+  });
 }
 
+// =============================================================================
+// DELETE Staff (Requires Auth + Ownership)
+// =============================================================================
 async function deleteStaffHandler(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  try {
-    await dbConnect();
+  // Rate limiting
+  const rateLimitResponse = applyRateLimit(req, 10);
+  if (rateLimitResponse) return rateLimitResponse;
 
-    // Validate ObjectId format
-    const mongoose = (await import("mongoose")).default;
-    if (!mongoose.Types.ObjectId.isValid(params.id)) {
-      return NextResponse.json(
-        { error: "Invalid staff ID format" },
-        { status: 400 }
-      );
-    }
+  // Authentication
+  const session = await authenticateRequest(req);
 
-    const staff = await Staff.findById(params.id);
+  await dbConnect();
 
-    if (!staff) {
-      return NextResponse.json(
-        { error: "Staff member not found" },
-        { status: 404 }
-      );
-    }
-
-    // Actually delete the staff member
-    await Staff.findByIdAndDelete(params.id);
-
-    return NextResponse.json(
-      {
-        message: "Staff member deleted successfully",
-      },
-      { status: 200 }
-    );
-  } catch (error: any) {
-    console.error("Delete staff error:", error);
-    return NextResponse.json(
-      { error: "Failed to delete staff member" },
-      { status: 500 }
-    );
+  const staff = await Staff.findById(params.id);
+  if (!staff) {
+    throw new APIError(404, "Staff member not found", "NOT_FOUND");
   }
+
+  // Verify ownership
+  const business = await Business.findById(staff.businessId);
+  if (!business) {
+    throw new APIError(404, "Business not found", "BUSINESS_NOT_FOUND");
+  }
+
+  if (String(business.userId) !== String(session.userId)) {
+    throw new APIError(403, "You can only delete your own staff", "FORBIDDEN");
+  }
+
+  await Staff.findByIdAndDelete(params.id);
+
+  return successResponse({
+    message: "Staff deleted successfully",
+  });
 }
 
-export const GET = withRateLimitDynamic(getStaffHandler);
-export const PUT = withRateLimitDynamic(updateStaffHandler);
-export const DELETE = withRateLimitDynamic(deleteStaffHandler);
-
+// =============================================================================
+// EXPORTS
+// =============================================================================
+export const GET = asyncHandler(getStaffHandler);
+export const PUT = asyncHandler(updateStaffHandler);
+export const DELETE = asyncHandler(deleteStaffHandler);

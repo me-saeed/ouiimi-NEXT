@@ -1,79 +1,59 @@
 /**
- * Reject Business API
- * PUT /api/admin/businesses/[id]/reject
+ * =============================================================================
+ * ADMIN BUSINESS REJECT - /api/admin/businesses/[id]/reject
+ * =============================================================================
+ * 
+ * Admin-only endpoint to reject pending businesses.
  */
-import { NextRequest, NextResponse } from "next/server";
+
+import { NextRequest } from "next/server";
 import dbConnect from "@/lib/db";
 import Business from "@/lib/models/Business";
-import { verifyToken } from "@/lib/jwt";
+import { authenticateAdmin } from "@/lib/api-auth";
+import { applyRateLimit } from "@/lib/rate-limit";
+import { APIError, asyncHandler, successResponse } from "@/lib/api-response";
 
 export const dynamic = 'force-dynamic';
 
-export async function PUT(
+async function rejectBusinessHandler(
     req: NextRequest,
     { params }: { params: { id: string } }
 ) {
-    try {
-        // Verify admin auth
-        const authHeader = req.headers.get("authorization");
-        if (!authHeader?.startsWith("Bearer ")) {
-            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-        }
+    // Rate limiting
+    const rateLimitResponse = applyRateLimit(req, 10);
+    if (rateLimitResponse) return rateLimitResponse;
 
-        const token = authHeader.substring(7);
-        const decoded = verifyToken(token);
+    // Admin authentication
+    const adminSession = await authenticateAdmin(req);
 
-        if (!decoded.roles?.includes('admin')) {
-            return NextResponse.json({ error: "Admin access required" }, { status: 403 });
-        }
+    const body = await req.json();
+    const reason = body.reason || "No reason provided";
 
-        await dbConnect();
+    await dbConnect();
 
-        const businessId = params.id;
-        const body = await req.json();
-        const { reason } = body;
-
-        if (!reason || reason.trim().length < 10) {
-            return NextResponse.json(
-                { error: "Rejection reason required (minimum 10 characters)" },
-                { status: 400 }
-            );
-        }
-
-        // Find and update business
-        const business = await Business.findById(businessId).populate(
-            "userId",
-            "fname lname email"
-        );
-
-        if (!business) {
-            return NextResponse.json({ error: "Business not found" }, { status: 404 });
-        }
-
-        // Update status
-        business.status = "rejected";
-        await business.save();
-
-        // TODO: Send rejection email to business owner with reason
-        // await sendBusinessRejectionEmail(user.email, user.fname, business.businessName, reason);
-
-        console.log(
-            `[Admin] Business rejected: ${business.businessName} (ID: ${businessId}) - Reason: ${reason}`
-        );
-
-        return NextResponse.json({
-            message: "Business rejected",
-            business: {
-                id: String(business._id),
-                businessName: business.businessName,
-                status: business.status,
-            },
-        });
-    } catch (error: any) {
-        console.error("Error rejecting business:", error);
-        return NextResponse.json(
-            { error: "Failed to reject business" },
-            { status: 500 }
-        );
+    const business = await Business.findById(params.id);
+    if (!business) {
+        throw new APIError(404, "Business not found", "NOT_FOUND");
     }
+
+    if (business.status !== "pending") {
+        throw new APIError(400, "Only pending businesses can be rejected", "INVALID_STATUS");
+    }
+
+    business.status = "rejected";
+    // Note: rejection reason logged but not stored in current model
+    await business.save();
+
+    console.log(`[ADMIN] Business ${params.id} rejected by ${adminSession.email}: ${reason}`);
+
+    return successResponse({
+        message: "Business rejected successfully",
+        business: {
+            id: String(business._id),
+            businessName: business.businessName,
+            status: business.status,
+        },
+    });
 }
+
+export const POST = asyncHandler(rejectBusinessHandler);
