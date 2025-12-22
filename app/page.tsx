@@ -1,23 +1,18 @@
-"use client";
-
-import { useEffect, useState } from "react";
 import Link from "next/link";
 import PageLayout from "@/components/layout/PageLayout";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { ServiceCard } from "@/components/ui/service-card";
-import { ServiceCarousel } from "@/components/ui/service-carousel";
-import { ArrowRight, X } from "lucide-react";
-import { useAuth } from "@/lib/contexts/AuthContext";
+import { ArrowRight } from "lucide-react";
 import { getAllCategories } from "@/lib/constants/categories";
+
+// Enable ISR - revalidate every 60 seconds
+export const revalidate = 60;
 
 // Get all category names for homepage display
 const SERVICE_CATEGORIES = getAllCategories().map(cat => cat.name);
 
-// Removed: Categories are now shown without subcategory grouping
-
 interface Service {
   id: string;
+  _id?: string;
   serviceName: string;
   category: string;
   subCategory?: string;
@@ -32,191 +27,161 @@ interface Service {
   }>;
 }
 
-export default function HomePage() {
-  const { user } = useAuth();
-  const [services, setServices] = useState<Record<string, Service[]>>({});
-  const [serviceCounts, setServiceCounts] = useState<Record<string, number>>({});
-  const [isLoading, setIsLoading] = useState(true);
+// Server-side data fetching function
+async function fetchCategoryServices(category: string): Promise<{ services: Service[], total: number }> {
+  try {
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+    const response = await fetch(
+      `${baseUrl}/api/services?category=${encodeURIComponent(category)}&status=listed&limit=12`,
+      {
+        next: { revalidate: 60 }, // Cache for 60 seconds
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      }
+    );
 
-
-  useEffect(() => {
-    loadServices();
-    // Set up interval to refresh services every 30 seconds for real-time updates
-    const interval = setInterval(() => {
-      loadServices();
-    }, 30000); // 30 seconds
-
-    return () => clearInterval(interval);
-  }, []);
-
-  const loadServices = async () => {
-    try {
-      const servicesData: Record<string, Service[]> = {};
-      const countsData: Record<string, number> = {};
-
-      // Fetch services for each category
-      await Promise.all(
-        SERVICE_CATEGORIES.map(async (category) => {
-          try {
-            // Fetch more than 6 services to ensure we have enough after potential server-side filtering
-            const response = await fetch(
-              `/api/services?category=${encodeURIComponent(category)}&status=listed&limit=12`
-            );
-
-            if (response.ok) {
-              const data = await response.json();
-              console.log(`[Homepage] ${category} - API returned:`, data.services?.length || 0, 'services');
-              if (data.services && data.services.length > 0) {
-                console.log(`[Homepage] ${category} - First service:`, {
-                  name: data.services[0].serviceName,
-                  hasTimeSlots: !!data.services[0].timeSlots,
-                  timeSlotsCount: data.services[0].timeSlots?.length || 0,
-                  firstSlot: data.services[0].timeSlots?.[0] || null
-                });
-              }
-              // Services already filtered for available slots by API
-              servicesData[category] = data.services || [];
-              // Use pagination total from API
-              countsData[category] = data.pagination?.total || data.services?.length || 0;
-            } else {
-              console.error(`[Homepage] ${category} - API error:`, response.status);
-              servicesData[category] = [];
-              countsData[category] = 0;
-            }
-          } catch (error) {
-            console.error(`Error fetching ${category} services:`, error);
-            servicesData[category] = [];
-            countsData[category] = 0;
-          }
-        })
-      );
-
-      setServices(servicesData);
-      setServiceCounts(countsData);
-    } catch (error) {
-      console.error("Error loading services:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Format time to 12-hour AM/PM format
-  const formatTime12Hour = (time24: string): string => {
-    if (!time24) return "";
-    const [hours, minutes] = time24.split(":").map(Number);
-    const period = hours >= 12 ? "PM" : "AM";
-    const hours12 = hours % 12 || 12;
-    return `${hours12}:${String(minutes).padStart(2, "0")} ${period.toLowerCase()}`;
-  };
-
-  const getEarliestAvailableTimeSlot = (service: Service) => {
-    if (!service.timeSlots || service.timeSlots.length === 0) {
-      return null;
+    if (!response.ok) {
+      console.error(`[Homepage Server] ${category} - API error:`, response.status);
+      return { services: [], total: 0 };
     }
 
-    const now = new Date();
-
-    // Find all available (not booked) future slots
-    const availableSlots = service.timeSlots
-      .filter((slot) => {
-        if (slot.isBooked) return false;
-
-        const slotDate = typeof slot.date === 'string' ? new Date(slot.date) : new Date(slot.date);
-        const slotDateOnly = new Date(slotDate.getFullYear(), slotDate.getMonth(), slotDate.getDate());
-        const nowDateOnly = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-
-        // If slot date is today, check if end time has passed
-        if (slotDateOnly.getTime() === nowDateOnly.getTime()) {
-          const [endHours, endMinutes] = slot.endTime.split(":").map(Number);
-          const slotEndDateTime = new Date(slotDate);
-          slotEndDateTime.setHours(endHours, endMinutes, 0, 0);
-          return slotEndDateTime > now;
-        }
-
-        // If slot date is in the future
-        return slotDateOnly > nowDateOnly;
-      })
-      .sort((a, b) => {
-        const dateA = typeof a.date === 'string' ? new Date(a.date) : new Date(a.date);
-        const dateB = typeof b.date === 'string' ? new Date(b.date) : new Date(b.date);
-
-        // Sort by date first
-        if (dateA.getTime() !== dateB.getTime()) {
-          return dateA.getTime() - dateB.getTime();
-        }
-
-        // If same date, sort by start time
-        const [hoursA, minsA] = a.startTime.split(":").map(Number);
-        const [hoursB, minsB] = b.startTime.split(":").map(Number);
-        const timeA = hoursA * 60 + minsA;
-        const timeB = hoursB * 60 + minsB;
-        return timeA - timeB;
-      });
-
-    if (availableSlots.length === 0) {
-      return null;
-    }
-
-    const earliestSlot = availableSlots[0];
-    const slotDate = typeof earliestSlot.date === 'string' ? new Date(earliestSlot.date) : new Date(earliestSlot.date);
-
-    // Format date as DD.MM.YY (06.06.26)
-    const formattedDate = `${String(slotDate.getDate()).padStart(2, "0")}.${String(slotDate.getMonth() + 1).padStart(2, "0")}.${String(slotDate.getFullYear()).slice(-2)}`;
-
-    // Format time as "10:00 am - 12:00pm"
-    const formattedTime = `${formatTime12Hour(earliestSlot.startTime)} - ${formatTime12Hour(earliestSlot.endTime)}`;
-
+    const data = await response.json();
     return {
-      date: formattedDate,
-      time: formattedTime,
-      price: earliestSlot.price
+      services: data.services || [],
+      total: data.pagination?.total || data.services?.length || 0,
     };
+  } catch (error) {
+    console.error(`[Homepage Server] Error fetching ${category}:`, error);
+    return { services: [], total: 0 };
+  }
+}
+
+//Helper functions (moved from client)
+function formatTime12Hour(time24: string): string {
+  if (!time24) return "";
+  const [hours, minutes] = time24.split(":").map(Number);
+  const period = hours >= 12 ? "PM" : "AM";
+  const hours12 = hours % 12 || 12;
+  return `${hours12}:${String(minutes).padStart(2, "0")} ${period.toLowerCase()}`;
+}
+
+function getEarliestAvailableTimeSlot(service: Service) {
+  if (!service.timeSlots || service.timeSlots.length === 0) {
+    return null;
+  }
+
+  const now = new Date();
+
+  const availableSlots = service.timeSlots
+    .filter((slot) => {
+      if (slot.isBooked) return false;
+
+      const slotDate = typeof slot.date === 'string' ? new Date(slot.date) : new Date(slot.date);
+      const slotDateOnly = new Date(slotDate.getFullYear(), slotDate.getMonth(), slotDate.getDate());
+      const nowDateOnly = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+      if (slotDateOnly.getTime() === nowDateOnly.getTime()) {
+        const [endHours, endMinutes] = slot.endTime.split(":").map(Number);
+        const slotEndDateTime = new Date(slotDate);
+        slotEndDateTime.setHours(endHours, endMinutes, 0, 0);
+        return slotEndDateTime > now;
+      }
+
+      return slotDateOnly > nowDateOnly;
+    })
+    .sort((a, b) => {
+      const dateA = typeof a.date === 'string' ? new Date(a.date) : new Date(a.date);
+      const dateB = typeof b.date === 'string' ? new Date(b.date) : new Date(b.date);
+
+      if (dateA.getTime() !== dateB.getTime()) {
+        return dateA.getTime() - dateB.getTime();
+      }
+
+      const [hoursA, minsA] = a.startTime.split(":").map(Number);
+      const [hoursB, minsB] = b.startTime.split(":").map(Number);
+      const timeA = hoursA * 60 + minsA;
+      const timeB = hoursB * 60 + minsB;
+      return timeA - timeB;
+    });
+
+  if (availableSlots.length === 0) {
+    return null;
+  }
+
+  const earliestSlot = availableSlots[0];
+  const slotDate = typeof earliestSlot.date === 'string' ? new Date(earliestSlot.date) : new Date(earliestSlot.date);
+
+  const formattedDate = `${String(slotDate.getDate()).padStart(2, "0")}.${String(slotDate.getMonth() + 1).padStart(2, "0")}.${String(slotDate.getFullYear()).slice(-2)}`;
+  const formattedTime = `${formatTime12Hour(earliestSlot.startTime)} - ${formatTime12Hour(earliestSlot.endTime)}`;
+
+  return {
+    date: formattedDate,
+    time: formattedTime,
+    price: earliestSlot.price
   };
+}
 
-  const formatServiceForCard = (service: Service) => {
-    const earliestSlot = getEarliestAvailableTimeSlot(service);
-    const business = typeof service.businessId === 'object' ? service.businessId : null;
+function formatServiceForCard(service: Service) {
+  const earliestSlot = getEarliestAvailableTimeSlot(service);
+  const business = typeof service.businessId === 'object' ? service.businessId : null;
 
-    // Calculate duration from earliest slot if available
-    let duration = "";
-    if (earliestSlot && service.timeSlots && service.timeSlots.length > 0) {
-      const slot = service.timeSlots.find(s => {
-        const slotDate = typeof s.date === 'string' ? new Date(s.date) : new Date(s.date);
-        const formattedDate = `${String(slotDate.getDate()).padStart(2, "0")}.${String(slotDate.getMonth() + 1).padStart(2, "0")}.${String(slotDate.getFullYear()).slice(-2)}`;
-        return formattedDate === earliestSlot.date;
-      });
-      if (slot && slot.duration) {
-        const hours = Math.floor(slot.duration / 60);
-        const mins = slot.duration % 60;
-        if (hours > 0 && mins > 0) {
-          duration = `${hours}Hr ${mins}mins`;
-        } else if (hours > 0) {
-          duration = `${hours}Hr`;
-        } else {
-          duration = `${mins}mins`;
-        }
+  let duration = "";
+  if (earliestSlot && service.timeSlots && service.timeSlots.length > 0) {
+    const slot = service.timeSlots.find(s => {
+      const slotDate = typeof s.date === 'string' ? new Date(s.date) : new Date(s.date);
+      const formattedDate = `${String(slotDate.getDate()).padStart(2, "0")}.${String(slotDate.getMonth() + 1).padStart(2, "0")}.${String(slotDate.getFullYear()).slice(-2)}`;
+      return formattedDate === earliestSlot.date;
+    });
+    if (slot && slot.duration) {
+      const hours = Math.floor(slot.duration / 60);
+      const mins = slot.duration % 60;
+      if (hours > 0 && mins > 0) {
+        duration = `${hours}Hr ${mins}mins`;
+      } else if (hours > 0) {
+        duration = `${hours}Hr`;
+      } else {
+        duration = `${mins}mins`;
       }
     }
+  }
 
-    return {
-      id: service.id,
-      name: service.serviceName,
-      price: earliestSlot?.price ?? 0,
-      image: business?.logo || "/placeholder-logo.png",
-      category: service.category,
-      subCategory: service.subCategory,
-      businessName: business?.businessName || "Business",
-      location: business?.address || "",
-      duration: duration,
-      date: earliestSlot?.date || null,
-      time: earliestSlot?.time || null,
-    };
+  return {
+    id: service.id || service._id || '',
+    name: service.serviceName,
+    price: earliestSlot?.price ?? 0,
+    image: business?.logo || "/placeholder-logo.png",
+    category: service.category,
+    subCategory: service.subCategory,
+    businessName: business?.businessName || "Business",
+    location: business?.address || "",
+    duration: duration,
+    date: earliestSlot?.date || null,
+    time: earliestSlot?.time || null,
   };
+}
 
-  // Removed: No longer grouping by subcategory
+// Main Server Component
+export default async function HomePage() {
+  // Fetch all categories in parallel
+  const categoriesData = await Promise.all(
+    SERVICE_CATEGORIES.map(async (category) => ({
+      category,
+      ...(await fetchCategoryServices(category)),
+    }))
+  );
+
+  // Convert to object for easier access
+  const servicesData: Record<string, Service[]> = {};
+  const serviceCounts: Record<string, number> = {};
+
+  categoriesData.forEach(({ category, services, total }) => {
+    servicesData[category] = services;
+    serviceCounts[category] = total;
+  });
 
   return (
-    <PageLayout user={user}>
+    <PageLayout>
       <div className="bg-white min-h-screen">
         {/* Book Button - Below Nav */}
         <div className="bg-white py-3 sm:py-4">
@@ -239,22 +204,18 @@ export default function HomePage() {
               Discover
             </h1>
 
-            {SERVICE_CATEGORIES.map((category, categoryIndex) => {
-              const categoryServices = services[category] || [];
+            {SERVICE_CATEGORIES.map((category) => {
+              const categoryServices = servicesData[category] || [];
               const totalCount = serviceCounts[category] || 0;
 
-              if (isLoading) return null; // Or skeleton
               if (categoryServices.length === 0) return null;
 
               // Filter services with available time slots
-              const filteredServices = categoryServices.filter(service => getEarliestAvailableTimeSlot(service) !== null);
+              const filteredServices = categoryServices.filter(
+                service => getEarliestAvailableTimeSlot(service) !== null
+              );
 
-              console.log(`[Homepage] ${category} - After client filter:`, filteredServices.length, 'of', categoryServices.length);
-
-              if (filteredServices.length === 0) {
-                console.warn(`[Homepage] ${category} - All services filtered out by client-side filter`);
-                return null;
-              }
+              if (filteredServices.length === 0) return null;
 
               return (
                 <div key={category}>
@@ -268,7 +229,7 @@ export default function HomePage() {
                       {filteredServices
                         .slice(0, 6)
                         .map((service) => (
-                          <div key={service.id} className="flex-shrink-0">
+                          <div key={service.id || service._id} className="flex-shrink-0">
                             <ServiceCard
                               {...formatServiceForCard(service)}
                             />

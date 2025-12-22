@@ -1,6 +1,9 @@
-"use client";
-
 import PageLayout from "@/components/layout/PageLayout";
+
+export const metadata = {
+  title: "About Us | ouiimi",
+  description: "Learn about ouiimi's mission to make booking everyday services simple, fast, and stress-free for customers and businesses.",
+};
 
 export default function AboutPage() {
   return (

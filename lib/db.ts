@@ -101,6 +101,7 @@ async function dbConnect(): Promise<typeof mongoose> {
       bufferCommands: false,           // Don't buffer commands if disconnected (fail fast)
       maxPoolSize: 50,                 // Maximum 50 connections in pool (was 10)
       minPoolSize: 10,                 // Always keep 10 connections ready (was 2)
+      connectTimeoutMS: 60000,         // Allow 60 seconds for initial connection
       socketTimeoutMS: 45000,          // Close inactive connections after 45 seconds
       serverSelectionTimeoutMS: 10000, // Give up initial connection after 10 seconds
       heartbeatFrequencyMS: 10000,     // Check server status every 10 seconds

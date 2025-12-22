@@ -4,10 +4,11 @@ import Service from "@/lib/models/Service";
 import Business from "@/lib/models/Business";
 import { serviceCreateSchema } from "@/lib/validation";
 import mongoose from "mongoose";
-import { withRateLimit } from "@/lib/security/rate-limit";
-import { verifyToken } from "@/lib/jwt";
+import { authenticateRequest } from "@/lib/api-auth";
+import { applyRateLimit } from "@/lib/rate-limit";
+import { APIError, asyncHandler } from "@/lib/api-response";
 import { handleError } from "@/lib/errors/error-handler";
-import { AuthenticationError, AuthorizationError, NotFoundError, DatabaseError } from "@/lib/errors/api-error";
+import { NotFoundError, DatabaseError } from "@/lib/errors/api-error";
 import { logger } from "@/lib/logger";
 import { cache, MemoryCache } from "@/lib/cache";
 
@@ -15,24 +16,18 @@ export const dynamic = 'force-dynamic';
 
 async function createServiceHandler(req: NextRequest) {
   try {
+    // ==========================================================================
+    // STEP 1: Rate Limiting (20 req/min for service creation)
+    // ==========================================================================
+    const rateLimitResponse = applyRateLimit(req, 20);
+    if (rateLimitResponse) return rateLimitResponse;
 
-
-    // Verify authentication
-    const authHeader = req.headers.get("authorization");
-    if (!authHeader?.startsWith("Bearer ")) {
-      throw new AuthenticationError("Authorization token required");
-    }
-
-    const token = authHeader.substring(7);
-    const decoded = verifyToken(token);
-    if (!decoded) {
-      throw new AuthenticationError("Invalid or expired token");
-    }
-
-
+    // ==========================================================================
+    // STEP 2: Session Authentication
+    // ==========================================================================
+    const session = await authenticateRequest(req);
 
     const body = await req.json();
-
     const validatedData = serviceCreateSchema.parse(body);
 
     await dbConnect();
@@ -42,17 +37,15 @@ async function createServiceHandler(req: NextRequest) {
       throw new NotFoundError("Business not found");
     }
 
-    // Check if user owns this business
-    if (String(business.userId) !== String(decoded.userId)) {
-      throw new AuthorizationError("You can only add services to your own business");
+    // Check ownership - user must own the business
+    if (String(business.userId) !== String(session.userId)) {
+      throw new APIError(403, "You can only add services to your own business", "FORBIDDEN");
     }
 
-    // Allow services for pending or approved businesses (for testing)
+    // Prevent adding services to rejected businesses
     if (business.status === "rejected") {
-      throw new AuthorizationError("Cannot add services to a rejected business");
+      throw new APIError(403, "Cannot add services to a rejected business", "BUSINESS_REJECTED");
     }
-
-
 
     // Calculate duration helper function
     const calculateDuration = (startTime: string, endTime: string): number => {
@@ -128,11 +121,10 @@ async function createServiceHandler(req: NextRequest) {
     logger.info('Service created successfully', {
       serviceId: String(savedService._id),
       businessId: String(savedService.businessId),
-      userId: decoded.userId,
+      userId: session.userId,
     });
 
     console.log("[API /api/services POST] Service created successfully:", String(savedService._id));
-    console.timeEnd("[API /api/services POST] Total execution time");
 
     return NextResponse.json(
       {
@@ -677,6 +669,5 @@ async function getServicesHandler(req: NextRequest) {
   }
 }
 
-export const POST = withRateLimit(createServiceHandler);
-export const GET = withRateLimit(getServicesHandler);
-
+export const POST = asyncHandler(createServiceHandler);
+export const GET = getServicesHandler; // GET is public, no auth needed

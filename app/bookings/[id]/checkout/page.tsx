@@ -32,17 +32,32 @@ export default function CheckoutPage() {
     useEffect(() => {
         const initializeCheckout = async () => {
             try {
+                setIsLoading(true);
                 const token = localStorage.getItem("token");
 
+                if (!token) {
+                    setError("Authentication required");
+                    setIsLoading(false);
+                    return;
+                }
+
+                // Add timeout to prevent infinite loading
+                const timeout = new Promise((_, reject) =>
+                    setTimeout(() => reject(new Error("Request timed out")), 15000)
+                );
+
                 // First, load booking details
-                const bookingResponse = await fetch(`/api/bookings/${bookingId}`, {
+                const bookingPromise = fetch(`/api/bookings/${bookingId}`, {
                     headers: {
                         Authorization: `Bearer ${token}`,
                     },
                 });
 
+                const bookingResponse = await Promise.race([bookingPromise, timeout]) as Response;
+
                 if (!bookingResponse.ok) {
-                    setError("Failed to load booking details");
+                    const errorText = await bookingResponse.text();
+                    setError(errorText || "Failed to load booking details");
                     setIsLoading(false);
                     return;
                 }
@@ -51,7 +66,7 @@ export default function CheckoutPage() {
                 setBooking(bookingData.booking);
 
                 // Then, create payment intent for embedded checkout
-                const intentResponse = await fetch("/api/payments/create-intent", {
+                const intentPromise = fetch("/api/payments/create-intent", {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json",
@@ -59,6 +74,8 @@ export default function CheckoutPage() {
                     },
                     body: JSON.stringify({ bookingId }),
                 });
+
+                const intentResponse = await Promise.race([intentPromise, timeout]) as Response;
 
                 if (!intentResponse.ok) {
                     throw new Error("Failed to initialize payment");
@@ -69,7 +86,7 @@ export default function CheckoutPage() {
                 setPaymentAmount(intentData.amount || bookingData.booking.depositAmount);
             } catch (err: any) {
                 console.error("Checkout initialization error:", err);
-                setError(err.message || "Failed to initialize checkout");
+                setError(err.message || "Failed to initialize checkout. Please try again.");
             } finally {
                 setIsLoading(false);
             }
@@ -77,6 +94,9 @@ export default function CheckoutPage() {
 
         if (!authLoading && isAuthenticated) {
             initializeCheckout();
+        } else if (!authLoading) {
+            // Auth finished loading but user not authenticated - stop loading
+            setIsLoading(false);
         }
     }, [bookingId, authLoading, isAuthenticated]);
 

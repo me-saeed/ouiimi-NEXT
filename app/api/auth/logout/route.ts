@@ -1,31 +1,37 @@
-import { NextRequest, NextResponse } from "next/server";
+/**
+ * =============================================================================
+ * LOGOUT API ROUTE - /api/auth/logout (Production-Ready)
+ * =============================================================================
+ * 
+ * Handles user logout by destroying server-side session.
+ * 
+ * REQUEST: POST /api/auth/logout
+ * Headers: Cookie (session)
+ * 
+ * RESPONSE: { message: "Logged out successfully" }
+ */
 
+import { NextRequest } from "next/server";
+import { destroySession, getSession } from "@/lib/session";
+import { successResponse, asyncHandler } from "@/lib/api-response";
+
+// Force dynamic rendering
 export const dynamic = 'force-dynamic';
 
-export async function POST(req: NextRequest) {
-    try {
-        const response = NextResponse.json(
-            { message: "Logged out successfully" },
-            { status: 200 }
-        );
+async function logoutHandler(req: NextRequest) {
+    // Get current session
+    const session = await getSession();
 
-        // Clear the HttpOnly cookie
-        response.cookies.set({
-            name: 'token',
-            value: '',
-            httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'lax',
-            maxAge: 0,
-            path: '/',
-        });
+    // Destroy session (removes HttpOnly cookie)
+    destroySession();
 
-        return response;
-    } catch (error) {
-        console.error("Logout error:", error);
-        return NextResponse.json(
-            { error: "Failed to logout" },
-            { status: 500 }
-        );
-    }
+    return successResponse({
+        message: "Logged out successfully",
+        userId: session?.userId || null,
+    });
 }
+
+// =============================================================================
+// EXPORT
+// =============================================================================
+export const POST = asyncHandler(logoutHandler);

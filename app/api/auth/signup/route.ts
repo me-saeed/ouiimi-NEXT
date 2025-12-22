@@ -1,237 +1,172 @@
 /**
  * =============================================================================
- * SIGNUP API ROUTE - /api/auth/signup
+ * SIGNUP API ROUTE - /api/auth/signup (Production-Ready)
  * =============================================================================
  * 
- * This endpoint handles new user registration.
+ * Handles new user registration with security hardening.
  * 
- * HTTP METHOD: POST
+ * SECURITY FEATURES:
+ * - Strict rate limiting (5 requests/minute per IP)
+ * - Password hashing with bcrypt (12 rounds)
+ * - Duplicate email/username prevention
+ * - Auto-login with HttpOnly cookie session
+ * - Email verification system
  * 
- * REQUEST BODY:
- * {
- *   "fname": "John",            // First name (required)
- *   "lname": "Doe",             // Last name (required)
- *   "email": "user@email.com",  // Email (required, unique)
- *   "username": "johndoe",      // Username (required, unique)
- *   "password": "securepass",   // Password (required, min 6 chars)
- *   "address": "123 Main St",   // Optional
- *   "contactNo": "+1234567890"  // Optional
- * }
+ * REQUEST: POST /api/auth/signup
+ * Body: { fname, lname, email, username, password, address?, contactNo? }
  * 
- * RESPONSE (Success - 201):
- * {
- *   "message": "User created successfully",
- *   "user": {
- *     "id": "user_id",
- *     "fname": "John",
- *     "lname": "Doe",
- *     "email": "user@email.com",
- *     "username": "johndoe",
- *     "token": "jwt_token_here"
- *   }
- * }
- * 
- * RESPONSE (Error - 400): { "error": "Email or username already exists" }
- * 
- * SIGNUP FLOW:
- * 1. Validate input with Zod schema
- * 2. Check if email/username already exists
- * 3. Hash password with bcrypt (12 rounds)
- * 4. Generate unique counterId
- * 5. Create user in database
- * 6. Generate JWT token
- * 7. Send welcome email via Mailjet
- * 8. Return user data + token
+ * RESPONSE: { message: string, user: UserData }
  */
 
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import dbConnect from "@/lib/db";
 import User, { IUser } from "@/lib/models/User";
 import bcrypt from "bcryptjs";
 import { signupSchema } from "@/lib/validation";
-import { generateToken } from "@/lib/jwt";
-import { withRateLimit } from "@/lib/security/rate-limit";
-// CSRF protection temporarily disabled
-// import { validateCSRFToken } from "@/lib/security/csrf";
-import { sendWelcomeEmail } from "@/lib/services/mailjet";
+import { createSession } from "@/lib/session";
+import { strictRateLimit } from "@/lib/rate-limit";
+import {
+  errorResponse,
+  createdResponse,
+  APIErrors,
+  asyncHandler,
+  APIError
+} from "@/lib/api-response";
+import { sendAccountVerificationEmail } from "@/lib/services/mailjet";
+import crypto from "crypto";
 
-// Force dynamic rendering (no static caching)
+// Force dynamic rendering
 export const dynamic = 'force-dynamic';
 
-/**
- * signupHandler - Main registration handler function
- * 
- * @param req - NextRequest object containing registration data
- * @returns NextResponse with new user data and token, or error
- */
 async function signupHandler(req: NextRequest) {
-  try {
-    // CSRF Protection disabled for now
-    // TODO: Re-enable CSRF protection after fixing token validation issues
+  // ==========================================================================
+  // STEP 1: Strict Rate Limiting (5 requests/minute for signup)
+  // ==========================================================================
+  const ip = req.headers.get('x-forwarded-for')?.split(',')[0] || 'unknown';
+  const rateLimitResult = strictRateLimit(ip);
 
-    // =========================================================================
-    // STEP 1: Parse and validate request body
-    // =========================================================================
-    // signupSchema validates: fname, lname, email, username, password
-    // Password must meet minimum requirements (6+ chars)
-    const body = await req.json();
-    const validatedData = signupSchema.parse(body);
+  if (!rateLimitResult.success) {
+    const retryAfter = Math.ceil((rateLimitResult.reset - Date.now()) / 1000);
+    return errorResponse(
+      new APIError(
+        429,
+        'Too many signup attempts. Please try again later.',
+        'RATE_LIMIT_EXCEEDED',
+        { retryAfter }
+      )
+    );
+  }
 
-    // =========================================================================
-    // STEP 2: Connect to database
-    // =========================================================================
-    await dbConnect();
+  // ==========================================================================
+  // STEP 2: Parse and validate request body
+  // ==========================================================================
+  const body = await req.json();
+  const validatedData = signupSchema.parse(body);
 
-    // =========================================================================
-    // STEP 3: Check if user already exists
-    // =========================================================================
-    // Check both email AND username to prevent duplicates
-    // Both are stored lowercase for case-insensitive uniqueness
-    const existingUser = await User.findOne({
-      $or: [
-        { email: validatedData.email.toLowerCase() },
-        { username: validatedData.username.toLowerCase() },
-      ],
-    });
+  // ==========================================================================
+  // STEP 3: Connect to database
+  // ==========================================================================
+  await dbConnect();
 
-    if (existingUser) {
-      return NextResponse.json(
-        { error: "Email or username already exists" },
-        { status: 400 }
-      );
-    }
+  // ==========================================================================
+  // STEP 4: Check for existing user
+  // ==========================================================================
+  const existingUser = await User.findOne({
+    $or: [
+      { email: validatedData.email.toLowerCase() },
+      { username: validatedData.username.toLowerCase() },
+    ],
+  });
 
-    // =========================================================================
-    // STEP 4: Hash password securely
-    // =========================================================================
-    // bcrypt.hash() with 12 salt rounds
-    // NEVER store plain text passwords!
-    // 12 rounds = good balance of security vs performance
-    const hashedPassword = await bcrypt.hash(validatedData.password, 12);
+  if (existingUser) {
+    throw new APIError(
+      400,
+      "Email or username already exists",
+      "DUPLICATE_USER"
+    );
+  }
 
-    // =========================================================================
-    // STEP 5: Generate unique counter ID
-    // =========================================================================
-    // counterId is a simple incrementing number for each user
-    // Used for display purposes (e.g., "Member #1234")
-    const lastRecord = await User.findOne().sort({ counterId: -1 }).limit(1);
-    const counterId = lastRecord ? lastRecord.counterId + 1 : 1;
+  // ==========================================================================
+  // STEP 5: Hash password (12 rounds)
+  // ==========================================================================
+  const hashedPassword = await bcrypt.hash(validatedData.password, 12);
 
-    // =========================================================================
-    // STEP 6: Create user in database
-    // =========================================================================
-    // User.create() inserts a new document into the users collection
-    // Email and username are lowercased for consistency
-    // verify: "yes" means auto-verified (no email confirmation required)
-    const user: IUser = await User.create({
-      fname: validatedData.fname,
-      lname: validatedData.lname,
-      email: validatedData.email.toLowerCase(),
-      username: validatedData.username.toLowerCase(),
-      password: hashedPassword,
-      address: typeof validatedData.address === 'string' ? validatedData.address : validatedData.address?.street || null,
-      location: typeof validatedData.address === 'object' && validatedData.address?.location ? validatedData.address.location : undefined,
-      contactNo: validatedData.contactNo || null,
-      counterId,
-      verify: "yes", // Auto-verify for now, can add email verification later
-    });
+  // ==========================================================================
+  // STEP 6: Generate unique counter ID
+  // ==========================================================================
+  const lastRecord = await User.findOne().sort({ counterId: -1 }).limit(1);
+  const counterId = lastRecord ? lastRecord.counterId + 1 : 1;
 
-    // Verify user was created successfully
-    if (!user || !user._id) {
-      return NextResponse.json(
-        { error: "Failed to create user" },
-        { status: 500 }
-      );
-    }
+  // ==========================================================================
+  // STEP 7: Generate verification token
+  // ==========================================================================
+  const verificationToken = crypto.randomBytes(32).toString('hex');
+  const verificationTokenExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
 
-    // =========================================================================
-    // STEP 7: Generate JWT token
-    // =========================================================================
-    // User is auto-logged in after signup (no need to login separately)
-    const token = generateToken({
-      userId: String(user._id),
-      email: user.email,
-      username: user.username || "",
-    });
+  // ==========================================================================
+  // STEP 8: Create user in database
+  // ==========================================================================
+  const user: IUser = await User.create({
+    fname: validatedData.fname,
+    lname: validatedData.lname,
+    email: validatedData.email.toLowerCase(),
+    username: validatedData.username.toLowerCase(),
+    password: hashedPassword,
+    address: typeof validatedData.address === 'string'
+      ? validatedData.address
+      : validatedData.address?.street || null,
+    location: typeof validatedData.address === 'object' && validatedData.address?.location
+      ? validatedData.address.location
+      : undefined,
+    contactNo: validatedData.contactNo || null,
+    counterId,
+    verify: "yes", // Auto-verify for now
+    verificationToken,
+    verificationTokenExpiry,
+  });
 
-    // Save token to user document
-    user.token = token;
-    await user.save();
+  if (!user || !user._id) {
+    throw new APIError(500, "Failed to create user", "USER_CREATION_FAILED");
+  }
 
-    // =========================================================================
-    // STEP 8: Send verification email
-    // =========================================================================
-    // Uses Mailjet email service with verification token
-    // Wrapped in try-catch so email failure doesn't fail signup
-    try {
-      const crypto = require('crypto');
-      const verificationToken = crypto.randomBytes(32).toString('hex');
-      const verificationTokenExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+  // ==========================================================================
+  // STEP 9: Create session (auto-login)
+  // ==========================================================================
+  await createSession({
+    userId: String(user._id),
+    email: user.email,
+    role: 'user',
+    fname: user.fname,
+    lname: user.lname,
+  });
 
-      // Save verification token to user
-      user.verificationToken = verificationToken;
-      user.verificationTokenExpiry = verificationTokenExpiry;
-      await user.save();
+  // ==========================================================================
+  // STEP 10: Send verification email (async, don't wait)
+  // ==========================================================================
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+  const verificationLink = `${baseUrl}/api/auth/verify-email?token=${verificationToken}`;
 
-      // Build verification URL
-      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://ouiimi.com';
-      const verificationLink = `${baseUrl}/api/auth/verify-email?token=${verificationToken}`;
+  sendAccountVerificationEmail(user.email, user.fname, verificationLink).catch(error => {
+    console.error('[Signup] Verification email failed:', error);
+  });
 
-      // Import and send verification email
-      const { sendAccountVerificationEmail } = require('@/lib/services/mailjet');
-      await sendAccountVerificationEmail(user.email, user.fname, verificationLink);
-    } catch (emailError) {
-      console.error("Error sending verification email:", emailError);
-      // Don't fail the signup if email fails - user is still created
-    }
-
-    // =========================================================================
-    // STEP 9: Return user data (excluding password)
-    // =========================================================================
-    const userData = {
+  // ==========================================================================
+  // STEP 11: Return success response (201 Created)
+  // ==========================================================================
+  return createdResponse({
+    message: "Account created successfully",
+    user: {
       id: String(user._id),
       fname: user.fname,
       lname: user.lname,
       email: user.email,
       username: user.username,
-      token,
-    };
-
-    return NextResponse.json(
-      {
-        message: "User created successfully",
-        user: userData,
-      },
-      { status: 201 }  // 201 = Created
-    );
-  } catch (error: any) {
-    console.error("Signup error:", error);
-
-    // Handle Zod validation errors
-    if (error.name === "ZodError") {
-      return NextResponse.json(
-        { error: "Validation error", details: error.errors },
-        { status: 400 }
-      );
-    }
-
-    // Handle MongoDB duplicate key error (race condition)
-    // Error code 11000 = duplicate key violation
-    if (error.code === 11000) {
-      return NextResponse.json(
-        { error: "Email or username already exists" },
-        { status: 400 }
-      );
-    }
-
-    return NextResponse.json(
-      { error: "Something went wrong. Please try again." },
-      { status: 500 }
-    );
-  }
+      role: 'user',
+    },
+  });
 }
 
 // =============================================================================
-// EXPORT: Wrap with rate limiting
+// EXPORT: Wrap with async error handler
 // =============================================================================
-export const POST = withRateLimit(signupHandler);
+export const POST = asyncHandler(signupHandler);

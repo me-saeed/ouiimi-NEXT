@@ -1,254 +1,153 @@
 /**
  * =============================================================================
- * SIGNIN API ROUTE - /api/auth/signin
+ * SIGNIN API ROUTE - /api/auth/signin (Production-Ready)
  * =============================================================================
  * 
- * This endpoint handles user login/authentication.
+ * Handles user authentication with server-side sessions and security hardening.
  * 
- * HTTP METHOD: POST
+ * SECURITY FEATURES:
+ * - Rate limiting (10 requests/minute per IP)
+ * - HttpOnly cookie sessions (no localStorage)
+ * - Secure password hashing with bcrypt
+ * - Account status validation
+ * - Standardized error responses
  * 
- * REQUEST BODY:
- * {
- *   "username": "user@email.com" or "username",  // Can be email or username
- *   "password": "userpassword"
- * }
+ * REQUEST: POST /api/auth/signin
+ * Body: { username: string, password: string }
  * 
- * RESPONSE (Success - 200):
- * {
- *   "message": "Login successful",
- *   "user": {
- *     "id": "user_id",
- *     "fname": "John",
- *     "lname": "Doe",
- *     "email": "user@email.com",
- *     "username": "johndoe",
- *     "token": "jwt_token_here"
- *   }
- * }
- * 
- * RESPONSE (Error - 401): { "error": "Invalid credentials" }
- * RESPONSE (Error - 403): { "error": "Account is disabled" }
- * 
- * AUTHENTICATION FLOW:
- * 1. Validate input with Zod schema
- * 2. Connect to database
- * 3. Find user by email OR username (case-insensitive)
- * 4. Check account is enabled (isEnable === "yes")
- * 5. Check email is verified (verify === "yes")
- * 6. Compare password with bcrypt
- * 7. Generate JWT token with user info
- * 8. Save token to user document
- * 9. Return user data + token
- * 
- * SECURITY:
- * - Rate limited to prevent brute force attacks
- * - Password never returned in response
- * - JWT token expires (configured in lib/jwt.ts)
+ * RESPONSE: { message: string, user: UserData }
  */
 
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import dbConnect from "@/lib/db";
 import User, { IUser } from "@/lib/models/User";
 import bcrypt from "bcryptjs";
 import { signinSchema } from "@/lib/validation";
-import { generateToken } from "@/lib/jwt";
-import { withRateLimit } from "@/lib/security/rate-limit";
-// CSRF protection temporarily disabled
-// import { validateCSRFToken } from "@/lib/security/csrf";
+import { createSession } from "@/lib/session";
+import { applyRateLimit } from "@/lib/rate-limit";
+import {
+  errorResponse,
+  successResponse,
+  APIErrors,
+  APIError,
+  asyncHandler
+} from "@/lib/api-response";
+import { sendWelcomeEmail } from "@/lib/services/mailjet";
 
-// Force dynamic rendering (no static caching for auth routes)
+// Force dynamic rendering
 export const dynamic = 'force-dynamic';
 
-/**
- * signinHandler - Main login handler function
- * 
- * @param req - NextRequest object containing the request data
- * @returns NextResponse with user data and token, or error message
- */
 async function signinHandler(req: NextRequest) {
-  try {
-    // CSRF Protection disabled for now
-    // TODO: Re-enable CSRF protection after fixing token validation issues
+  // ==========================================================================
+  // STEP 1: Rate Limiting (10 requests/minute)
+  // ==========================================================================
+  const rateLimitResponse = applyRateLimit(req, 10);
+  if (rateLimitResponse) return rateLimitResponse;
 
-    // =========================================================================
-    // STEP 1: Parse and validate request body
-    // =========================================================================
-    // req.json() extracts the JSON body from the request
-    // signinSchema.parse() validates the data against our Zod schema
-    // If validation fails, it throws a ZodError
-    const body = await req.json();
-    const validatedData = signinSchema.parse(body);
+  // ==========================================================================
+  // STEP 2: Parse and validate request body
+  // ==========================================================================
+  const body = await req.json();
+  const validatedData = signinSchema.parse(body);
 
-    // =========================================================================
-    // STEP 2: Connect to MongoDB database
-    // =========================================================================
-    // dbConnect() establishes connection (or reuses existing connection)
-    // This MUST be called before any database operations
-    await dbConnect();
+  // ==========================================================================
+  // STEP 3: Connect to database
+  // ==========================================================================
+  await dbConnect();
 
-    // =========================================================================
-    // STEP 3: Find user by email OR username
-    // =========================================================================
-    // MongoDB $or operator allows searching multiple fields
-    // toLowerCase() ensures case-insensitive matching
-    // This allows users to login with either their email or username
-    const user: IUser | null = await User.findOne({
-      $or: [
-        { email: validatedData.username.toLowerCase() },
-        { username: validatedData.username.toLowerCase() },
-      ],
-    });
+  // ==========================================================================
+  // STEP 4: Find user (case-insensitive)
+  // ==========================================================================
+  const user: IUser | null = await User.findOne({
+    $or: [
+      { email: validatedData.username.toLowerCase() },
+      { username: validatedData.username.toLowerCase() },
+    ],
+  }).select('+password'); // Explicitly include password field
 
-    // If no user found, return generic error (don't reveal if email exists)
-    if (!user || !user._id) {
-      return NextResponse.json(
-        { error: "Invalid credentials" },
-        { status: 401 }
-      );
-    }
+  if (!user || !user._id) {
+    throw APIErrors.Unauthorized;
+  }
 
-    // =========================================================================
-    // STEP 4: Check if account is enabled
-    // =========================================================================
-    // Admins can disable accounts by setting isEnable to "no"
-    if (user.isEnable !== "yes") {
-      return NextResponse.json(
-        { error: "Account is disabled" },
-        { status: 403 }
-      );
-    }
-
-    // =========================================================================
-    // STEP 5: Check if email is verified
-    // =========================================================================
-    // Currently auto-verified on signup, but can require email confirmation
-    if (user.verify !== "yes") {
-      return NextResponse.json(
-        { error: "Please verify your email address" },
-        { status: 403 }
-      );
-    }
-
-    // =========================================================================
-    // STEP 6: Verify password using bcrypt
-    // =========================================================================
-    // bcrypt.compare() compares plain text password with hashed password
-    // This is secure because we never store plain text passwords
-    if (!user.password) {
-      return NextResponse.json(
-        { error: "Invalid credentials" },
-        { status: 401 }
-      );
-    }
-
-    const isPasswordValid = await bcrypt.compare(
-      validatedData.password,
-      user.password
+  // ==========================================================================
+  // STEP 5: Account validation
+  // ==========================================================================
+  if (user.isEnable !== "yes") {
+    throw new APIError(
+      403,
+      "Account is disabled. Please contact support.",
+      "ACCOUNT_DISABLED"
     );
+  }
 
-    if (!isPasswordValid) {
-      return NextResponse.json(
-        { error: "Invalid credentials" },
-        { status: 401 }
-      );
-    }
+  if (user.verify !== "yes") {
+    throw new APIError(
+      403,
+      "Please verify your email address before signing in.",
+      "EMAIL_NOT_VERIFIED"
+    );
+  }
 
-    // =========================================================================
-    // STEP 7: Generate JWT token
-    // =========================================================================
-    // generateToken() creates a signed JWT with user info
-    // Token contains: { userId, email, username, roles }
-    // Token is used for authentication in subsequent requests
-    const token = generateToken({
-      userId: String(user._id),
-      email: user.email,
-      username: user.username || "",
-      roles: user.Roles || ["user"], // Include user roles for RBAC
+  // ==========================================================================
+  // STEP 6: Verify password
+  // ==========================================================================
+  if (!user.password) {
+    throw APIErrors.Unauthorized;
+  }
+
+  const isPasswordValid = await bcrypt.compare(
+    validatedData.password,
+    user.password
+  );
+
+  if (!isPasswordValid) {
+    throw APIErrors.Unauthorized;
+  }
+
+  // ==========================================================================
+  // STEP 7: Create server-side session (HttpOnly cookie)
+  // ==========================================================================
+  await createSession({
+    userId: String(user._id),
+    email: user.email,
+    role: user.Roles?.[0] || 'user',
+    fname: user.fname,
+    lname: user.lname,
+  });
+
+  // ==========================================================================
+  // STEP 8: Update last login date
+  // ==========================================================================
+  const isFirstLogin = !user.lastLoginDate;
+  user.lastLoginDate = new Date();
+  await user.save();
+
+  // ==========================================================================
+  // STEP 9: Send welcome email on first login (async, don't wait)
+  // ==========================================================================
+  if (isFirstLogin) {
+    sendWelcomeEmail(user.email, user.fname).catch(error => {
+      console.error('[Signin] Welcome email failed:', error);
     });
+  }
 
-    // =========================================================================
-    // STEP 7.5: Send welcome email on first signin
-    // =========================================================================
-    // If user hasn't logged in before (lastLoginDate is null), send welcome email
-    if (!user.lastLoginDate) {
-      try {
-        const { sendWelcomeEmail } = await import("@/lib/services/mailjet");
-        await sendWelcomeEmail(user.email, user.fname);
-        console.log(`[Signin] Welcome email sent to ${user.email}`);
-      } catch (emailError) {
-        console.error("[Signin] Error sending welcome email:", emailError);
-        // Don't fail signin if email fails
-      }
-    }
-
-    // =========================================================================
-    // STEP 8: Save token and update last login date
-    // =========================================================================
-    // Storing token in DB allows for token invalidation/logout
-    user.token = token;
-    user.lastLoginDate = new Date();
-    await user.save();
-
-    // =========================================================================
-    // STEP 9: Return user data (excluding sensitive fields like password)
-    // =========================================================================
-    const userData = {
+  // ==========================================================================
+  // STEP 10: Return success response
+  // ==========================================================================
+  return successResponse({
+    message: "Login successful",
+    user: {
       id: String(user._id),
       fname: user.fname,
       lname: user.lname,
       email: user.email,
       username: user.username,
-      roles: user.Roles || ["user"], // Include roles for client-side checks
-      token,
-    };
-
-    // Create response with user data
-    const response = NextResponse.json(
-      {
-        message: "Login successful",
-        user: userData,
-      },
-      { status: 200 }
-    );
-
-    // =========================================================================
-    // STEP 10: Set HTTP-only cookie for middleware authentication
-    // =========================================================================
-    // HTTP-only cookies are more secure than localStorage (protected from XSS)
-    // Both cookie and localStorage token are set for gradual migration
-    response.cookies.set({
-      name: 'token',
-      value: token,
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 60 * 60 * 24 * 7, // 7 days
-      path: '/',
-    });
-
-    return response;
-  } catch (error: any) {
-    console.error("Signin error:", error);
-
-    // Handle Zod validation errors specially
-    if (error.name === "ZodError") {
-      return NextResponse.json(
-        { error: "Validation error", details: error.errors },
-        { status: 400 }
-      );
-    }
-
-    // Generic error for any other issues
-    return NextResponse.json(
-      { error: "Something went wrong. Please try again." },
-      { status: 500 }
-    );
-  }
+      role: user.Roles?.[0] || 'user',
+    },
+  });
 }
 
 // =============================================================================
-// EXPORT: Wrap handler with rate limiting middleware
+// EXPORT: Wrap with async error handler
 // =============================================================================
-// withRateLimit() wraps the handler to prevent abuse
-// Limits requests per IP/user to prevent brute force attacks
-export const POST = withRateLimit(signinHandler);
+export const POST = asyncHandler(signinHandler);

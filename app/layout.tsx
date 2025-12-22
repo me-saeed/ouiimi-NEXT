@@ -14,17 +14,18 @@ export const metadata: Metadata = {
   description: "Discover, book, and manage all your everyday services - from haircuts to dog grooming. Simple, fast, and stress-free booking platform.",
   keywords: "booking, services, haircuts, beauty, massage, dog grooming, appointments",
   authors: [{ name: "ouiimi" }],
-  viewport: {
-    width: "device-width",
-    initialScale: 1,
-    maximumScale: 1,
-    userScalable: false,
-  },
   openGraph: {
     title: "ouiimi - Simple Booking for Everyday Services",
     description: "Discover, book, and manage all your everyday services in one place.",
     type: "website",
   },
+};
+
+export const viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
 };
 
 export default function RootLayout({
