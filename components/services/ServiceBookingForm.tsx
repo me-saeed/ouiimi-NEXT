@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
@@ -17,7 +17,7 @@ interface BookingFormProps {
 
 export function ServiceBookingForm({ service, business }: BookingFormProps) {
     const router = useRouter();
-    const { user, isAuthenticated } = useAuth();
+    const { user, isAuthenticated, isLoading: authLoading, refreshSession } = useAuth();
     const [selectedDate, setSelectedDate] = useState<string>("");
     const [selectedTimeSlot, setSelectedTimeSlot] = useState<any>(null);
     const [selectedStaff, setSelectedStaff] = useState<string>("");
@@ -25,6 +25,7 @@ export function ServiceBookingForm({ service, business }: BookingFormProps) {
     const [description, setDescription] = useState<string>("");
     const [error, setError] = useState<string>("");
     const [isLoading, setIsLoading] = useState(false);
+    const isCurrentlyProcessing = useRef(false);
     const [staffBusyStatus, setStaffBusyStatus] = useState<Record<string, boolean>>({});
 
     const formatTime12Hour = (time24: string): string => {
@@ -92,7 +93,7 @@ export function ServiceBookingForm({ service, business }: BookingFormProps) {
         ?.filter((staff: any) => !staff.isBooked)
         ?.map((staff: any) => ({
             id: staff.staffId.toString(),
-            name: staff.name || "Staff"
+            name: staff.staffDetails?.name || staff.name || "Staff"
         })) || [];
 
     const availableAddOns = selectedTimeSlot?.addOns?.length > 0
@@ -163,7 +164,18 @@ export function ServiceBookingForm({ service, business }: BookingFormProps) {
         return slotPrice + addOnsCost;
     };
 
-    const handleAddToCart = () => {
+    const handleAddToCart = async () => {
+        if (authLoading || isLoading || isCurrentlyProcessing.current) return;
+
+        isCurrentlyProcessing.current = true;
+        setIsLoading(true);
+        setError("");
+
+        // Double-check session if client thinks it's unauthenticated
+        if (!isAuthenticated) {
+            await refreshSession();
+        }
+
         if (!isAuthenticated) {
             const returnUrl = window.location.pathname;
             localStorage.setItem("returnUrl", returnUrl);
@@ -173,6 +185,8 @@ export function ServiceBookingForm({ service, business }: BookingFormProps) {
 
         if (!selectedDate || !selectedTimeSlot) {
             setError("Please select a date and time slot");
+            setIsLoading(false);
+            isCurrentlyProcessing.current = false;
             return;
         }
 
@@ -224,6 +238,7 @@ export function ServiceBookingForm({ service, business }: BookingFormProps) {
         cart.push(cartItem);
         localStorage.setItem("cart", JSON.stringify(cart));
         router.push("/cart");
+        // We leave isLoading=true as we are navigating away
     };
 
     return (
@@ -504,14 +519,14 @@ export function ServiceBookingForm({ service, business }: BookingFormProps) {
                 {/* Book Now Button */}
                 <Button
                     onClick={handleAddToCart}
-                    disabled={isLoading || !selectedDate || !selectedTimeSlot || availableDates.length === 0}
+                    disabled={isLoading || authLoading || !selectedDate || !selectedTimeSlot || availableDates.length === 0}
                     size="lg"
                     className="w-full h-14 rounded-xl bg-[#EECFD1] hover:bg-[#EECFD1]/90 text-[#3A3A3A] font-semibold text-base shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                    {isLoading ? (
+                    {isLoading || authLoading ? (
                         <>
                             <div className="animate-spin rounded-full h-5 w-5 border-2 border-[#3A3A3A] border-t-transparent mr-2" />
-                            Processing...
+                            {authLoading ? "Initializing..." : "Processing..."}
                         </>
                     ) : availableDates.length === 0 ? (
                         "No Available Dates"
@@ -525,7 +540,7 @@ export function ServiceBookingForm({ service, business }: BookingFormProps) {
                 </Button>
 
                 <p className="text-xs text-gray-500 text-center leading-relaxed pt-2">
-                    10% Deposit + $1.99 ouiimi fee paid today, 90% paid directly to Business
+                    10% Deposit paid today (includes $1.99 platform fee), remaining 90% paid at venue
                 </p>
             </div>
         </div>

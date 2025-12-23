@@ -19,9 +19,10 @@ interface AuthContextType {
     logout: () => void;
     isAuthenticated: boolean;
     token: string | null;
-    isLoading: boolean; // Indicates if auth state is being initialized
-    hasRole: (role: string) => boolean; // Check if user has specific role
-    isAdmin: boolean; // Quick check for admin role
+    isLoading: boolean;
+    hasRole: (role: string) => boolean;
+    isAdmin: boolean;
+    refreshSession: () => Promise<void>; // Force refresh session from server
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -31,33 +32,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const [token, setToken] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(true);
 
-    // Load user from session API on mount
-    useEffect(() => {
-        const loadSession = async () => {
-            try {
-                const response = await fetch('/api/auth/session');
-                const data = await response.json();
+    // Load user from session API
+    const loadSession = async () => {
+        setIsLoading(true);
+        try {
+            console.log("[AuthContext] Loading session...");
+            const response = await fetch('/api/auth/session', { cache: 'no-store' });
 
-                if (data.success && data.data.authenticated) {
-                    setUser(data.data.user);
-                    // Note: No token needed - session is in HttpOnly cookie
-                } else {
-                    setUser(null);
-                }
-            } catch (error) {
-                console.error("Error loading session:", error);
-                setUser(null);
-            } finally {
-                setIsLoading(false);
+            if (!response.ok) {
+                throw new Error(`Session fetch failed: ${response.status}`);
             }
-        };
 
+            const data = await response.json();
+
+            if (data.success && data.data.authenticated) {
+                console.log("[AuthContext] Session loaded for:", data.data.user.email);
+                setUser(data.data.user);
+            } else {
+                console.log("[AuthContext] No active session found");
+                setUser(null);
+            }
+        } catch (error) {
+            console.error("[AuthContext] Error loading session:", error);
+            // Don't immediately clear user if it's a network error? 
+            // Actually, best to follow API truth.
+            setUser(null);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    useEffect(() => {
         loadSession();
     }, []);
 
     // Auto-logout after 15 minutes of inactivity
     useEffect(() => {
-        if (!user || !token) return;
+        if (!user) return;
 
         const INACTIVITY_TIMEOUT = 15 * 60 * 1000; // 15 minutes in milliseconds
         let timeoutId: NodeJS.Timeout;
@@ -130,6 +141,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isLoading,
         hasRole,
         isAdmin,
+        refreshSession: loadSession,
     };
 
     // Always render children to prevent white screen

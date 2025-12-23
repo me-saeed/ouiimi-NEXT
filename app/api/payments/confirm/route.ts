@@ -79,7 +79,8 @@ async function confirmPaymentHandler(req: NextRequest) {
     }
 
     // Security: Verify user owns this booking
-    if (String(booking.userId) !== String(session.userId)) {
+    const bookingUserId = typeof booking.userId === 'object' ? (booking.userId._id || booking.userId.id) : booking.userId;
+    if (String(bookingUserId) !== String(session.userId)) {
         throw new APIError(403, "Not authorized for this booking", "FORBIDDEN");
     }
 
@@ -108,10 +109,30 @@ async function confirmPaymentHandler(req: NextRequest) {
     }
 
     // ==========================================================================
-    // STEP 6: Update booking status
+    // STEP 6: Atomically reserve slot and update booking status
     // ==========================================================================
-    booking.status = "confirmed";
-    booking.paymentStatus = "deposit_paid";
+    const { BookingService } = await import("@/lib/services/booking-service");
+    try {
+        await BookingService.confirmSlotReservation(bookingId);
+        // Note: BookingService already sets status="confirmed" and paymentStatus="deposit_paid"
+        // and saves the booking.
+    } catch (error: any) {
+        console.error(`[Payment Confirm] Reservation failed for booking ${bookingId}:`, error);
+        // If reservation fails (slot taken), we mark as failed_to_reserve
+        booking.status = "pending";
+        booking.paymentStatus = "pending";
+        booking.paymentIntentId = paymentIntentId;
+        booking.businessNotes = `PAYMENT SUCCESSFUL but Slot was already taken during the checkout process. Error: ${error.message}`;
+        await booking.save();
+
+        throw new APIError(
+            409,
+            "Payment was successful, but the time slot was unfortunately taken by another customer while you were checking out. Please contact support for a refund or rescheduling.",
+            "SLOT_TAKEN_POST_PAYMENT"
+        );
+    }
+
+    // Link payment intent to booking
     booking.paymentIntentId = paymentIntentId;
     await booking.save();
 

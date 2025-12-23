@@ -91,10 +91,28 @@ export async function POST(request: NextRequest) {
                     .populate("serviceId", "serviceName");
 
                 if (booking) {
-                    booking.paymentStatus = "deposit_paid";
-                    booking.status = "confirmed";
-                    await booking.save();
-                    console.log(`✅ Booking ${booking._id} updated to confirmed`);
+                    // Use BookingService for atomic slot reservation
+                    const { BookingService } = await import("@/lib/services/booking-service");
+                    try {
+                        await BookingService.confirmSlotReservation(String(booking._id));
+                        console.log(`✅ Booking ${booking._id} confirmed and slot reserved via webhook`);
+                    } catch (error: any) {
+                        console.error(`❌ Webhook reservation failed for booking ${booking._id}:`, error);
+                        // Slot was taken during payment process. 
+                        // We mark as failure, business will need to handle.
+                        booking.paymentStatus = "deposit_paid"; // Money was still paid
+                        booking.status = "pending"; // But slot not reserved
+                        booking.businessNotes = `PAYMENT SUCCESS via webhook but Slot was already taken. Error: ${error.message}`;
+                        await booking.save();
+                    }
+
+                    // Refresh booking to ensure we have latest data for emails
+                    const updatedBooking = await Booking.findById(booking._id)
+                        .populate("userId", "fname lname email")
+                        .populate("businessId", "businessName email")
+                        .populate("serviceId", "serviceName");
+
+                    if (!updatedBooking) return; // Should not happen
 
                     // Prepare email data
                     const user = booking.userId as any;

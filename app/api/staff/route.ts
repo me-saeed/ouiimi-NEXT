@@ -80,13 +80,12 @@ async function createStaffHandler(req: NextRequest) {
     const buffer = Buffer.from(bytes);
     const originalName = photoFile.name.replace(/[^a-zA-Z0-9.-]/g, "_");
     const filename = `staff-${Date.now()}-${originalName}`;
-    const relativeUploadDir = "/uploads/staff";
-    const uploadDir = join(process.cwd(), "public", relativeUploadDir);
+    const uploadDir = join(process.cwd(), "uploads");
 
     await mkdir(uploadDir, { recursive: true });
     const filePath = join(uploadDir, filename);
     await writeFile(filePath, buffer);
-    photoUrl = `${relativeUploadDir}/${filename}`;
+    photoUrl = `/api/images/${filename}`;
   }
 
   // Create staff member

@@ -107,6 +107,14 @@ async function createBookingHandler(req: NextRequest) {
   const staffId = validatedData.staffId
     ? new mongoose.Types.ObjectId(validatedData.staffId)
     : null;
+  // ==========================================================================
+  // AUTO-EXPIRY: Clear stale pending bookings before checking availability
+  // ==========================================================================
+  const expiryTime = new Date(Date.now() - 15 * 60 * 1000);
+  await Booking.updateMany(
+    { status: "pending", createdAt: { $lt: expiryTime } },
+    { $set: { status: "cancelled", cancellationReason: "Pre-payment hold expired" } }
+  );
 
   // ==========================================================================
   // STEP 5: Check staff availability (if staff selected)
@@ -179,74 +187,24 @@ async function createBookingHandler(req: NextRequest) {
   }
 
   // ==========================================================================
-  // STEP 7: Atomic slot booking (prevents race conditions)
+  // STEP 7: Verify slot availability (Without reserving yet)
   // ==========================================================================
   const bookingId = new mongoose.Types.ObjectId();
-  let updatedService = null;
 
-  if (staffId) {
-    updatedService = await Service.findOneAndUpdate(
-      {
-        _id: new mongoose.Types.ObjectId(validatedData.serviceId),
-        timeSlots: {
-          $elemMatch: {
-            date: bookingDate,
-            startTime: bookingStartTime,
-            endTime: bookingEndTime,
-            staffIds: {
-              $elemMatch: {
-                staffId: staffId,
-                isBooked: false
-              }
-            }
-          }
-        }
-      },
-      {
-        $set: {
-          "timeSlots.$[slot].staffIds.$[staff].isBooked": true,
-          "timeSlots.$[slot].bookingId": bookingId
-        }
-      },
-      {
-        new: true,
-        arrayFilters: [
-          {
-            "slot.date": bookingDate,
-            "slot.startTime": bookingStartTime,
-            "slot.endTime": bookingEndTime
-          },
-          {
-            "staff.staffId": staffId
-          }
-        ]
-      }
-    );
-  } else {
-    updatedService = await Service.findOneAndUpdate(
-      {
-        _id: new mongoose.Types.ObjectId(validatedData.serviceId),
-        timeSlots: {
-          $elemMatch: {
-            date: bookingDate,
-            startTime: bookingStartTime,
-            endTime: bookingEndTime,
-            isBooked: false
-          }
-        }
-      },
-      {
-        $set: {
-          "timeSlots.$.isBooked": true,
-          "timeSlots.$.bookingId": bookingId
-        }
-      },
-      { new: true }
-    );
+  // Basic check: Does the slot exist and is it not already booked?
+  if (!targetSlot) {
+    throw new APIError(409, "Time slot no longer exists", "SLOT_UNAVAILABLE");
   }
 
-  if (!updatedService) {
-    throw new APIError(409, "Time slot is no longer available", "SLOT_UNAVAILABLE");
+  // If staff is specified, check that specific staff member's availability
+  if (staffId) {
+    const staffAvailability = targetSlot.staffIds?.find((s: any) => String(s.staffId) === String(staffId));
+    if (!staffAvailability || staffAvailability.isBooked) {
+      throw new APIError(409, "Staff member is no longer available for this slot", "STAFF_UNAVAILABLE");
+    }
+  } else if (targetSlot.isBooked) {
+    // If no specific staff, check the general slot status
+    throw new APIError(409, "Time slot is already fully booked", "SLOT_UNAVAILABLE");
   }
 
   // ==========================================================================
@@ -323,6 +281,8 @@ async function getBookingsHandler(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const businessId = searchParams.get("businessId");
   const userId = searchParams.get("userId");
+  const staffId = searchParams.get("staffId");
+  const date = searchParams.get("date");
   const status = searchParams.get("status");
 
   const limit = Math.min(parseInt(searchParams.get("limit") || "20"), 100);
@@ -346,8 +306,38 @@ async function getBookingsHandler(req: NextRequest) {
   }
 
   if (status) {
-    query.status = status;
+    if (status.includes(',')) {
+      query.status = { $in: status.split(',') };
+    } else {
+      query.status = status;
+    }
   }
+
+  if (staffId) {
+    query.staffId = new mongoose.Types.ObjectId(staffId);
+  }
+
+  if (date) {
+    const startOfDay = new Date(date);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(date);
+    endOfDay.setHours(23, 59, 59, 999);
+    query["timeSlot.date"] = { $gte: startOfDay, $lte: endOfDay };
+  }
+
+  // ==========================================================================
+  // AUTO-EXPIRY: Automatically cancel pending bookings older than 15 mins
+  // ==========================================================================
+  const expiryTime = new Date(Date.now() - 15 * 60 * 1000);
+  await Booking.updateMany(
+    {
+      status: "pending",
+      createdAt: { $lt: expiryTime }
+    },
+    {
+      $set: { status: "cancelled", cancellationReason: "Pre-payment hold expired" }
+    }
+  );
 
   const bookings = await Booking.find(query)
     .populate("userId", "fname lname email contactNo")

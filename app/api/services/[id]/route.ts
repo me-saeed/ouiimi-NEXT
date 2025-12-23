@@ -58,12 +58,12 @@ async function getServiceHandler(
 
     if (allStaffIds.length > 0) {
       try {
-        const staffMembers = await Staff.find({
+        const staffMembers = JSON.parse(JSON.stringify(await Staff.find({
           _id: { $in: allStaffIds.map(id => new mongoose.Types.ObjectId(id)) }
-        }).select('name photo').lean();
+        }).select('name photo').lean()));
 
         const staffMap = new Map(
-          staffMembers.map(s => [String(s._id), s])
+          staffMembers.map((s: any) => [String(s._id || s.id), s])
         );
 
         service.timeSlots = service.timeSlots.map((ts: any) => ({

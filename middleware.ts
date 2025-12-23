@@ -79,10 +79,16 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // Redirect authenticated users away from auth pages
-  if (session && (pathname === '/signin' || pathname === '/signup')) {
-    return NextResponse.redirect(new URL('/', request.url));
-  }
+  /* 
+   * Removing aggressive redirect to home for authenticated users on auth pages.
+   * This prevents race conditions where the client thinks its unauthenticated
+   * and redirects to signin, but middleware thinks its authenticated and
+   * redirects to home, causing the user to land on the home page unexpectedly.
+   * The SigninPage component now handles this redirection logic itself.
+   */
+  // if (session && (pathname === '/signin' || pathname === '/signup')) {
+  //   return NextResponse.redirect(new URL('/', request.url));
+  // }
 
   return response;
 }

@@ -200,8 +200,7 @@ export default function ShopperProfilePage() {
           return dateB.getTime() - dateA.getTime();
         });
 
-        setUpcomingBookings(upcoming);
-        setPendingBookings(pending);
+        setUpcomingBookings([...upcoming, ...pending]);
         setFinishedBookings(finished);
       } else {
         setError("Failed to load bookings");
@@ -342,7 +341,7 @@ export default function ShopperProfilePage() {
     }
 
     return {
-      id: booking.id,
+      id: booking.id || (booking as any)._id,
       name: service?.serviceName || 'Service',
       price: booking.totalCost,
       image: businessData?.logo || "/placeholder-logo.png",
@@ -352,7 +351,7 @@ export default function ShopperProfilePage() {
       duration: duration || undefined,
       date: formatDateForDisplay(booking.timeSlot.date),
       time: `${formatTime12Hour(booking.timeSlot.startTime)} - ${formatTime12Hour(booking.timeSlot.endTime)}`,
-      bookingId: booking.id,
+      bookingId: booking.id || (booking as any)._id,
       bookingNumber: booking.bookingNumber,
       status: booking.status,
     };

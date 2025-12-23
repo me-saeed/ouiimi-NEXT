@@ -24,7 +24,7 @@ export default function CheckoutPage() {
     useEffect(() => {
         if (!authLoading && !isAuthenticated) {
             const returnUrl = encodeURIComponent(`/bookings/${bookingId}/checkout`);
-            router.push(`/signin?callbackUrl=${returnUrl}`);
+            router.push(`/signin?redirect=${returnUrl}`);
         }
     }, [authLoading, isAuthenticated, router, bookingId]);
 
@@ -54,7 +54,8 @@ export default function CheckoutPage() {
                 }
 
                 const bookingData = await bookingResponse.json();
-                setBooking(bookingData.data?.booking || bookingData.booking);
+                const booking = bookingData.data?.booking || bookingData.booking;
+                setBooking(booking);
 
                 // Then, create payment intent for embedded checkout
                 const intentPromise = fetch("/api/payments/create-intent", {
@@ -74,7 +75,7 @@ export default function CheckoutPage() {
 
                 const intentData = await intentResponse.json();
                 setClientSecret(intentData.clientSecret);
-                setPaymentAmount(intentData.amount || bookingData.booking.depositAmount);
+                setPaymentAmount(intentData.amount || booking.depositAmount);
             } catch (err: any) {
                 console.error("Checkout initialization error:", err);
                 setError(err.message || "Failed to initialize checkout. Please try again.");
@@ -181,8 +182,8 @@ export default function CheckoutPage() {
                                     <span>Pay at Venue (90%)</span>
                                     <span>${booking.remainingAmount.toFixed(2)}</span>
                                 </div>
-                                <p className="text-xs text-gray-500 pt-2">
-                                    💡 You&apos;ll pay the remaining ${booking.remainingAmount.toFixed(2)} at the venue after service
+                                <p className="text-xs text-gray-500 pt-2 italic">
+                                    💡 10% deposit includes $1.99 platform fee. You&apos;ll pay the remaining ${booking.remainingAmount.toFixed(2)} at the venue.
                                 </p>
                             </div>
                         </div>

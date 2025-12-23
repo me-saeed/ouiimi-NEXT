@@ -298,9 +298,9 @@ export function BusinessTabs({ business, services, staff }: BusinessTabsProps) {
                                             </div>
                                         )}
                                         <h3 className="font-semibold">{member.name}</h3>
-                                        {member.bio && (
+                                        {member.about && (
                                             <p className="text-sm text-muted-foreground mt-2 line-clamp-2">
-                                                {member.bio}
+                                                {member.about}
                                             </p>
                                         )}
                                     </div>
@@ -333,8 +333,8 @@ export function BusinessTabs({ business, services, staff }: BusinessTabsProps) {
                                             </div>
                                         )}
                                         <h3 className="text-2xl font-semibold">{selectedStaff.name}</h3>
-                                        {selectedStaff.bio && (
-                                            <p className="text-muted-foreground">{selectedStaff.bio}</p>
+                                        {selectedStaff.about && (
+                                            <p className="text-muted-foreground">{selectedStaff.about}</p>
                                         )}
                                     </div>
                                 </div>

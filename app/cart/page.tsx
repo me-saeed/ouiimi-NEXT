@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import PageLayout from "@/components/layout/PageLayout";
 import { Button } from "@/components/ui/button";
@@ -33,7 +33,7 @@ export default function CartPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string>("");
   const [isProcessing, setIsProcessing] = useState(false);
-
+  const isCurrentlyProcessing = useRef(false);
 
   useEffect(() => {
     // Load cart from localStorage (cart data, not auth)
@@ -52,7 +52,7 @@ export default function CartPage() {
     const totalCost = cartItems.reduce((sum, item) => sum + item.totalCost, 0);
     const deposit = Math.round(totalCost * 0.1 * 100) / 100;
     const ouiimiFee = 1.99;
-    const totalToday = deposit + ouiimiFee;
+    const totalToday = deposit; // Fee is cut from business's deposit share
     const remainingAmount = totalCost - deposit;
 
     return {
@@ -71,8 +71,16 @@ export default function CartPage() {
   };
 
   const handleBookNow = async () => {
-    if (!user) {
-      router.push("/signin");
+    if (authLoading) return;
+
+    // Double-check session if client thinks it's unauthenticated
+    if (!isAuthenticated) {
+      await (useAuth as any)().refreshSession();
+    }
+
+    if (!isAuthenticated) {
+      const returnUrl = window.location.pathname;
+      router.push(`/signin?redirect=${encodeURIComponent(returnUrl)}`);
       return;
     }
 
@@ -81,12 +89,14 @@ export default function CartPage() {
       return;
     }
 
+    if (isCurrentlyProcessing.current) return;
+    isCurrentlyProcessing.current = true;
     setIsProcessing(true);
     setError("");
 
     try {
       const token = localStorage.getItem("token");
-      const userId = user.id || user._id;
+      const userId = user?.id || user?._id;
 
       // Group items by business (can only checkout from one business at a time)
       const businessGroups: Record<string, CartItem[]> = {};
@@ -150,7 +160,8 @@ export default function CartPage() {
       setCartItems([]);
 
       // Redirect to checkout page for payment
-      const bookingId = responseData.booking?.id || responseData.booking?._id;
+      const bookingId = responseData.data?.booking?.id || responseData.data?.booking?._id || responseData.booking?.id || responseData.booking?._id;
+
       if (bookingId) {
         router.push(`/bookings/${bookingId}/checkout`);
       } else {
@@ -160,6 +171,7 @@ export default function CartPage() {
       console.error("Error creating booking:", err);
       setError(err.message || "Failed to complete booking. Please try again.");
       setIsProcessing(false);
+      isCurrentlyProcessing.current = false;
     }
   };
 
@@ -295,7 +307,7 @@ export default function CartPage() {
                       <span>${totals.totalToday.toFixed(2)}</span>
                     </div>
                     <p className="text-xs text-muted-foreground mt-2">
-                      10% Deposit + $1.99 ouiimi fee paid today, 90% paid directly to Business
+                      10% Deposit paid today (includes $1.99 ouiimi fee), remaining 90% paid at venue
                     </p>
                   </div>
                 </div>
@@ -311,10 +323,10 @@ export default function CartPage() {
                   </p>
                   <Button
                     onClick={handleBookNow}
-                    disabled={isProcessing}
+                    disabled={isProcessing || authLoading}
                     className="w-full btn-polished-primary h-12 text-lg font-semibold"
                   >
-                    {isProcessing ? "Processing..." : "Book Now"}
+                    {authLoading ? "Initializing..." : isProcessing ? "Processing..." : "Book Now"}
                   </Button>
                 </div>
               </div>

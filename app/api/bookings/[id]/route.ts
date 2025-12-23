@@ -56,7 +56,8 @@ async function getBookingHandler(
   }
 
   // Security: Verify user can access this booking
-  if (String(booking.userId) !== String(session.userId)) {
+  const bookingUserId = typeof booking.userId === 'object' ? (booking.userId._id || booking.userId.id) : booking.userId;
+  if (String(bookingUserId) !== String(session.userId)) {
     throw new APIError(403, "You can only view your own bookings", "FORBIDDEN");
   }
 

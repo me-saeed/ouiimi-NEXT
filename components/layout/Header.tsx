@@ -12,41 +12,19 @@ interface HeaderProps {
   } | null;
 }
 
+import { useAuth } from "@/lib/contexts/AuthContext";
+
 export default function Header({ user: userProp }: HeaderProps) {
   const router = useRouter();
   const pathname = usePathname();
+  const { user, logout, isLoading: authLoading } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [user, setUser] = useState<any>(null);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const [cartCount, setCartCount] = useState(0);
 
-  // Check authentication on mount using session API
+  // Cart check effect
   useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const response = await fetch('/api/auth/session');
-        const data = await response.json();
-
-        if (data.success && data.data.authenticated) {
-          setUser(data.data.user);
-        } else {
-          setUser(null);
-        }
-      } catch (error) {
-        console.error('Error checking auth:', error);
-        setUser(null);
-      }
-    };
-
-    checkAuth();
-
-    // Poll for session changes every 30 seconds
-    const interval = setInterval(checkAuth, 30000);
-    return () => clearInterval(interval);
-  }, []);
-
-  // Check cart count on mount and storage changes
-  useEffect(() => {
+    // ... (rest of cart effect remains same)
     const checkCart = () => {
       if (typeof window === "undefined") return;
       const savedCart = localStorage.getItem("cart");
@@ -63,10 +41,7 @@ export default function Header({ user: userProp }: HeaderProps) {
     };
 
     checkCart();
-
-    // Listen for storage changes (cart updates from other tabs)
     window.addEventListener("storage", checkCart);
-    // Also check periodically for same-tab updates
     const interval = setInterval(checkCart, 1000);
 
     return () => {
@@ -76,15 +51,7 @@ export default function Header({ user: userProp }: HeaderProps) {
   }, []);
 
   const handleLogout = async () => {
-    try {
-      // Call logout API to destroy session
-      await fetch('/api/auth/logout', { method: 'POST' });
-    } catch (error) {
-      console.error('Logout error:', error);
-    }
-
-    // Clear local state
-    setUser(null);
+    await logout();
     setProfileDropdownOpen(false);
     setSidebarOpen(false);
     router.push("/");
@@ -198,7 +165,7 @@ export default function Header({ user: userProp }: HeaderProps) {
                       <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg py-2 z-50 border border-gray-100">
                         <div className="px-4 py-3 border-b border-gray-100">
                           <p className="text-sm font-semibold text-gray-900">
-                            {user.username || `${user.fname} ${user.lname}`}
+                            {`${user.fname} ${user.lname}`}
                           </p>
                         </div>
                         <Link
@@ -307,7 +274,7 @@ export default function Header({ user: userProp }: HeaderProps) {
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-semibold text-gray-900 truncate">
-                        {user.username || `${user.fname} ${user.lname}`}
+                        {`${user.fname} ${user.lname}`}
                       </p>
                     </div>
                   </div>

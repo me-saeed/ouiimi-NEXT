@@ -26,30 +26,12 @@ export default function BookingConfirmPage() {
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
       const returnUrl = encodeURIComponent(`/bookings/${bookingId}/confirm?session_id=${sessionId || ''}`);
-      router.push(`/signin?callbackUrl=${returnUrl}`);
+      router.push(`/signin?redirect=${returnUrl}`);
     }
   }, [authLoading, isAuthenticated, router, bookingId, sessionId]);
 
   const verifyPaymentAndLoadBooking = async () => {
     try {
-      // Verify the Stripe Checkout session (session cookie sent automatically)
-      if (sessionId) {
-        const verifyResponse = await fetch("/api/payments/verify-session", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          credentials: 'include', // Sends session cookie
-          body: JSON.stringify({ sessionId, bookingId }),
-        });
-
-        if (!verifyResponse.ok) {
-          throw new Error("Payment verification failed");
-        }
-
-        setPaymentVerified(true);
-      }
-
       // Load booking details
       const response = await fetch(`/api/bookings/${bookingId}`, {
         credentials: 'include', // Sends session cookie
@@ -57,7 +39,13 @@ export default function BookingConfirmPage() {
 
       if (response.ok) {
         const data = await response.json();
-        setBooking(data.data?.booking || data.booking);
+        const bookingData = data.data?.booking || data.booking;
+        setBooking(bookingData);
+
+        // If booking is already confirmed, we consider payment verified
+        if (bookingData.status === "confirmed" || bookingData.paymentStatus === "deposit_paid") {
+          setPaymentVerified(true);
+        }
       } else {
         setError("Failed to load booking details");
       }
@@ -71,11 +59,11 @@ export default function BookingConfirmPage() {
 
   // Load booking and verify payment only when authenticated
   useEffect(() => {
-    if (bookingId && sessionId && !authLoading && isAuthenticated) {
+    if (bookingId && !authLoading && isAuthenticated) {
       verifyPaymentAndLoadBooking();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [bookingId, sessionId, authLoading, isAuthenticated]);
+  }, [bookingId, authLoading, isAuthenticated]);
 
   if (isLoading) {
     return (
@@ -168,7 +156,7 @@ export default function BookingConfirmPage() {
             <div className="text-left space-y-2 mb-6">
               <h3 className="font-semibold text-gray-900 mb-3">Payment Summary</h3>
               <div className="flex justify-between text-sm">
-                <span className="text-gray-600">Deposit Paid</span>
+                <span className="text-gray-600">Deposit Paid (includes fee)</span>
                 <span className="font-semibold text-green-600">
                   ${booking.depositAmount.toFixed(2)}
                 </span>

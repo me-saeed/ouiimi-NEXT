@@ -78,9 +78,9 @@ export async function POST(request: NextRequest) {
 
         // Calculate payment amount
         // depositAmount is already calculated as 10% when booking was created
-        // platformFee defaults to $1.99 if not set
+        // The platform fee ($1.99) is CUT from this deposit, not added to it.
+        const totalAmount = booking.depositAmount;
         const platformFee = booking.platformFee || 1.99;
-        const totalAmount = booking.depositAmount + platformFee;
 
         // Convert to cents (Stripe requires amount in smallest currency unit)
         const amountInCents = Math.round(totalAmount * 100);

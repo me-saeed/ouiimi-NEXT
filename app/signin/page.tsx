@@ -11,10 +11,31 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { signIn } from "next-auth/react";
 import PageLayout from "@/components/layout/PageLayout";
 import { Eye, EyeOff } from "lucide-react";
+import { useAuth } from "@/lib/contexts/AuthContext";
 
 export default function SigninPage() {
   const router = useRouter();
+  const { user: authUser, isAuthenticated, isLoading: authLoading, isAdmin, hasRole } = useAuth();
   const searchParams = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '');
+
+  // Auto-redirect if already authenticated
+  useEffect(() => {
+    if (!authLoading && isAuthenticated) {
+      const requestedPath = searchParams.get("redirect") || searchParams.get("callbackUrl");
+      if (requestedPath && !requestedPath.startsWith('/signin') && !requestedPath.startsWith('/signup')) {
+        router.push(requestedPath);
+      } else {
+        // Role based redirect if no requested path
+        if (isAdmin) {
+          router.push('/admin/dashboard');
+        } else if (hasRole('business')) {
+          router.push('/business/dashboard');
+        } else {
+          router.push('/');
+        }
+      }
+    }
+  }, [isAuthenticated, authLoading, authUser, router, searchParams, isAdmin, hasRole]);
   const wasTimeout = searchParams.get('reason') === 'timeout';
   const wasVerified = searchParams.get('verified') === 'true';
   const verificationError = searchParams.get('error');
@@ -90,7 +111,7 @@ export default function SigninPage() {
 
       // Smart redirect based on user role
       const searchParams = new URL(window.location.href).searchParams;
-      const requestedPath = searchParams.get("redirect");
+      const requestedPath = searchParams.get("redirect") || searchParams.get("callbackUrl");
 
       let redirectUrl = "/";
 
