@@ -11,6 +11,7 @@ import { ServiceCard } from "@/components/ui/service-card";
 import { useRef } from "react";
 import { ImageUpload } from "@/components/ui/image-upload";
 import { useAuth } from "@/lib/contexts/AuthContext";
+import { renderAddress } from "@/lib/utils";
 
 interface Booking {
   id: string;
@@ -36,7 +37,7 @@ interface Booking {
 
 export default function ShopperProfilePage() {
   const router = useRouter();
-  const { user, isLoading: authLoading, isAuthenticated } = useAuth();
+  const { user, setUser, isLoading: authLoading, isAuthenticated } = useAuth();
   const [activeTab, setActiveTab] = useState<"upcoming" | "finished" | "details">("upcoming");
   const [upcomingBookings, setUpcomingBookings] = useState<Booking[]>([]);
   const [pendingBookings, setPendingBookings] = useState<Booking[]>([]);
@@ -116,9 +117,11 @@ export default function ShopperProfilePage() {
 
       if (response.ok) {
         setSuccess("Profile picture updated successfully");
-        const updatedUser = { ...user, pic: url };
-        localStorage.setItem("user", JSON.stringify(updatedUser));
-        setUser(updatedUser);
+        const updatedUser = user ? { ...user, pic: url } : null;
+        if (updatedUser) {
+          localStorage.setItem("user", JSON.stringify(updatedUser));
+          setUser(updatedUser);
+        }
         setTimeout(() => setSuccess(""), 3000);
       } else {
         setError("Failed to update profile picture");
@@ -269,18 +272,20 @@ export default function ShopperProfilePage() {
         },
         credentials: "include",
         body: JSON.stringify({
-          fname: fname || user.fname,
-          lname: lname || user.lname,
-          email: userDetails.email || user.email,
-          contactNo: userDetails.number || user.contactNo,
+          fname: fname || user?.fname,
+          lname: lname || user?.lname,
+          email: userDetails.email || user?.email,
+          contactNo: userDetails.number || (user as any)?.contactNo,
         }),
       });
 
       if (response.ok) {
         setSuccess("Details saved successfully");
-        const updatedUser = { ...user, fname, lname, email: userDetails.email, contactNo: userDetails.number };
-        localStorage.setItem("user", JSON.stringify(updatedUser));
-        setUser(updatedUser);
+        const updatedUser = user ? { ...user, fname, lname, email: userDetails.email, contactNo: userDetails.number } : null;
+        if (updatedUser) {
+          localStorage.setItem("user", JSON.stringify(updatedUser));
+          setUser(updatedUser);
+        }
         setTimeout(() => setSuccess(""), 3000);
       } else {
         setError("Failed to save details");
@@ -343,7 +348,7 @@ export default function ShopperProfilePage() {
       image: businessData?.logo || "/placeholder-logo.png",
       category: service?.category || '',
       businessName: businessData?.businessName || 'Business',
-      location: businessData?.address || '',
+      location: renderAddress(businessData?.address) || '',
       duration: duration || undefined,
       date: formatDateForDisplay(booking.timeSlot.date),
       time: `${formatTime12Hour(booking.timeSlot.startTime)} - ${formatTime12Hour(booking.timeSlot.endTime)}`,
@@ -408,7 +413,7 @@ export default function ShopperProfilePage() {
           <div className="container mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex flex-col items-center text-center space-y-4">
               <ImageUpload
-                value={user.pic === "avatar.png" ? "" : user.pic}
+                value={(user as any)?.pic === "avatar.png" ? "" : (user as any)?.pic}
                 onChange={handleUpdateProfilePic}
                 variant="avatar"
               />
@@ -823,7 +828,7 @@ function BookingDetailView({
         {typeof booking.businessId === 'object' && booking.businessId.address && (
           <div>
             <p className="text-sm font-medium text-muted-foreground">Address</p>
-            <p>{booking.businessId.address}</p>
+            <p>{renderAddress(booking.businessId.address)}</p>
           </div>
         )}
         {typeof booking.serviceId === 'object' && booking.serviceId.description && (

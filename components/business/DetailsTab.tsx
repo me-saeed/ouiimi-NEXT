@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useRouter } from "next/navigation";
+import { renderAddress } from "@/lib/utils";
 
 interface DetailsTabProps {
   business: any;
@@ -134,7 +135,7 @@ export function DetailsTab({ business }: DetailsTabProps) {
 
               <div className="grid grid-cols-[80px_1fr] items-baseline gap-4">
                 <span className="text-sm text-gray-500 text-right">Address:</span>
-                <span className="text-sm text-[#3A3A3A]">{business?.address || "-"}</span>
+                <span className="text-sm text-[#3A3A3A]">{renderAddress(business?.address) || "-"}</span>
               </div>
 
               {business?.story && (

@@ -1,6 +1,11 @@
 import PageLayout from "@/components/layout/PageLayout";
 import { BusinessTabs } from "@/components/business/BusinessTabs";
 import { notFound } from "next/navigation";
+import dbConnect from "@/lib/db";
+import Business from "@/lib/models/Business";
+import Service from "@/lib/models/Service";
+import Staff from "@/lib/models/Staff";
+import mongoose from "mongoose";
 
 // Enable ISR - revalidate every 60 seconds
 export const revalidate = 60;
@@ -11,31 +16,31 @@ interface PageProps {
   };
 }
 
-// Server-side business data fetching
+// Server-side business data fetching with direct DB access
 async function fetchBusinessData(businessId: string) {
   try {
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+    await dbConnect();
 
-    const [businessRes, servicesRes, staffRes] = await Promise.all([
-      fetch(`${baseUrl}/api/business/${businessId}`, {
-        next: { revalidate: 60 },
-        headers: { 'Content-Type': 'application/json' },
-      }),
-      fetch(`${baseUrl}/api/services?businessId=${businessId}&status=listed`, {
-        next: { revalidate: 60 },
-        headers: { 'Content-Type': 'application/json' },
-      }),
-      fetch(`${baseUrl}/api/staff?businessId=${businessId}`, {
-        next: { revalidate: 60 },
-        headers: { 'Content-Type': 'application/json' },
-      }),
+    if (!mongoose.Types.ObjectId.isValid(businessId)) {
+      return { business: null, services: [], staff: [] };
+    }
+
+    const [business, services, staff] = await Promise.all([
+      Business.findById(businessId).lean(),
+      Service.find({ businessId, status: "listed" }).lean(),
+      Staff.find({ businessId }).lean(),
     ]);
 
-    const business = businessRes.ok ? (await businessRes.json()).business : null;
-    const services = servicesRes.ok ? (await servicesRes.json()).services || [] : [];
-    const staff = staffRes.ok ? (await staffRes.json()).staff || [] : [];
+    if (!business) {
+      return { business: null, services: [], staff: [] };
+    }
 
-    return { business, services, staff };
+    // Serialize data for client component
+    return JSON.parse(JSON.stringify({
+      business,
+      services,
+      staff
+    }));
   } catch (error) {
     console.error('[Business Profile Server] Error fetching data:', error);
     return { business: null, services: [], staff: [] };

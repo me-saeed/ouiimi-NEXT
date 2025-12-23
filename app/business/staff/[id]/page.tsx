@@ -6,33 +6,27 @@ import Link from "next/link";
 import PageLayout from "@/components/layout/PageLayout";
 import { Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/lib/contexts/AuthContext";
 
 export default function StaffDetailPage() {
   const router = useRouter();
   const params = useParams();
   const staffId = params?.id as string;
-  const [user, setUser] = useState<any>(null);
+  const { user, isAuthenticated, isLoading: authLoading } = useAuth();
   const [staff, setStaff] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string>("");
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    const userData = localStorage.getItem("user");
-    if (token && userData) {
-      try {
-        const parsedUser = JSON.parse(userData);
-        setUser(parsedUser);
+    if (!authLoading) {
+      if (isAuthenticated && user) {
         loadStaff();
-      } catch (e) {
-        console.error("Error parsing user data:", e);
-        router.push("/signin");
+      } else {
+        router.push(`/signin?redirect=/business/staff/${staffId}`);
       }
-    } else {
-      router.push("/signin");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [staffId, router]);
+  }, [authLoading, isAuthenticated, user, router, staffId]);
 
   const loadStaff = async () => {
     if (!staffId) return;
@@ -40,11 +34,8 @@ export default function StaffDetailPage() {
     setIsLoading(true);
     setError("");
     try {
-      const token = localStorage.getItem("token");
       const response = await fetch(`/api/staff/${staffId}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        credentials: "include",
       });
 
       if (response.ok) {
@@ -65,12 +56,9 @@ export default function StaffDetailPage() {
     if (!confirm("Are you sure you want to delete this staff member? This action cannot be undone.")) return;
 
     try {
-      const token = localStorage.getItem("token");
       const response = await fetch(`/api/staff/${staffId}`, {
         method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        credentials: "include",
       });
 
       if (response.ok) {

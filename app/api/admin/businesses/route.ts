@@ -10,6 +10,7 @@
 import { NextRequest } from "next/server";
 import dbConnect from "@/lib/db";
 import Business from "@/lib/models/Business";
+import User from "@/lib/models/User";
 import { authenticateAdmin } from "@/lib/api-auth";
 import { applyRateLimit } from "@/lib/rate-limit";
 import { asyncHandler, successResponse } from "@/lib/api-response";

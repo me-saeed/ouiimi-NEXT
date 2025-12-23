@@ -11,11 +11,12 @@ import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 import { Plus } from "lucide-react";
+import { useAuth } from "@/lib/contexts/AuthContext";
 
 export default function AddStaffPage() {
   const router = useRouter();
   const { toast } = useToast();
-  const [user, setUser] = useState<any>(null);
+  const { user, isAuthenticated, isLoading: authLoading } = useAuth();
   const [businessId, setBusinessId] = useState<string>("");
   const [error, setError] = useState<string>("");
   const [success, setSuccess] = useState<string>("");
@@ -61,20 +62,10 @@ export default function AddStaffPage() {
   };
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    const userData = localStorage.getItem("user");
-    if (token && userData) {
-      try {
-        const parsedUser = JSON.parse(userData);
-        setUser(parsedUser);
-      } catch (e) {
-        console.error("Error parsing user data:", e);
-        router.push("/signin");
-      }
-    } else {
-      router.push("/signin");
+    if (!authLoading && !isAuthenticated) {
+      router.push("/signin?redirect=/business/staff/add");
     }
-  }, [router]);
+  }, [authLoading, isAuthenticated, router]);
 
   const onSubmit = async (data: z.infer<typeof formSchema>) => {
     console.log("=== FORM SUBMITTED ===");
@@ -86,38 +77,19 @@ export default function AddStaffPage() {
     setSuccess("");
 
     try {
-      const token = localStorage.getItem("token");
-      if (!token) {
+      if (!isAuthenticated || !user) {
         setError("Please sign in to add staff");
         setIsLoading(false);
         router.push("/signin");
         return;
       }
 
-      const userData = localStorage.getItem("user");
-      if (!userData) {
-        setError("User data not found. Please sign in again.");
-        setIsLoading(false);
-        router.push("/signin");
-        return;
-      }
-
-      const parsedUser = JSON.parse(userData);
-      const userId = parsedUser.id || parsedUser._id;
-
-      if (!userId) {
-        setError("User ID not found. Please sign in again.");
-        setIsLoading(false);
-        return;
-      }
+      const userId = user.id || user._id;
 
       console.log("User ID:", userId);
 
-      // First, find the business for this user
       const businessResponse = await fetch(`/api/business/search?userId=${userId}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        credentials: "include",
       });
 
       if (!businessResponse.ok) {
@@ -157,10 +129,7 @@ export default function AddStaffPage() {
 
       const response = await fetch("/api/staff", {
         method: "POST",
-        headers: {
-          // Content-Type is set automatically for FormData
-          Authorization: `Bearer ${token}`,
-        },
+        credentials: "include",
         body: formData,
       });
 

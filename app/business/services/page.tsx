@@ -6,44 +6,29 @@ import Link from "next/link";
 import PageLayout from "@/components/layout/PageLayout";
 import { Plus, Tag, Edit, Trash2 } from "lucide-react";
 import { ServiceCard } from "@/components/ui/service-card";
+import { useAuth } from "@/lib/contexts/AuthContext";
 
 export default function BusinessServicesPage() {
   const router = useRouter();
-  const [user, setUser] = useState<any>(null);
   const [services, setServices] = useState<any[]>([]);
   const [businessId, setBusinessId] = useState<string>("");
   const [isLoading, setIsLoading] = useState(true);
+  const { user, isAuthenticated, isLoading: authLoading } = useAuth();
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    const userData = localStorage.getItem("user");
-    if (token && userData) {
-      try {
-        const parsedUser = JSON.parse(userData);
-        setUser(parsedUser);
-        loadBusinessAndServices();
-      } catch (e) {
-        console.error("Error parsing user data:", e);
-        router.push("/signin");
+    if (!authLoading) {
+      if (isAuthenticated && user) {
+        loadBusinessAndServices(user);
+      } else {
+        router.push("/signin?redirect=/business/services");
       }
-    } else {
-      router.push("/signin");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [router]);
+  }, [authLoading, isAuthenticated, user, router]);
 
-  const loadBusinessAndServices = async () => {
+  const loadBusinessAndServices = async (userData: any) => {
     try {
-      const token = localStorage.getItem("token");
-      const userData = localStorage.getItem("user");
-
-      if (!token || !userData) {
-        router.push("/signin");
-        return;
-      }
-
-      const parsedUser = JSON.parse(userData);
-      const userId = parsedUser.id || parsedUser._id;
+      const userId = userData.id || userData._id;
 
       if (!userId) {
         console.error("User ID not found");
@@ -53,9 +38,7 @@ export default function BusinessServicesPage() {
 
       // First, find the business for this user
       const businessResponse = await fetch(`/api/business/search?userId=${userId}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        credentials: "include",
       });
 
       if (!businessResponse.ok) {
@@ -72,9 +55,7 @@ export default function BusinessServicesPage() {
 
         // Now load services for this business
         const servicesResponse = await fetch(`/api/services?businessId=${foundBusinessId}`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+          credentials: "include",
         });
 
         if (servicesResponse.ok) {
@@ -106,8 +87,7 @@ export default function BusinessServicesPage() {
     if (!confirm("Are you sure you want to delete this service? This action cannot be undone.")) return;
 
     try {
-      const token = localStorage.getItem("token");
-      if (!token) {
+      if (!isAuthenticated) {
         alert("Please sign in to delete services");
         router.push("/signin");
         return;
@@ -115,14 +95,12 @@ export default function BusinessServicesPage() {
 
       const response = await fetch(`/api/services/${serviceId}`, {
         method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        credentials: "include",
       });
 
       if (response.ok) {
         // Reload services after deletion
-        loadBusinessAndServices();
+        loadBusinessAndServices(user);
       } else {
         const errorData = await response.json();
         alert(errorData.error || "Failed to delete service");

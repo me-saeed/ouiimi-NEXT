@@ -17,6 +17,8 @@ import mongoose from "mongoose";
 import dbConnect from "@/lib/db";
 import Booking from "@/lib/models/Booking";
 import Service from "@/lib/models/Service";
+import Business from "@/lib/models/Business";
+import User from "@/lib/models/User";
 import Staff from "@/lib/models/Staff";
 import { authenticateRequest } from "@/lib/api-auth";
 import { applyRateLimit } from "@/lib/rate-limit";

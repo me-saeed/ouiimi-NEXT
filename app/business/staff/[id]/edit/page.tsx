@@ -9,12 +9,13 @@ import PageLayout from "@/components/layout/PageLayout";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Plus } from "lucide-react";
+import { useAuth } from "@/lib/contexts/AuthContext";
 
 export default function EditStaffPage() {
   const router = useRouter();
   const params = useParams();
   const staffId = params.id as string;
-  const [user, setUser] = useState<any>(null);
+  const { user, isAuthenticated, isLoading: authLoading } = useAuth();
   const [error, setError] = useState<string>("");
   const [success, setSuccess] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
@@ -33,30 +34,20 @@ export default function EditStaffPage() {
   });
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    const userData = localStorage.getItem("user");
-    if (token && userData) {
-      try {
-        const parsedUser = JSON.parse(userData);
-        setUser(parsedUser);
+    if (!authLoading) {
+      if (isAuthenticated && user) {
         loadStaff();
-      } catch (e) {
-        console.error("Error parsing user data:", e);
-        router.push("/signin");
+      } else {
+        router.push(`/signin?redirect=/business/staff/${staffId}/edit`);
       }
-    } else {
-      router.push("/signin");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [router, staffId]);
+  }, [authLoading, isAuthenticated, user, router, staffId]);
 
   const loadStaff = async () => {
     try {
-      const token = localStorage.getItem("token");
       const response = await fetch(`/api/staff/${staffId}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        credentials: "include",
       });
 
       if (!response.ok) {
@@ -113,8 +104,6 @@ export default function EditStaffPage() {
     setSuccess("");
 
     try {
-      const token = localStorage.getItem("token");
-
       // Convert image to base64 if selected
       let photoUrl = data.photo || "";
       if (selectedImage) {
@@ -125,8 +114,8 @@ export default function EditStaffPage() {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
+        credentials: "include",
         body: JSON.stringify({
           ...data,
           photo: photoUrl || undefined,

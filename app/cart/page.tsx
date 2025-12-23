@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useAuth } from "@/lib/contexts/AuthContext";
+import { renderAddress } from "@/lib/utils";
 
 interface CartItem {
   serviceId: string;
@@ -245,7 +246,7 @@ export default function CartPage() {
                       )}
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">Address:</span>
-                        <span className="text-right">{item.address}</span>
+                        <span className="text-right">{renderAddress(item.address)}</span>
                       </div>
                     </div>
 

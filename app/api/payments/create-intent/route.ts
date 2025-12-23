@@ -13,6 +13,8 @@ import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
 import dbConnect from "@/lib/db";
 import Booking from "@/lib/models/Booking";
+import Business from "@/lib/models/Business";
+import Service from "@/lib/models/Service";
 
 // =============================================================================
 // LAZY STRIPE INITIALIZATION

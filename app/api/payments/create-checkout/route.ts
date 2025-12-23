@@ -42,6 +42,8 @@ import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
 import dbConnect from "@/lib/db";
 import Booking from "@/lib/models/Booking";
+import Business from "@/lib/models/Business";
+import Service from "@/lib/models/Service";
 
 // =============================================================================
 // LAZY STRIPE INITIALIZATION
@@ -118,8 +120,8 @@ export async function POST(request: NextRequest) {
         // Extract host and protocol from request headers to build base URL
         // This works automatically in all environments (dev, staging, production)
         const host = request.headers.get("host") || "localhost:3000";
-        const protocol = request.headers.get("x-forwarded-proto") || 
-                        (host.includes("localhost") ? "http" : "https");
+        const protocol = request.headers.get("x-forwarded-proto") ||
+            (host.includes("localhost") ? "http" : "https");
         const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || `${protocol}://${host}`;
 
         // =====================================================================

@@ -5,44 +5,29 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import PageLayout from "@/components/layout/PageLayout";
 import { User, Plus, Award, CheckCircle2, Edit2, Trash2 } from "lucide-react";
+import { useAuth } from "@/lib/contexts/AuthContext";
 
 export default function BusinessStaffPage() {
   const router = useRouter();
-  const [user, setUser] = useState<any>(null);
-  const [staff, setStaff] = useState<any[]>([]);
   const [businessId, setBusinessId] = useState<string>("");
   const [isLoading, setIsLoading] = useState(true);
+  const [staff, setStaff] = useState<any[]>([]);
+  const { user, isAuthenticated, isLoading: authLoading } = useAuth();
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    const userData = localStorage.getItem("user");
-    if (token && userData) {
-      try {
-        const parsedUser = JSON.parse(userData);
-        setUser(parsedUser);
-        loadBusinessAndStaff();
-      } catch (e) {
-        console.error("Error parsing user data:", e);
-        router.push("/signin");
+    if (!authLoading) {
+      if (isAuthenticated && user) {
+        loadBusinessAndStaff(user);
+      } else {
+        router.push("/signin?redirect=/business/staff");
       }
-    } else {
-      router.push("/signin");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [router]);
+  }, [authLoading, isAuthenticated, user, router]);
 
-  const loadBusinessAndStaff = async () => {
+  const loadBusinessAndStaff = async (userData: any) => {
     try {
-      const token = localStorage.getItem("token");
-      const userData = localStorage.getItem("user");
-
-      if (!token || !userData) {
-        router.push("/signin");
-        return;
-      }
-
-      const parsedUser = JSON.parse(userData);
-      const userId = parsedUser.id || parsedUser._id;
+      const userId = userData.id || userData._id;
 
       if (!userId) {
         console.error("User ID not found");
@@ -50,11 +35,8 @@ export default function BusinessStaffPage() {
         return;
       }
 
-      // First, find the business for this user
       const businessResponse = await fetch(`/api/business/search?userId=${userId}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        credentials: "include",
       });
 
       if (!businessResponse.ok) {
@@ -71,9 +53,7 @@ export default function BusinessStaffPage() {
 
         // Now load staff for this business
         const staffResponse = await fetch(`/api/staff?businessId=${foundBusinessId}`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+          credentials: "include",
         });
 
         if (staffResponse.ok) {
@@ -99,8 +79,7 @@ export default function BusinessStaffPage() {
     if (!confirm("Are you sure you want to delete this staff member? This action cannot be undone.")) return;
 
     try {
-      const token = localStorage.getItem("token");
-      if (!token) {
+      if (!isAuthenticated) {
         alert("Please sign in to manage staff");
         router.push("/signin");
         return;
@@ -108,15 +87,13 @@ export default function BusinessStaffPage() {
 
       const response = await fetch(`/api/staff/${staffId}`, {
         method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        credentials: "include",
       });
 
       if (response.ok) {
         // Reload staff after deletion
         console.log("Staff deleted successfully, reloading...");
-        await loadBusinessAndStaff();
+        await loadBusinessAndStaff(user);
       } else {
         const errorData = await response.json();
         console.error("Failed to delete staff:", errorData);
@@ -222,8 +199,8 @@ export default function BusinessStaffPage() {
                       {/* Status */}
                       <div className="flex justify-center mb-4">
                         <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${member.isActive
-                            ? 'bg-green-100 text-green-700'
-                            : 'bg-gray-100 text-gray-600'
+                          ? 'bg-green-100 text-green-700'
+                          : 'bg-gray-100 text-gray-600'
                           }`}>
                           {member.isActive && <CheckCircle2 className="w-3 h-3" />}
                           {member.isActive ? 'Active' : 'Inactive'}

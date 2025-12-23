@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { renderAddress } from "@/lib/utils";
 import Link from "next/link";
 import { Plus, Pencil, Trash2 } from "lucide-react";
 import { ServiceCard } from "@/components/ui/service-card";
@@ -258,7 +259,7 @@ export function ListTab({ business }: ListTabProps) {
       category: service.category,
       subCategory: service.subCategory,
       businessName: businessData?.businessName || "Business",
-      location: businessData?.address || "",
+      location: renderAddress(businessData?.address) || "",
       duration: durationStr,
       date: date,
       time: time,

@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { X } from "lucide-react";
 import { parseLocalDate, formatDateLocal } from "@/lib/utils/date-utils";
 import { useAuth } from "@/lib/contexts/AuthContext";
+import { renderAddress } from "@/lib/utils";
 
 interface BookingFormProps {
     service: any;
@@ -194,7 +195,7 @@ export function ServiceBookingForm({ service, business }: BookingFormProps) {
             baseCost: selectedTimeSlot?.price || 0,
             addOns: selectedAddOns,
             totalCost: calculateTotal(),
-            address: service.address || (typeof service.businessId === 'object' ? service.businessId.address : business?.address),
+            address: renderAddress(service.address || (typeof service.businessId === 'object' ? service.businessId.address : business?.address)),
             description: description,
         };
 
@@ -409,7 +410,7 @@ export function ServiceBookingForm({ service, business }: BookingFormProps) {
                             ADDRESS
                         </label>
                         <p className="text-sm text-[#3A3A3A]">
-                            {service.address || (typeof service.businessId === 'object' ? service.businessId.address : business?.address) || ""}
+                            {renderAddress(service.address || (typeof service.businessId === 'object' ? service.businessId.address : business?.address)) || ""}
                         </p>
                     </div>
 

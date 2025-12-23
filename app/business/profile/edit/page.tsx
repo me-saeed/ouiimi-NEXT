@@ -10,10 +10,11 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AddressAutocomplete } from "@/components/ui/address-autocomplete";
 import { ImageUpload } from "@/components/ui/image-upload";
 import { Controller } from "react-hook-form";
+import { useAuth } from "@/lib/contexts/AuthContext";
 
 export default function BusinessProfileEditPage() {
   const router = useRouter();
-  const [user, setUser] = useState<any>(null);
+  const { user, isAuthenticated, isLoading: authLoading } = useAuth();
   const [business, setBusiness] = useState<any>(null);
   const [error, setError] = useState<string>("");
   const [success, setSuccess] = useState<string>("");
@@ -32,25 +33,13 @@ export default function BusinessProfileEditPage() {
   });
 
   useEffect(() => {
-    const loadBusinessData = async () => {
-      const token = localStorage.getItem("token");
-      const userData = localStorage.getItem("user");
-
-      if (!token || !userData) {
-        router.push("/signin");
-        return;
-      }
-
+    const loadBusinessData = async (userData: any) => {
       try {
-        const parsedUser = JSON.parse(userData);
-        setUser(parsedUser);
-        const userId = parsedUser.id || parsedUser._id;
+        const userId = userData.id || userData._id;
 
         // Fetch business by userId
         const businessResponse = await fetch(`/api/business/search?userId=${userId}`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+          credentials: "include",
         });
 
         if (businessResponse.ok) {
@@ -84,8 +73,14 @@ export default function BusinessProfileEditPage() {
       }
     };
 
-    loadBusinessData();
-  }, [router, reset]);
+    if (!authLoading) {
+      if (isAuthenticated && user) {
+        loadBusinessData(user);
+      } else {
+        router.push("/signin?redirect=/business/profile/edit");
+      }
+    }
+  }, [authLoading, isAuthenticated, user, router, reset]);
 
   const onSubmit = async (data: BusinessUpdateInput) => {
     if (!business) {
@@ -98,7 +93,6 @@ export default function BusinessProfileEditPage() {
     setSuccess("");
 
     try {
-      const token = localStorage.getItem("token");
       const businessId = business._id || business.id;
 
       // Process the data before sending
@@ -111,8 +105,8 @@ export default function BusinessProfileEditPage() {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
+        credentials: "include",
         body: JSON.stringify(requestData),
       });
 

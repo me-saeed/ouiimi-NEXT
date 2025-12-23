@@ -6,12 +6,14 @@ import PageLayout from "@/components/layout/PageLayout";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Trash2, Edit } from "lucide-react";
+import { useAuth } from "@/lib/contexts/AuthContext";
+import { renderAddress } from "@/lib/utils";
 
 export default function ServiceDetailsPage() {
   const router = useRouter();
   const params = useParams();
   const serviceId = params.id as string;
-  const [user, setUser] = useState<any>(null);
+  const { user, isAuthenticated, isLoading: authLoading } = useAuth();
   const [service, setService] = useState<any>(null);
   const [business, setBusiness] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -19,29 +21,20 @@ export default function ServiceDetailsPage() {
   const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    const userData = localStorage.getItem("user");
-    if (token && userData) {
-      try {
-        setUser(JSON.parse(userData));
+    if (!authLoading) {
+      if (isAuthenticated && user) {
         loadService();
-      } catch (e) {
-        console.error("Error parsing user data:", e);
-        router.push("/signin");
+      } else {
+        router.push(`/signin?redirect=/business/services/${serviceId}`);
       }
-    } else {
-      router.push("/signin");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [serviceId]);
+  }, [authLoading, isAuthenticated, user, router, serviceId]);
 
   const loadService = async () => {
     try {
-      const token = localStorage.getItem("token");
       const response = await fetch(`/api/services/${serviceId}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        credentials: "include",
       });
 
       if (!response.ok) {
@@ -57,19 +50,19 @@ export default function ServiceDetailsPage() {
       const data = await response.json();
       if (data.service) {
         setService(data.service);
-        
+
         // Fetch business details if businessId is populated
         if (data.service.businessId) {
           if (typeof data.service.businessId === 'object' && data.service.businessId.businessName) {
             setBusiness(data.service.businessId);
           } else {
-            const businessId = typeof data.service.businessId === 'object' 
+            const businessId = typeof data.service.businessId === 'object'
               ? data.service.businessId._id || data.service.businessId.id
               : data.service.businessId;
-            
+
             if (businessId) {
               const businessResponse = await fetch(`/api/business/${businessId}`, {
-                headers: { Authorization: `Bearer ${token}` },
+                credentials: "include",
               });
               if (businessResponse.ok) {
                 const businessData = await businessResponse.json();
@@ -98,12 +91,9 @@ export default function ServiceDetailsPage() {
     setError("");
 
     try {
-      const token = localStorage.getItem("token");
       const response = await fetch(`/api/services/${serviceId}`, {
         method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        credentials: "include",
       });
 
       if (response.ok) {
@@ -215,7 +205,7 @@ export default function ServiceDetailsPage() {
                       Address
                     </label>
                     <p className="text-sm text-[#3A3A3A]">
-                      {service?.address || (business?.address) || "N/A"}
+                      {renderAddress(service?.address || (business?.address)) || "N/A"}
                     </p>
                   </div>
 

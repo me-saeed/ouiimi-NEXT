@@ -2,6 +2,11 @@ import Link from "next/link";
 import PageLayout from "@/components/layout/PageLayout";
 import { ServiceBookingForm } from "@/components/services/ServiceBookingForm";
 import { notFound } from "next/navigation";
+import dbConnect from "@/lib/db";
+import Service from "@/lib/models/Service";
+import Business from "@/lib/models/Business";
+import Staff from "@/lib/models/Staff";
+import mongoose from "mongoose";
 
 // Enable ISR - revalidate every 30 seconds (more frequent for detail pages)
 export const revalidate = 30;
@@ -15,47 +20,60 @@ interface PageProps {
 // Server-side service data fetching
 async function fetchService(id: string) {
   try {
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
-    const response = await fetch(`${baseUrl}/api/services/${id}`, {
-      next: { revalidate: 30 },
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
+    await dbConnect();
 
-    if (!response.ok) {
-      console.error('[Service Detail Server] API error:', response.status);
+    if (!mongoose.Types.ObjectId.isValid(id)) {
       return null;
     }
 
-    const data = await response.json();
-    return data.service;
+    const service = await Service.findById(id).lean();
+    if (!service) return null;
+
+    // Populate business
+    const business = await Business.findById(service.businessId).select('businessName logo address email phone').lean();
+
+    // Convert ObjectIds to strings for serialization
+    const serializedService = JSON.parse(JSON.stringify({
+      ...service,
+      businessId: business || service.businessId
+    }));
+
+    // Populate staff details if available
+    if (serializedService.timeSlots && serializedService.timeSlots.length > 0) {
+      const allStaffIds: string[] = [];
+      serializedService.timeSlots.forEach((ts: any) => {
+        if (ts.staffIds && Array.isArray(ts.staffIds)) {
+          ts.staffIds.forEach((staff: any) => {
+            const idStr = String(staff.staffId);
+            if (idStr && !allStaffIds.includes(idStr)) {
+              allStaffIds.push(idStr);
+            }
+          });
+        }
+      });
+
+      if (allStaffIds.length > 0) {
+        const staffMembers = await Staff.find({
+          _id: { $in: allStaffIds.map(id => new mongoose.Types.ObjectId(id)) }
+        }).select('name photo').lean();
+
+        const staffMap = new Map(
+          staffMembers.map((s: any) => [String(s._id), s])
+        );
+
+        serializedService.timeSlots = serializedService.timeSlots.map((ts: any) => ({
+          ...ts,
+          staffIds: ts.staffIds?.map((staff: any) => ({
+            ...staff,
+            staffDetails: staffMap.get(String(staff.staffId)) || null
+          }))
+        }));
+      }
+    }
+
+    return serializedService;
   } catch (error) {
     console.error('[Service Detail Server] Error fetching service:', error);
-    return null;
-  }
-}
-
-// Server-side business data fetching
-async function fetchBusiness(businessId: string) {
-  try {
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
-    const response = await fetch(`${baseUrl}/api/business/${businessId}`, {
-      next: { revalidate: 60 },
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
-
-    if (!response.ok) {
-      console.error('[Service Detail Server] Business API error:', response.status);
-      return null;
-    }
-
-    const data = await response.json();
-    return data.business;
-  } catch (error) {
-    console.error('[Service Detail Server] Error fetching business:', error);
     return null;
   }
 }
@@ -70,23 +88,8 @@ export default async function ServiceDetailPage({ params }: PageProps) {
     notFound();
   }
 
-  // Fetch business data if needed
-  let business = null;
-  if (service.businessId) {
-    if (typeof service.businessId === 'object' && service.businessId.businessName) {
-      // Already populated
-      business = service.businessId;
-    } else {
-      // Fetch business separately
-      const businessId = typeof service.businessId === 'object'
-        ? service.businessId._id || service.businessId.id
-        : service.businessId;
-
-      if (businessId) {
-        business = await fetchBusiness(businessId);
-      }
-    }
-  }
+  // Business is already populated in fetchService
+  const business = service.businessId;
 
   return (
     <PageLayout>
@@ -105,7 +108,7 @@ export default async function ServiceDetailPage({ params }: PageProps) {
   );
 }
 
-// Generate 404 page
+// Generate metadata
 export function generateMetadata({ params }: PageProps) {
   return {
     title: `Service Details | ouiimi`,

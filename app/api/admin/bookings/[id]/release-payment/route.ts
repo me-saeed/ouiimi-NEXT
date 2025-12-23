@@ -9,6 +9,8 @@
 import { NextRequest } from "next/server";
 import dbConnect from "@/lib/db";
 import Booking from "@/lib/models/Booking";
+import Business from "@/lib/models/Business";
+import Service from "@/lib/models/Service";
 import { authenticateAdmin } from "@/lib/api-auth";
 import { applyRateLimit } from "@/lib/rate-limit";
 import { APIError, asyncHandler, successResponse } from "@/lib/api-response";

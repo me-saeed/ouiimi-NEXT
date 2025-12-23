@@ -1,6 +1,7 @@
 import PageLayout from "@/components/layout/PageLayout";
 import { ServiceCard } from "@/components/ui/service-card";
 import { getAllCategories } from "@/lib/constants/categories";
+import { renderAddress } from "@/lib/utils";
 
 // Enable ISR - revalidate every 60 seconds
 export const revalidate = 60;
@@ -127,7 +128,7 @@ function formatServiceForCard(service: any) {
         category: service.category,
         subCategory: service.subCategory,
         businessName: business?.businessName || "Business",
-        location: business?.address || "",
+        location: renderAddress(business?.address) || "",
         duration: duration,
         date: earliestSlot?.date || null,
         time: earliestSlot?.time || null,
