@@ -412,8 +412,8 @@ async function getServicesHandler(req: NextRequest) {
               as: "slot",
               cond: {
                 $and: [
-                  // ✅ CANONICAL FORMAT: staffIds = [{staffId, isBooked}]
-                  // Check if slot has AT LEAST ONE staff with isBooked=false
+                  // ✅ RESILIENT FORMAT: handle both objects and legacy strings
+                  // Check if slot has AT LEAST ONE staff who is NOT booked
                   {
                     $gt: [
                       {
@@ -421,7 +421,15 @@ async function getServicesHandler(req: NextRequest) {
                           $filter: {
                             input: "$$slot.staffIds",
                             as: "staff",
-                            cond: { $eq: ["$$staff.isBooked", false] }
+                            cond: {
+                              $or: [
+                                // Case 1: New format { staffId, isBooked: false }
+                                { $eq: ["$$staff.isBooked", false] },
+                                // Case 2: Legacy format (just a string ID) -> assume available
+                                { $eq: [{ $type: "$$staff" }, "string"] },
+                                { $eq: [{ $type: "$$staff" }, "objectId"] }
+                              ]
+                            }
                           }
                         }
                       },
@@ -551,14 +559,20 @@ async function getServicesHandler(req: NextRequest) {
           preserveNullAndEmptyArrays: true,
         },
       },
-      // ✅ Requirement: Only show services from APPROVED businesses and ACTIVE services
+      // ✅ Requirement: Only show services from APPROVED businesses and LISTED services
+      // In development, also show PENDING businesses for easier testing
       {
         $match: businessId
           ? {} // Dashboard shows everything
-          : {
-            "businessData.status": "approved",
-            "status": "active"
-          }
+          : (process.env.NODE_ENV === 'development' || process.env.NEXT_PUBLIC_DEV_MODE === 'true')
+            ? {
+              "businessData.status": { $in: ["approved", "pending"] },
+              "status": "listed"
+            }
+            : {
+              "businessData.status": "approved",
+              "status": "listed"
+            }
       },
       {
         $project: {
@@ -614,7 +628,8 @@ async function getServicesHandler(req: NextRequest) {
     services.forEach((s: any) => {
       s.timeSlots?.forEach((ts: any) => {
         ts.staffIds?.forEach((staff: any) => {
-          allStaffIdsSet.add(String(staff.staffId));
+          const sid = typeof staff === 'string' ? staff : String(staff.staffId || staff.id || staff);
+          if (sid) allStaffIdsSet.add(sid);
         });
       });
     });
@@ -632,7 +647,16 @@ async function getServicesHandler(req: NextRequest) {
           // Process slots with global busy check
           const processedSlots = (s.timeSlots || []).map((ts: any) => {
             const updatedStaffIds = ts.staffIds?.map((staff: any) => {
-              const isGloballyBooked = isStaffBusy(busyMap, String(staff.staffId), ts.date, ts.startTime);
+              const staffIdStr = typeof staff === 'string' ? staff : String(staff.staffId || staff.id || staff);
+              const isGloballyBooked = isStaffBusy(busyMap, staffIdStr, ts.date, ts.startTime);
+
+              if (typeof staff === 'string' || !staff.staffId) {
+                return {
+                  staffId: staffIdStr,
+                  isBooked: isGloballyBooked
+                };
+              }
+
               return {
                 ...staff,
                 isBooked: staff.isBooked || isGloballyBooked

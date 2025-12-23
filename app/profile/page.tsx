@@ -231,6 +231,7 @@ export default function ShopperProfilePage() {
       });
 
       if (response.ok) {
+        router.refresh();
         setSuccess("Booking cancelled successfully");
         setSelectedBooking(null);
         if (user) loadBookings(user);
@@ -281,7 +282,6 @@ export default function ShopperProfilePage() {
         setSuccess("Details saved successfully");
         const updatedUser = user ? { ...user, fname, lname, email: userDetails.email, contactNo: userDetails.number } : null;
         if (updatedUser) {
-          localStorage.setItem("user", JSON.stringify(updatedUser));
           setUser(updatedUser);
         }
         setTimeout(() => setSuccess(""), 3000);

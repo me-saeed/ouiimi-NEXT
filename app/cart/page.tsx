@@ -28,7 +28,7 @@ interface CartItem {
 
 export default function CartPage() {
   const router = useRouter();
-  const { user, isLoading: authLoading, isAuthenticated } = useAuth();
+  const { user, isLoading: authLoading, isAuthenticated, refreshSession } = useAuth();
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string>("");
@@ -75,7 +75,7 @@ export default function CartPage() {
 
     // Double-check session if client thinks it's unauthenticated
     if (!isAuthenticated) {
-      await (useAuth as any)().refreshSession();
+      await refreshSession();
     }
 
     if (!isAuthenticated) {
@@ -95,7 +95,6 @@ export default function CartPage() {
     setError("");
 
     try {
-      const token = localStorage.getItem("token");
       const userId = user?.id || user?._id;
 
       // Group items by business (can only checkout from one business at a time)
@@ -163,6 +162,7 @@ export default function CartPage() {
       const bookingId = responseData.data?.booking?.id || responseData.data?.booking?._id || responseData.booking?.id || responseData.booking?._id;
 
       if (bookingId) {
+        router.refresh();
         router.push(`/bookings/${bookingId}/checkout`);
       } else {
         throw new Error("No booking ID returned");

@@ -15,7 +15,7 @@ import { useAuth } from "@/lib/contexts/AuthContext";
 
 export default function SigninPage() {
   const router = useRouter();
-  const { user: authUser, isAuthenticated, isLoading: authLoading, isAdmin, hasRole } = useAuth();
+  const { user: authUser, isAuthenticated, isLoading: authLoading, isAdmin, hasRole, refreshSession } = useAuth();
 
   const searchParams = useMemo(() => {
     return new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '');
@@ -138,8 +138,9 @@ export default function SigninPage() {
         // Regular users stay at "/"
       }
 
-      setTimeout(() => {
-        router.refresh();
+      setTimeout(async () => {
+        await refreshSession(); // Update AuthContext state with new cookie data
+        router.refresh(); // Refresh server-side data
         router.push(redirectUrl);
       }, 1000);
     } catch (err: any) {

@@ -50,7 +50,7 @@ async function getServiceHandler(
     service.timeSlots.forEach((ts: any) => {
       if (ts.staffIds && Array.isArray(ts.staffIds)) {
         ts.staffIds.forEach((staff: any) => {
-          const idStr = String(staff.staffId);
+          const idStr = typeof staff === 'string' ? staff : String(staff.staffId || staff.id || staff);
           if (idStr && !allStaffIds.includes(idStr)) {
             allStaffIds.push(idStr);
           }
@@ -77,9 +77,17 @@ async function getServiceHandler(
 
         service.timeSlots = service.timeSlots.map((ts: any) => {
           const updatedStaffIds = ts.staffIds?.map((staff: any) => {
-            const staffIdStr = String(staff.staffId);
+            const staffIdStr = typeof staff === 'string' ? staff : String(staff.staffId || staff.id || staff);
             // Check global busy map
             const isGloballyBooked = isStaffBusy(busyMap, staffIdStr, ts.date, ts.startTime);
+
+            if (typeof staff === 'string' || !staff.staffId) {
+              return {
+                staffId: staffIdStr,
+                isBooked: isGloballyBooked,
+                staffDetails: staffMap.get(staffIdStr) || null
+              };
+            }
 
             return {
               ...staff,

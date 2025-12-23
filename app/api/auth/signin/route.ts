@@ -110,7 +110,7 @@ async function signinHandler(req: NextRequest) {
   const sessionToken = await createSession({
     userId: String(user._id),
     email: user.email,
-    role: user.Roles?.[0] || 'user',
+    role: (user.Roles?.[0] || 'user').toLowerCase(),
     fname: user.fname,
     lname: user.lname,
   });

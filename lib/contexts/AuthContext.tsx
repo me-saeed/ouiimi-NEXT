@@ -48,10 +48,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
             if (data.success && data.data.authenticated) {
                 console.log("[AuthContext] Session loaded for:", data.data.user.email);
-                // Standardize role to roles array for component logic
+                // Standardize role to lowercase and roles array for component logic
                 const userData = data.data.user;
-                if (userData.role && !userData.roles) {
-                    userData.roles = [userData.role];
+                if (userData.role) {
+                    userData.role = userData.role.toLowerCase();
+                    if (!userData.roles) {
+                        userData.roles = [userData.role];
+                    }
                 }
                 setUser(userData);
             } else {
