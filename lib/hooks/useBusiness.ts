@@ -2,20 +2,16 @@ import useSWR, { SWRConfiguration } from 'swr';
 
 /**
  * Generic fetcher function for SWR
- * Automatically includes auth token from localStorage
+ * Uses session cookies (HttpOnly) for authentication automatically
  */
 const fetcher = async (url: string) => {
-    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
-
-    const headers: HeadersInit = {
-        'Content-Type': 'application/json',
-    };
-
-    if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-    }
-
-    const res = await fetch(url, { headers });
+    // Session cookies are sent automatically with credentials: 'include'
+    const res = await fetch(url, {
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        credentials: 'include', // Important: sends cookies with request
+    });
 
     if (!res.ok) {
         const error: any = new Error('An error occurred while fetching the data.');

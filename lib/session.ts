@@ -17,21 +17,30 @@ export interface SessionData {
 
 /**
  * Create a new session with HttpOnly cookie
+ * Returns the session token that should be set in the response
  */
-export async function createSession(data: SessionData): Promise<void> {
+export async function createSession(data: SessionData): Promise<string> {
     const token = await new SignJWT(data as any)
         .setProtectedHeader({ alg: 'HS256' })
         .setIssuedAt()
         .setExpirationTime('7d')
         .sign(SECRET);
 
-    cookies().set('session', token, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        maxAge: SESSION_DURATION,
-        path: '/',
-    });
+    // For middleware/server components
+    try {
+        const cookieStore = cookies();
+        cookieStore.set('session', token, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'lax',
+            maxAge: SESSION_DURATION,
+            path: '/',
+        });
+    } catch (e) {
+        // If cookies() fails (in API routes), return token to set manually
+    }
+
+    return token;
 }
 
 /**

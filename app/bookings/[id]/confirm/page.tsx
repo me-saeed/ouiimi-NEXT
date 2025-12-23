@@ -32,16 +32,14 @@ export default function BookingConfirmPage() {
 
   const verifyPaymentAndLoadBooking = async () => {
     try {
-      const token = localStorage.getItem("token");
-
-      // Verify the Stripe Checkout session
+      // Verify the Stripe Checkout session (session cookie sent automatically)
       if (sessionId) {
         const verifyResponse = await fetch("/api/payments/verify-session", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
           },
+          credentials: 'include', // Sends session cookie
           body: JSON.stringify({ sessionId, bookingId }),
         });
 
@@ -54,14 +52,12 @@ export default function BookingConfirmPage() {
 
       // Load booking details
       const response = await fetch(`/api/bookings/${bookingId}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        credentials: 'include', // Sends session cookie
       });
 
       if (response.ok) {
         const data = await response.json();
-        setBooking(data.booking);
+        setBooking(data.data?.booking || data.booking);
       } else {
         setError("Failed to load booking details");
       }

@@ -82,12 +82,8 @@ export default function SignupPage() {
 
       setSuccess("Account created! Please check your email to verify your account.");
 
-      // Don't auto-login - user needs to verify email first
-      // Store token temporarily (user won't be fully authenticated until verified)
-      if (result.user?.token) {
-        localStorage.setItem("token", result.user.token);
-        localStorage.setItem("user", JSON.stringify(result.user));
-      }
+      // Session is set by API via HttpOnly cookie - no need to store token locally
+      // User will be auto-logged in after email verification
 
       // Redirect to signin after 4 seconds (longer to read verification message)
       const searchParams = new URL(window.location.href).searchParams;

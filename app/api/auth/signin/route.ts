@@ -107,7 +107,7 @@ async function signinHandler(req: NextRequest) {
   // ==========================================================================
   // STEP 7: Create server-side session (HttpOnly cookie)
   // ==========================================================================
-  await createSession({
+  const sessionToken = await createSession({
     userId: String(user._id),
     email: user.email,
     role: user.Roles?.[0] || 'user',
@@ -132,9 +132,9 @@ async function signinHandler(req: NextRequest) {
   }
 
   // ==========================================================================
-  // STEP 10: Return success response
+  // STEP 10: Return success response with session cookie
   // ==========================================================================
-  return successResponse({
+  const response = successResponse({
     message: "Login successful",
     user: {
       id: String(user._id),
@@ -145,6 +145,17 @@ async function signinHandler(req: NextRequest) {
       role: user.Roles?.[0] || 'user',
     },
   });
+
+  // Set cookie explicitly in response headers
+  response.cookies.set('session', sessionToken, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    maxAge: 7 * 24 * 60 * 60, // 7 days
+    path: '/',
+  });
+
+  return response;
 }
 
 // =============================================================================

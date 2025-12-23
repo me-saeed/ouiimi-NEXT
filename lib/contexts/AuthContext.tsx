@@ -31,27 +31,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const [token, setToken] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(true);
 
-    // Load user from localStorage on mount
+    // Load user from session API on mount
     useEffect(() => {
-        try {
-            const storedToken = localStorage.getItem("token");
-            const storedUser = localStorage.getItem("user");
+        const loadSession = async () => {
+            try {
+                const response = await fetch('/api/auth/session');
+                const data = await response.json();
 
-            if (storedToken && storedUser) {
-                setToken(storedToken);
-                setUser(JSON.parse(storedUser));
-                // Ensure cookie is set for middleware - Simple format for maximum compatibility
-                document.cookie = `token=${storedToken}; path=/`;
+                if (data.success && data.data.authenticated) {
+                    setUser(data.data.user);
+                    // Note: No token needed - session is in HttpOnly cookie
+                } else {
+                    setUser(null);
+                }
+            } catch (error) {
+                console.error("Error loading session:", error);
+                setUser(null);
+            } finally {
+                setIsLoading(false);
             }
-        } catch (error) {
-            console.error("Error loading auth state:", error);
-            // Clear invalid data
-            localStorage.removeItem("token");
-            localStorage.removeItem("user");
-            document.cookie = "token=; path=/; max-age=0";
-        } finally {
-            setIsLoading(false);
-        }
+        };
+
+        loadSession();
     }, []);
 
     // Auto-logout after 15 minutes of inactivity
@@ -94,27 +95,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }, [user, token]);
 
     const login = (newToken: string, userData: User) => {
-        setToken(newToken);
+        // Session is managed by API via HttpOnly cookies
+        // Just update local state for immediate UI update
         setUser(userData);
-        localStorage.setItem("token", newToken);
-        localStorage.setItem("user", JSON.stringify(userData));
-        // Set cookie for middleware
-        document.cookie = `token=${newToken}; path=/`;
+        // Token param kept for backward compatibility but not stored
     };
 
     const logout = async () => {
         try {
-            // Call server to clear HttpOnly cookie
+            // Call server to destroy HttpOnly session cookie
             await fetch("/api/auth/logout", { method: "POST" });
         } catch (error) {
             console.error("Logout API error:", error);
         } finally {
             setToken(null);
             setUser(null);
-            localStorage.removeItem("token");
-            localStorage.removeItem("user");
-            // Also try to clear client-side cookie just in case
-            document.cookie = "token=; path=/; max-age=0";
         }
     };
 
@@ -130,7 +125,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser,
         login,
         logout,
-        isAuthenticated: !!user && !!token,
+        isAuthenticated: !!user,  // Session-based, no token needed
         token,
         isLoading,
         hasRole,

@@ -7,6 +7,7 @@ import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { X } from "lucide-react";
 import { parseLocalDate, formatDateLocal } from "@/lib/utils/date-utils";
+import { useAuth } from "@/lib/contexts/AuthContext";
 
 interface BookingFormProps {
     service: any;
@@ -15,6 +16,7 @@ interface BookingFormProps {
 
 export function ServiceBookingForm({ service, business }: BookingFormProps) {
     const router = useRouter();
+    const { user, isAuthenticated } = useAuth();
     const [selectedDate, setSelectedDate] = useState<string>("");
     const [selectedTimeSlot, setSelectedTimeSlot] = useState<any>(null);
     const [selectedStaff, setSelectedStaff] = useState<string>("");
@@ -104,9 +106,6 @@ export function ServiceBookingForm({ service, business }: BookingFormProps) {
             }
 
             try {
-                const token = localStorage.getItem("token");
-                if (!token) return;
-
                 const busyStatus: Record<string, boolean> = {};
 
                 await Promise.all(
@@ -116,8 +115,9 @@ export function ServiceBookingForm({ service, business }: BookingFormProps) {
                                 `/api/bookings?staffId=${staff.id}&date=${selectedDate}&status=confirmed,pending`,
                                 {
                                     headers: {
-                                        Authorization: `Bearer ${token}`,
+                                        "Content-Type": "application/json",
                                     },
+                                    credentials: "include", // Use session cookies
                                 }
                             );
 
@@ -163,8 +163,7 @@ export function ServiceBookingForm({ service, business }: BookingFormProps) {
     };
 
     const handleAddToCart = () => {
-        const token = localStorage.getItem("token");
-        if (!token) {
+        if (!isAuthenticated) {
             const returnUrl = window.location.pathname;
             localStorage.setItem("returnUrl", returnUrl);
             router.push(`/signin?redirect=${encodeURIComponent(returnUrl)}`);

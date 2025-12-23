@@ -24,6 +24,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import Image from "next/image";
 import { getAllCategories, getAddOnsByCategory } from "@/lib/constants/categories";
+import { useAuth } from "@/lib/contexts/AuthContext";
 
 // Get all category names
 const CATEGORIES = getAllCategories().map(cat => cat.name);
@@ -41,7 +42,7 @@ getAllCategories().forEach(category => {
 export default function CreateServicePage() {
   const router = useRouter();
   const { toast } = useToast();
-  const [user, setUser] = useState<any>(null);
+  const { user, isLoading: authLoading, isAuthenticated } = useAuth();
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
@@ -115,51 +116,27 @@ export default function CreateServicePage() {
     setSelectedAddOns([]);
   }, [selectedSubCategory]);
 
-
+  // Check authentication and load data
   useEffect(() => {
-    if (!isClient || typeof window === 'undefined') {
-      console.log("[Create Service] Waiting for client-side hydration...");
+    if (!isClient || authLoading) return;
+
+    if (!isAuthenticated || !user) {
+      console.warn("[Create Service] Not authenticated, redirecting to signin");
+      router.push("/signin?redirect=/business/services/create");
       return;
     }
 
-    console.log("[Create Service] Client-side ready, loading user data...");
-    const token = localStorage.getItem("token");
-    const userData = localStorage.getItem("user");
+    console.log("[Create Service] User authenticated, loading staff");
+    loadStaff();
+  }, [isClient, authLoading, isAuthenticated, user, router]);
 
-    if (token && userData) {
-      try {
-        const parsedUser = typeof userData === 'string' ? JSON.parse(userData) : userData;
-        if (parsedUser && typeof parsedUser === 'object') {
-          console.log("[Create Service] User data loaded:", parsedUser.email || parsedUser.username);
-          setUser(parsedUser);
-          loadStaff(parsedUser);
-        } else {
-          console.warn("[Create Service] Invalid user data format, redirecting to signin");
-          router.push("/signin");
-        }
-      } catch (e) {
-        console.error("[Create Service] Error parsing user data:", e);
-        router.push("/signin");
-      }
-    } else {
-      console.warn("[Create Service] No token or user data found, redirecting to signin");
-      router.push("/signin");
-    }
-  }, [router, isClient]);
+  const loadStaff = async () => {
+    if (!user) return;
 
-  const loadStaff = async (userData: any) => {
-    if (typeof window === 'undefined') return;
-
-    console.log("[Create Service] loadStaff called for user:", userData?.id || userData?._id);
+    console.log("[Create Service] loadStaff called for user:", user.id || user._id);
 
     try {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        console.warn("[Create Service] No token found in loadStaff");
-        return;
-      }
-
-      const userId = userData?.id || userData?._id;
+      const userId = user.id || user._id;
       if (!userId) {
         console.warn("[Create Service] No userId found in loadStaff");
         return;
@@ -169,8 +146,9 @@ export default function CreateServicePage() {
       // Find business
       const businessResponse = await fetch(`/api/business/search?userId=${userId}`, {
         headers: {
-          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
         },
+        credentials: "include", // Use session cookies
       });
 
       console.log("[Create Service] Business API response:", businessResponse.status);
@@ -183,8 +161,9 @@ export default function CreateServicePage() {
           // Load staff
           const staffResponse = await fetch(`/api/staff?businessId=${businessId}`, {
             headers: {
-              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
             },
+            credentials: "include", // Use session cookies
           });
 
           if (staffResponse.ok) {
@@ -531,39 +510,15 @@ export default function CreateServicePage() {
     setSuccess("");
 
     try {
-      const token = localStorage.getItem("token");
-      if (!token) {
+      // Get user data from session
+      if (!user) {
         setError("Please sign in to create a service");
         setIsLoading(false);
-        router.push("/signin");
+        router.push("/signin?redirect=/business/services/create");
         return;
       }
 
-      const userData = localStorage.getItem("user");
-      if (!userData) {
-        setError("User data not found. Please sign in again.");
-        setIsLoading(false);
-        router.push("/signin");
-        return;
-      }
-
-      let parsedUser;
-      try {
-        parsedUser = typeof userData === 'string' ? JSON.parse(userData) : userData;
-        if (!parsedUser || typeof parsedUser !== 'object') {
-          setError("Invalid user data. Please sign in again.");
-          setIsLoading(false);
-          router.push("/signin");
-          return;
-        }
-      } catch (e) {
-        setError("Error parsing user data. Please sign in again.");
-        setIsLoading(false);
-        router.push("/signin");
-        return;
-      }
-
-      const userId = parsedUser.id || parsedUser._id;
+      const userId = user.id || user._id;
 
       if (!userId) {
         setError("User ID not found. Please sign in again.");
@@ -573,8 +528,9 @@ export default function CreateServicePage() {
       // First, find the business for this user
       const businessResponse = await fetch(`/api/business/search?userId=${userId}`, {
         headers: {
-          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
         },
+        credentials: "include", // Use session cookies
       });
 
       if (!businessResponse.ok) {
@@ -665,8 +621,8 @@ export default function CreateServicePage() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
+        credentials: "include", // Use session cookies
         body: JSON.stringify(requestBody),
       });
 
@@ -765,7 +721,7 @@ export default function CreateServicePage() {
     );
   }
 
-  console.log("[Create Service] Rendering form - user:", user.email || user.username);
+  console.log("[Create Service] Rendering form - user:", user?.email || user?.id);
 
   return (
     <PageLayout user={user}>

@@ -33,24 +33,15 @@ export default function CheckoutPage() {
         const initializeCheckout = async () => {
             try {
                 setIsLoading(true);
-                const token = localStorage.getItem("token");
-
-                if (!token) {
-                    setError("Authentication required");
-                    setIsLoading(false);
-                    return;
-                }
 
                 // Add timeout to prevent infinite loading
                 const timeout = new Promise((_, reject) =>
                     setTimeout(() => reject(new Error("Request timed out")), 15000)
                 );
 
-                // First, load booking details
+                // First, load booking details (session cookie sent automatically)
                 const bookingPromise = fetch(`/api/bookings/${bookingId}`, {
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                    },
+                    credentials: 'include', // Sends session cookie
                 });
 
                 const bookingResponse = await Promise.race([bookingPromise, timeout]) as Response;
@@ -63,15 +54,15 @@ export default function CheckoutPage() {
                 }
 
                 const bookingData = await bookingResponse.json();
-                setBooking(bookingData.booking);
+                setBooking(bookingData.data?.booking || bookingData.booking);
 
                 // Then, create payment intent for embedded checkout
                 const intentPromise = fetch("/api/payments/create-intent", {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json",
-                        Authorization: `Bearer ${token}`,
                     },
+                    credentials: 'include', // Sends session cookie
                     body: JSON.stringify({ bookingId }),
                 });
 

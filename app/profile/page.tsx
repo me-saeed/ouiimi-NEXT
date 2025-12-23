@@ -10,6 +10,7 @@ import { Calendar } from "lucide-react";
 import { ServiceCard } from "@/components/ui/service-card";
 import { useRef } from "react";
 import { ImageUpload } from "@/components/ui/image-upload";
+import { useAuth } from "@/lib/contexts/AuthContext";
 
 interface Booking {
   id: string;
@@ -35,7 +36,7 @@ interface Booking {
 
 export default function ShopperProfilePage() {
   const router = useRouter();
-  const [user, setUser] = useState<any>(null);
+  const { user, isLoading: authLoading, isAuthenticated } = useAuth();
   const [activeTab, setActiveTab] = useState<"upcoming" | "finished" | "details">("upcoming");
   const [upcomingBookings, setUpcomingBookings] = useState<Booking[]>([]);
   const [pendingBookings, setPendingBookings] = useState<Booking[]>([]);
@@ -81,42 +82,33 @@ export default function ShopperProfilePage() {
   });
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    const userData = localStorage.getItem("user");
+    if (authLoading) return;
 
-    if (!token || !userData) {
-      router.push("/signin");
+    if (!isAuthenticated || !user) {
+      router.push("/signin?redirect=/profile");
       return;
     }
 
-    try {
-      const parsedUser = JSON.parse(userData);
-      setUser(parsedUser);
-      setUserDetails({
-        name: `${parsedUser.fname || ""} ${parsedUser.lname || ""}`.trim(),
-        email: parsedUser.email || "",
-        number: parsedUser.contactNo || "",
-      });
-      loadBookings(parsedUser);
-    } catch (e) {
-      console.error("Error parsing user data:", e);
-      router.push("/signin");
-    }
-  }, [router]);
+    setUserDetails({
+      name: `${user.fname || ""} ${user.lname || ""}`.trim(),
+      email: user.email || "",
+      number: (user as any).contactNo || "",
+    });
+    loadBookings(user);
+  }, [authLoading, isAuthenticated, user, router]);
 
   const handleUpdateProfilePic = async (url: string) => {
     try {
       if (!user) return;
 
-      const token = localStorage.getItem("token");
       const userId = user.id || user._id;
 
       const response = await fetch(`/api/user/${userId}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
+        credentials: "include",
         body: JSON.stringify({
           pic: url,
         }),
@@ -145,13 +137,13 @@ export default function ShopperProfilePage() {
     setIsLoading(true);
     setError("");
     try {
-      const token = localStorage.getItem("token");
       const userId = userData.id || userData._id;
 
       const response = await fetch(`/api/bookings?userId=${userId}`, {
         headers: {
-          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
         },
+        credentials: "include",
       });
 
       if (response.ok) {
@@ -225,13 +217,12 @@ export default function ShopperProfilePage() {
     }
 
     try {
-      const token = localStorage.getItem("token");
       const response = await fetch(`/api/bookings/${bookingId}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
+        credentials: "include",
         body: JSON.stringify({
           status: "cancelled",
           cancellationReason: "Cancelled by customer",
@@ -266,7 +257,6 @@ export default function ShopperProfilePage() {
 
   const handleSaveDetails = async () => {
     try {
-      const token = localStorage.getItem("token");
       const userId = user?.id || user?._id;
 
       const [fname, ...lnameParts] = userDetails.name.split(" ");
@@ -276,8 +266,8 @@ export default function ShopperProfilePage() {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
+        credentials: "include",
         body: JSON.stringify({
           fname: fname || user.fname,
           lname: lname || user.lname,

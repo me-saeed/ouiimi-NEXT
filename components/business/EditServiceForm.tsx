@@ -84,18 +84,8 @@ export function EditServiceForm({ serviceId, onSuccess, onCancel }: EditServiceF
     const selectedCategory = watch("category");
 
     useEffect(() => {
-        const token = localStorage.getItem("token");
-        const userData = localStorage.getItem("user");
-        if (token && userData) {
-            try {
-                const parsedUser = JSON.parse(userData);
-                setUser(parsedUser);
-                loadService();
-            } catch (e) {
-                console.error("Error parsing user data:", e);
-                // Handle auth error if needed, maybe call onCancel or show error
-            }
-        }
+        // Load service on mount - auth is handled by session cookies
+        loadService();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [serviceId]);
 
@@ -113,11 +103,11 @@ export function EditServiceForm({ serviceId, onSuccess, onCancel }: EditServiceF
 
     const loadService = async () => {
         try {
-            const token = localStorage.getItem("token");
             const response = await fetch(`/api/services/${serviceId}`, {
                 headers: {
-                    Authorization: `Bearer ${token}`,
+                    "Content-Type": "application/json",
                 },
+                credentials: "include", // Use session cookies
             });
 
             if (!response.ok) {
@@ -204,10 +194,12 @@ export function EditServiceForm({ serviceId, onSuccess, onCancel }: EditServiceF
                 if (businessId) {
                     const [businessRes, staffRes] = await Promise.all([
                         fetch(`/api/business/${businessId}`, {
-                            headers: { Authorization: `Bearer ${token}` },
+                            headers: { "Content-Type": "application/json" },
+                            credentials: "include",
                         }),
                         fetch(`/api/staff?businessId=${businessId}`, {
-                            headers: { Authorization: `Bearer ${token}` },
+                            headers: { "Content-Type": "application/json" },
+                            credentials: "include",
                         }),
                     ]);
 
@@ -243,7 +235,6 @@ export function EditServiceForm({ serviceId, onSuccess, onCancel }: EditServiceF
         }
 
         try {
-            const token = localStorage.getItem("token");
             // Get all time slots with calculated duration
             const timeSlotsForSubmission = getTimeSlotsForSubmission(datesWithSlots);
 
@@ -264,8 +255,8 @@ export function EditServiceForm({ serviceId, onSuccess, onCancel }: EditServiceF
                 method: "PUT",
                 headers: {
                     "Content-Type": "application/json",
-                    Authorization: `Bearer ${token}`,
                 },
+                credentials: "include", // Use session cookies
                 body: JSON.stringify(requestData),
             });
 
@@ -470,13 +461,12 @@ export function EditServiceForm({ serviceId, onSuccess, onCancel }: EditServiceF
 
             // Convert to flat array and save to API
             const timeSlotsForSubmission = getTimeSlotsForSubmission(updatedDates);
-            const token = localStorage.getItem("token");
             const response = await fetch(`/api/services/${serviceId}`, {
                 method: "PUT",
                 headers: {
                     "Content-Type": "application/json",
-                    Authorization: `Bearer ${token} `,
                 },
+                credentials: "include", // Use session cookies
                 body: JSON.stringify({
                     timeSlots: timeSlotsForSubmission,
                 }),
@@ -530,13 +520,12 @@ export function EditServiceForm({ serviceId, onSuccess, onCancel }: EditServiceF
 
             // Convert to flat array and save to API
             const timeSlotsForSubmission = getTimeSlotsForSubmission(updatedDates);
-            const token = localStorage.getItem("token");
             const response = await fetch(`/api/services/${serviceId} `, {
                 method: "PUT",
                 headers: {
                     "Content-Type": "application/json",
-                    Authorization: `Bearer ${token} `,
                 },
+                credentials: "include", // Use session cookies
                 body: JSON.stringify({
                     timeSlots: timeSlotsForSubmission,
                 }),
@@ -563,13 +552,12 @@ export function EditServiceForm({ serviceId, onSuccess, onCancel }: EditServiceF
 
             // Convert to flat array and save to API
             const timeSlotsForSubmission = getTimeSlotsForSubmission(updatedDates);
-            const token = localStorage.getItem("token");
             const response = await fetch(`/api/services/${serviceId} `, {
                 method: "PUT",
                 headers: {
                     "Content-Type": "application/json",
-                    Authorization: `Bearer ${token} `,
                 },
+                credentials: "include", // Use session cookies
                 body: JSON.stringify({
                     timeSlots: timeSlotsForSubmission,
                 }),

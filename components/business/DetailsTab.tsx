@@ -33,13 +33,13 @@ export function DetailsTab({ business }: DetailsTabProps) {
     if (!business?.id && !business?._id) return;
 
     try {
-      const token = localStorage.getItem("token");
       const businessId = business.id || business._id;
 
       const response = await fetch(`/api/business/${businessId}/bank-details`, {
         headers: {
-          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
         },
+        credentials: "include", // Use session cookies
       });
 
       if (response.ok) {
@@ -66,15 +66,14 @@ export function DetailsTab({ business }: DetailsTabProps) {
     setSuccess("");
 
     try {
-      const token = localStorage.getItem("token");
       const businessId = business.id || business._id;
 
       const response = await fetch(`/api/business/${businessId}/bank-details`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
+        credentials: "include", // Use session cookies
         body: JSON.stringify(bankDetails),
       });
 

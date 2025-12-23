@@ -20,32 +20,29 @@ export default function Header({ user: userProp }: HeaderProps) {
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const [cartCount, setCartCount] = useState(0);
 
-  // Check authentication on mount and when localStorage changes
+  // Check authentication on mount using session API
   useEffect(() => {
-    const checkAuth = () => {
-      if (typeof window === "undefined") return;
+    const checkAuth = async () => {
+      try {
+        const response = await fetch('/api/auth/session');
+        const data = await response.json();
 
-      const token = localStorage.getItem("token");
-      const userData = localStorage.getItem("user");
-
-      if (token && userData) {
-        try {
-          const parsedUser = JSON.parse(userData);
-          setUser(parsedUser);
-        } catch (e) {
-          console.error("Error parsing user data:", e);
+        if (data.success && data.data.authenticated) {
+          setUser(data.data.user);
+        } else {
           setUser(null);
         }
-      } else {
+      } catch (error) {
+        console.error('Error checking auth:', error);
         setUser(null);
       }
     };
 
     checkAuth();
 
-    // Listen for storage changes (for logout in other tabs)
-    window.addEventListener("storage", checkAuth);
-    return () => window.removeEventListener("storage", checkAuth);
+    // Poll for session changes every 30 seconds
+    const interval = setInterval(checkAuth, 30000);
+    return () => clearInterval(interval);
   }, []);
 
   // Check cart count on mount and storage changes
@@ -78,9 +75,15 @@ export default function Header({ user: userProp }: HeaderProps) {
     };
   }, []);
 
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
+  const handleLogout = async () => {
+    try {
+      // Call logout API to destroy session
+      await fetch('/api/auth/logout', { method: 'POST' });
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
+
+    // Clear local state
     setUser(null);
     setProfileDropdownOpen(false);
     setSidebarOpen(false);

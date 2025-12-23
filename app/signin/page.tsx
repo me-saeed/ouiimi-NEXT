@@ -85,11 +85,8 @@ export default function SigninPage() {
 
       setSuccess("Successfully signed in! Redirecting...");
 
-      // Store token and user data
-      if (result.user?.token) {
-        localStorage.setItem("token", result.user.token);
-        localStorage.setItem("user", JSON.stringify(result.user));
-      }
+      // Session is now stored in HttpOnly cookie by the API
+      // No need to use localStorage anymore
 
       // Smart redirect based on user role
       const searchParams = new URL(window.location.href).searchParams;
@@ -107,13 +104,11 @@ export default function SigninPage() {
         redirectUrl = requestedPath;
       } else {
         // Otherwise, smart redirect based on role
-        const userRoles = result.user?.roles || [];
+        const userRole = result.data?.user?.role || 'user';
 
-        if (userRoles.includes('admin')) {
+        if (userRole === 'admin') {
           redirectUrl = '/admin/dashboard';
-        } else if (userRoles.includes('business')) {
-          // Business users might want to check their dashboard
-          // (will redirect to register if no business exists)
+        } else if (userRole === 'business') {
           redirectUrl = '/business/dashboard';
         }
         // Regular users stay at "/"

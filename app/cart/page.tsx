@@ -6,6 +6,7 @@ import PageLayout from "@/components/layout/PageLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { useAuth } from "@/lib/contexts/AuthContext";
 
 interface CartItem {
   serviceId: string;
@@ -26,7 +27,7 @@ interface CartItem {
 
 export default function CartPage() {
   const router = useRouter();
-  const [user, setUser] = useState<any>(null);
+  const { user, isLoading: authLoading, isAuthenticated } = useAuth();
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string>("");
@@ -34,17 +35,7 @@ export default function CartPage() {
 
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    const userData = localStorage.getItem("user");
-    if (token && userData) {
-      try {
-        setUser(JSON.parse(userData));
-      } catch (e) {
-        console.error("Error parsing user data:", e);
-      }
-    }
-
-    // Load cart from localStorage
+    // Load cart from localStorage (cart data, not auth)
     const savedCart = localStorage.getItem("cart");
     if (savedCart) {
       try {
@@ -141,8 +132,8 @@ export default function CartPage() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
+        credentials: "include",
         body: JSON.stringify(bookingPayload),
       });
 

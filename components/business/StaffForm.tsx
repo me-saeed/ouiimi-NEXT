@@ -51,11 +51,11 @@ export function StaffForm({ staffId, onSuccess, onCancel }: StaffFormProps) {
 
         const loadStaff = async () => {
             try {
-                const token = localStorage.getItem("token");
                 const response = await fetch(`/api/staff/${staffId}`, {
                     headers: {
-                        Authorization: `Bearer ${token}`,
+                        "Content-Type": "application/json",
                     },
+                    credentials: "include", // Use session cookies
                 });
 
                 if (response.ok) {
@@ -106,10 +106,11 @@ export function StaffForm({ staffId, onSuccess, onCancel }: StaffFormProps) {
         });
     };
 
-    const getBusinessId = async (token: string, userId: string): Promise<string | null> => {
+    const getBusinessId = async (userId: string): Promise<string | null> => {
         try {
             const businessResponse = await fetch(`/api/business/search?userId=${userId}`, {
-                headers: { Authorization: `Bearer ${token}` },
+                headers: { "Content-Type": "application/json" },
+                credentials: "include", // Use session cookies
             });
             if (!businessResponse.ok) return null;
             const businessData = await businessResponse.json();
@@ -128,13 +129,13 @@ export function StaffForm({ staffId, onSuccess, onCancel }: StaffFormProps) {
         setError("");
 
         try {
-            const token = localStorage.getItem("token");
-            if (!token) throw new Error("Please sign in");
-
-            const userData = localStorage.getItem("user");
-            if (!userData) throw new Error("User data not found");
-            const parsedUser = JSON.parse(userData);
-            const userId = parsedUser.id || parsedUser._id;
+            // Get user session to retrieve userId
+            const sessionRes = await fetch('/api/auth/session');
+            const sessionData = await sessionRes.json();
+            if (!sessionData.success || !sessionData.data.user) {
+                throw new Error("Please sign in");
+            }
+            const userId = sessionData.data.user.id || sessionData.data.user._id;
 
             // UPDATE EXISTING STAFF (PUT + JSON)
             if (staffId) {
@@ -150,8 +151,8 @@ export function StaffForm({ staffId, onSuccess, onCancel }: StaffFormProps) {
                     method: "PUT",
                     headers: {
                         "Content-Type": "application/json",
-                        Authorization: `Bearer ${token}`,
                     },
+                    credentials: "include", // Use session cookies
                     body: JSON.stringify({
                         name: data.name,
                         about: data.about,
@@ -168,7 +169,7 @@ export function StaffForm({ staffId, onSuccess, onCancel }: StaffFormProps) {
             }
             // CREATE NEW STAFF (POST + FormData)
             else {
-                const businessId = await getBusinessId(token, userId);
+                const businessId = await getBusinessId(userId);
                 if (!businessId) throw new Error("Business not found. Please register first.");
 
                 const formData = new FormData();
@@ -183,7 +184,7 @@ export function StaffForm({ staffId, onSuccess, onCancel }: StaffFormProps) {
 
                 const response = await fetch("/api/staff", {
                     method: "POST",
-                    headers: { Authorization: `Bearer ${token}` },
+                    credentials: "include", // Use session cookies
                     body: formData,
                 });
 

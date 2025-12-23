@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AddressAutocomplete } from "@/components/ui/address-autocomplete";
 import { getAllCategories } from "@/lib/constants/categories";
+import { useAuth } from "@/lib/contexts/AuthContext";
 
 // Get all category names
 const CATEGORIES = getAllCategories().map(cat => cat.name);
@@ -25,7 +26,7 @@ export default function EditServicePage() {
   const router = useRouter();
   const params = useParams();
   const serviceId = params.id as string;
-  const [user, setUser] = useState<any>(null);
+  const { user, isLoading: authLoading, isAuthenticated } = useAuth();
   const [error, setError] = useState<string>("");
   const [success, setSuccess] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
@@ -72,22 +73,16 @@ export default function EditServicePage() {
   const selectedCategory = watch("category");
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    const userData = localStorage.getItem("user");
-    if (token && userData) {
-      try {
-        const parsedUser = JSON.parse(userData);
-        setUser(parsedUser);
-        loadService();
-      } catch (e) {
-        console.error("Error parsing user data:", e);
-        router.push("/signin");
-      }
-    } else {
-      router.push("/signin");
+    if (authLoading) return;
+
+    if (!isAuthenticated || !user) {
+      router.push(`/signin?redirect=/business/services/${serviceId}/edit`);
+      return;
     }
+
+    loadService();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [router, serviceId]);
+  }, [authLoading, isAuthenticated, user, router, serviceId]);
 
   useEffect(() => {
     // Reset subCategory when category changes
@@ -103,11 +98,11 @@ export default function EditServicePage() {
 
   const loadService = async () => {
     try {
-      const token = localStorage.getItem("token");
       const response = await fetch(`/api/services/${serviceId}`, {
         headers: {
-          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
         },
+        credentials: "include",
       });
 
       if (!response.ok) {
@@ -192,10 +187,12 @@ export default function EditServicePage() {
         if (businessId) {
           const [businessRes, staffRes] = await Promise.all([
             fetch(`/api/business/${businessId}`, {
-              headers: { Authorization: `Bearer ${token}` },
+              headers: { "Content-Type": "application/json" },
+              credentials: "include",
             }),
             fetch(`/api/staff?businessId=${businessId}`, {
-              headers: { Authorization: `Bearer ${token}` },
+              headers: { "Content-Type": "application/json" },
+              credentials: "include",
             }),
           ]);
 
@@ -231,7 +228,6 @@ export default function EditServicePage() {
     }
 
     try {
-      const token = localStorage.getItem("token");
       // Get all time slots with calculated duration
       const timeSlotsForSubmission = getTimeSlotsForSubmission(datesWithSlots);
 
@@ -252,8 +248,8 @@ export default function EditServicePage() {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
+        credentials: "include",
         body: JSON.stringify(requestData),
       });
 
@@ -503,13 +499,12 @@ export default function EditServicePage() {
 
       // Convert to flat array and save to API
       const timeSlotsForSubmission = getTimeSlotsForSubmission(updatedDates);
-      const token = localStorage.getItem("token");
-      const response = await fetch(`/ api / services / ${serviceId}`, {
+      const response = await fetch(`/api/services/${serviceId}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token} `,
         },
+        credentials: "include",
         body: JSON.stringify({
           timeSlots: timeSlotsForSubmission,
         }),
@@ -563,13 +558,12 @@ export default function EditServicePage() {
 
       // Convert to flat array and save to API
       const timeSlotsForSubmission = getTimeSlotsForSubmission(updatedDates);
-      const token = localStorage.getItem("token");
-      const response = await fetch(`/ api / services / ${serviceId} `, {
+      const response = await fetch(`/api/services/${serviceId} `, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token} `,
         },
+        credentials: "include",
         body: JSON.stringify({
           timeSlots: timeSlotsForSubmission,
         }),
@@ -596,13 +590,12 @@ export default function EditServicePage() {
 
       // Convert to flat array and save to API
       const timeSlotsForSubmission = getTimeSlotsForSubmission(updatedDates);
-      const token = localStorage.getItem("token");
-      const response = await fetch(`/ api / services / ${serviceId} `, {
+      const response = await fetch(`/api/services/${serviceId} `, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token} `,
         },
+        credentials: "include",
         body: JSON.stringify({
           timeSlots: timeSlotsForSubmission,
         }),
@@ -1011,8 +1004,8 @@ export default function EditServicePage() {
                                 }}
                                 disabled={!selectedDate || !startHour}
                                 className={`px - 4 py - 2 rounded - md text - sm font - medium transition - all ${startPeriod === "AM"
-                                    ? "bg-[#EECFD1] text-[#3A3A3A] shadow-sm"
-                                    : "text-gray-500 hover:text-[#3A3A3A] hover:bg-gray-50"
+                                  ? "bg-[#EECFD1] text-[#3A3A3A] shadow-sm"
+                                  : "text-gray-500 hover:text-[#3A3A3A] hover:bg-gray-50"
                                   } disabled: opacity - 50 disabled: cursor - not - allowed`}
                               >
                                 AM
@@ -1040,8 +1033,8 @@ export default function EditServicePage() {
                                 }}
                                 disabled={!selectedDate || !startHour}
                                 className={`px - 4 py - 2 rounded - md text - sm font - medium transition - all ${startPeriod === "PM"
-                                    ? "bg-[#EECFD1] text-[#3A3A3A] shadow-sm"
-                                    : "text-gray-500 hover:text-[#3A3A3A] hover:bg-gray-50"
+                                  ? "bg-[#EECFD1] text-[#3A3A3A] shadow-sm"
+                                  : "text-gray-500 hover:text-[#3A3A3A] hover:bg-gray-50"
                                   } disabled: opacity - 50 disabled: cursor - not - allowed`}
                               >
                                 PM
@@ -1110,8 +1103,8 @@ export default function EditServicePage() {
                                   }}
                                   disabled={!selectedDate || !newTimeSlot.startTime || !endHour}
                                   className={`px - 4 py - 2 rounded - md text - sm font - medium transition - all ${endPeriod === "AM"
-                                      ? "bg-[#EECFD1] text-[#3A3A3A] shadow-sm"
-                                      : "text-gray-500 hover:text-[#3A3A3A] hover:bg-gray-50"
+                                    ? "bg-[#EECFD1] text-[#3A3A3A] shadow-sm"
+                                    : "text-gray-500 hover:text-[#3A3A3A] hover:bg-gray-50"
                                     } disabled: opacity - 50 disabled: cursor - not - allowed`}
                                 >
                                   AM
@@ -1124,8 +1117,8 @@ export default function EditServicePage() {
                                   }}
                                   disabled={!selectedDate || !newTimeSlot.startTime || !endHour}
                                   className={`px - 4 py - 2 rounded - md text - sm font - medium transition - all ${endPeriod === "PM"
-                                      ? "bg-[#EECFD1] text-[#3A3A3A] shadow-sm"
-                                      : "text-gray-500 hover:text-[#3A3A3A] hover:bg-gray-50"
+                                    ? "bg-[#EECFD1] text-[#3A3A3A] shadow-sm"
+                                    : "text-gray-500 hover:text-[#3A3A3A] hover:bg-gray-50"
                                     } disabled: opacity - 50 disabled: cursor - not - allowed`}
                                 >
                                   PM

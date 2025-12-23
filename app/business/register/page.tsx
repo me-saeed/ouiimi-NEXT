@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AddressAutocomplete } from "@/components/ui/address-autocomplete";
 import { AuthModal } from "@/components/ui/auth-modal";
+import { useAuth } from "@/lib/contexts/AuthContext";
 import { retryWithBackoff, isNetworkError, formatRetryMessage } from "@/lib/utils/retry";
 import {
   Card,
@@ -21,7 +22,7 @@ import {
 
 export default function BusinessRegisterPage() {
   const router = useRouter();
-  const [user, setUser] = useState<any>(null);
+  const { user, isLoading: authLoading, isAuthenticated } = useAuth();
   const [error, setError] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
@@ -40,58 +41,40 @@ export default function BusinessRegisterPage() {
     mode: "onChange",
   });
 
-  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
-
+  // Check authentication and existing business
   useEffect(() => {
-    // Only run on client side
-    if (typeof window === "undefined") return;
+    // Wait for auth to load
+    if (authLoading) return;
 
-    const checkAuth = async () => {
-      const token = localStorage.getItem("token");
-      const userData = localStorage.getItem("user");
-      if (token && userData) {
-        try {
-          const parsedUser = JSON.parse(userData);
-          setUser(parsedUser);
+    // If not authenticated, show modal
+    if (!isAuthenticated || !user) {
+      setShowAuthModal(true);
+      return;
+    }
 
-          // Check if business already exists
-          const userId = parsedUser.id || parsedUser._id;
-          if (userId) {
-            try {
-              const businessResponse = await fetch(`/api/business/search?userId=${userId}`, {
-                headers: {
-                  Authorization: `Bearer ${token}`,
-                },
-              });
+    // Check if user already has a business
+    const checkExistingBusiness = async () => {
+      try {
+        const response = await fetch(
+          `/api/business/search?userId=${user.id || user._id}`,
+          { credentials: 'include' }
+        );
 
-              if (businessResponse.ok) {
-                const businessData = await businessResponse.json();
-                if (businessData.businesses && businessData.businesses.length > 0) {
-                  // Business exists, redirect to dashboard
-                  router.push("/business/dashboard");
-                  return;
-                }
-              }
-            } catch (e) {
-              console.error("Error checking business:", e);
-            }
+        if (response.ok) {
+          const data = await response.json();
+          const businesses = data.data?.businesses || data.businesses;
+          if (businesses && businesses.length > 0) {
+            // Business exists, redirect to dashboard
+            router.push("/business/dashboard");
           }
-
-          setIsCheckingAuth(false);
-          setShowAuthModal(false);
-        } catch (e) {
-          console.error("Error parsing user data:", e);
-          setIsCheckingAuth(false);
-          setShowAuthModal(true);
         }
-      } else {
-        setIsCheckingAuth(false);
-        setShowAuthModal(true);
+      } catch (e) {
+        console.error("Error checking existing business:", e);
       }
     };
 
-    checkAuth();
-  }, [router]);
+    checkExistingBusiness();
+  }, [user, isAuthenticated, authLoading, router]);
 
   const onSubmit = async (data: Omit<BusinessCreateInput, "userId">) => {
     console.log("Form submitted with data:", data);
@@ -118,39 +101,16 @@ export default function BusinessRegisterPage() {
         return;
       }
 
-      const token = localStorage.getItem("token");
-      const userData = localStorage.getItem("user");
-
-      console.log("Token exists:", !!token);
-      console.log("User data exists:", !!userData);
-
-      if (!token || !userData) {
-        setError("Please sign in to register a business");
+      // Ensure user is available from state
+      if (!user || !user.id && !user._id) {
+        setError("User not authenticated. Please sign in again.");
         setIsLoading(false);
         setTimeout(() => router.push("/signin"), 2000);
         return;
       }
 
-      let parsedUser;
-      try {
-        parsedUser = JSON.parse(userData);
-      } catch (parseError) {
-        console.error("Error parsing user data:", parseError);
-        setError("Invalid user data. Please sign in again.");
-        setIsLoading(false);
-        setTimeout(() => router.push("/signin"), 2000);
-        return;
-      }
-
-      const userId = parsedUser.id || parsedUser._id;
+      const userId = user.id || user._id;
       console.log("User ID:", userId);
-
-      if (!userId) {
-        setError("User ID not found. Please sign in again.");
-        setIsLoading(false);
-        setTimeout(() => router.push("/signin"), 2000);
-        return;
-      }
 
       // Prepare request body with all required fields, trimming strings
       const requestBody = {
@@ -196,8 +156,8 @@ export default function BusinessRegisterPage() {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
             },
+            credentials: 'include',
             body: JSON.stringify(requestBody),
           });
 
@@ -295,10 +255,10 @@ export default function BusinessRegisterPage() {
 
       <div className="min-h-screen bg-gray-50/50 py-12 flex items-center justify-center">
         <div className="w-full max-w-2xl px-4 sm:px-6">
-          {isCheckingAuth ? (
+          {authLoading ? (
             <div className="flex flex-col items-center justify-center py-20 space-y-4">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-              <p className="text-sm text-muted-foreground">Verifying access...</p>
+              <p className="text-sm text-muted-foreground">Loading...</p>
             </div>
           ) : (
             <Card className="w-full shadow-lg border-0 bg-white overflow-hidden">

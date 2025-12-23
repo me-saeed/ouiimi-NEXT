@@ -92,7 +92,6 @@ export function BookingsTab({ business }: BookingsTabProps) {
     setIsLoading(true);
     setError("");
     try {
-      const token = localStorage.getItem("token");
       const businessId = business.id || business._id;
 
       // For upcoming, get ALL bookings (no status filter) to check dates client-side
@@ -112,8 +111,9 @@ export function BookingsTab({ business }: BookingsTabProps) {
         `/api/bookings?businessId=${businessId}${statusFilter ? `&status=${statusFilter}` : ""}`,
         {
           headers: {
-            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
           },
+          credentials: "include", // Use session cookies
         }
       );
 
@@ -358,13 +358,12 @@ export function BookingsTab({ business }: BookingsTabProps) {
 
   const handleCompleteBooking = async (bookingId: string) => {
     try {
-      const token = localStorage.getItem("token");
       const response = await fetch(`/api/bookings/${bookingId}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
+        credentials: "include", // Use session cookies
         body: JSON.stringify({
           status: "completed",
           paymentStatus: "fully_paid",
@@ -378,8 +377,8 @@ export function BookingsTab({ business }: BookingsTabProps) {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
             },
+            credentials: "include", // Use session cookies
             body: JSON.stringify({
               type: "booking_completed",
               bookingId: bookingId,
@@ -406,13 +405,12 @@ export function BookingsTab({ business }: BookingsTabProps) {
 
   const handleCancelBooking = async (bookingId: string, reason?: string) => {
     try {
-      const token = localStorage.getItem("token");
       const response = await fetch(`/api/bookings/${bookingId}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
+        credentials: "include", // Use session cookies
         body: JSON.stringify({
           status: "cancelled",
           cancellationReason: reason || "Cancelled by business",
@@ -631,10 +629,10 @@ export function BookingsTab({ business }: BookingsTabProps) {
                     key={dateStr}
                     onClick={() => setSelectedDate(isSelected ? null : dateStr)}
                     className={`flex flex-col items-center justify-center min-w-[50px] h-[70px] rounded-2xl transition-all duration-200 relative group ${isSelected
-                        ? "bg-[#3A3A3A] text-white shadow-md transform scale-105"
-                        : isPast
-                          ? "text-gray-300"
-                          : "text-gray-500 hover:bg-gray-50"
+                      ? "bg-[#3A3A3A] text-white shadow-md transform scale-105"
+                      : isPast
+                        ? "text-gray-300"
+                        : "text-gray-500 hover:bg-gray-50"
                       }`}
                   >
                     <span className={`text-[10px] font-medium uppercase tracking-wide mb-1 ${isSelected ? 'text-white/80' : ''

@@ -100,7 +100,12 @@ export function successResponse<T>(
     status = 200,
     headers?: Record<string, string>
 ): NextResponse {
-    return NextResponse.json(data, {
+    const responseData = {
+        success: true,
+        data,
+    };
+
+    return NextResponse.json(responseData, {
         status,
         headers: headers ? new Headers(headers) : undefined,
     });

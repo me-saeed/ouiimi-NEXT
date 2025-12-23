@@ -43,13 +43,13 @@ export function StaffTab({ business }: StaffTabProps) {
     setIsLoading(true);
     setError("");
     try {
-      const token = localStorage.getItem("token");
       const businessId = business.id || business._id;
 
       const response = await fetch(`/api/staff?businessId=${businessId}`, {
         headers: {
-          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
         },
+        credentials: "include", // Use session cookies
       });
 
       if (response.ok) {
@@ -70,12 +70,12 @@ export function StaffTab({ business }: StaffTabProps) {
     if (!confirm("Are you sure you want to remove this staff member?")) return;
 
     try {
-      const token = localStorage.getItem("token");
       const response = await fetch(`/api/staff/${staffId}`, {
         method: "DELETE",
         headers: {
-          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
         },
+        credentials: "include", // Use session cookies
       });
 
       if (response.ok) {

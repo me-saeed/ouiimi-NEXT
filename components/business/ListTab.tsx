@@ -57,14 +57,14 @@ export function ListTab({ business }: ListTabProps) {
     setIsLoading(true);
     setError("");
     try {
-      const token = localStorage.getItem("token");
       const businessId = business.id || business._id;
 
       console.log("[ListTab] Fetching services from API...");
       const response = await fetch(`/api/services?businessId=${businessId}`, {
         headers: {
-          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
         },
+        credentials: "include", // Use session cookies
       });
 
       console.log("[ListTab] API response status:", response.status);
@@ -104,18 +104,12 @@ export function ListTab({ business }: ListTabProps) {
     setError("");
 
     try {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        setError("Please sign in to delete services");
-        setIsDeleting(false);
-        return;
-      }
-
       const response = await fetch(`/api/services/${serviceToDelete}`, {
         method: "DELETE",
         headers: {
-          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
         },
+        credentials: "include", // Use session cookies
       });
 
       if (response.ok) {
