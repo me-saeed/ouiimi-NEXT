@@ -1,7 +1,7 @@
 "use client";
 // Force rebuild
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -116,21 +116,7 @@ export default function CreateServicePage() {
     setSelectedAddOns([]);
   }, [selectedSubCategory]);
 
-  // Check authentication and load data
-  useEffect(() => {
-    if (!isClient || authLoading) return;
-
-    if (!isAuthenticated || !user) {
-      console.warn("[Create Service] Not authenticated, redirecting to signin");
-      router.push("/signin?redirect=/business/services/create");
-      return;
-    }
-
-    console.log("[Create Service] User authenticated, loading staff");
-    loadStaff();
-  }, [isClient, authLoading, isAuthenticated, user, router]);
-
-  const loadStaff = async () => {
+  const loadStaff = useCallback(async () => {
     if (!user) return;
 
     console.log("[Create Service] loadStaff called for user:", user.id || user._id);
@@ -173,9 +159,23 @@ export default function CreateServicePage() {
         }
       }
     } catch (err) {
-      console.error("Error loading staff:", err);
+      console.error("[Create Service] Failed to load staff:", err);
     }
-  };
+  }, [user]);
+
+  // Check authentication and load data
+  useEffect(() => {
+    if (!isClient || authLoading) return;
+
+    if (!isAuthenticated || !user) {
+      console.warn("[Create Service] Not authenticated, redirecting to signin");
+      router.push("/signin?redirect=/business/services/create");
+      return;
+    }
+
+    console.log("[Create Service] User authenticated, loading staff");
+    loadStaff();
+  }, [isClient, authLoading, isAuthenticated, user, router, loadStaff]);
 
   // Convert 12-hour to 24-hour format
   const convertTo24Hour = (hour: string, minute: string, period: "AM" | "PM"): string => {

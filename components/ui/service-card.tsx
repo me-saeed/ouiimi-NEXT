@@ -101,6 +101,12 @@ export const ServiceCard = React.memo(function ServiceCard({
                             {status === "cancelled" && (
                                 <span className="text-red-500 font-medium text-[11px] sm:text-sm">Cancelled</span>
                             )}
+                            {status === "pending" && (
+                                <span className="text-amber-500 font-medium text-[11px] sm:text-sm">Awaiting Payment</span>
+                            )}
+                            {status === "confirmed" && (
+                                <span className="text-blue-500 font-medium text-[11px] sm:text-sm">Confirmed</span>
+                            )}
                         </div>
                     )}
                 </div>

@@ -51,6 +51,11 @@ export async function middleware(request: NextRequest) {
       signinUrl.searchParams.set('redirect', pathname);
       return NextResponse.redirect(signinUrl);
     }
+
+    // Role check for business routes
+    if (session.role !== 'business' && session.role !== 'admin') {
+      return NextResponse.redirect(new URL('/', request.url));
+    }
   }
 
   // Protected Admin Routes

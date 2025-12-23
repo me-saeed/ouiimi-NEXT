@@ -16,6 +16,8 @@ import { authenticateRequest } from "@/lib/api-auth";
 import { applyRateLimit } from "@/lib/rate-limit";
 import { APIError, asyncHandler, successResponse } from "@/lib/api-response";
 import mongoose from "mongoose";
+import { getGlobalBusyMap, isStaffBusy } from "@/lib/utils/availability";
+import Booking from "@/lib/models/Booking";
 
 export const dynamic = 'force-dynamic';
 
@@ -58,6 +60,13 @@ async function getServiceHandler(
 
     if (allStaffIds.length > 0) {
       try {
+        // Fetch global busy map for these staff members
+        const startDate = new Date(); // Start from today
+        const endDate = new Date();
+        endDate.setMonth(endDate.getMonth() + 2); // Look 2 months ahead
+
+        const busyMap = await getGlobalBusyMap(allStaffIds, startDate, endDate);
+
         const staffMembers = JSON.parse(JSON.stringify(await Staff.find({
           _id: { $in: allStaffIds.map(id => new mongoose.Types.ObjectId(id)) }
         }).select('name photo').lean()));
@@ -66,15 +75,30 @@ async function getServiceHandler(
           staffMembers.map((s: any) => [String(s._id || s.id), s])
         );
 
-        service.timeSlots = service.timeSlots.map((ts: any) => ({
-          ...ts,
-          staffIds: ts.staffIds?.map((staff: any) => ({
-            ...staff,
-            staffDetails: staffMap.get(String(staff.staffId)) || null
-          }))
-        }));
+        service.timeSlots = service.timeSlots.map((ts: any) => {
+          const updatedStaffIds = ts.staffIds?.map((staff: any) => {
+            const staffIdStr = String(staff.staffId);
+            // Check global busy map
+            const isGloballyBooked = isStaffBusy(busyMap, staffIdStr, ts.date, ts.startTime);
+
+            return {
+              ...staff,
+              isBooked: staff.isBooked || isGloballyBooked,
+              staffDetails: staffMap.get(staffIdStr) || null
+            };
+          }) || [];
+
+          // Determine if entire slot is booked (all staff are busy)
+          const allStaffBooked = updatedStaffIds.length > 0 && updatedStaffIds.every((s: any) => s.isBooked);
+
+          return {
+            ...ts,
+            staffIds: updatedStaffIds,
+            isBooked: ts.isBooked || allStaffBooked
+          };
+        });
       } catch (error) {
-        console.error("Error populating staff:", error);
+        console.error("Error populating staff or availability:", error);
       }
     }
   }

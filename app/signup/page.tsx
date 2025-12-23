@@ -90,6 +90,7 @@ export default function SignupPage() {
       const redirectUrl = searchParams.get("redirect");
 
       setTimeout(() => {
+        router.refresh();
         if (redirectUrl) {
           router.push(`/signin?redirect=${encodeURIComponent(redirectUrl)}`);
         } else {

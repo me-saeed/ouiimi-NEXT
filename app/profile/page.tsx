@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import PageLayout from "@/components/layout/PageLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -57,12 +58,13 @@ export default function ShopperProfilePage() {
     // Check for success message from cart
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get("success") === "true") {
+      router.refresh(); // Ensure fresh data on redirect
       setSuccess("Booking completed successfully!");
       setTimeout(() => setSuccess(""), 5000);
       // Clean URL
       window.history.replaceState({}, "", "/profile");
     }
-  }, []);
+  }, [router]);
 
   // Detect mobile screen size
   useEffect(() => {
@@ -179,28 +181,24 @@ export default function ShopperProfilePage() {
           }
         });
 
-        // Sort upcoming by date (closest first)
-        upcoming.sort((a, b) => {
-          const dateA = new Date(`${a.timeSlot.date}T${a.timeSlot.startTime}`);
-          const dateB = new Date(`${b.timeSlot.date}T${b.timeSlot.startTime}`);
+        // Create unified upcoming list including pending
+        const upcomingMerged = [...upcoming, ...pending];
+
+        // Sort all upcoming/pending by appointment date/time ascending
+        upcomingMerged.sort((a, b) => {
+          const dateA = new Date(`${a.timeSlot.date.split('T')[0]}T${a.timeSlot.startTime}`);
+          const dateB = new Date(`${b.timeSlot.date.split('T')[0]}T${b.timeSlot.startTime}`);
           return dateA.getTime() - dateB.getTime();
         });
 
-        // Sort pending by date (most recent first)
-        pending.sort((a, b) => {
-          const dateA = new Date(`${a.timeSlot.date}T${a.timeSlot.startTime}`);
-          const dateB = new Date(`${b.timeSlot.date}T${b.timeSlot.startTime}`);
-          return dateB.getTime() - dateA.getTime();
-        });
-
-        // Sort finished by date (most recent first)
+        // Sort finished by appointment date/time descending (most recent first)
         finished.sort((a, b) => {
-          const dateA = new Date(`${a.timeSlot.date}T${a.timeSlot.startTime}`);
-          const dateB = new Date(`${b.timeSlot.date}T${b.timeSlot.startTime}`);
+          const dateA = new Date(`${a.timeSlot.date.split('T')[0]}T${a.timeSlot.startTime}`);
+          const dateB = new Date(`${b.timeSlot.date.split('T')[0]}T${b.timeSlot.startTime}`);
           return dateB.getTime() - dateA.getTime();
         });
 
-        setUpcomingBookings([...upcoming, ...pending]);
+        setUpcomingBookings(upcomingMerged);
         setFinishedBookings(finished);
       } else {
         setError("Failed to load bookings");
@@ -279,6 +277,7 @@ export default function ShopperProfilePage() {
       });
 
       if (response.ok) {
+        router.refresh(); // Refresh session/page data
         setSuccess("Details saved successfully");
         const updatedUser = user ? { ...user, fname, lname, email: userDetails.email, contactNo: userDetails.number } : null;
         if (updatedUser) {
@@ -870,11 +869,11 @@ function BookingDetailView({
       <div className="border-t pt-4 space-y-2">
         <p className="text-sm font-medium">Payments</p>
         <div className="flex justify-between text-sm text-green-600">
-          <span>Paid 10% Deposit + $1.99 ouiimi fee:</span>
-          <span>${(booking.depositAmount + 1.99).toFixed(2)}</span>
+          <span>Deposit Paid (Includes fee):</span>
+          <span>${booking.depositAmount.toFixed(2)}</span>
         </div>
         <div className="flex justify-between text-sm">
-          <span>90% paid to directly Business:</span>
+          <span>Balance due at venue:</span>
           <span>${booking.remainingAmount.toFixed(2)}</span>
         </div>
       </div>
@@ -893,20 +892,34 @@ function BookingDetailView({
           // Upcoming bookings: Reschedule, Contact, Cancel
           <>
             <div className="flex gap-3">
-              <Button
-                onClick={onReschedule}
-                variant="outline"
-                className="flex-1"
-              >
-                Reschedule
-              </Button>
-              <Button
-                onClick={onContact}
-                variant="outline"
-                className="flex-1 border-red-500 text-red-500 hover:bg-red-50"
-              >
-                Contact
-              </Button>
+              {booking.status === "pending" ? (
+                <Button
+                  asChild
+                  variant="default"
+                  className="w-full bg-green-600 hover:bg-green-700 text-white"
+                >
+                  <Link href={`/bookings/${booking.id}/checkout`}>
+                    Proceed to Payment
+                  </Link>
+                </Button>
+              ) : (
+                <>
+                  <Button
+                    onClick={onReschedule}
+                    variant="outline"
+                    className="flex-1"
+                  >
+                    Reschedule
+                  </Button>
+                  <Button
+                    onClick={onContact}
+                    variant="outline"
+                    className="flex-1 border-red-500 text-red-500 hover:bg-red-50"
+                  >
+                    Contact
+                  </Button>
+                </>
+              )}
             </div>
             <Button
               onClick={onCancel}
@@ -1036,20 +1049,14 @@ function FinishedBookingDetailView({
 
       <div className="border-t pt-4 space-y-2">
         <p className="text-sm font-medium">Payments</p>
-        <div className="flex justify-between text-sm">
-          <span>Customer Paid 10% Deposit:</span>
+        <div className="flex justify-between text-sm text-green-600">
+          <span>Deposit Paid (Includes fee):</span>
           <span>${booking.depositAmount.toFixed(2)}</span>
         </div>
         <div className="flex justify-between text-sm">
-          <span>90% paid to directly Business:</span>
+          <span>Balance due at venue:</span>
           <span>${booking.remainingAmount.toFixed(2)}</span>
         </div>
-        {booking.status === "completed" && (
-          <div className="flex justify-between text-sm text-green-600">
-            <span>ouiimi pays 50% of Deposit after completion:</span>
-            <span>${(booking.depositAmount * 0.5).toFixed(2)}</span>
-          </div>
-        )}
       </div>
 
       <Button

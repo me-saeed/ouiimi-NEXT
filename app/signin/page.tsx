@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -16,7 +16,10 @@ import { useAuth } from "@/lib/contexts/AuthContext";
 export default function SigninPage() {
   const router = useRouter();
   const { user: authUser, isAuthenticated, isLoading: authLoading, isAdmin, hasRole } = useAuth();
-  const searchParams = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '');
+
+  const searchParams = useMemo(() => {
+    return new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '');
+  }, []);
 
   // Auto-redirect if already authenticated
   useEffect(() => {
@@ -136,6 +139,7 @@ export default function SigninPage() {
       }
 
       setTimeout(() => {
+        router.refresh();
         router.push(redirectUrl);
       }, 1000);
     } catch (err: any) {

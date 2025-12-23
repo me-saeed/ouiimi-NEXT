@@ -45,6 +45,8 @@ export default function BookingConfirmPage() {
         // If booking is already confirmed, we consider payment verified
         if (bookingData.status === "confirmed" || bookingData.paymentStatus === "deposit_paid") {
           setPaymentVerified(true);
+          // ✅ FIX: Clear cart when booking is confirmed
+          localStorage.removeItem("cart");
         }
       } else {
         setError("Failed to load booking details");

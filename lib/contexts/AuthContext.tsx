@@ -9,7 +9,8 @@ interface User {
     lname: string;
     email: string;
     phone?: string;
-    roles?: string[]; // User roles for authorization
+    role?: string; // Singular role from session
+    roles?: string[]; // Kept for backward compatibility
 }
 
 interface AuthContextType {
@@ -47,7 +48,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
             if (data.success && data.data.authenticated) {
                 console.log("[AuthContext] Session loaded for:", data.data.user.email);
-                setUser(data.data.user);
+                // Standardize role to roles array for component logic
+                const userData = data.data.user;
+                if (userData.role && !userData.roles) {
+                    userData.roles = [userData.role];
+                }
+                setUser(userData);
             } else {
                 console.log("[AuthContext] No active session found");
                 setUser(null);
@@ -106,10 +112,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }, [user, token]);
 
     const login = (newToken: string, userData: User) => {
-        // Session is managed by API via HttpOnly cookies
-        // Just update local state for immediate UI update
+        // Standardize role to roles array for component logic
+        if (userData.role && !userData.roles) {
+            userData.roles = [userData.role];
+        }
         setUser(userData);
-        // Token param kept for backward compatibility but not stored
     };
 
     const logout = async () => {

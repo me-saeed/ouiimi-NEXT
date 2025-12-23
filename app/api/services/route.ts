@@ -11,6 +11,8 @@ import { handleError } from "@/lib/errors/error-handler";
 import { NotFoundError, DatabaseError } from "@/lib/errors/api-error";
 import { logger } from "@/lib/logger";
 import { cache, MemoryCache } from "@/lib/cache";
+import { getGlobalBusyMap, isStaffBusy } from "@/lib/utils/availability";
+import Booking from "@/lib/models/Booking";
 
 export const dynamic = 'force-dynamic';
 
@@ -549,6 +551,15 @@ async function getServicesHandler(req: NextRequest) {
           preserveNullAndEmptyArrays: true,
         },
       },
+      // ✅ Requirement: Only show services from APPROVED businesses and ACTIVE services
+      {
+        $match: businessId
+          ? {} // Dashboard shows everything
+          : {
+            "businessData.status": "approved",
+            "status": "active"
+          }
+      },
       {
         $project: {
           _id: 1,
@@ -557,6 +568,7 @@ async function getServicesHandler(req: NextRequest) {
             businessName: "$businessData.businessName",
             logo: "$businessData.logo",
             address: "$businessData.address",
+            status: "$businessData.status"
           },
           category: 1,
           subCategory: 1,
@@ -595,41 +607,99 @@ async function getServicesHandler(req: NextRequest) {
     }
     console.timeEnd(`[API /api/services GET] Execution time [${requestId}]`);
 
+    // ==========================================================================
+    // GLOBAL AVAILABILITY: Filter slots by checking all bookings
+    // ==========================================================================
+    const allStaffIdsSet = new Set<string>();
+    services.forEach((s: any) => {
+      s.timeSlots?.forEach((ts: any) => {
+        ts.staffIds?.forEach((staff: any) => {
+          allStaffIdsSet.add(String(staff.staffId));
+        });
+      });
+    });
+    const allStaffIds = Array.from(allStaffIdsSet);
+
+    // Fetch global busy map for next 2 months
+    const startDate = new Date();
+    const endDate = new Date();
+    endDate.setMonth(endDate.getMonth() + 2);
+    const busyMap = await getGlobalBusyMap(allStaffIds, startDate, endDate);
+
     const responseData = {
       services: services
-        .filter((s: any) => s.businessId?.id)
-        .map((s: any) => ({
-          id: s._id?.toString() || s._id,
-          _id: s._id?.toString() || s._id,
-          businessId: s.businessId,  // Already populated by aggregation
-          category: s.category,
-          subCategory: s.subCategory,
-          serviceName: s.serviceName,
-          description: s.description,
-          duration: s.timeSlots && s.timeSlots.length > 0 ? s.timeSlots[0].duration : 60,  // ✅ ADD duration from first slot
-          address:
-            typeof s.address === "object" && s.address?.street
-              ? s.address.street
-              : typeof s.address === "string"
-                ? s.address
-                : "",
-          addressLocation:
-            typeof s.address === "object" && s.address?.location
-              ? s.address.location
-              : null,
-          addOns: s.addOns || [],
-          timeSlots: (s.timeSlots || s.availableTimeSlots || []).map((ts: any) => ({  // ✅ Use availableTimeSlots from aggregation
-            date: ts.date,
-            startTime: ts.startTime,
-            endTime: ts.endTime,
-            price: ts.price,
-            duration: ts.duration,
-            staffIds: ts.staffIds,
-            isBooked: ts.isBooked,
-          })),
-          status: s.status,
-          createdAt: s.createdAt,
-        })),
+        .map((s: any) => {
+          // Process slots with global busy check
+          const processedSlots = (s.timeSlots || []).map((ts: any) => {
+            const updatedStaffIds = ts.staffIds?.map((staff: any) => {
+              const isGloballyBooked = isStaffBusy(busyMap, String(staff.staffId), ts.date, ts.startTime);
+              return {
+                ...staff,
+                isBooked: staff.isBooked || isGloballyBooked
+              };
+            }) || [];
+
+            const isFullyBooked = updatedStaffIds.length > 0 && updatedStaffIds.every((ss: any) => ss.isBooked);
+
+            return {
+              ...ts,
+              staffIds: updatedStaffIds,
+              isBooked: ts.isBooked || isFullyBooked
+            };
+          }).filter((ts: any) => !ts.isBooked); // Hide booked slots from listings
+
+          // Sort slots by date and time to find EARLIEST available
+          processedSlots.sort((a: any, b: any) => {
+            const dateA = new Date(a.date).getTime();
+            const dateB = new Date(b.date).getTime();
+            if (dateA !== dateB) return dateA - dateB;
+            return a.startTime.localeCompare(b.startTime);
+          });
+
+          const earliestSlot = processedSlots[0] || null;
+
+          return {
+            id: s._id?.toString() || s._id,
+            _id: s._id?.toString() || s._id,
+            businessId: s.businessId,
+            category: s.category,
+            subCategory: s.subCategory,
+            serviceName: s.serviceName,
+            description: s.description,
+            duration: earliestSlot?.duration || (s.timeSlots && s.timeSlots.length > 0 ? s.timeSlots[0].duration : 60),
+            address:
+              typeof s.address === "object" && s.address?.street
+                ? s.address.street
+                : typeof s.address === "string"
+                  ? s.address
+                  : "",
+            addressLocation:
+              typeof s.address === "object" && s.address?.location
+                ? s.address.location
+                : null,
+            addOns: s.addOns || [],
+            timeSlots: processedSlots.map((ts: any) => ({
+              date: ts.date,
+              startTime: ts.startTime,
+              endTime: ts.endTime,
+              price: ts.price,
+              duration: ts.duration,
+              staffIds: ts.staffIds,
+              isBooked: ts.isBooked,
+            })),
+            // ✅ Requirement 4: Set earliest date/time for the card
+            date: earliestSlot ? (typeof earliestSlot.date === 'string' ? earliestSlot.date.split('T')[0] : earliestSlot.date.toISOString().split('T')[0]) : null,
+            time: earliestSlot ? earliestSlot.startTime : null,
+            status: s.status,
+            createdAt: s.createdAt,
+          };
+        })
+        .filter((s: any) => {
+          // If public listing (no businessId), only show if it has available slots
+          if (!businessId && s.timeSlots.length === 0) return false;
+          // Filter out services with missing business data
+          return s.businessId?.id;
+        }),
       pagination: {
         total,
         page,

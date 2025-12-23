@@ -3,7 +3,7 @@
  * ADMIN BUSINESS REJECT - /api/admin/businesses/[id]/reject
  * =============================================================================
  * 
- * Admin-only endpoint to reject pending businesses.
+ * Admin-only endpoint to reject business registrations.
  */
 
 import { NextRequest } from "next/server";
@@ -19,15 +19,12 @@ async function rejectBusinessHandler(
     req: NextRequest,
     { params }: { params: { id: string } }
 ) {
-    // Rate limiting
+    // Rate limiting (strict for admin actions)
     const rateLimitResponse = applyRateLimit(req, 10);
     if (rateLimitResponse) return rateLimitResponse;
 
     // Admin authentication
     const adminSession = await authenticateAdmin(req);
-
-    const body = await req.json();
-    const reason = body.reason || "No reason provided";
 
     await dbConnect();
 
@@ -36,15 +33,20 @@ async function rejectBusinessHandler(
         throw new APIError(404, "Business not found", "NOT_FOUND");
     }
 
-    if (business.status !== "pending") {
-        throw new APIError(400, "Only pending businesses can be rejected", "INVALID_STATUS");
+    // Capture reason if provided
+    let reason = "Business registration rejected by admin";
+    try {
+        const body = await req.json();
+        if (body.reason) reason = body.reason;
+    } catch (e) {
+        // Body is optional
     }
 
     business.status = "rejected";
-    // Note: rejection reason logged but not stored in current model
+    business.adminNotes = reason; // Store rejection reason
     await business.save();
 
-    console.log(`[ADMIN] Business ${params.id} rejected by ${adminSession.email}: ${reason}`);
+    console.log(`[ADMIN] Business ${params.id} REJECTED by ${adminSession.email}. Reason: ${reason}`);
 
     return successResponse({
         message: "Business rejected successfully",

@@ -132,19 +132,9 @@ async function createBookingHandler(req: NextRequest) {
         $gte: bookingDayStart,
         $lte: bookingDayEnd,
       },
-      $or: [
-        {
-          $and: [
-            { "timeSlot.startTime": { $lte: bookingStartTime } },
-            { "timeSlot.endTime": { $gt: bookingStartTime } },
-          ],
-        },
-        {
-          $and: [
-            { "timeSlot.startTime": { $lt: bookingEndTime } },
-            { "timeSlot.endTime": { $gte: bookingEndTime } },
-          ],
-        },
+      $and: [
+        { "timeSlot.startTime": { $lt: bookingEndTime } },
+        { "timeSlot.endTime": { $gt: bookingStartTime } },
       ],
     });
 

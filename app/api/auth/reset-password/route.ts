@@ -99,6 +99,10 @@ async function resetPasswordHandler(req: NextRequest) {
     // Delete the forget password record
     await ForgetPass.findByIdAndDelete(forgetPassRecord._id);
 
+    // ✅ SECURITY FIX: Clear any existing session to force fresh login with new password
+    const { destroySession } = await import("@/lib/session");
+    destroySession();
+
     return NextResponse.json(
       {
         message: "Password reset successfully",
