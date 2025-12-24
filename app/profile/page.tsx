@@ -159,7 +159,7 @@ export default function ShopperProfilePage() {
         // ✅ NORMALIZE: Ensure every booking has an 'id' property
         allBookings = allBookings.map((b: any) => ({
           ...b,
-          id: b.id || b._id?.toString()
+          id: b.id || (b._id ? String(b._id) : undefined)
         }));
 
         const now = new Date();
@@ -234,6 +234,12 @@ export default function ShopperProfilePage() {
   };
 
   const handleCancelBooking = async (bookingId: string) => {
+    // Defensive check: ensure booking ID exists
+    if (!bookingId || bookingId === 'undefined') {
+      setError("Error: Could not identify booking. Please refresh the page and try again.");
+      return;
+    }
+
     if (!confirm("Are you sure you want to cancel this booking? You will lose your 10% deposit + ouiimi fee.")) {
       return;
     }

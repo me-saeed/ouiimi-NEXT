@@ -133,6 +133,12 @@ export function BookingsTab({ business }: BookingsTabProps) {
         // Handle both old (data.bookings) and new (data.data.bookings) response formats
         let filteredBookings = data.data?.bookings || data.bookings || [];
 
+        // ✅ NORMALIZE: Ensure every booking has an 'id' property
+        filteredBookings = filteredBookings.map((b: any) => ({
+          ...b,
+          id: b.id || (b._id ? String(b._id) : undefined)
+        }));
+
         // Filter bookings based on new logic:
         const now = new Date();
 

@@ -54,6 +54,20 @@ async function getBusinessesHandler(req: NextRequest) {
             businessName: b.businessName,
             status: b.status,
             owner: b.userId,
+            email: b.email,
+            phone: b.phone,
+            address: typeof b.address === 'object'
+                ? `${b.address.street || ''}, ${b.address.city || ''}, ${b.address.state || ''} ${b.address.postalCode || ''}`.trim()
+                : b.address || '',
+            category: b.category,
+            subCategory: b.subCategory,
+            logo: b.logo,
+            story: b.story,
+            bankDetails: b.bankDetails ? {
+                name: b.bankDetails.name,
+                bsb: b.bankDetails.bsb,
+                accountNumber: b.bankDetails.accountNumber
+            } : null,
             createdAt: b.createdAt,
         })),
         pagination: {
