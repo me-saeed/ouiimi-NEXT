@@ -4,9 +4,9 @@
  * Can be called by cron services like Vercel Cron
  */
 
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { BookingJobs } from "@/lib/jobs/booking-jobs";
-import { successResponse, errorResponse } from "@/lib/api-response";
+import { successResponse } from "@/lib/api-response";
 
 export const dynamic = 'force-dynamic';
 
@@ -25,7 +25,10 @@ export async function GET(req: NextRequest) {
         const cronSecret = process.env.CRON_SECRET;
 
         if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
-            return errorResponse(401, "Unauthorized", "UNAUTHORIZED");
+            return NextResponse.json(
+                { error: "Unauthorized", code: "UNAUTHORIZED" },
+                { status: 401 }
+            );
         }
 
         console.log('🔄 Booking completion job triggered via API');
@@ -42,10 +45,12 @@ export async function GET(req: NextRequest) {
     } catch (error: any) {
         console.error('❌ Job execution error:', error);
 
-        return errorResponse(
-            500,
-            error.message || "Failed to run booking jobs",
-            "JOB_EXECUTION_ERROR"
+        return NextResponse.json(
+            {
+                error: error.message || "Failed to run booking jobs",
+                code: "JOB_EXECUTION_ERROR"
+            },
+            { status: 500 }
         );
     }
 }
