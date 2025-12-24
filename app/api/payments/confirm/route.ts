@@ -26,6 +26,8 @@ import {
     asyncHandler,
     APIError
 } from "@/lib/api-response";
+import EmailService from "@/lib/email-service";
+import User from "@/lib/models/User";
 
 export const dynamic = 'force-dynamic';
 
@@ -137,33 +139,39 @@ async function confirmPaymentHandler(req: NextRequest) {
     await booking.save();
 
     // ==========================================================================
-    // STEP 7: Send confirmation emails (async, don't wait)
-    // TODO: Implement sendBookingConfirmationEmail in mailjet service
+    // STEP 7: Send confirmation emails (async, don't block response)
     // ==========================================================================
-    /* const business = booking.businessId as any;
-    const service = booking.serviceId as any;
-  
-    if (business?.email && service?.serviceName) {
-      import("@/lib/services/mailjet").then(async ({ sendBookingConfirmationEmail }) => {
-        try {
-          await sendBookingConfirmationEmail(
-            session.email || "",
-            session.fname || "Customer",
-            {
-              bookingNumber: booking.bookingNumber || 0,
-              serviceName: service.serviceName,
-              businessName: business.businessName,
-              date: booking.timeSlot.date.toISOString(),
-              time: `${booking.timeSlot.startTime} - ${booking.timeSlot.endTime}`,
-              totalCost: booking.totalCost,
-              depositPaid: booking.depositAmount,
-            }
-          );
-        } catch (error) {
-          console.error("[Payment Confirm] Email failed:", error);
+    try {
+        const bookingWithPopulated = await Booking.findById(booking._id)
+            .populate('userId', 'fname lname email contactNo phone')
+            .populate('businessId', 'businessName email phone address')
+            .populate('serviceId', 'serviceName')
+            .lean();
+
+        if (bookingWithPopulated?.userId && bookingWithPopulated?.businessId && bookingWithPopulated?.serviceId) {
+            // Send emails asynchronously (don't wait for them)
+            Promise.all([
+                EmailService.sendBookingConfirmation(
+                    bookingWithPopulated,
+                    bookingWithPopulated.userId,
+                    bookingWithPopulated.businessId,
+                    bookingWithPopulated.serviceId
+                ),
+                EmailService.sendNewBookingToBusiness(
+                    bookingWithPopulated,
+                    bookingWithPopulated.userId,
+                    bookingWithPopulated.businessId,
+                    bookingWithPopulated.serviceId
+                )
+            ]).catch(error => {
+                console.error('[Payment Confirm] Email sending failed:', error);
+                // Don't throw - emails should not block payment confirmation
+            });
         }
-      });
-    } */
+    } catch (emailError) {
+        console.error('[Payment Confirm] Email preparation failed:', emailError);
+        // Continue - don't block on email errors
+    }
 
     return successResponse({
         success: true,

@@ -14,6 +14,7 @@ import Service from "@/lib/models/Service";
 import { authenticateAdmin } from "@/lib/api-auth";
 import { applyRateLimit } from "@/lib/rate-limit";
 import { APIError, asyncHandler, successResponse } from "@/lib/api-response";
+import EmailService from "@/lib/email-service";
 
 export const dynamic = 'force-dynamic';
 
@@ -52,6 +53,20 @@ async function releasePaymentHandler(
   await booking.save();
 
   console.log(`[ADMIN] Payment released for booking ${params.id} by ${adminSession.email}`);
+
+  // Send payment released email to business
+  try {
+    if (booking.businessId && booking.serviceId) {
+      await EmailService.sendPaymentReleased(
+        booking,
+        booking.businessId,
+        booking.serviceId
+      );
+    }
+  } catch (emailError) {
+    console.error('Failed to send payment released email:', emailError);
+    // Don't fail the request if email fails
+  }
 
   return successResponse({
     message: "Payment released successfully",

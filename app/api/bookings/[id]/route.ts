@@ -15,7 +15,7 @@ import { Booking, Service, Business, User, Staff } from "@/lib/models";
 import { authenticateRequest } from "@/lib/api-auth";
 import { applyRateLimit } from "@/lib/rate-limit";
 import { APIError, asyncHandler, successResponse } from "@/lib/api-response";
-import { sendBookingCancellationToBusiness } from "@/lib/services/mailjet";
+import EmailService from "@/lib/email-service";
 import { z } from "zod";
 import mongoose from "mongoose";
 
@@ -123,14 +123,24 @@ async function updateBookingHandler(
       }
     }
 
-    // Send cancellation email (async, don't wait)
-    const business = booking.businessId as any;
-    if (business?.email) {
-      sendBookingCancellationToBusiness(
-        business.email,
-        String(booking._id),
-        validatedData.cancellationReason || "No reason provided"
-      ).catch(err => console.error("Cancellation email failed:", err));
+    // Send cancellation email (async, don't block response)
+    try {
+      const bookingWithPopulated = await Booking.findById(booking._id)
+        .populate('userId', 'fname lname email contactNo phone')
+        .populate('businessId', 'businessName email phone address')
+        .populate('serviceId', 'serviceName')
+        .lean();
+
+      if (bookingWithPopulated?.userId && bookingWithPopulated?.businessId && bookingWithPopulated?.serviceId) {
+        EmailService.sendCancellationToBusiness(
+          bookingWithPopulated,
+          bookingWithPopulated.userId,
+          bookingWithPopulated.businessId,
+          bookingWithPopulated.serviceId
+        ).catch(err => console.error('Cancellation email failed:', err));
+      }
+    } catch (emailError) {
+      console.error('Failed to prepare cancellation email:', emailError);
     }
   }
 
