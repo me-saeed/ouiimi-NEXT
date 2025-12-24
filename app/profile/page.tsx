@@ -171,16 +171,32 @@ export default function ShopperProfilePage() {
           // UPCOMING: Only show CONFIRMED bookings (payment succeeded)
           // Exclude pre_payment (not yet paid/abandoned carts)
           if (booking.status === "confirmed") {
-            // Get booking date and set to end of day (11:59 PM)
-            const bookingDate = new Date(booking.timeSlot.date);
-            bookingDate.setHours(23, 59, 59, 999);
-            const isPast = now > bookingDate;
+            try {
+              // Parse booking date
+              const bookingDate = new Date(booking.timeSlot.date);
 
-            // If past the booking date, move to finished
-            if (isPast) {
-              finished.push(booking);
-            } else {
-              // Future confirmed booking = upcoming
+              // Parse end time (format: "HH:MM" or "HH:MM:SS")
+              const endTimeParts = booking.timeSlot.endTime.split(':');
+              const endHour = parseInt(endTimeParts[0], 10);
+              const endMinute = parseInt(endTimeParts[1] || '0', 10);
+
+              // Create a date object with the booking date and end time
+              const bookingEndDateTime = new Date(bookingDate);
+              bookingEndDateTime.setHours(endHour, endMinute, 0, 0);
+
+              // Check if the booking end time has passed
+              const isPast = now > bookingEndDateTime;
+
+              // If booking end time has passed, move to finished
+              if (isPast) {
+                finished.push(booking);
+              } else {
+                // Future confirmed booking = upcoming
+                upcoming.push(booking);
+              }
+            } catch (error) {
+              console.error('Error processing booking:', error, booking);
+              // If there's an error parsing, default to upcoming to be safe
               upcoming.push(booking);
             }
           }

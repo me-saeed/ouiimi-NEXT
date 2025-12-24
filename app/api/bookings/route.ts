@@ -15,16 +15,14 @@
 import { NextRequest } from "next/server";
 import mongoose from "mongoose";
 import dbConnect from "@/lib/db";
-import Booking from "@/lib/models/Booking";
-import Service from "@/lib/models/Service";
-import Business from "@/lib/models/Business";
-import User from "@/lib/models/User";
-import Staff from "@/lib/models/Staff";
+// Import from models index to ensure all models are registered
+import { Booking, Service, Business, User, Staff } from "@/lib/models";
 import { authenticateRequest } from "@/lib/api-auth";
 import { applyRateLimit } from "@/lib/rate-limit";
 import {
   errorResponse,
   createdResponse,
+  successResponse,
   asyncHandler,
   APIError
 } from "@/lib/api-response";
@@ -301,8 +299,9 @@ async function getBookingsHandler(req: NextRequest) {
     } else {
       query.status = status;
     }
-  } else {
-    // Default: Hide pre-payment bookings from generic lists
+  } else if (!businessId) {
+    // Only hide pre-payment bookings from generic user lists
+    // Business owners should see ALL their bookings including pre_payment
     query.status = { $ne: "pre_payment" };
   }
 
@@ -344,7 +343,7 @@ async function getBookingsHandler(req: NextRequest) {
 
   const total = await Booking.countDocuments(query);
 
-  return createdResponse(
+  return successResponse(
     {
       bookings,
       pagination: {

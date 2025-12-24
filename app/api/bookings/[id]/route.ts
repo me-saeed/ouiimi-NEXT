@@ -10,11 +10,8 @@
 
 import { NextRequest } from "next/server";
 import dbConnect from "@/lib/db";
-import Booking from "@/lib/models/Booking";
-import Service from "@/lib/models/Service";
-import Business from "@/lib/models/Business";
-import User from "@/lib/models/User";
-import Staff from "@/lib/models/Staff";
+// Import from models index to ensure all models are registered
+import { Booking, Service, Business, User, Staff } from "@/lib/models";
 import { authenticateRequest } from "@/lib/api-auth";
 import { applyRateLimit } from "@/lib/rate-limit";
 import { APIError, asyncHandler, successResponse } from "@/lib/api-response";

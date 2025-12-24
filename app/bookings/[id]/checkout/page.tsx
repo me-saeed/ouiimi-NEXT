@@ -129,111 +129,153 @@ export default function CheckoutPage() {
 
     return (
         <PageLayout user={user}>
-            <div className="min-h-screen bg-[#FDFCFD] py-12">
-                <div className="container mx-auto px-4 max-w-6xl">
-                    <div className="mb-8">
-                        <div className="inline-block border border-green-600 px-4 py-1">
-                            <h1 className="text-xl font-medium">Cart view</h1>
-                        </div>
+            <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white py-8 sm:py-12">
+                <div className="container mx-auto px-4 max-w-7xl">
+                    {/* Modern Header */}
+                    <div className="mb-8 sm:mb-12">
+                        <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-2">Secure Checkout</h1>
+                        <p className="text-gray-600">Complete your booking payment safely and securely</p>
                     </div>
 
                     {error && (
-                        <Alert variant="destructive" className="mb-6">
+                        <Alert variant="destructive" className="mb-6 rounded-2xl">
                             <AlertDescription>{error}</AlertDescription>
                         </Alert>
                     )}
 
-                    <div className="flex flex-col lg:flex-row gap-8 items-start justify-center">
+                    <div className="grid lg:grid-cols-2 gap-6 sm:gap-8">
                         {/* Left Card: Booking Summary */}
-                        <div className="w-full max-w-[500px] bg-white rounded-[40px] border border-gray-200 p-8 sm:p-12 relative overflow-hidden shadow-sm">
+                        <div className="bg-white rounded-3xl border border-gray-200 p-6 sm:p-8 shadow-lg hover:shadow-xl transition-shadow duration-300">
                             <div className="space-y-6">
-                                {/* Header with Logo Placeholder */}
-                                <div className="flex items-center gap-6 mb-8">
-                                    <div className="w-20 h-20 rounded-full border border-gray-100 flex items-center justify-center bg-white shadow-sm overflow-hidden flex-shrink-0">
+                                {/* Header with Business Info */}
+                                <div className="flex items-center gap-4 pb-6 border-b border-gray-100">
+                                    <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl border-2 border-gray-100 flex items-center justify-center bg-gradient-to-br from-gray-50 to-white shadow-sm overflow-hidden flex-shrink-0">
                                         {business?.logo ? (
                                             <img src={business.logo} alt={business.businessName} className="w-full h-full object-cover" />
                                         ) : (
-                                            <div className="w-full h-full bg-gray-50" />
+                                            <div className="w-full h-full bg-gradient-to-br from-gray-100 to-gray-50" />
                                         )}
                                     </div>
-                                    <h2 className="text-xl font-medium text-gray-700">{business?.businessName || "Business Name"}</h2>
+                                    <div>
+                                        <h2 className="text-xl sm:text-2xl font-bold text-gray-900">{business?.businessName || "Business"}</h2>
+                                        <p className="text-sm text-gray-500 mt-1">Booking Summary</p>
+                                    </div>
                                 </div>
 
-                                {/* Details Grid */}
-                                <div className="space-y-4 text-[#4A4A4A]">
-                                    <div className="flex justify-between items-baseline gap-4">
-                                        <span className="text-lg">Date: {new Date(booking.timeSlot.date).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '.')}</span>
-                                        <span className="text-lg">Time: {booking.timeSlot.startTime.toLowerCase().replace(/ /g, '')} am – {booking.timeSlot.endTime.toLowerCase().replace(/ /g, '')}pm</span>
+                                {/* Booking Details */}
+                                <div className="space-y-5">
+                                    <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
+                                        <div>
+                                            <p className="text-sm font-medium text-gray-500 mb-1">Date</p>
+                                            <p className="text-lg font-semibold text-gray-900">
+                                                {new Date(booking.timeSlot.date).toLocaleDateString('en-US', {
+                                                    weekday: 'short',
+                                                    month: 'short',
+                                                    day: 'numeric',
+                                                    year: 'numeric'
+                                                })}
+                                            </p>
+                                        </div>
+                                        <div className="text-right">
+                                            <p className="text-sm font-medium text-gray-500 mb-1">Time</p>
+                                            <p className="text-lg font-semibold text-gray-900">
+                                                {booking.timeSlot.startTime} - {booking.timeSlot.endTime}
+                                            </p>
+                                        </div>
                                     </div>
 
-                                    <div className="flex justify-between items-baseline gap-4">
-                                        <span className="text-lg">Service: {service?.serviceName}</span>
-                                        <span className="text-lg">Cost: ${booking.baseCost || booking.totalCost - (booking.addOns?.reduce((acc: any, curr: any) => acc + curr.cost, 0) || 0)}</span>
-                                    </div>
+                                    <div className="space-y-3">
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-gray-700 font-medium">{service?.serviceName}</span>
+                                            <span className="text-gray-900 font-semibold">${booking.baseCost || booking.totalCost - (booking.addOns?.reduce((acc: any, curr: any) => acc + curr.cost, 0) || 0)}</span>
+                                        </div>
 
-                                    {booking.addOns && booking.addOns.length > 0 && (
-                                        <div className="flex items-start gap-4">
-                                            <span className="text-lg whitespace-nowrap">Add-Ons:</span>
-                                            <div className="flex-1 space-y-1">
+                                        {booking.addOns && booking.addOns.length > 0 && (
+                                            <div className="space-y-2 pl-4 border-l-2 border-gray-200">
                                                 {booking.addOns.map((addon: any, i: number) => (
-                                                    <div key={i} className="flex justify-between items-baseline text-lg text-gray-400">
-                                                        <span>{addon.name}</span>
-                                                        <span>${addon.cost}</span>
+                                                    <div key={i} className="flex justify-between items-center text-sm">
+                                                        <span className="text-gray-600">+ {addon.name}</span>
+                                                        <span className="text-gray-700 font-medium">${addon.cost}</span>
                                                     </div>
                                                 ))}
                                             </div>
-                                        </div>
-                                    )}
+                                        )}
 
-                                    <div className="flex justify-end pt-2">
-                                        <span className="text-lg font-medium text-[#4A4A4A]">Service Total: ${booking.totalCost}</span>
+                                        <div className="pt-3 border-t border-gray-200">
+                                            <div className="flex justify-between items-center">
+                                                <span className="text-gray-700 font-semibold">Service Total</span>
+                                                <span className="text-xl font-bold text-gray-900">${booking.totalCost}</span>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
 
-                                <div className="border-t border-gray-100 my-8"></div>
-
-                                {/* Payment Breakdown */}
-                                <div className="space-y-3 text-center">
-                                    <div className="flex flex-col items-center">
-                                        <p className="text-lg text-[#3A3A3A] font-medium">10% Deposit: ${booking.depositAmount}</p>
-                                        <p className="text-lg text-[#3A3A3A] font-medium">ouiimi Fee: $1.99</p>
-                                        <p className="text-xl text-[#3A3A3A] font-bold mt-2">Total Today: ${booking.depositAmount}</p>
+                                <div className="border-t border-gray-200 pt-6 mt-6">
+                                    <div className="bg-gradient-to-br from-[#EECFD1]/10 to-[#EECFD1]/5 rounded-2xl p-5 space-y-3">
+                                        <h3 className="font-semibold text-gray-900 mb-4">Payment Breakdown</h3>
+                                        <div className="space-y-2">
+                                            <div className="flex justify-between items-center">
+                                                <span className="text-gray-600">10% Deposit</span>
+                                                <span className="font-semibold text-gray-900">${booking.depositAmount}</span>
+                                            </div>
+                                            <div className="flex justify-between items-center">
+                                                <span className="text-gray-600">Platform Fee</span>
+                                                <span className="font-semibold text-gray-900">$1.99</span>
+                                            </div>
+                                            <div className="pt-3 border-t border-gray-300 mt-3">
+                                                <div className="flex justify-between items-center">
+                                                    <span className="text-lg font-bold text-gray-900">Total Today</span>
+                                                    <span className="text-2xl font-bold text-[#EECFD1]">${(booking.depositAmount + 1.99).toFixed(2)}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <p className="text-xs text-gray-500 mt-4 pt-4 border-t border-gray-200">
+                                            💡 Remaining ${booking.remainingAmount} paid directly to business at appointment
+                                        </p>
                                     </div>
-
-                                    <div className="pt-8">
-                                        <button className="text-lg text-gray-600 hover:text-gray-900 transition-colors">Pay Now</button>
-                                    </div>
-
-                                    <p className="text-[12px] text-gray-500 mt-12 pt-8">
-                                        10% Deposit + $1.99 ouiimi fee paid today, 90% paid to directly Business
-                                    </p>
                                 </div>
                             </div>
                         </div>
 
                         {/* Right Card: Payment Form */}
-                        <div className="w-full max-w-[500px] bg-white rounded-[40px] border border-gray-200 p-8 sm:p-12 shadow-sm">
-                            <div className="space-y-8">
+                        <div className="bg-white rounded-3xl border border-gray-200 p-6 sm:p-8 shadow-lg hover:shadow-xl transition-shadow duration-300">
+                            <div className="space-y-6">
+                                {/* Section Header */}
+                                <div className="pb-6 border-b border-gray-100">
+                                    <h2 className="text-2xl font-bold text-gray-900">Payment Details</h2>
+                                    <p className="text-sm text-gray-500 mt-1">Enter your information to complete the booking</p>
+                                </div>
+
                                 {/* Customer Info Fields */}
-                                <div className="space-y-6">
-                                    <div className="flex items-center gap-4">
-                                        <label className="w-20 text-gray-600 text-lg">Name:</label>
-                                        <Input className="flex-1 h-12 rounded-xl border-gray-200" value={user?.fname + " " + (user?.lname || "")} readOnly />
+                                <div className="space-y-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">Full Name</label>
+                                        <Input
+                                            className="w-full h-12 rounded-xl border-gray-300 bg-gray-50 text-gray-900 font-medium"
+                                            value={user?.fname + " " + (user?.lname || "")}
+                                            readOnly
+                                        />
                                     </div>
-                                    <div className="flex items-center gap-4">
-                                        <label className="w-20 text-gray-600 text-lg">Email:</label>
-                                        <Input className="flex-1 h-12 rounded-xl border-gray-200" value={user?.email} readOnly />
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">Email Address</label>
+                                        <Input
+                                            className="w-full h-12 rounded-xl border-gray-300 bg-gray-50 text-gray-900 font-medium"
+                                            value={user?.email}
+                                            readOnly
+                                        />
                                     </div>
-                                    <div className="flex items-center gap-4">
-                                        <label className="w-20 text-gray-600 text-lg">Number:</label>
-                                        <Input className="flex-1 h-12 rounded-xl border-gray-200" value={user?.phone || ""} />
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">Phone Number</label>
+                                        <Input
+                                            className="w-full h-12 rounded-xl border-gray-300 bg-white focus:border-[#EECFD1] focus:ring-[#EECFD1]"
+                                            value={user?.phone || ""}
+                                            placeholder="Enter your phone number"
+                                        />
                                     </div>
                                 </div>
 
-                                <div className="border-t border-gray-100"></div>
-
-                                {/* Stripe Form */}
-                                <div className="space-y-6">
+                                <div className="border-t border-gray-100 pt-6">
+                                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Card Information</h3>
                                     {clientSecret ? (
                                         <StripeProvider clientSecret={clientSecret} amount={paymentAmount}>
                                             <CheckoutForm
@@ -244,11 +286,21 @@ export default function CheckoutPage() {
                                             />
                                         </StripeProvider>
                                     ) : (
-                                        <div className="text-center py-8">
-                                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#EECFD1] mx-auto mb-3"></div>
-                                            <p className="text-sm text-gray-600">Loading payment form...</p>
+                                        <div className="text-center py-12">
+                                            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#EECFD1] mx-auto mb-4"></div>
+                                            <p className="text-sm text-gray-600">Loading secure payment form...</p>
                                         </div>
                                     )}
+                                </div>
+
+                                {/* Security Badge */}
+                                <div className="pt-6 border-t border-gray-100">
+                                    <div className="flex items-center justify-center gap-2 text-sm text-gray-500">
+                                        <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                                        </svg>
+                                        <span>Secured by Stripe - Your payment information is encrypted</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>

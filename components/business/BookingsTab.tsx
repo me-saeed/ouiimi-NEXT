@@ -130,7 +130,8 @@ export function BookingsTab({ business }: BookingsTabProps) {
           return;
         }
 
-        let filteredBookings = data.bookings || [];
+        // Handle both old (data.bookings) and new (data.data.bookings) response formats
+        let filteredBookings = data.data?.bookings || data.bookings || [];
 
         // Filter bookings based on new logic:
         const now = new Date();
@@ -138,9 +139,9 @@ export function BookingsTab({ business }: BookingsTabProps) {
         if (activeSubTab === "up-coming") {
           filteredBookings = filteredBookings.filter((b: Booking) => {
             try {
-              // UPCOMING: Only show CONFIRMED bookings (payment succeeded)
-              // Exclude pre_payment (not yet paid) and pending (old status)
-              if (b.status !== "confirmed") {
+              // UPCOMING: Show CONFIRMED bookings (payment succeeded) AND PRE_PAYMENT (in checkout)
+              // This allows business owners to see all reservations, including those in payment process
+              if (b.status !== "confirmed" && b.status !== "pre_payment") {
                 return false;
               }
 
@@ -665,9 +666,23 @@ export function BookingsTab({ business }: BookingsTabProps) {
                         Booking #{booking.bookingNumber || booking.id.slice(-4)}
                       </p>
                     </div>
-                    <div className="text-right">
+                    <div className="text-right flex flex-col items-end gap-1">
                       <p className="font-semibold">${booking.totalCost.toFixed(2)}</p>
-                      <p className="text-xs text-muted-foreground capitalize">{booking.status}</p>
+                      {booking.status === "pre_payment" && (
+                        <span className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs font-medium">
+                          Awaiting Payment
+                        </span>
+                      )}
+                      {booking.status === "confirmed" && (
+                        <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium">
+                          Confirmed
+                        </span>
+                      )}
+                      {booking.status === "completed" && (
+                        <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">
+                          Completed
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>
