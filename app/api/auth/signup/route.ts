@@ -143,7 +143,8 @@ async function signupHandler(req: NextRequest) {
   // ==========================================================================
   // STEP 10: Send verification email (async, don't wait)
   // ==========================================================================
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+  const { getBaseUrl } = await import('@/lib/utils/url');
+  const baseUrl = getBaseUrl();
   const verificationLink = `${baseUrl}/api/auth/verify-email?token=${verificationToken}`;
 
   sendAccountVerificationEmail(user.email, user.fname, verificationLink).catch(error => {

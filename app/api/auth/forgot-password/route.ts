@@ -36,9 +36,9 @@ async function forgotPasswordHandler(req: NextRequest) {
       email: validatedData.email.toLowerCase(),
     });
 
-    // Generate reset link - use production URL in production, localhost in development
-    const baseUrl = process.env.NEXTAUTH_URL || 
-                    (process.env.NODE_ENV === "production" ? "https://ouiimi.com.au" : "http://localhost:3000");
+    // Generate reset link
+    const { getBaseUrl } = await import('@/lib/utils/url');
+    const baseUrl = getBaseUrl();
     const resetLink = `${baseUrl}/reset-password?email=${encodeURIComponent(validatedData.email)}&token=${forgetPassRecord._id}`;
 
     // Send password reset email
