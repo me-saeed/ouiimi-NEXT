@@ -319,7 +319,7 @@ export function BusinessesTab({
                             <h5 className="font-bold text-sm uppercase text-gray-400">About the Business</h5>
                             <div className="bg-gray-50 p-6 rounded-2xl">
                                 <p className="text-gray-700 text-sm leading-relaxed whitespace-pre-line italic">
-                                    "{selectedBusiness.story || "No story provided by business."}"
+                                    &ldquo;{selectedBusiness.story || "No story provided by business."}&rdquo;
                                 </p>
                             </div>
                         </div>

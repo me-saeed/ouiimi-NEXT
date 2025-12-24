@@ -37,7 +37,8 @@ async function getStatsHandler(req: NextRequest) {
         totalBookings,
         pendingBookings,
         confirmedBookings,
-        revenueData
+        revenueData,
+        pendingPayoutData
     ] = await Promise.all([
         User.countDocuments(),
         Business.countDocuments(),

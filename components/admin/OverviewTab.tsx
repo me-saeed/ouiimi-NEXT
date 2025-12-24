@@ -4,7 +4,7 @@
  */
 "use client";
 
-import { Users, DollarSign, TrendingUp, AlertCircle } from "lucide-react";
+import { Users, DollarSign, TrendingUp, AlertCircle, Info, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface OverviewStats {
@@ -136,7 +136,7 @@ export function OverviewTab({
                                         {stats.pendingPayments.count} payouts ready for disbursement
                                     </p>
                                 </div>
-                                <Landmark className="w-6 h-6 text-green-500" />
+                                <MapPin className="w-6 h-6 text-green-500" />
                             </button>
                         )}
                     </div>
