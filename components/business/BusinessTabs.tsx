@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ServiceCard } from "@/components/ui/service-card";
+import { StaffCard } from "@/components/ui/staff-card";
 
 interface BusinessTabsProps {
     business: any;
@@ -75,6 +76,15 @@ export function BusinessTabs({ business, services, staff }: BusinessTabsProps) {
         const { date, time } = getNextAvailableTimeSlot(service);
         const serviceBusiness = typeof service.businessId === 'object' ? service.businessId : business;
 
+        // Get duration from service root or first time slot
+        let duration = service.duration;
+        if (!duration && service.timeSlots && service.timeSlots.length > 0) {
+            duration = service.timeSlots[0].duration;
+        }
+
+        // Format duration string (e.g., "30" -> "30 mins")
+        const formattedDuration = duration ? (typeof duration === 'number' ? `${duration} mins` : duration) : "";
+
         return {
             id: service.id || service._id,
             name: service.serviceName,
@@ -84,7 +94,7 @@ export function BusinessTabs({ business, services, staff }: BusinessTabsProps) {
             subCategory: service.subCategory,
             businessName: serviceBusiness?.businessName || "Business",
             location: serviceBusiness?.address || "",
-            duration: service.duration,
+            duration: formattedDuration,
             date: date,
             time: time,
         };
@@ -278,32 +288,14 @@ export function BusinessTabs({ business, services, staff }: BusinessTabsProps) {
                         ) : (
                             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                                 {staff.map((member) => (
-                                    <div
+                                    <StaffCard
                                         key={member.id || member._id}
+                                        id={member.id || member._id}
+                                        name={member.name}
+                                        photo={member.photo}
+                                        about={member.about}
                                         onClick={() => setSelectedStaff(member)}
-                                        className="card-polished p-6 text-center cursor-pointer hover:shadow-md transition-shadow"
-                                    >
-                                        {member.photo ? (
-                                            // eslint-disable-next-line @next/next/no-img-element
-                                            <img
-                                                src={member.photo}
-                                                alt={member.name}
-                                                className="w-20 h-20 rounded-full object-cover mx-auto mb-4"
-                                            />
-                                        ) : (
-                                            <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
-                                                <span className="text-2xl font-bold text-primary">
-                                                    {member.name.charAt(0)}
-                                                </span>
-                                            </div>
-                                        )}
-                                        <h3 className="font-semibold">{member.name}</h3>
-                                        {member.about && (
-                                            <p className="text-sm text-muted-foreground mt-2 line-clamp-2">
-                                                {member.about}
-                                            </p>
-                                        )}
-                                    </div>
+                                    />
                                 ))}
                             </div>
                         )}
