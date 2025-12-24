@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import PageLayout from "@/components/layout/PageLayout";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Input } from "@/components/ui/input";
 import { useAuth } from "@/lib/contexts/AuthContext";
 import StripeProvider from "@/components/payments/StripeProvider";
 import CheckoutForm from "@/components/payments/CheckoutForm";
@@ -128,9 +129,13 @@ export default function CheckoutPage() {
 
     return (
         <PageLayout user={user}>
-            <div className="min-h-screen bg-gray-50 py-12">
-                <div className="container mx-auto px-4 max-w-4xl">
-                    <h1 className="text-3xl font-bold text-center mb-8">Complete Your Booking</h1>
+            <div className="min-h-screen bg-[#FDFCFD] py-12">
+                <div className="container mx-auto px-4 max-w-6xl">
+                    <div className="mb-8">
+                        <div className="inline-block border border-green-600 px-4 py-1">
+                            <h1 className="text-xl font-medium">Cart view</h1>
+                        </div>
+                    </div>
 
                     {error && (
                         <Alert variant="destructive" className="mb-6">
@@ -138,82 +143,113 @@ export default function CheckoutPage() {
                         </Alert>
                     )}
 
-                    <div className="grid md:grid-cols-2 gap-6">
-                        {/* Booking Summary */}
-                        <div className="bg-white rounded-lg shadow-sm p-6 space-y-6">
-                            <h2 className="text-xl font-semibold border-b pb-3">Booking Summary</h2>
-
-                            <div>
-                                <p className="text-sm text-gray-600">Service</p>
-                                <p className="font-medium">{service?.serviceName || "Service"}</p>
-                            </div>
-
-                            <div>
-                                <p className="text-sm text-gray-600">Business</p>
-                                <p className="font-medium">{business?.businessName || "Business"}</p>
-                            </div>
-
-                            <div>
-                                <p className="text-sm text-gray-600">Date & Time</p>
-                                <p className="font-medium">
-                                    {new Date(booking.timeSlot.date).toLocaleDateString("en-US", {
-                                        weekday: "long",
-                                        year: "numeric",
-                                        month: "long",
-                                        day: "numeric",
-                                    })}
-                                </p>
-                                <p className="text-sm text-gray-600">
-                                    {booking.timeSlot.startTime} - {booking.timeSlot.endTime}
-                                </p>
-                            </div>
-
-                            <div className="border-t pt-4 space-y-2">
-                                <h3 className="font-semibold mb-3">Payment Breakdown</h3>
-                                <div className="flex justify-between text-sm">
-                                    <span>Total Service Cost</span>
-                                    <span>${booking.totalCost.toFixed(2)}</span>
+                    <div className="flex flex-col lg:flex-row gap-8 items-start justify-center">
+                        {/* Left Card: Booking Summary */}
+                        <div className="w-full max-w-[500px] bg-white rounded-[40px] border border-gray-200 p-8 sm:p-12 relative overflow-hidden shadow-sm">
+                            <div className="space-y-6">
+                                {/* Header with Logo Placeholder */}
+                                <div className="flex items-center gap-6 mb-8">
+                                    <div className="w-20 h-20 rounded-full border border-gray-100 flex items-center justify-center bg-white shadow-sm overflow-hidden flex-shrink-0">
+                                        {business?.logo ? (
+                                            <img src={business.logo} alt={business.businessName} className="w-full h-full object-cover" />
+                                        ) : (
+                                            <div className="w-full h-full bg-gray-50" />
+                                        )}
+                                    </div>
+                                    <h2 className="text-xl font-medium text-gray-700">{business?.businessName || "Business Name"}</h2>
                                 </div>
-                                <div className="flex justify-between font-bold text-lg border-t pt-2 text-[#EECFD1]">
-                                    <span>Pay Now (10% Deposit)</span>
-                                    <span>${booking.depositAmount.toFixed(2)}</span>
+
+                                {/* Details Grid */}
+                                <div className="space-y-4 text-[#4A4A4A]">
+                                    <div className="flex justify-between items-baseline gap-4">
+                                        <span className="text-lg">Date: {new Date(booking.timeSlot.date).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '.')}</span>
+                                        <span className="text-lg">Time: {booking.timeSlot.startTime.toLowerCase().replace(/ /g, '')} am – {booking.timeSlot.endTime.toLowerCase().replace(/ /g, '')}pm</span>
+                                    </div>
+
+                                    <div className="flex justify-between items-baseline gap-4">
+                                        <span className="text-lg">Service: {service?.serviceName}</span>
+                                        <span className="text-lg">Cost: ${booking.baseCost || booking.totalCost - (booking.addOns?.reduce((acc: any, curr: any) => acc + curr.cost, 0) || 0)}</span>
+                                    </div>
+
+                                    {booking.addOns && booking.addOns.length > 0 && (
+                                        <div className="flex items-start gap-4">
+                                            <span className="text-lg whitespace-nowrap">Add-Ons:</span>
+                                            <div className="flex-1 space-y-1">
+                                                {booking.addOns.map((addon: any, i: number) => (
+                                                    <div key={i} className="flex justify-between items-baseline text-lg text-gray-400">
+                                                        <span>{addon.name}</span>
+                                                        <span>${addon.cost}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    <div className="flex justify-end pt-2">
+                                        <span className="text-lg font-medium text-[#4A4A4A]">Service Total: ${booking.totalCost}</span>
+                                    </div>
                                 </div>
-                                <div className="flex justify-between text-sm text-gray-600">
-                                    <span>Pay at Venue (90%)</span>
-                                    <span>${booking.remainingAmount.toFixed(2)}</span>
+
+                                <div className="border-t border-gray-100 my-8"></div>
+
+                                {/* Payment Breakdown */}
+                                <div className="space-y-3 text-center">
+                                    <div className="flex flex-col items-center">
+                                        <p className="text-lg text-[#3A3A3A] font-medium">10% Deposit: ${booking.depositAmount}</p>
+                                        <p className="text-lg text-[#3A3A3A] font-medium">ouiimi Fee: $1.99</p>
+                                        <p className="text-xl text-[#3A3A3A] font-bold mt-2">Total Today: ${booking.depositAmount}</p>
+                                    </div>
+
+                                    <div className="pt-8">
+                                        <button className="text-lg text-gray-600 hover:text-gray-900 transition-colors">Pay Now</button>
+                                    </div>
+
+                                    <p className="text-[12px] text-gray-500 mt-12 pt-8">
+                                        10% Deposit + $1.99 ouiimi fee paid today, 90% paid to directly Business
+                                    </p>
                                 </div>
-                                <p className="text-xs text-gray-500 pt-2 italic">
-                                    💡 10% deposit includes $1.99 platform fee. You&apos;ll pay the remaining ${booking.remainingAmount.toFixed(2)} at the venue.
-                                </p>
                             </div>
                         </div>
 
-                        {/* Payment Form - Embedded Stripe Elements */}
-                        <div className="bg-white rounded-lg shadow-sm p-6 space-y-6">
-                            <h2 className="text-xl font-semibold border-b pb-3">Payment Details</h2>
-
-                            {clientSecret ? (
-                                <StripeProvider clientSecret={clientSecret} amount={paymentAmount}>
-                                    <CheckoutForm
-                                        bookingId={bookingId}
-                                        amount={paymentAmount}
-                                        onSuccess={handlePaymentSuccess}
-                                    />
-                                </StripeProvider>
-                            ) : (
-                                <div className="text-center py-8">
-                                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#EECFD1] mx-auto mb-3"></div>
-                                    <p className="text-sm text-gray-600">Loading payment form...</p>
+                        {/* Right Card: Payment Form */}
+                        <div className="w-full max-w-[500px] bg-white rounded-[40px] border border-gray-200 p-8 sm:p-12 shadow-sm">
+                            <div className="space-y-8">
+                                {/* Customer Info Fields */}
+                                <div className="space-y-6">
+                                    <div className="flex items-center gap-4">
+                                        <label className="w-20 text-gray-600 text-lg">Name:</label>
+                                        <Input className="flex-1 h-12 rounded-xl border-gray-200" value={user?.fname + " " + (user?.lname || "")} readOnly />
+                                    </div>
+                                    <div className="flex items-center gap-4">
+                                        <label className="w-20 text-gray-600 text-lg">Email:</label>
+                                        <Input className="flex-1 h-12 rounded-xl border-gray-200" value={user?.email} readOnly />
+                                    </div>
+                                    <div className="flex items-center gap-4">
+                                        <label className="w-20 text-gray-600 text-lg">Number:</label>
+                                        <Input className="flex-1 h-12 rounded-xl border-gray-200" value={user?.phone || ""} />
+                                    </div>
                                 </div>
-                            )}
 
-                            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                                <p className="text-sm text-green-800 flex items-center gap-2">
-                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                                    </svg>
-                                    Secure payment powered by Stripe
-                                </p>
+                                <div className="border-t border-gray-100"></div>
+
+                                {/* Stripe Form */}
+                                <div className="space-y-6">
+                                    {clientSecret ? (
+                                        <StripeProvider clientSecret={clientSecret} amount={paymentAmount}>
+                                            <CheckoutForm
+                                                bookingId={bookingId}
+                                                amount={paymentAmount}
+                                                onSuccess={handlePaymentSuccess}
+                                                layoutType="compact"
+                                            />
+                                        </StripeProvider>
+                                    ) : (
+                                        <div className="text-center py-8">
+                                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#EECFD1] mx-auto mb-3"></div>
+                                            <p className="text-sm text-gray-600">Loading payment form...</p>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                         </div>
                     </div>

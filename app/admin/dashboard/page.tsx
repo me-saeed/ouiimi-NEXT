@@ -4,14 +4,16 @@
  */
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import PageLayout from "@/components/layout/PageLayout";
-import { LayoutDashboard, Building2, Clock, History } from "lucide-react";
+import { LayoutDashboard, Building2, Clock, History, Landmark, CheckCircle, Info } from "lucide-react";
 import { AdminTabs } from "@/components/admin/AdminTabs";
 import { OverviewTab } from "@/components/admin/OverviewTab";
 import { BusinessesTab } from "@/components/admin/BusinessesTab";
 import { PaymentHistoryTab } from "@/components/admin/PaymentHistoryTab";
+import { Modal } from "@/components/ui/modal";
+import { Button } from "@/components/ui/button";
 import { AdminDashboardSkeleton } from "@/components/skeletons/AdminDashboardSkeleton";
 import { useToast } from "@/hooks/use-toast";
 import useSWR from "swr";
@@ -56,6 +58,9 @@ interface Business {
     accountNumber?: string;
     contactNumber?: string;
   };
+  category?: string;
+  subCategory?: string;
+  story?: string;
   createdAt: string;
 }
 
@@ -75,6 +80,8 @@ export default function AdminDashboardPage() {
   const { toast } = useToast();
   const { user, isAdmin, isLoading: authLoading } = useAuth();
   const [activeTab, setActiveTab] = useState<TabId>("overview");
+  const [releasingBooking, setReleasingBooking] = useState<Booking | null>(null);
+  const [isReleasing, setIsReleasing] = useState(false);
 
   // Auth check - replaced localStorage with useAuth
   useEffect(() => {
@@ -110,6 +117,40 @@ export default function AdminDashboardPage() {
     (url) => fetch(url).then(res => res.json()),
     { refreshInterval: 60000 }
   );
+
+  const businesses = businessesData?.data?.businesses || [];
+  const businessesLoading = !businessesData && !businessesError;
+  const pendingPayments = pendingPaymentsData?.data?.bookings || [];
+  const pendingPaymentsLoading = !pendingPaymentsData && !pendingError;
+  const paymentHistory = paymentHistoryData?.data?.bookings || [];
+  const paymentHistoryLoading = !paymentHistoryData && !historyError;
+
+  const stats = useMemo(() => {
+    if (!statsData?.data) {
+      return {
+        totalBusinesses: 0,
+        pendingApproval: 0,
+        pendingPayments: { count: 0, amount: 0 },
+        totalRevenue: 0,
+        totalFees: 0,
+        netAmount: 0,
+      };
+    }
+
+    const d = statsData.data;
+
+    return {
+      totalBusinesses: d.businesses?.total || 0,
+      pendingApproval: d.businesses?.pending || 0,
+      pendingPayments: {
+        count: d.bookings?.payoutPending?.count || 0,
+        amount: d.bookings?.payoutPending?.amount || 0,
+      },
+      totalRevenue: d.revenue?.total || 0,
+      totalFees: d.revenue?.fees || 0,
+      netAmount: d.revenue?.net || 0,
+    };
+  }, [statsData, pendingPaymentsData]);
 
   // Handlers
   const handleApproveBusiness = async (businessId: string) => {
@@ -157,10 +198,12 @@ export default function AdminDashboardPage() {
 
       if (response.ok) {
         toast({
-          title: "Business Rejected",
-          description: "The business has been rejected",
+          title: "Action Successful",
+          description: "Operation completed successfully",
         });
-        mutateBusinesses();
+        mutateBusinesses(); // Refresh businesses list
+        mutatePending(); // Refresh pending payments
+        mutateHistory(); // Refresh history
       } else {
         const data = await response.json();
         toast({
@@ -178,27 +221,32 @@ export default function AdminDashboardPage() {
     }
   };
 
-  const handleReleasePayment = async (bookingId: string) => {
+  const handleReleasePayment = async (booking: Booking) => {
+    setReleasingBooking(booking);
+  };
+
+  const confirmReleasePayment = async () => {
+    if (!releasingBooking) return;
+
+    setIsReleasing(true);
     try {
-      const response = await fetch(`/api/admin/bookings/${bookingId}/release-payment`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
+      const response = await fetch(`/api/admin/bookings/${releasingBooking.id}/release-payment`, {
+        method: "POST",
       });
 
       if (response.ok) {
         toast({
           title: "Payment Released",
-          description: "Payment has been released to the business",
+          description: `Successfully released payout for booking ${releasingBooking.id.slice(-6)}`,
         });
-        mutatePending(); // Refresh pending payments
-        mutateHistory(); // Refresh payment history
+        mutatePending();
+        mutateHistory();
+        setReleasingBooking(null);
       } else {
         const data = await response.json();
         toast({
           variant: "destructive",
-          title: "Error",
+          title: "Release Failed",
           description: data.error || "Failed to release payment",
         });
       }
@@ -206,8 +254,10 @@ export default function AdminDashboardPage() {
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to release payment",
+        description: "An unexpected error occurred",
       });
+    } finally {
+      setIsReleasing(false);
     }
   };
 
@@ -222,19 +272,19 @@ export default function AdminDashboardPage() {
       id: "businesses",
       label: "Businesses",
       icon: <Building2 className="w-4 h-4" />,
-      count: businessesData?.statistics?.pending || 0
+      count: businessesData?.data?.pagination?.total || businessesData?.data?.businesses?.length || 0
     },
     {
       id: "pending",
       label: "Pending Payments",
       icon: <Clock className="w-4 h-4" />,
-      count: pendingPaymentsData?.bookings?.length || 0
+      count: pendingPaymentsData?.data?.pagination?.total || pendingPaymentsData?.data?.bookings?.length || 0
     },
     {
       id: "history",
       label: "Payment History",
       icon: <History className="w-4 h-4" />,
-      count: paymentHistoryData?.bookings?.length || 0
+      count: paymentHistoryData?.data?.pagination?.total || paymentHistoryData?.data?.bookings?.length || 0
     },
   ];
 
@@ -256,13 +306,7 @@ export default function AdminDashboardPage() {
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {activeTab === "overview" && (
             <OverviewTab
-              stats={statsData?.stats || {
-                totalBusinesses: 0,
-                pendingApproval: 0,
-                pendingPayments: { count: 0, amount: 0 },
-                releasedThisMonth: 0,
-                platformFeesMonth: 0,
-              }}
+              stats={stats}
               isLoading={!statsData && !statsError}
               onViewNewBusinesses={() => setActiveTab("businesses")}
               onViewPendingPayments={() => setActiveTab("pending")}
@@ -271,36 +315,86 @@ export default function AdminDashboardPage() {
 
           {activeTab === "businesses" && (
             <BusinessesTab
-              businesses={businessesData?.businesses || []}
-              isLoading={!businessesData && !businessesError}
+              businesses={businesses}
+              isLoading={businessesLoading}
               onApprove={handleApproveBusiness}
               onReject={handleRejectBusiness}
-              onViewDetails={(business) => {
-                toast({
-                  title: "Business Details",
-                  description: `Viewing details for ${business.businessName}`,
-                });
-                // TODO: Implement details modal
-              }}
             />
           )}
 
           {activeTab === "pending" && (
             <PendingPaymentsView
-              bookings={pendingPaymentsData?.bookings || []}
-              isLoading={!pendingPaymentsData && !pendingError}
+              bookings={pendingPayments}
+              isLoading={pendingPaymentsLoading}
               onReleasePayment={handleReleasePayment}
             />
           )}
 
           {activeTab === "history" && (
             <PaymentHistoryTab
-              bookings={paymentHistoryData?.bookings || []}
+              bookings={paymentHistoryData?.data?.bookings || []}
               isLoading={!paymentHistoryData && !historyError}
             />
           )}
         </div>
       </div>
+
+      {/* Payment Release Confirmation Modal */}
+      <Modal
+        isOpen={!!releasingBooking}
+        onClose={() => !isReleasing && setReleasingBooking(null)}
+        title="Confirm Payment Release"
+      >
+        {releasingBooking && (
+          <div className="space-y-6">
+            <div className="bg-blue-50 p-4 rounded-xl flex items-start gap-3">
+              <Info className="w-5 h-5 text-blue-500 mt-0.5" />
+              <p className="text-sm text-blue-800">
+                This action will mark the funds as released to the business. Ensure you have processed the actual payout in your bank/Stripe dashboard first.
+              </p>
+            </div>
+
+            <div className="space-y-3">
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-500">Service Amount</span>
+                <span className="font-medium text-gray-900">${releasingBooking.totalCost.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-500">Deposit Paid (10%)</span>
+                <span className="font-medium text-green-600">${(releasingBooking.totalCost * 0.1).toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-500">Platform Fee</span>
+                <span className="font-medium text-red-500">-${(releasingBooking.platformFee || 1.99).toFixed(2)}</span>
+              </div>
+              <div className="pt-3 border-t flex justify-between">
+                <span className="font-bold text-gray-800">Net To Release</span>
+                <span className="font-bold text-xl text-[#EECFD1]">
+                  ${(releasingBooking.totalCost * 0.1 - (releasingBooking.platformFee || 1.99)).toFixed(2)}
+                </span>
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <Button
+                variant="outline"
+                className="flex-1 rounded-xl"
+                disabled={isReleasing}
+                onClick={() => setReleasingBooking(null)}
+              >
+                Cancel
+              </Button>
+              <Button
+                className="flex-1 rounded-xl bg-[#3A3A3A] hover:bg-[#2a2a2a] text-white"
+                disabled={isReleasing}
+                onClick={confirmReleasePayment}
+              >
+                {isReleasing ? "Releasing..." : "Confirm Release"}
+              </Button>
+            </div>
+          </div>
+        )}
+      </Modal>
     </PageLayout>
   );
 }
@@ -313,7 +407,7 @@ function PendingPaymentsView({
 }: {
   bookings: Booking[];
   isLoading: boolean;
-  onReleasePayment: (id: string) => void;
+  onReleasePayment: (booking: Booking) => void;
 }) {
   if (isLoading) {
     return <div className="text-center py-12">Loading pending payments...</div>;
@@ -348,7 +442,7 @@ function PendingPaymentsView({
             <PendingPaymentCard
               key={booking.id}
               booking={booking}
-              onRelease={() => onReleasePayment(booking.id)}
+              onRelease={() => onReleasePayment(booking)}
             />
           ))}
         </div>

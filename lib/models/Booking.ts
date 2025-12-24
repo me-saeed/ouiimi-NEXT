@@ -68,7 +68,7 @@ export interface IBooking extends Document {
   totalCost: number;                         // Full service cost
   depositAmount: number;                     // 10% deposit (paid online)
   remainingAmount: number;                   // Amount due at venue
-  status: "pending" | "confirmed" | "completed" | "cancelled" | "refunded";
+  status: "pre_payment" | "pending" | "confirmed" | "completed" | "cancelled" | "refunded";
   paymentStatus: "pending" | "deposit_paid" | "fully_paid" | "refunded";
   adminPaymentStatus?: "pending" | "released"; // For admin to release funds
   platformFee?: number;                      // ouiimi's fee ($1.99)
@@ -174,8 +174,8 @@ const bookingSchema = new Schema<IBooking>(
     // "refunded" → payment was refunded
     status: {
       type: String,
-      enum: ["pending", "confirmed", "completed", "cancelled", "refunded"],
-      default: "pending",
+      enum: ["pre_payment", "pending", "confirmed", "completed", "cancelled", "refunded"],
+      default: "pre_payment",
       index: true,  // Indexed for filtering by status
     },
 

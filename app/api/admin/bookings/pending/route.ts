@@ -33,7 +33,10 @@ async function getPendingBookingsHandler(req: NextRequest) {
 
   await dbConnect();
 
-  const bookings = await Booking.find({ status: "pending" })
+  const bookings = await Booking.find({
+    status: { $in: ["confirmed", "completed"] },
+    adminPaymentStatus: "pending"
+  })
     .populate("userId", "fname lname email")
     .populate("businessId", "businessName")
     .populate("serviceId", "serviceName")
@@ -42,7 +45,10 @@ async function getPendingBookingsHandler(req: NextRequest) {
     .skip(skip)
     .lean();
 
-  const total = await Booking.countDocuments({ status: "pending" });
+  const total = await Booking.countDocuments({
+    status: { $in: ["confirmed", "completed"] },
+    adminPaymentStatus: "pending"
+  });
 
   return successResponse({
     bookings: bookings.map((b: any) => ({

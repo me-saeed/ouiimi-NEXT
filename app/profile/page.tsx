@@ -168,29 +168,30 @@ export default function ShopperProfilePage() {
         const finished: Booking[] = [];
 
         allBookings.forEach((booking: Booking) => {
-          // Get booking date and set to end of day (11:59 PM)
-          const bookingDate = new Date(booking.timeSlot.date);
-          bookingDate.setHours(23, 59, 59, 999);
-          const isPast = now > bookingDate;
+          // UPCOMING: Only show CONFIRMED bookings (payment succeeded)
+          // Exclude pre_payment (not yet paid/abandoned carts)
+          if (booking.status === "confirmed") {
+            // Get booking date and set to end of day (11:59 PM)
+            const bookingDate = new Date(booking.timeSlot.date);
+            bookingDate.setHours(23, 59, 59, 999);
+            const isPast = now > bookingDate;
 
-          // Finished: Day has passed (after 11:59 PM), or explicitly finished/cancelled
-          if (isPast || booking.status === "cancelled" || booking.status === "completed" || booking.status === "refunded") {
+            // If past the booking date, move to finished
+            if (isPast) {
+              finished.push(booking);
+            } else {
+              // Future confirmed booking = upcoming
+              upcoming.push(booking);
+            }
+          }
+          // FINISHED: Cancelled, completed, refunded, or any other status
+          else if (booking.status === "cancelled" || booking.status === "completed" || booking.status === "refunded") {
             finished.push(booking);
           }
-          // Pending: Future + Waiting (status pending)
-          else if (booking.status === "pending") {
-            pending.push(booking);
-          }
-          // Upcoming: Future + Confirmed (stays here until 11:59 PM of booking date)
-          else {
-            upcoming.push(booking);
-          }
+          // Skip pre_payment and other statuses (don't show to user)
         });
 
-        // Create unified upcoming list including pending
-        const upcomingMerged = [...upcoming, ...pending];
-
-        // ✅ HARDENED SORTING: Use safe date parsing
+        // Helper function for sorting bookings by date/time
         const getSlotDateTime = (b: Booking) => {
           try {
             const datePart = b.timeSlot.date.split('T')[0];
@@ -200,10 +201,10 @@ export default function ShopperProfilePage() {
           }
         };
 
-        upcomingMerged.sort((a, b) => getSlotDateTime(a) - getSlotDateTime(b));
+        upcoming.sort((a, b) => getSlotDateTime(a) - getSlotDateTime(b));
         finished.sort((a, b) => getSlotDateTime(b) - getSlotDateTime(a));
 
-        setUpcomingBookings(upcomingMerged);
+        setUpcomingBookings(upcoming);
         setFinishedBookings(finished);
       } else {
         setError("Failed to load bookings");
@@ -626,7 +627,7 @@ export default function ShopperProfilePage() {
             </div>
           )}
 
-          
+
 
           {activeTab === "details" && (
             <div className="max-w-2xl mx-auto">

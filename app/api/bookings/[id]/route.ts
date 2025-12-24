@@ -25,7 +25,7 @@ import mongoose from "mongoose";
 export const dynamic = 'force-dynamic';
 
 const bookingUpdateSchema = z.object({
-  status: z.enum(["pending", "confirmed", "completed", "cancelled", "refunded"]).optional(),
+  status: z.enum(["pre_payment", "pending", "confirmed", "completed", "cancelled", "refunded"]).optional(),
   paymentStatus: z.enum(["pending", "deposit_paid", "fully_paid", "refunded"]).optional(),
   businessNotes: z.string().optional(),
   cancellationReason: z.string().optional(),

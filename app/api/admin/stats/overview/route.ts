@@ -37,7 +37,7 @@ async function getStatsHandler(req: NextRequest) {
         totalBookings,
         pendingBookings,
         confirmedBookings,
-        revenue
+        revenueData
     ] = await Promise.all([
         User.countDocuments(),
         Business.countDocuments(),
@@ -48,9 +48,35 @@ async function getStatsHandler(req: NextRequest) {
         Booking.countDocuments({ status: "confirmed" }),
         Booking.aggregate([
             { $match: { paymentStatus: { $in: ["deposit_paid", "fully_paid"] } } },
-            { $group: { _id: null, total: { $sum: "$totalCost" } } }
+            {
+                $group: {
+                    _id: null,
+                    totalRevenue: { $sum: "$totalCost" },
+                    totalDeposits: { $sum: "$depositAmount" },
+                    totalPlatformFees: { $sum: "$platformFee" },
+                    totalServiceAmounts: { $sum: "$serviceAmount" }
+                }
+            }
+        ]),
+        Booking.aggregate([
+            {
+                $match: {
+                    status: "completed",
+                    adminPaymentStatus: { $ne: "released" }
+                }
+            },
+            {
+                $group: {
+                    _id: null,
+                    amount: { $sum: { $subtract: ["$depositAmount", "$platformFee"] } },
+                    count: { $sum: 1 }
+                }
+            }
         ])
     ]);
+
+    const rev = revenueData[0] || { totalRevenue: 0, totalDeposits: 0, totalPlatformFees: 0, totalServiceAmounts: 0 };
+    const pendingPayout = pendingPayoutData[0] || { amount: 0, count: 0 };
 
     return successResponse({
         users: {
@@ -65,9 +91,13 @@ async function getStatsHandler(req: NextRequest) {
             total: totalBookings,
             pending: pendingBookings,
             confirmed: confirmedBookings,
+            payoutPending: pendingPayout,
         },
         revenue: {
-            total: revenue[0]?.total || 0,
+            total: rev.totalRevenue,
+            deposits: rev.totalDeposits,
+            fees: rev.totalPlatformFees,
+            net: rev.totalServiceAmounts,
         },
     });
 }

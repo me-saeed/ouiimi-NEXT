@@ -279,59 +279,70 @@ export function BusinessTabs({ business, services, staff }: BusinessTabsProps) {
                 )}
 
                 {activeTab === "staff" && (
-                    <div className="space-y-6">
-                        <h2 className="text-2xl font-semibold">Our Staff</h2>
-                        {staff.length === 0 ? (
-                            <div className="text-center py-12 card-polished">
-                                <p className="text-muted-foreground">No staff members listed yet.</p>
-                            </div>
-                        ) : (
-                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                                {staff.map((member) => (
-                                    <StaffCard
-                                        key={member.id || member._id}
-                                        id={member.id || member._id}
-                                        name={member.name}
-                                        photo={member.photo}
-                                        about={member.about}
-                                        onClick={() => setSelectedStaff(member)}
-                                    />
-                                ))}
-                            </div>
-                        )}
-
-                        {selectedStaff && (
-                            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                                <div className="bg-white rounded-lg max-w-md w-full p-6 relative">
-                                    <button
-                                        onClick={() => setSelectedStaff(null)}
-                                        className="absolute top-4 right-4 text-muted-foreground hover:text-foreground text-2xl"
-                                    >
-                                        ×
-                                    </button>
-                                    <div className="text-center space-y-4">
-                                        {selectedStaff.photo ? (
-                                            // eslint-disable-next-line @next/next/no-img-element
-                                            <img
-                                                src={selectedStaff.photo}
-                                                alt={selectedStaff.name}
-                                                className="w-32 h-32 rounded-full object-cover mx-auto"
-                                            />
-                                        ) : (
-                                            <div className="w-32 h-32 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
-                                                <span className="text-4xl font-bold text-primary">
-                                                    {selectedStaff.name.charAt(0)}
-                                                </span>
+                    <div className="max-w-4xl mx-auto">
+                        <div className="flex flex-col md:flex-row gap-12 items-start">
+                            {/* Staff List Selection */}
+                            <div className="w-full md:w-64 space-y-6">
+                                {staff.length === 0 ? (
+                                    <p className="text-muted-foreground">No staff listed yet.</p>
+                                ) : (
+                                    staff.map((member) => (
+                                        <button
+                                            key={member.id || member._id}
+                                            onClick={() => setSelectedStaff(member)}
+                                            className={`flex items-center gap-6 w-full group transition-all p-2 rounded-2xl hover:bg-gray-50 ${selectedStaff?.id === (member.id || member._id) ? "bg-gray-50" : ""}`}
+                                        >
+                                            <div className="w-16 h-16 rounded-full border border-gray-100 overflow-hidden flex-shrink-0 bg-white">
+                                                {member.photo ? (
+                                                    <img src={member.photo} alt={member.name} className="w-full h-full object-cover" />
+                                                ) : (
+                                                    <div className="w-full h-full bg-gray-50 flex items-center justify-center text-xl font-bold text-[#EECFD1]">
+                                                        {member.name.charAt(0)}
+                                                    </div>
+                                                )}
                                             </div>
-                                        )}
-                                        <h3 className="text-2xl font-semibold">{selectedStaff.name}</h3>
-                                        {selectedStaff.about && (
-                                            <p className="text-muted-foreground">{selectedStaff.about}</p>
-                                        )}
-                                    </div>
-                                </div>
+                                            <span className="text-xl font-medium text-gray-700 tracking-wide">{member.name}</span>
+                                        </button>
+                                    ))
+                                )}
                             </div>
-                        )}
+
+                            {/* Staff Detail Popup (Design Card) */}
+                            <div className="flex-1 w-full min-h-[400px] flex items-center justify-center">
+                                {selectedStaff ? (
+                                    <div className="w-full max-w-[450px] bg-white rounded-[40px] border border-gray-200 p-10 shadow-sm relative animate-in fade-in slide-in-from-bottom-4 duration-300">
+                                        <button
+                                            onClick={() => setSelectedStaff(null)}
+                                            className="absolute top-6 right-8 text-gray-400 hover:text-gray-600 text-2xl"
+                                        >
+                                            ×
+                                        </button>
+                                        <div className="flex flex-col items-center">
+                                            <div className="w-24 h-24 rounded-full border border-gray-100 overflow-hidden mb-4 bg-white shadow-sm">
+                                                {selectedStaff.photo ? (
+                                                    <img src={selectedStaff.photo} alt={selectedStaff.name} className="w-full h-full object-cover" />
+                                                ) : (
+                                                    <div className="w-full h-full bg-gray-50 flex items-center justify-center text-3xl font-bold text-[#EECFD1]">
+                                                        {selectedStaff.name.charAt(0)}
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <h3 className="text-2xl font-medium text-gray-700 mb-6">{selectedStaff.name}</h3>
+
+                                            <div className="w-full bg-[#FDFCFD] rounded-[30px] border border-gray-100 p-8 min-h-[200px] flex items-center justify-center text-center">
+                                                <p className="text-lg text-gray-600 leading-relaxed max-w-[300px]">
+                                                    {selectedStaff.about || "when a shopper clicks on a staff member's name, they can get a pop-up to learn more about the staff member, also have their picture"}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="text-center text-gray-400 py-12">
+                                        <p className="text-lg">Select a staff member to view details</p>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
                     </div>
                 )}
             </div>

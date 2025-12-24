@@ -138,8 +138,9 @@ export function BookingsTab({ business }: BookingsTabProps) {
         if (activeSubTab === "up-coming") {
           filteredBookings = filteredBookings.filter((b: Booking) => {
             try {
-              // Show both confirmed AND pending bookings (pending = awaiting payment)
-              if (b.status !== "confirmed" && b.status !== "pending") {
+              // UPCOMING: Only show CONFIRMED bookings (payment succeeded)
+              // Exclude pre_payment (not yet paid) and pending (old status)
+              if (b.status !== "confirmed") {
                 return false;
               }
 
@@ -151,43 +152,6 @@ export function BookingsTab({ business }: BookingsTabProps) {
                 return false;
               }
 
-              // Get the date string in local format
-              const dateStr = formatDateLocal(b.timeSlot.date);
-
-              // Combine date with endTime (handle time format - might be HH:MM or HH:MM:SS)
-              const endTime = (b.timeSlot.endTime || '').trim();
-              if (!endTime) {
-                return false;
-              }
-
-              // Ensure time is in HH:MM format
-              const timeParts = endTime.split(':');
-              const formattedTime = `${timeParts[0].padStart(2, '0')}:${timeParts[1] || '00'}`;
-
-              // Create datetime string in local timezone and parse it
-              // Use the date from the booking and combine with time
-              const bookingDateTimeStr = `${dateStr}T${formattedTime}`;
-
-              // If the date string doesn't include timezone, it's interpreted as local time
-              // We need to compare in the same timezone context
-              // Get the date components in local timezone
-              const localYear = bookingDate.getFullYear();
-              const localMonth = bookingDate.getMonth();
-              const localDay = bookingDate.getDate();
-              const [hours, minutes] = formattedTime.split(':').map(Number);
-
-              // Create date in local timezone
-              const localBookingDateTime = new Date(localYear, localMonth, localDay, hours, minutes);
-
-              // Check if datetime is valid
-              if (isNaN(localBookingDateTime.getTime())) {
-                return false;
-              }
-
-              // Show future bookings (from today onwards)
-              // Logic: Upcoming = Date is Today or Future
-              // Pending = Date is Yesterday or Older (passed 11:59pm of that day)
-
               // We compare dates at midnight to include "today" in upcoming
               const todayMidnight = new Date();
               todayMidnight.setHours(0, 0, 0, 0);
@@ -195,7 +159,7 @@ export function BookingsTab({ business }: BookingsTabProps) {
               const bookingMidnight = new Date(bookingDate);
               bookingMidnight.setHours(0, 0, 0, 0);
 
-              // Upcoming includes today
+              // Upcoming = today or future dates
               return bookingMidnight.getTime() >= todayMidnight.getTime();
             } catch (error) {
               console.error('Error filtering booking:', error, b);
@@ -203,50 +167,10 @@ export function BookingsTab({ business }: BookingsTabProps) {
             }
           });
         } else if (activeSubTab === "pending") {
+          // PENDING: Confirmed or Completed bookings where admin hasn't released payment
           filteredBookings = filteredBookings.filter((b: Booking) => {
-            try {
-              // Handle date format - could be Date object, ISO string, or date string
-              let bookingDate: Date;
-              const dateValue = b.timeSlot.date as any;
-              if (dateValue && typeof dateValue === 'object' && dateValue instanceof Date) {
-                bookingDate = dateValue;
-              } else if (typeof dateValue === 'string') {
-                bookingDate = new Date(dateValue);
-              } else {
-                return false;
-              }
-
-              if (isNaN(bookingDate.getTime())) {
-                return false;
-              }
-
-              // Extract date part only (YYYY-MM-DD)
-              const dateStr = bookingDate.toISOString().split('T')[0];
-
-              // Combine date with endTime
-              const endTime = b.timeSlot.endTime || '';
-              const bookingDateTime = new Date(`${dateStr}T${endTime}`);
-
-              if (isNaN(bookingDateTime.getTime())) {
-                return false;
-              }
-
-              // Past bookings where admin payment is still pending
-              // Logic: Pending = Date is Yesterday or Older (passed 11:59pm of that day)
-
-              const todayMidnight = new Date();
-              todayMidnight.setHours(0, 0, 0, 0);
-
-              const bookingMidnight = new Date(bookingDate);
-              bookingMidnight.setHours(0, 0, 0, 0);
-
-              return bookingMidnight.getTime() < todayMidnight.getTime() &&
-                b.status === "confirmed" &&
-                (b.adminPaymentStatus === "pending" || !b.adminPaymentStatus);
-            } catch (error) {
-              console.error('Error filtering booking:', error, b);
-              return false;
-            }
+            return (b.status === "confirmed" || b.status === "completed") &&
+              (b.adminPaymentStatus === "pending" || !b.adminPaymentStatus);
           });
         } else if (activeSubTab === "finished") {
           filteredBookings = filteredBookings.filter((b: Booking) =>

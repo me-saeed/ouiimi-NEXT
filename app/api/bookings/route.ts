@@ -112,7 +112,7 @@ async function createBookingHandler(req: NextRequest) {
   // ==========================================================================
   const expiryTime = new Date(Date.now() - 15 * 60 * 1000);
   await Booking.updateMany(
-    { status: "pending", createdAt: { $lt: expiryTime } },
+    { status: { $in: ["pre_payment", "pending"] }, createdAt: { $lt: expiryTime } },
     { $set: { status: "cancelled", cancellationReason: "Pre-payment hold expired" } }
   );
 
@@ -127,7 +127,7 @@ async function createBookingHandler(req: NextRequest) {
 
     const conflictingBookings = await Booking.find({
       staffId: staffId,
-      status: { $in: ["pending", "confirmed"] },
+      status: { $in: ["confirmed", "completed"] },
       "timeSlot.date": {
         $gte: bookingDayStart,
         $lte: bookingDayEnd,
@@ -220,7 +220,7 @@ async function createBookingHandler(req: NextRequest) {
     remainingAmount: Math.round(calculatedTotalCost * 0.9 * 100) / 100,
     platformFee: PLATFORM_FEE,
     serviceAmount: calculatedTotalCost - PLATFORM_FEE,
-    status: "pending",
+    status: "pre_payment",
     paymentStatus: "pending",
     adminPaymentStatus: "pending",
   };
@@ -301,6 +301,9 @@ async function getBookingsHandler(req: NextRequest) {
     } else {
       query.status = status;
     }
+  } else {
+    // Default: Hide pre-payment bookings from generic lists
+    query.status = { $ne: "pre_payment" };
   }
 
   if (staffId) {
@@ -321,7 +324,7 @@ async function getBookingsHandler(req: NextRequest) {
   const expiryTime = new Date(Date.now() - 15 * 60 * 1000);
   await Booking.updateMany(
     {
-      status: "pending",
+      status: { $in: ["pre_payment", "pending"] },
       createdAt: { $lt: expiryTime }
     },
     {

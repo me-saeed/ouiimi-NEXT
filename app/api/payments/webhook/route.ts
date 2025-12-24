@@ -101,7 +101,7 @@ export async function POST(request: NextRequest) {
                         // Slot was taken during payment process. 
                         // We mark as failure, business will need to handle.
                         booking.paymentStatus = "deposit_paid"; // Money was still paid
-                        booking.status = "pending"; // But slot not reserved
+                        booking.status = "pre_payment"; // Slot not reserved, keep it in pre_payment or mark for manual review
                         booking.businessNotes = `PAYMENT SUCCESS via webhook but Slot was already taken. Error: ${error.message}`;
                         await booking.save();
                     }
@@ -172,7 +172,7 @@ export async function POST(request: NextRequest) {
                 });
 
                 if (failedBooking) {
-                    // Keep status as pending, customer can retry
+                    // Keep status as pre_payment, customer can retry
                     console.log(`⚠️  Payment failed for booking ${failedBooking._id}`);
                 }
                 break;
