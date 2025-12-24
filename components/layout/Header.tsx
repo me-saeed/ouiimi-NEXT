@@ -67,7 +67,7 @@ export default function Header({ user: userProp }: HeaderProps) {
   const sidebarLinks = [
     { href: "/about", label: "About" },
     { href: "/profile", label: "Shopper" },
-    { href: user ? "/business/dashboard" : "/business/register", label: "Small Business" },
+    { href: "/business/register", label: "Small Business" },
     { href: "/admin/dashboard", label: "Admin" },
     { href: "/how-it-works", label: "How it works" },
   ];

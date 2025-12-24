@@ -208,6 +208,51 @@ export default function BusinessDashboardPage() {
                     </div>
                 </div>
 
+
+                {/* Business Approval Status Banner */}
+                {business && business.status !== 'approved' && (
+                    <div className="bg-white border-b border-gray-100 py-6">
+                        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+                            <div className={`rounded-xl border-2 p-6 ${business.status === 'pending' ? 'border-amber-300 bg-amber-50' :
+                                    business.status === 'rejected' ? 'border-red-300 bg-red-50' :
+                                        'border-gray-300 bg-gray-50'
+                                }`}>
+                                <div className="flex items-start gap-4">
+                                    <div className="text-4xl">
+                                        {business.status === 'pending' && '⏳'}
+                                        {business.status === 'rejected' && '❌'}
+                                        {business.status === 'suspended' && '🚫'}
+                                    </div>
+                                    <div className="flex-1">
+                                        <h3 className={`text-lg font-bold mb-2 ${business.status === 'pending' ? 'text-amber-800' :
+                                                business.status === 'rejected' ? 'text-red-800' :
+                                                    'text-gray-800'
+                                            }`}>
+                                            {business.status === 'pending' && 'Business Account Pending Approval'}
+                                            {business.status === 'rejected' && 'Business Account Rejected'}
+                                            {business.status === 'suspended' && 'Business Account Suspended'}
+                                        </h3>
+                                        <p className={`text-sm ${business.status === 'pending' ? 'text-amber-700' :
+                                                business.status === 'rejected' ? 'text-red-700' :
+                                                    'text-gray-700'
+                                            }`}>
+                                            {business.status === 'pending' &&
+                                                'Your business account is currently under review by our admin team. You can view your dashboard and manage bookings, but you cannot create new services until your account is approved. You will receive an email once your account is approved.'
+                                            }
+                                            {business.status === 'rejected' &&
+                                                `Your business account has been rejected. ${business.adminNotes ? `Reason: ${business.adminNotes}` : 'Please contact support for more information.'}`
+                                            }
+                                            {business.status === 'suspended' &&
+                                                `Your business account has been suspended. ${business.adminNotes ? `Reason: ${business.adminNotes}` : 'Please contact support for more information.'}`
+                                            }
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
                 {/* Main Navigation Tabs */}
                 <div className="bg-white border-b border-border/50 sticky top-16 z-10 shadow-sm">
                     <div className="container mx-auto px-4 sm:px-6 lg:px-8">

@@ -12,6 +12,8 @@ import Business from "@/lib/models/Business";
 import { authenticateAdmin } from "@/lib/api-auth";
 import { applyRateLimit } from "@/lib/rate-limit";
 import { APIError, asyncHandler, successResponse } from "@/lib/api-response";
+import { EmailService } from "@/lib/email-service";
+import { User } from "@/lib/models";
 
 export const dynamic = 'force-dynamic';
 
@@ -39,6 +41,17 @@ async function approveBusinessHandler(
 
     business.status = "approved";
     await business.save();
+
+    // Send approval email
+    try {
+        const businessWithUser = await Business.findById(params.id).populate('userId', 'fname lname email');
+        if (businessWithUser && businessWithUser.userId) {
+            await EmailService.sendBusinessApproved(businessWithUser, businessWithUser.userId);
+        }
+    } catch (emailError) {
+        console.error('[ADMIN] Failed to send approval email:', emailError);
+        // Don't fail the request if email fails
+    }
 
     console.log(`[ADMIN] Business ${params.id} approved by ${adminSession.email}`);
 

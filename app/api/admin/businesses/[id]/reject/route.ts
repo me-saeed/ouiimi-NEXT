@@ -12,6 +12,7 @@ import Business from "@/lib/models/Business";
 import { authenticateAdmin } from "@/lib/api-auth";
 import { applyRateLimit } from "@/lib/rate-limit";
 import { APIError, asyncHandler, successResponse } from "@/lib/api-response";
+import { EmailService } from "@/lib/email-service";
 
 export const dynamic = 'force-dynamic';
 
@@ -45,6 +46,17 @@ async function rejectBusinessHandler(
     business.status = "rejected";
     business.adminNotes = reason; // Store rejection reason
     await business.save();
+
+    // Send rejection email
+    try {
+        const businessWithUser = await Business.findById(params.id).populate('userId', 'fname lname email');
+        if (businessWithUser && businessWithUser.userId) {
+            await EmailService.sendBusinessRejected(businessWithUser, businessWithUser.userId, reason);
+        }
+    } catch (emailError) {
+        console.error('[ADMIN] Failed to send rejection email:', emailError);
+        // Don't fail the request if email fails
+    }
 
     console.log(`[ADMIN] Business ${params.id} REJECTED by ${adminSession.email}. Reason: ${reason}`);
 

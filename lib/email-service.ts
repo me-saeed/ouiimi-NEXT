@@ -224,6 +224,81 @@ export class EmailService {
     }
 
     /**
+     * Send business approval notification
+     */
+    static async sendBusinessApproved(business: any, owner: any) {
+        try {
+            const variables = {
+                ownerName: `${owner.fname} ${owner.lname}`,
+                businessName: business.businessName,
+                dashboardUrl: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://ouiimi.com.au'}/business/dashboard`,
+                createServiceUrl: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://ouiimi.com.au'}/business/services/create`
+            };
+
+            await this.sendEmail({
+                to: business.email,
+                toName: business.businessName,
+                subject: `🎉 Your Ouiimi Business Account Has Been Approved!`,
+                variables
+            });
+
+            console.log(`✅ Business approval email sent to: ${business.email}`);
+        } catch (error) {
+            console.error('❌ Failed to send business approval email:', error);
+        }
+    }
+
+    /**
+     * Send business rejection notification
+     */
+    static async sendBusinessRejected(business: any, owner: any, reason: string) {
+        try {
+            const variables = {
+                ownerName: `${owner.fname} ${owner.lname}`,
+                businessName: business.businessName,
+                rejectionReason: reason || 'Not specified',
+                supportEmail: process.env.MAILJET_FROM_EMAIL || 'support@ouiimi.com.au'
+            };
+
+            await this.sendEmail({
+                to: business.email,
+                toName: business.businessName,
+                subject: `Business Application Update - ${business.businessName}`,
+                variables
+            });
+
+            console.log(`✅ Business rejection email sent to: ${business.email}`);
+        } catch (error) {
+            console.error('❌ Failed to send business rejection email:', error);
+        }
+    }
+
+    /**
+     * Send business suspension notification
+     */
+    static async sendBusinessSuspended(business: any, owner: any, reason: string) {
+        try {
+            const variables = {
+                ownerName: `${owner.fname} ${owner.lname}`,
+                businessName: business.businessName,
+                suspensionReason: reason || 'Not specified',
+                supportEmail: process.env.MAILJET_FROM_EMAIL || 'support@ouiimi.com.au'
+            };
+
+            await this.sendEmail({
+                to: business.email,
+                toName: business.businessName,
+                subject: `Business Account Suspended - ${business.businessName}`,
+                variables
+            });
+
+            console.log(`✅ Business suspension email sent to: ${business.email}`);
+        } catch (error) {
+            console.error('❌ Failed to send business suspension email:', error);
+        }
+    }
+
+    /**
      * Generic email sender - uses Mailjet or falls back to simple email
      */
     private static async sendEmail(params: EmailParams) {

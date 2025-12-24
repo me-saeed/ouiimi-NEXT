@@ -12,6 +12,8 @@ import { AddressAutocomplete } from "@/components/ui/address-autocomplete";
 import { signIn } from "next-auth/react";
 import PageLayout from "@/components/layout/PageLayout";
 import { Eye, EyeOff } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { showEmailToast } from "@/lib/utils/email-toast";
 
 export default function SignupPage() {
   const router = useRouter();
@@ -21,6 +23,7 @@ export default function SignupPage() {
   const [success, setSuccess] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const { toast } = useToast();
 
   const {
     register,
@@ -81,6 +84,9 @@ export default function SignupPage() {
       }
 
       setSuccess("Account created! Please check your email to verify your account.");
+
+      // Show email toast notification
+      showEmailToast("verification", data.email);
 
       // Session is set by API via HttpOnly cookie - no need to store token locally
       // User will be auto-logged in after email verification

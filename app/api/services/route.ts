@@ -44,9 +44,16 @@ async function createServiceHandler(req: NextRequest) {
       throw new APIError(403, "You can only add services to your own business", "FORBIDDEN");
     }
 
-    // Prevent adding services to rejected businesses
-    if (business.status === "rejected") {
-      throw new APIError(403, "Cannot add services to a rejected business", "BUSINESS_REJECTED");
+    // Check business approval status - only approved businesses can create services
+    if (business.status !== "approved") {
+      const statusMessages = {
+        pending: "Your business account is pending admin approval. You cannot create services until your account is approved.",
+        rejected: "Cannot add services to a rejected business. Please contact support.",
+        suspended: "Your business account has been suspended. You cannot create services at this time."
+      };
+
+      const message = statusMessages[business.status as keyof typeof statusMessages] || "Business must be approved to create services";
+      throw new APIError(403, message, "BUSINESS_NOT_APPROVED");
     }
 
     // Calculate duration helper function

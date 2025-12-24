@@ -7,11 +7,14 @@ import { forgotPasswordSchema, type ForgotPasswordInput } from "@/lib/validation
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import PageLayout from "@/components/layout/PageLayout";
 import Link from "next/link";
+import { useToast } from "@/hooks/use-toast";
+import { showEmailToast } from "@/lib/utils/email-toast";
 
 export default function ForgetPasswordPage() {
   const [error, setError] = useState<string>("");
   const [success, setSuccess] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
+  const { toast } = useToast();
 
   const {
     register,
@@ -47,6 +50,10 @@ export default function ForgetPasswordPage() {
         result.message ||
         "If an account with that email exists, a password reset link has been sent."
       );
+
+      // Show email toast notification
+      showEmailToast("reset", data.email);
+
       setIsLoading(false);
     } catch (err: any) {
       setError("Something went wrong. Please try again.");

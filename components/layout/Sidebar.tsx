@@ -15,7 +15,7 @@ export default function Sidebar({ isOpen, onClose, user }: SidebarProps) {
   const links = [
     { href: "/about", label: "About" },
     { href: "/shopper", label: "Shopper" },
-    { href: user ? "/business/dashboard" : "/business/register", label: "Small Business" },
+    { href: "/business/register", label: "Small Business" },
     { href: "/how-it-works", label: "How it works" },
   ];
 
@@ -70,8 +70,8 @@ export default function Sidebar({ isOpen, onClose, user }: SidebarProps) {
                       href={link.href}
                       onClick={onClose}
                       className={`block px-4 py-3 rounded-md transition-colors ${isActive
-                          ? "bg-[#EECFD1] text-[#3A3A3A] font-medium"
-                          : "text-[#3A3A3A] hover:bg-gray-100"
+                        ? "bg-[#EECFD1] text-[#3A3A3A] font-medium"
+                        : "text-[#3A3A3A] hover:bg-gray-100"
                         }`}
                     >
                       {link.label}
