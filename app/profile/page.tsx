@@ -152,8 +152,15 @@ export default function ShopperProfilePage() {
       });
 
       if (response.ok) {
-        const data = await response.json();
-        const allBookings = data.bookings || [];
+        const result = await response.json();
+        // Standardized API response puts data in 'data' field
+        let allBookings = result.data?.bookings || result.bookings || [];
+
+        // ✅ NORMALIZE: Ensure every booking has an 'id' property
+        allBookings = allBookings.map((b: any) => ({
+          ...b,
+          id: b.id || b._id?.toString()
+        }));
 
         const now = new Date();
         const upcoming: Booking[] = [];
@@ -166,9 +173,8 @@ export default function ShopperProfilePage() {
           bookingDate.setHours(23, 59, 59, 999);
           const isPast = now > bookingDate;
 
-          // Finished: Day has passed (after 11:59 PM), or explicitly finished/cancelled/paid
-          // User Request: Bookings stay in "Upcoming" until end of day (11:59 PM) of booking date
-          if (isPast || booking.status === "cancelled" || booking.status === "completed") {
+          // Finished: Day has passed (after 11:59 PM), or explicitly finished/cancelled
+          if (isPast || booking.status === "cancelled" || booking.status === "completed" || booking.status === "refunded") {
             finished.push(booking);
           }
           // Pending: Future + Waiting (status pending)
@@ -184,19 +190,18 @@ export default function ShopperProfilePage() {
         // Create unified upcoming list including pending
         const upcomingMerged = [...upcoming, ...pending];
 
-        // Sort all upcoming/pending by appointment date/time ascending
-        upcomingMerged.sort((a, b) => {
-          const dateA = new Date(`${a.timeSlot.date.split('T')[0]}T${a.timeSlot.startTime}`);
-          const dateB = new Date(`${b.timeSlot.date.split('T')[0]}T${b.timeSlot.startTime}`);
-          return dateA.getTime() - dateB.getTime();
-        });
+        // ✅ HARDENED SORTING: Use safe date parsing
+        const getSlotDateTime = (b: Booking) => {
+          try {
+            const datePart = b.timeSlot.date.split('T')[0];
+            return new Date(`${datePart}T${b.timeSlot.startTime}`).getTime();
+          } catch (e) {
+            return new Date(b.timeSlot.date).getTime();
+          }
+        };
 
-        // Sort finished by appointment date/time descending (most recent first)
-        finished.sort((a, b) => {
-          const dateA = new Date(`${a.timeSlot.date.split('T')[0]}T${a.timeSlot.startTime}`);
-          const dateB = new Date(`${b.timeSlot.date.split('T')[0]}T${b.timeSlot.startTime}`);
-          return dateB.getTime() - dateA.getTime();
-        });
+        upcomingMerged.sort((a, b) => getSlotDateTime(a) - getSlotDateTime(b));
+        finished.sort((a, b) => getSlotDateTime(b) - getSlotDateTime(a));
 
         setUpcomingBookings(upcomingMerged);
         setFinishedBookings(finished);
@@ -567,6 +572,7 @@ export default function ShopperProfilePage() {
                                   onContact={() => setShowContact(true)}
                                   showContact={showContact}
                                   onCloseContact={() => setShowContact(false)}
+                                  isFinished={activeTab === "finished"}
                                 />
                               )}
                             </div>
@@ -612,6 +618,7 @@ export default function ShopperProfilePage() {
                       onContact={() => setShowContact(true)}
                       showContact={showContact}
                       onCloseContact={() => setShowContact(false)}
+                      isFinished={activeTab === "finished"}
                     />
                   )}
                 </div>
@@ -619,89 +626,6 @@ export default function ShopperProfilePage() {
             </div>
           )}
 
-          {activeTab === "finished" && (
-            <div className="space-y-6">
-              {isLoading ? (
-                <div className="text-center py-12">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-                </div>
-              ) : finishedBookings.length === 0 ? (
-                <div className="text-center py-12 card-polished">
-                  <p className="text-muted-foreground">No finished bookings found.</p>
-                </div>
-              ) : isMobile ? (
-                // Mobile: Single column with expandable details under each card
-                <div className="space-y-3">
-                  {groupBookingsByCategory(finishedBookings).map(([category, categoryBookings]) => (
-                    <div key={category} className="mb-6">
-                      {/* Category Header */}
-                      <h3 className="text-lg font-semibold text-[#4A4A4A] mb-3">{category}</h3>
-                      <div className="space-y-2">
-                        {categoryBookings.map((booking) => {
-                          const cardData = formatBookingForServiceCard(booking);
-                          const isExpanded = expandedCardId === booking.id;
-                          return (
-                            <div key={booking.id} className="space-y-3">
-                              <div
-                                onClick={() => {
-                                  if (isExpanded) {
-                                    setExpandedCardId(null);
-                                  } else {
-                                    setExpandedCardId(booking.id);
-                                  }
-                                }}
-                                className="cursor-pointer [&_a]:pointer-events-none"
-                              >
-                                <ServiceCard {...cardData} />
-                              </div>
-                              {isExpanded && (
-                                <FinishedBookingDetailView
-                                  booking={booking}
-                                  onRebook={() => handleRebook(booking)}
-                                />
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                // Desktop: Two-column grid with side panel
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  <div className="space-y-4">
-                    {groupBookingsByCategory(finishedBookings).map(([category, categoryBookings]) => (
-                      <div key={category} className="mb-4">
-                        {/* Category Header */}
-                        <h3 className="text-lg font-semibold text-[#4A4A4A] mb-3">{category}</h3>
-                        <div className="space-y-3">
-                          {categoryBookings.map((booking) => {
-                            const cardData = formatBookingForServiceCard(booking);
-                            return (
-                              <div
-                                key={booking.id}
-                                onClick={() => setSelectedBooking(booking)}
-                                className="cursor-pointer [&_a]:pointer-events-none"
-                              >
-                                <ServiceCard {...cardData} />
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-
-                  {selectedBooking && (
-                    <FinishedBookingDetailView
-                      booking={selectedBooking}
-                      onRebook={() => handleRebook(selectedBooking)}
-                    />
-                  )}
-                </div>
-              )}
-            </div>
           )}
 
           {activeTab === "details" && (

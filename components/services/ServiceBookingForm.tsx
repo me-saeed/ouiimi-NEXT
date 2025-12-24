@@ -44,6 +44,13 @@ export function ServiceBookingForm({ service, business }: BookingFormProps) {
             const dateStrings: string[] = service.timeSlots
                 .filter((slot: any) => {
                     if (!slot || slot.isBooked) return false;
+
+                    // ✅ Point 1: If no available staff, consider slot blocked/hidden
+                    if (slot.staffIds && slot.staffIds.length > 0) {
+                        const hasAvailableStaff = slot.staffIds.some((s: any) => !s.isBooked);
+                        if (!hasAvailableStaff) return false;
+                    }
+
                     try {
                         const slotDate = parseLocalDate(slot.date);
                         if (isNaN(slotDate.getTime())) return false;
@@ -80,6 +87,12 @@ export function ServiceBookingForm({ service, business }: BookingFormProps) {
                 const slotDateTime = new Date(slot.date);
                 const [hours, minutes] = slot.startTime.split(':').map(Number);
                 slotDateTime.setHours(hours, minutes, 0, 0);
+
+                // ✅ Point 1: Filter out slots with no available staff
+                if (slot.staffIds && slot.staffIds.length > 0) {
+                    const hasAvailableStaff = slot.staffIds.some((s: any) => !s.isBooked);
+                    if (!hasAvailableStaff) return false;
+                }
 
                 return slotDateTime > now;
             } catch (e) {

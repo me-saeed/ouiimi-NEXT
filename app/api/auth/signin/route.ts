@@ -107,10 +107,15 @@ async function signinHandler(req: NextRequest) {
   // ==========================================================================
   // STEP 7: Create server-side session (HttpOnly cookie)
   // ==========================================================================
+  // Determine best role (prioritize admin > business > user)
+  let userRole = 'user';
+  if (user.Roles?.includes('admin')) userRole = 'admin';
+  else if (user.Roles?.includes('business')) userRole = 'business';
+
   const sessionToken = await createSession({
     userId: String(user._id),
     email: user.email,
-    role: (user.Roles?.[0] || 'user').toLowerCase(),
+    role: userRole,
     fname: user.fname,
     lname: user.lname,
   });

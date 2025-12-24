@@ -120,7 +120,7 @@ async function signupHandler(req: NextRequest) {
       : undefined,
     contactNo: validatedData.contactNo || null,
     counterId,
-    verify: "yes", // Auto-verify for now
+    verify: "no", // Verification required
     verificationToken,
     verificationTokenExpiry,
   });
