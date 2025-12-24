@@ -15,6 +15,7 @@ import { PaymentHistoryTab } from "@/components/admin/PaymentHistoryTab";
 import { AdminDashboardSkeleton } from "@/components/skeletons/AdminDashboardSkeleton";
 import { useToast } from "@/hooks/use-toast";
 import useSWR from "swr";
+import { useAuth } from "@/lib/contexts/AuthContext";
 
 // Existing booking interface
 interface Booking {
@@ -72,59 +73,42 @@ const fetcher = (url: string, token: string) =>
 export default function AdminDashboardPage() {
   const router = useRouter();
   const { toast } = useToast();
-  const [user, setUser] = useState<any>(null);
+  const { user, isAdmin, isLoading: authLoading } = useAuth();
   const [activeTab, setActiveTab] = useState<TabId>("overview");
-  const [token, setToken] = useState<string>("");
 
-  // Auth check
+  // Auth check - replaced localStorage with useAuth
   useEffect(() => {
-    const storedToken = localStorage.getItem("token");
-    const userData = localStorage.getItem("user");
-
-    if (storedToken && userData) {
-      try {
-        const parsedUser = JSON.parse(userData);
-
-        if (!parsedUser.roles?.includes('admin')) {
-          console.error("Access denied: User is not an admin");
-          router.push('/?error=access_denied');
-          return;
-        }
-
-        setUser(parsedUser);
-        setToken(storedToken);
-      } catch (e) {
-        console.error("Error parsing user data:", e);
-        router.push("/signin?redirect=/admin/dashboard");
-      }
-    } else {
-      router.push("/signin?redirect=/admin/dashboard");
+    if (!authLoading && !user) {
+      router.replace("/signin?redirect=/admin/dashboard");
+    } else if (!authLoading && user && !isAdmin) {
+      console.error("Access denied: User is not an admin");
+      router.replace('/?error=access_denied');
     }
-  }, [router]);
+  }, [user, isAdmin, authLoading, router]);
 
-  // SWR hooks for auto-refresh data
+  // SWR hooks for auto-refresh data - no more token needed in headers
   const { data: statsData, error: statsError } = useSWR(
-    token ? ["/api/admin/stats/overview", token] : null,
-    ([url, token]) => fetcher(url, token),
-    { refreshInterval: 30000 } // Refresh every 30 seconds
+    user && isAdmin ? "/api/admin/stats/overview" : null,
+    (url) => fetch(url).then(res => res.json()),
+    { refreshInterval: 30000 }
   );
 
   const { data: businessesData, error: businessesError, mutate: mutateBusinesses } = useSWR(
-    token ? ["/api/admin/businesses", token] : null,
-    ([url, token]) => fetcher(url, token),
+    user && isAdmin ? "/api/admin/businesses" : null,
+    (url) => fetch(url).then(res => res.json()),
     { refreshInterval: 60000 }
   );
 
   const { data: pendingPaymentsData, error: pendingError, mutate: mutatePending } = useSWR(
-    token ? ["/api/admin/bookings/pending", token] : null,
-    ([url, token]) => fetcher(url, token),
+    user && isAdmin ? "/api/admin/bookings/pending" : null,
+    (url) => fetch(url).then(res => res.json()),
     { refreshInterval: 30000 }
   );
 
   const { data: paymentHistoryData, error: historyError, mutate: mutateHistory } = useSWR(
-    token ? ["/api/admin/bookings/released", token] : null,
-    ([url, token]) => fetcher(url, token),
-    { refreshInterval: 60000 } // Refresh every minute
+    user && isAdmin ? "/api/admin/bookings/released" : null,
+    (url) => fetch(url).then(res => res.json()),
+    { refreshInterval: 60000 }
   );
 
   // Handlers
@@ -134,7 +118,6 @@ export default function AdminDashboardPage() {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({}),
       });
@@ -168,7 +151,6 @@ export default function AdminDashboardPage() {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({ reason }),
       });
@@ -202,7 +184,6 @@ export default function AdminDashboardPage() {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
       });
 
@@ -231,7 +212,7 @@ export default function AdminDashboardPage() {
   };
 
   // Loading state
-  if (!user) {
+  if (authLoading || !user) {
     return <AdminDashboardSkeleton />;
   }
 

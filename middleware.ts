@@ -39,6 +39,9 @@ export async function middleware(request: NextRequest) {
   // Get session for protected routes
   const session = await getSession();
 
+  // DEBUG LOGS (Remove after fixing loop)
+  console.log(`[Middleware] ${request.method} ${pathname} | Auth: ${!!session} | Role: ${session?.role}`);
+
   // Protected Business Routes  
   if (pathname.startsWith('/business/dashboard') ||
     pathname.startsWith('/business/services') ||

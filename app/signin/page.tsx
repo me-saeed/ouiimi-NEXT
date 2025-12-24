@@ -21,35 +21,35 @@ export default function SigninPage() {
     return new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '');
   }, []);
 
-  // Auto-redirect if already authenticated
-  useEffect(() => {
-    if (!authLoading && isAuthenticated) {
-      const requestedPath = searchParams.get("redirect") || searchParams.get("callbackUrl");
-      if (requestedPath && !requestedPath.startsWith('/signin') && !requestedPath.startsWith('/signup')) {
-        router.push(requestedPath);
-      } else {
-        // Role based redirect if no requested path
-        if (isAdmin) {
-          router.push('/admin/dashboard');
-        } else if (hasRole('business')) {
-          router.push('/business/dashboard');
-        } else {
-          router.push('/');
-        }
-      }
-    }
-  }, [isAuthenticated, authLoading, authUser, router, searchParams, isAdmin, hasRole]);
   const wasTimeout = searchParams.get('reason') === 'timeout';
   const wasVerified = searchParams.get('verified') === 'true';
   const verificationError = searchParams.get('error');
 
-  // CSRF token temporarily disabled
-  // const [csrfToken, setCsrfToken] = useState<string>("");
   const [error, setError] = useState<string>(verificationError || "");
   const [success, setSuccess] = useState<string>(wasVerified ? "Email verified successfully! You can now sign in." : "");
-  const [isLoading, setIsLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [timeoutMessage, setTimeoutMessage] = useState(wasTimeout ? "You were logged out due to inactivity." : "");
+
+  // Auto-redirect if already authenticated
+  useEffect(() => {
+    // Only auto-redirect if not loading (initial state) AND not currently signing in
+    if (!authLoading && !isSubmitting && isAuthenticated) {
+      const requestedPath = searchParams.get("redirect") || searchParams.get("callbackUrl");
+      if (requestedPath && !requestedPath.startsWith('/signin') && !requestedPath.startsWith('/signup')) {
+        router.replace(requestedPath);
+      } else {
+        // Role based redirect if no requested path
+        if (isAdmin) {
+          router.replace('/admin/dashboard');
+        } else if (hasRole('business')) {
+          router.replace('/business/dashboard');
+        } else {
+          router.replace('/');
+        }
+      }
+    }
+  }, [isAuthenticated, authLoading, isSubmitting, authUser, router, searchParams, isAdmin, hasRole]);
 
   const {
     register,
@@ -84,7 +84,7 @@ export default function SigninPage() {
   // }, []);
 
   const onSubmit = async (data: SigninInput) => {
-    setIsLoading(true);
+    setIsSubmitting(true);
     setError("");
     setSuccess("");
 
@@ -103,7 +103,7 @@ export default function SigninPage() {
 
       if (!response.ok) {
         setError(result.error || "Sign in failed. Please try again.");
-        setIsLoading(false);
+        setIsSubmitting(false);
         return;
       }
 
@@ -138,20 +138,19 @@ export default function SigninPage() {
         // Regular users stay at "/"
       }
 
-      setTimeout(async () => {
-        await refreshSession(); // Update AuthContext state with new cookie data
-        router.refresh(); // Refresh server-side data
-        router.push(redirectUrl);
-      }, 1000);
+      // Execute redirect immediately to avoid glitches
+      await refreshSession(); // Update AuthContext state with new cookie data
+      router.refresh(); // Refresh server-side data
+      router.replace(redirectUrl);
     } catch (err: any) {
       setError("Something went wrong. Please try again.");
-      setIsLoading(false);
+      setIsSubmitting(false);
     }
   };
 
   const handleOAuth = async (provider: "google" | "facebook") => {
     setError("");
-    setIsLoading(true);
+    setIsSubmitting(true);
 
     try {
       const result = await signIn(provider, {
@@ -160,7 +159,7 @@ export default function SigninPage() {
       });
     } catch (err: any) {
       setError(`Failed to authenticate with ${provider}`);
-      setIsLoading(false);
+      setIsSubmitting(false);
     }
   };
 
@@ -251,9 +250,9 @@ export default function SigninPage() {
               type="submit"
               variant="pink"
               className="w-full h-12 text-base font-medium"
-              disabled={isLoading}
+              disabled={isSubmitting}
             >
-              {isLoading ? (
+              {isSubmitting ? (
                 <div className="flex items-center justify-center">
                   <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent"></div>
                 </div>
@@ -287,7 +286,7 @@ export default function SigninPage() {
                 type="button"
                 variant="outline"
                 onClick={() => handleOAuth("google")}
-                disabled={isLoading}
+                disabled={isSubmitting}
                 className="w-full h-11 border-[#E5E5E5] hover:bg-gray-50"
               >
                 <svg className="mr-2 h-5 w-5" viewBox="0 0 24 24">
@@ -314,7 +313,7 @@ export default function SigninPage() {
                 type="button"
                 variant="outline"
                 onClick={() => handleOAuth("facebook")}
-                disabled={isLoading}
+                disabled={isSubmitting}
                 className="w-full h-11 border-[#E5E5E5] hover:bg-gray-50"
               >
                 <svg className="mr-2 h-5 w-5" fill="#1877F2" viewBox="0 0 24 24">

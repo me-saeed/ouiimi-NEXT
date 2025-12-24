@@ -626,7 +626,7 @@ export default function ShopperProfilePage() {
             </div>
           )}
 
-          )}
+          
 
           {activeTab === "details" && (
             <div className="max-w-2xl mx-auto">
