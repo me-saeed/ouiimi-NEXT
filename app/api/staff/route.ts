@@ -9,8 +9,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/db";
-import Staff from "@/lib/models/Staff";
-import Business from "@/lib/models/Business";
+import { Staff, Business } from "@/lib/models";
 import { staffCreateSchema } from "@/lib/validation";
 import { authenticateRequest } from "@/lib/api-auth";
 import { applyRateLimit } from "@/lib/rate-limit";
