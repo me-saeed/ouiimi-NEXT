@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/db";
-import Business from "@/lib/models/Business";
-import User from "@/lib/models/User";
+import { Business, User } from "@/lib/models";
 import { withRateLimit } from "@/lib/security/rate-limit";
 
 export const dynamic = 'force-dynamic';

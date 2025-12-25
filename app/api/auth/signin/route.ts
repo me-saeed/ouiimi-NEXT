@@ -108,9 +108,23 @@ async function signinHandler(req: NextRequest) {
   // STEP 7: Create server-side session (HttpOnly cookie)
   // ==========================================================================
   // Determine best role (prioritize admin > business > user)
+  // CRITICAL: Check for business ownership to set correct role
+  const { Business } = await import('@/lib/models');
+  const userBusiness = await Business.findOne({ userId: user._id });
+
   let userRole = 'user';
-  if (user.Roles?.includes('admin')) userRole = 'admin';
-  else if (user.Roles?.includes('business')) userRole = 'business';
+  if (user.Roles?.includes('admin')) {
+    userRole = 'admin';
+  } else if (user.Roles?.includes('business') || userBusiness) {
+    userRole = 'business';
+    // Update user Roles array if they have a business but aren't in Roles
+    if (!user.Roles?.includes('business')) {
+      user.Roles = user.Roles || [];
+      if (!user.Roles.includes('business')) {
+        user.Roles.push('business');
+      }
+    }
+  }
 
   const sessionToken = await createSession({
     userId: String(user._id),

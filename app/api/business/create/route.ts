@@ -157,17 +157,25 @@ async function createBusinessHandler(req: NextRequest) {
     "business_welcome"
   ).catch(e => console.error("Failed to send welcome email:", e));
 
-  // Return success
-  return successResponse({
-    message: "Business account created successfully",
-    business: {
-      id: String(business._id),
-      businessName: business.businessName,
-      email: business.email,
-      status: business.status,
-      userId: String(business.userId),
+  // CRITICAL: Update user role to 'business' and create new session
+  // This must happen BEFORE returning the response
+  const { updateRoleAndRespond } = await import('@/lib/utils/role-manager');
+
+  return updateRoleAndRespond(
+    String(userId),
+    'business',
+    {
+      message: "Business account created successfully",
+      business: {
+        id: String(business._id),
+        businessName: business.businessName,
+        email: business.email,
+        status: business.status,
+        userId: String(business.userId),
+      },
     },
-  }, 201);
+    201
+  );
 }
 
 export const POST = asyncHandler(createBusinessHandler);
