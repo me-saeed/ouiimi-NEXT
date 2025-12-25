@@ -302,29 +302,49 @@ export class EmailService {
      * Generic email sender - uses Mailjet or falls back to simple email
      */
     private static async sendEmail(params: EmailParams) {
-        const { to, toName, subject, variables } = params;
+        const { to, toName, subject, variables = {} } = params;
 
-        // For now, just log the email (Mailjet integration would go here)
-        console.log(`
-📧 EMAIL NOTIFICATION
-To: ${toName} <${to}>
-Subject: ${subject}
-Variables:`, variables);
+        try {
+            // Import the Mailjet service dynamically
+            const mailjetService = await import('@/lib/services/mailjet');
 
-        // TODO: Implement actual Mailjet API call
-        // const mailjet = require('node-mailjet').connect(
-        //   this.mailjetApiKey,
-        //   this.mailjetSecretKey
-        // );
+            // Log for debugging
+            console.log(`📧 Sending email via Mailjet to: ${to}`);
+            console.log(`Subject: ${subject}`);
 
-        // await mailjet.post('send', { version: 'v3.1' }).request({
-        //   Messages: [{
-        //     From: { Email: this.fromEmail, Name: this.fromName },
-        //     To: [{ Email: to, Name: toName }],
-        //     Subject: subject,
-        //     Variables: variables
-        //   }]
-        // });
+            // Determine which template to use based on subject
+            if (subject.includes('Approved')) {
+                // Use business_approved template
+                await mailjetService.sendBusinessApprovedEmail(
+                    to,
+                    variables.ownerName || toName,
+                    variables.businessName || 'Your Business'
+                );
+            } else {
+                // For rejection/suspension, send generic email using business_welcome template
+                // (until specific templates are created in Mailjet)
+                await mailjetService.sendEmail(
+                    [to],
+                    subject,
+                    {
+                        email: to,
+                        fname: variables.ownerName || toName,
+                        businessName: variables.businessName,
+                        rejectionReason: variables.rejectionReason,
+                        suspensionReason: variables.suspensionReason,
+                        supportEmail: variables.supportEmail,
+                        dashboardUrl: variables.dashboardUrl,
+                        createServiceUrl: variables.createServiceUrl,
+                    },
+                    'business_welcome' as any
+                );
+            }
+
+            console.log(`✅ Email sent successfully to ${to}`);
+        } catch (error) {
+            console.error(`❌ Failed to send email to ${to}:`, error);
+            // Don't throw - email failure shouldn't block the request
+        }
     }
 }
 

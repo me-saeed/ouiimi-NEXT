@@ -20,8 +20,8 @@ async function rejectBusinessHandler(
     req: NextRequest,
     { params }: { params: { id: string } }
 ) {
-    // Rate limiting (strict for admin actions)
-    const rateLimitResponse = applyRateLimit(req, 10);
+    // Rate limiting (60 requests per minute for admin actions - increased for testing)
+    const rateLimitResponse = applyRateLimit(req, 60);
     if (rateLimitResponse) return rateLimitResponse;
 
     // Admin authentication
@@ -70,4 +70,4 @@ async function rejectBusinessHandler(
     });
 }
 
-export const POST = asyncHandler(rejectBusinessHandler);
+export const PUT = asyncHandler(rejectBusinessHandler);

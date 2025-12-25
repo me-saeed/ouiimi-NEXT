@@ -125,7 +125,7 @@ async function createBusinessHandler(req: NextRequest) {
     location: typeof validatedData.address === 'object' && validatedData.address.location
       ? validatedData.address.location
       : undefined,
-    status: "approved",
+    // status defaults to "pending" from Business model schema
   };
 
   // Add optional fields
