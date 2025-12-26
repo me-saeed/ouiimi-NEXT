@@ -61,7 +61,7 @@ async function releasePaymentHandler(
         booking,
         booking.businessId,
         booking.serviceId,
-        booking.serviceId.category // Pass category explicitly
+        (booking.serviceId as any).category // Pass category explicitly
       );
     }
   } catch (emailError) {
