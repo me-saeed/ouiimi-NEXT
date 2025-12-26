@@ -39,6 +39,7 @@ export interface EmailData {
   paymentAmount?: number;
   cancelledBy?: string;
   refundAmount?: number;
+  category?: string;
   [key: string]: any;
 }
 
@@ -131,6 +132,8 @@ export async function sendEmail(
             DepositAmount: data.depositAmount !== undefined ? Number(data.depositAmount).toFixed(2) : "0.00",
             CustomerName: data.customerName,
             BookingId: data.bookingId,
+            Category: data.category,
+            category: data.category, // lowercase variant just in case
           },
           CustomID: "OuiimiEmail",
         },

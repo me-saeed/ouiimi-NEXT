@@ -250,7 +250,7 @@ export default function BusinessServicesPage() {
                 return (
                   <div key={category} className="space-y-6 pb-8 mb-8 border-b-4 border-gray-100 last:border-b-0">
                     {/* Category Header */}
-                    <div className="flex items-center gap-3 pb-4 border-b-2 border-[#EECFD1]/30 bg-gradient-to-r from-[#EECFD1]/5 to-transparent px-4 py-3 rounded-lg">
+                    <div className="flex items-center gap-3 mb-6">
                       <Tag className="w-6 h-6 text-[#EECFD1]" />
                       <h2 className="text-2xl font-bold text-[#3A3A3A]">{category}</h2>
                       <span className="ml-auto bg-[#EECFD1]/20 text-[#EECFD1] px-4 py-1.5 rounded-full text-sm font-semibold">

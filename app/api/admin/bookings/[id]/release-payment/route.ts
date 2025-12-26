@@ -33,7 +33,7 @@ async function releasePaymentHandler(
 
   const booking = await Booking.findById(params.id)
     .populate("businessId", "businessName")
-    .populate("serviceId", "serviceName");
+    .populate("serviceId", "serviceName category");
 
   if (!booking) {
     throw new APIError(404, "Booking not found", "NOT_FOUND");
@@ -60,7 +60,8 @@ async function releasePaymentHandler(
       await EmailService.sendPaymentReleased(
         booking,
         booking.businessId,
-        booking.serviceId
+        booking.serviceId,
+        booking.serviceId.category // Pass category explicitly
       );
     }
   } catch (emailError) {

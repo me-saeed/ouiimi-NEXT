@@ -162,14 +162,16 @@ export class EmailService {
     /**
      * Send payment released notification to business
      */
-    static async sendPaymentReleased(booking: any, business: any, service: any) {
+    static async sendPaymentReleased(booking: any, business: any, service: any, category?: string) {
         try {
             const amountReleased = booking.depositAmount - booking.platformFee;
 
             const variables = {
                 businessName: business.businessName,
                 serviceName: service.serviceName,
+                category: category || "Service", // Add category
                 amountReleased: amountReleased.toFixed(2),
+                paymentAmount: amountReleased.toFixed(2), // For template compatibility
                 bookingNumber: booking.bookingNumber || booking._id.toString().slice(-8),
                 releaseDate: new Date().toLocaleDateString('en-US', {
                     year: 'numeric',
@@ -178,12 +180,14 @@ export class EmailService {
                 })
             };
 
-            await this.sendEmail({
-                to: business.email,
-                toName: business.businessName,
-                subject: `Payment Released - $${amountReleased.toFixed(2)}`,
+            // Use the specific Mailjet service function to ensure correct template is used
+            // (Avoiding the generic fallback in this.sendEmail)
+            const mailjetService = await import('@/lib/services/mailjet');
+            await mailjetService.sendPaymentReceiptToBusiness(
+                business.email,
+                business.businessName,
                 variables
-            });
+            );
 
             console.log(`✅ Payment released email sent to business: ${business.email}`);
         } catch (error) {
