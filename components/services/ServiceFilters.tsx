@@ -47,15 +47,28 @@ export function ServiceFilters({
         },
     });
 
-    const updateURL = (newCategory?: string, newSubCategory?: string, newDate?: string) => {
+    const updateURL = (newCategory?: string, newSubCategory?: string, newDate?: string, newLat?: number, newLng?: number, clearLocation: boolean = false) => {
         const params = new URLSearchParams();
         const cat = newCategory ?? category;
         const sub = newSubCategory ?? subCategory;
         const date = newDate ?? selectedDate;
 
+        // Determine location to use
+        let lat, lng;
+
+        if (clearLocation) {
+            lat = undefined;
+            lng = undefined;
+        } else {
+            lat = newLat !== undefined ? newLat : (userLocation?.lat);
+            lng = newLng !== undefined ? newLng : (userLocation?.lng);
+        }
+
         if (cat) params.set("category", cat);
         if (sub && sub !== "") params.set("subCategory", sub);
         if (date) params.set("date", date);
+        if (lat !== undefined) params.set("latitude", String(lat));
+        if (lng !== undefined) params.set("longitude", String(lng));
 
         router.push(`/services?${params.toString()}`);
     };
@@ -88,6 +101,10 @@ export function ServiceFilters({
                         onSelect={(address, coordinates) => {
                             if (coordinates) {
                                 setUserLocation({ lat: coordinates.lat, lng: coordinates.lng });
+                                updateURL(category, subCategory, selectedDate, coordinates.lat, coordinates.lng);
+                            } else {
+                                setUserLocation(null);
+                                updateURL(category, subCategory, selectedDate, undefined, undefined, true);
                             }
                         }}
                         className="h-12"
@@ -130,8 +147,8 @@ export function ServiceFilters({
                 <button
                     onClick={() => handleSubCategoryChange("")}
                     className={`whitespace-nowrap px-4 py-2 rounded-full text-sm font-medium transition-all ${subCategory === ""
-                            ? "bg-[#3A3A3A] text-white"
-                            : "bg-transparent text-[#888888] hover:text-[#3A3A3A]"
+                        ? "bg-[#3A3A3A] text-white"
+                        : "bg-transparent text-[#888888] hover:text-[#3A3A3A]"
                         }`}
                 >
                     All
@@ -142,8 +159,8 @@ export function ServiceFilters({
                         key={sub}
                         onClick={() => handleSubCategoryChange(sub)}
                         className={`whitespace-nowrap px-4 py-2 rounded-full text-sm font-medium transition-all ${sub === subCategory
-                                ? "bg-[#3A3A3A] text-white"
-                                : "bg-transparent text-[#888888] hover:text-[#3A3A3A]"
+                            ? "bg-[#3A3A3A] text-white"
+                            : "bg-transparent text-[#888888] hover:text-[#3A3A3A]"
                             }`}
                     >
                         {sub}

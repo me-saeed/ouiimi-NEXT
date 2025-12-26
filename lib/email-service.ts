@@ -351,9 +351,11 @@ export class EmailService {
                     },
                     'business_welcome'
                 );
-            } else if (subject.toLowerCase().includes('booking') && subject.toLowerCase().includes('confirmed')) {
+            } else if (subject.toLowerCase().includes('booking') && (subject.toLowerCase().includes('confirmed') || subject.toLowerCase().includes('received') || subject.toLowerCase().includes('new'))) {
                 // Attempt to distinguish business vs shopper
+                // Business emails usually have businessRevenue or customerEmail (shopper's email)
                 const isBusiness = !!variables.businessRevenue || !!variables.customerEmail;
+
                 await mailjetService.sendEmail(
                     [to],
                     subject,
