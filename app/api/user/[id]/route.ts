@@ -16,29 +16,45 @@ const userUpdateSchema = z.object({
   pic: z.string().optional(),
 });
 
+import { getSession } from "@/lib/session";
+
+// ... imports remain the same
+
 async function updateUserHandler(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
+    let userId: string | undefined;
+
+    // 1. Try Bearer Token
     const authHeader = req.headers.get("authorization");
-    if (!authHeader?.startsWith("Bearer ")) {
+    if (authHeader?.startsWith("Bearer ")) {
+      const token = authHeader.substring(7);
+      const decoded = verifyToken(token);
+      if (decoded) {
+        userId = String(decoded.userId);
+      }
+    }
+
+    // 2. Try Session Cookie (Fallback)
+    if (!userId) {
+      const session = await getSession();
+      if (session) {
+        userId = session.userId;
+      }
+    }
+
+    // 3. Final Auth Check
+    if (!userId) {
       return NextResponse.json(
         { error: "Unauthorized" },
         { status: 401 }
       );
     }
 
-    const token = authHeader.substring(7);
-    const decoded = verifyToken(token);
-    if (!decoded) {
-      return NextResponse.json(
-        { error: "Invalid token" },
-        { status: 401 }
-      );
-    }
-
-    if (String(params.id) !== String(decoded.userId)) {
+    // 4. Authorization Check (Match ID)
+    if (String(params.id) !== String(userId)) {
       return NextResponse.json(
         { error: "Unauthorized - can only update your own profile" },
         { status: 403 }

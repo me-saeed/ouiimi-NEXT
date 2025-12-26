@@ -50,13 +50,21 @@ export function ImageUpload({
             const response = await fetch("/api/upload", {
                 method: "POST",
                 body: formData,
+                credentials: "include", // Ensure cookies are sent if needed
             });
 
-            const data = await response.json();
+            let data;
+            try {
+                data = await response.json();
+            } catch (e) {
+                // If JSON parse fails (e.g. 413 Entity Too Large returning HTML), handle gracefully
+                console.error("Failed to parse upload response JSON", e);
+                throw new Error(`Upload failed with status ${response.status} (server returned non-JSON response)`);
+            }
 
             if (!response.ok) {
                 console.error("Upload failed:", data);
-                throw new Error(data.error || "Upload failed");
+                throw new Error(data.error || `Upload failed with status ${response.status}`);
             }
 
             if (!data.url) {
