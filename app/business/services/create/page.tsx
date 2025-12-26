@@ -1245,9 +1245,27 @@ export default function CreateServicePage() {
                 <div className="flex flex-col sm:flex-row gap-3 pt-6 border-t border-[#E5E5E5]">
                   <Button
                     type="submit"
-                    disabled={isLoading || Object.keys(datesWithSlots).length === 0}
+                    disabled={isLoading}
                     variant="pink"
                     className="flex-1 h-11 rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                    onClick={handleSubmit(onSubmit, (errors) => {
+                      console.log("Form validation errors:", errors);
+                      // Toast for form validation errors
+                      const missingFields = Object.keys(errors).map(key => {
+                        if (key === 'category') return 'Category';
+                        if (key === 'subCategory') return 'Service Name';
+                        if (key === 'address') return 'Address';
+                        if (key === 'description') return 'Description';
+                        // Helper for other fields
+                        return key.charAt(0).toUpperCase() + key.slice(1);
+                      });
+
+                      toast({
+                        variant: "destructive",
+                        title: "Missing Required Fields",
+                        description: `Please fill in: ${missingFields.join(', ')}`,
+                      });
+                    })}
                   >
                     {isLoading ? (
                       <div className="flex items-center justify-center">

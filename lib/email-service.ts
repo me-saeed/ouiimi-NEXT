@@ -303,7 +303,7 @@ export class EmailService {
     }
 
     /**
-     * Generic email sender - uses Mailjet or falls back to simple email
+     * Generic email sender - uses Mailjet
      */
     private static async sendEmail(params: EmailParams) {
         const { to, toName, subject, variables = {} } = params;
@@ -316,38 +316,77 @@ export class EmailService {
             console.log(`📧 Sending email via Mailjet to: ${to}`);
             console.log(`Subject: ${subject}`);
 
-            // Determine which template to use based on subject
-            if (subject.includes('Approved')) {
-                // Use business_approved template
+            // Prepare base data for Mailjet
+            const emailData = {
+                email: to,
+                fname: variables.ownerName || toName || variables.customerName || variables.fname,
+                ...variables
+            };
+
+            if (subject.toLowerCase().includes('approved')) {
                 await mailjetService.sendBusinessApprovedEmail(
                     to,
                     variables.ownerName || toName,
                     variables.businessName || 'Your Business'
                 );
-            } else {
-                // For rejection/suspension, send generic email using business_welcome template
-                // (until specific templates are created in Mailjet)
+            } else if (subject.toLowerCase().includes('rejected')) {
                 await mailjetService.sendEmail(
                     [to],
                     subject,
                     {
-                        email: to,
-                        fname: variables.ownerName || toName,
-                        businessName: variables.businessName,
+                        ...emailData,
                         rejectionReason: variables.rejectionReason,
+                        supportEmail: variables.supportEmail,
+                    },
+                    'business_welcome'
+                );
+            } else if (subject.toLowerCase().includes('suspended')) {
+                await mailjetService.sendEmail(
+                    [to],
+                    subject,
+                    {
+                        ...emailData,
                         suspensionReason: variables.suspensionReason,
                         supportEmail: variables.supportEmail,
-                        dashboardUrl: variables.dashboardUrl,
-                        createServiceUrl: variables.createServiceUrl,
                     },
-                    'business_welcome' as any
+                    'business_welcome'
+                );
+            } else if (subject.toLowerCase().includes('booking') && subject.toLowerCase().includes('confirmed')) {
+                // Attempt to distinguish business vs shopper
+                const isBusiness = !!variables.businessRevenue || !!variables.customerEmail;
+                await mailjetService.sendEmail(
+                    [to],
+                    subject,
+                    emailData,
+                    isBusiness ? 'booking_confirmation_business' : 'booking_confirmation_shopper'
+                );
+            } else if (subject.toLowerCase().includes('service completed')) {
+                await mailjetService.sendEmail(
+                    [to],
+                    subject,
+                    emailData,
+                    'booking_complete'
+                );
+            } else if (subject.toLowerCase().includes('cancelled')) {
+                await mailjetService.sendEmail(
+                    [to],
+                    subject,
+                    emailData,
+                    'booking_cancellation'
+                );
+            } else {
+                // Use generic welcome/message template
+                await mailjetService.sendEmail(
+                    [to],
+                    subject,
+                    emailData,
+                    'welcome'
                 );
             }
 
             console.log(`✅ Email sent successfully to ${to}`);
         } catch (error) {
             console.error(`❌ Failed to send email to ${to}:`, error);
-            // Don't throw - email failure shouldn't block the request
         }
     }
 }

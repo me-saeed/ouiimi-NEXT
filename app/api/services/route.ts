@@ -545,11 +545,11 @@ async function getServicesHandler(req: NextRequest) {
 
     // NEW: Filter out services with NO available slots (Fully Booked)
     // Only apply for public listings (not business dashboard)
-    if (!businessId) {
-      aggregationPipeline.push({
-        $match: { "availableTimeSlots.0": { $exists: true } }
-      });
-    }
+    // if (!businessId) {
+    //   aggregationPipeline.push({
+    //     $match: { "availableTimeSlots.0": { $exists: true } }
+    //   });
+    // }
 
     aggregationPipeline.push(
       {

@@ -24,7 +24,12 @@ export function getBaseUrl(): string {
     }
 
     // Development fallback
-    return 'http://localhost:3000';
+    if (process.env.NODE_ENV === 'development') {
+        return 'http://localhost:3000';
+    }
+
+    // Default to production domain
+    return 'https://ouiimi.com.au';
 }
 
 /**

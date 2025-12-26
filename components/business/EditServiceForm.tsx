@@ -77,6 +77,7 @@ export function EditServiceForm({ serviceId, onSuccess, onCancel }: EditServiceF
         watch,
         formState: { errors },
         setValue,
+        reset, // Added reset
     } = useForm<ServiceUpdateInput>({
         resolver: zodResolver(serviceUpdateSchema),
     });
@@ -119,26 +120,33 @@ export function EditServiceForm({ serviceId, onSuccess, onCancel }: EditServiceF
             const data = await response.json();
             if (data.service) {
                 setService(data.service);
-                setValue("category", data.service.category);
-                // Use serviceName as subCategory if subCategory doesn't exist (for backward compatibility)
-                const subCategoryValue = data.service.subCategory || data.service.serviceName || "";
-                setValue("subCategory", subCategoryValue);
-                setValue("serviceName", data.service.serviceName); // Keep for API but will be replaced with subCategory
-                setValue("description", data.service.description || "");
 
-                // Handle address - could be string (old) or object (new)
+                // Prepare address
+                let addressValue;
                 if (typeof data.service.address === 'object' && data.service.address?.street) {
-                    setValue("address", data.service.address);
+                    addressValue = data.service.address;
                 } else if (typeof data.service.address === 'string') {
-                    // Legacy: convert string address to object format (will need geocoding on save)
-                    setValue("address", {
+                    // Legacy: convert string address to object format
+                    addressValue = {
                         street: data.service.address,
                         location: {
                             type: "Point",
-                            coordinates: [0, 0], // Will need to be geocoded
+                            coordinates: [0, 0],
                         },
-                    });
+                    };
                 }
+
+                // Determine subcategory/service name
+                const subCategoryValue = data.service.subCategory || data.service.serviceName || "";
+
+                // Initialize form with all values at once
+                reset({
+                    category: data.service.category,
+                    subCategory: subCategoryValue,
+                    serviceName: subCategoryValue,
+                    description: data.service.description || "",
+                    address: addressValue,
+                });
 
                 // Group time slots by date
                 const grouped: Record<string, Array<{
