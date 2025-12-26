@@ -9,26 +9,23 @@
  * 4. localhost:3000 (development)
  */
 export function getBaseUrl(): string {
-    // Check environment variables
+    // 1. Check NEXT_PUBLIC_SITE_URL (Always priority)
     if (process.env.NEXT_PUBLIC_SITE_URL) {
         return process.env.NEXT_PUBLIC_SITE_URL;
     }
 
+    // 2. Check NEXTAUTH_URL
     if (process.env.NEXTAUTH_URL) {
         return process.env.NEXTAUTH_URL;
     }
 
-    // Production fallback - use your actual production domain
-    if (process.env.NODE_ENV === 'production') {
-        return 'https://ouiimi.com.au';
-    }
-
-    // Development fallback
+    // 3. Development fallback - ONLY if explicitly in development AND no site url is set
+    // But we prefer ouiimi.com.au if we are unsure, to be safe for emails
     if (process.env.NODE_ENV === 'development') {
         return 'http://localhost:3000';
     }
 
-    // Default to production domain
+    // 4. Default to production domain
     return 'https://ouiimi.com.au';
 }
 

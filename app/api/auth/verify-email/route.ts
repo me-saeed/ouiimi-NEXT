@@ -18,6 +18,7 @@ import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/db";
 import User from "@/lib/models/User";
 import { sendWelcomeEmail } from "@/lib/services/mailjet";
+import { getBaseUrl } from "@/lib/utils/url";
 
 export const dynamic = 'force-dynamic';
 
@@ -27,7 +28,8 @@ export async function GET(req: NextRequest) {
         const token = searchParams.get('token');
 
         if (!token) {
-            const redirectUrl = new URL('/signin', req.url);
+            const baseUrl = getBaseUrl();
+            const redirectUrl = new URL('/signin', baseUrl);
             redirectUrl.searchParams.set('error', 'Invalid verification link');
             return NextResponse.redirect(redirectUrl);
         }
@@ -41,7 +43,8 @@ export async function GET(req: NextRequest) {
         });
 
         if (!user) {
-            const redirectUrl = new URL('/signin', req.url);
+            const baseUrl = getBaseUrl();
+            const redirectUrl = new URL('/signin', baseUrl);
             redirectUrl.searchParams.set('error', 'Verification link expired or invalid');
             return NextResponse.redirect(redirectUrl);
         }
@@ -60,13 +63,15 @@ export async function GET(req: NextRequest) {
         }
 
         // Redirect to signin with success message
-        const redirectUrl = new URL('/signin', req.url);
+        const baseUrl = getBaseUrl();
+        const redirectUrl = new URL('/signin', baseUrl);
         redirectUrl.searchParams.set('verified', 'true');
         return NextResponse.redirect(redirectUrl);
 
     } catch (error: any) {
         console.error("Email verification error:", error);
-        const redirectUrl = new URL('/signin', req.url);
+        const baseUrl = getBaseUrl();
+        const redirectUrl = new URL('/signin', baseUrl);
         redirectUrl.searchParams.set('error', 'Verification failed. Please try again.');
         return NextResponse.redirect(redirectUrl);
     }
