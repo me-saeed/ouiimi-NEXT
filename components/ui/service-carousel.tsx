@@ -2,7 +2,7 @@
 
 import React, { useRef, useState, useEffect } from "react";
 import Link from "next/link";
-import { ChevronLeft, ChevronRight, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, X, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface ServiceCarouselProps {
@@ -97,22 +97,27 @@ export function ServiceCarousel({ children, title, viewAllHref, totalCount = 0, 
           }}
         >
           {children}
-          {/* See More Button - Appears when there are 6 services */}
           {showShowMore && (onShowMore && category ? (
-            <div className="flex-shrink-0 flex items-center min-w-[100px]">
+            <div className="flex-shrink-0 flex items-center justify-center min-w-[120px]">
               <button
                 onClick={() => onShowMore(category)}
-                className="text-xs sm:text-sm text-[#3A3A3A] hover:text-[#EECFD1] font-medium inline-flex items-center gap-1 transition-colors underline whitespace-nowrap px-2"
+                className="flex flex-col items-center gap-2 text-sm font-medium text-[#3A3A3A] hover:text-[#EECFD1] transition-colors group"
               >
+                <div className="w-10 h-10 rounded-full bg-[#EECFD1]/20 group-hover:bg-[#EECFD1]/30 flex items-center justify-center transition-colors">
+                  <ArrowRight className="w-5 h-5 text-[#3A3A3A]" />
+                </div>
                 See more
               </button>
             </div>
           ) : showMoreHref ? (
-            <div className="flex-shrink-0 flex items-center min-w-[100px]">
+            <div className="flex-shrink-0 flex items-center justify-center min-w-[120px]">
               <Link
                 href={showMoreHref}
-                className="text-xs sm:text-sm text-[#3A3A3A] hover:text-[#EECFD1] font-medium inline-flex items-center gap-1 transition-colors underline whitespace-nowrap px-2"
+                className="flex flex-col items-center gap-2 text-sm font-medium text-[#3A3A3A] hover:text-[#EECFD1] transition-colors group"
               >
+                <div className="w-10 h-10 rounded-full bg-[#EECFD1]/20 group-hover:bg-[#EECFD1]/30 flex items-center justify-center transition-colors">
+                  <ArrowRight className="w-5 h-5 text-[#3A3A3A]" />
+                </div>
                 See more
               </Link>
             </div>

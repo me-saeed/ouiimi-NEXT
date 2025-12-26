@@ -261,9 +261,9 @@ export default function BusinessServicesPage() {
                     {/* Subcategories */}
                     <div className="space-y-8">
                       {(Object.entries(groupedBySubcategory) as [string, any[]][]).map(([subCategory, subCategoryServices]) => (
-                        <div key={subCategory} className="space-y-3 pl-4">
+                        <div key={subCategory} className="space-y-3">
                           {/* Subcategory Header */}
-                          <h3 className="text-lg font-semibold text-[#5A5A5A] pl-3 border-l-4 border-[#EECFD1] bg-gray-50 py-2 rounded-r">
+                          <h3 className="text-xl font-medium text-[#3A3A3A] mb-4">
                             {subCategory}
                           </h3>
 

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import PageLayout from "@/components/layout/PageLayout";
 import { ServiceCard } from "@/components/ui/service-card";
-import { ArrowRight } from "lucide-react";
+import { ServiceCarousel } from "@/components/ui/service-carousel";
 import { getAllCategories } from "@/lib/constants/categories";
 
 // Enable ISR - revalidate every 60 seconds
@@ -218,41 +218,23 @@ export default async function HomePage() {
               if (filteredServices.length === 0) return null;
 
               return (
-                <div key={category}>
-                  <div className="flex items-center justify-between mb-4 sm:mb-6">
-                    <h2 className="text-[20px] md:text-[24px] font-bold text-[#4A4A4A]">{category}</h2>
-                  </div>
-
-                  {/* Horizontal Scroll Container */}
-                  <div className="relative">
-                    <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-4 -mx-4 px-4 sm:mx-0 sm:px-0">
-                      {filteredServices
-                        .slice(0, 6)
-                        .map((service) => (
-                          <div key={service.id || service._id} className="flex-shrink-0">
-                            <ServiceCard
-                              {...formatServiceForCard(service)}
-                            />
-                          </div>
-                        ))}
-
-                      {/* "See More" Card at the end of scroll */}
-                      {totalCount > 6 && (
-                        <div className="min-w-[120px] flex items-center justify-center flex-shrink-0">
-                          <Link
-                            href={`/category/${encodeURIComponent(category)}`}
-                            className="flex flex-col items-center gap-2 text-sm font-medium text-[#3A3A3A] hover:text-[#EECFD1] transition-colors group"
-                          >
-                            <div className="w-10 h-10 rounded-full bg-[#EECFD1]/20 group-hover:bg-[#EECFD1]/30 flex items-center justify-center transition-colors">
-                              <ArrowRight className="w-5 h-5 text-[#3A3A3A]" />
-                            </div>
-                            See more
-                          </Link>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
+                <ServiceCarousel
+                  key={category}
+                  title={category}
+                  totalCount={totalCount}
+                  showMoreHref={`/category/${encodeURIComponent(category)}`}
+                  category={category}
+                >
+                  {filteredServices
+                    .slice(0, 6)
+                    .map((service) => (
+                      <div key={service.id || service._id} className="flex-shrink-0">
+                        <ServiceCard
+                          {...formatServiceForCard(service)}
+                        />
+                      </div>
+                    ))}
+                </ServiceCarousel>
               );
             })}
           </div>
