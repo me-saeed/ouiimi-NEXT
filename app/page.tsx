@@ -47,9 +47,19 @@ async function fetchCategoryServices(category: string): Promise<{ services: Serv
     }
 
     const data = await response.json();
+    const services = data.services || [];
+    let total = data.pagination?.total || services.length || 0;
+
+    // FIX: If we received fewer services than the limit (12), it means we've reached the end
+    // of the available services (after filtering), regardless of what the initial DB count says.
+    // Override total to match actual services so "See More" doesn't appear incorrectly.
+    if (services.length < 12) {
+      total = services.length;
+    }
+
     return {
-      services: data.services || [],
-      total: data.pagination?.total || data.services?.length || 0,
+      services,
+      total,
     };
   } catch (error) {
     console.error(`[Homepage Server] Error fetching ${category}:`, error);
