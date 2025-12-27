@@ -30,23 +30,7 @@ import { z } from "zod";
 
 export const dynamic = 'force-dynamic';
 
-const bookingCreateSchema = z.object({
-  userId: z.string(),
-  businessId: z.string(),
-  serviceId: z.string(),
-  staffId: z.string().optional(),
-  timeSlot: z.object({
-    date: z.string(),
-    startTime: z.string(),
-    endTime: z.string(),
-  }),
-  addOns: z.array(z.object({
-    name: z.string(),
-    cost: z.number().min(0),
-  })).optional(),
-  totalCost: z.number().min(0),
-  customerNotes: z.string().optional(),
-});
+import { bookingCreateSchema } from "@/lib/validations/booking";
 
 async function createBookingHandler(req: NextRequest) {
   // ==========================================================================
@@ -146,11 +130,36 @@ async function createBookingHandler(req: NextRequest) {
   }
 
   // ==========================================================================
-  // STEP 6: Server-side cost calculation (SECURITY)
+  // STEP 6: Server-side integrity checks (SECURITY)
   // ==========================================================================
+
+  // 1. Verify Service exists and is listed
   const service = await Service.findById(validatedData.serviceId);
   if (!service) {
     throw new APIError(404, "Service not found", "SERVICE_NOT_FOUND");
+  }
+  if (service.status !== 'listed') {
+    throw new APIError(409, "This service is no longer available for booking", "SERVICE_UNAVAILABLE");
+  }
+
+  // 2. Verify Business exists and is approved
+  const business = await Business.findById(validatedData.businessId);
+  if (!business) {
+    throw new APIError(404, "Business not found", "BUSINESS_NOT_FOUND");
+  }
+  if (business.status !== 'approved') {
+    throw new APIError(403, "This business is not currently accepting bookings", "BUSINESS_UNAVAILABLE");
+  }
+
+  // 3. Verify Date is not in the past (allow today, but check time)
+  // We compare the slot start time against now
+  const slotDateObj = new Date(bookingDate);
+  // Set date based on input string YYYY-MM-DD
+  const [sHours, sMinutes] = bookingStartTime.split(':').map(Number);
+  slotDateObj.setHours(sHours, sMinutes, 0, 0);
+
+  if (slotDateObj.getTime() < Date.now()) {
+    throw new APIError(400, "Cannot book a time slot in the past", "INVALID_DATE");
   }
 
   const bookingDateObj = new Date(bookingDate);

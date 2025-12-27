@@ -9,6 +9,8 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { CheckCircle2 } from "lucide-react";
 import { useAuth } from "@/lib/contexts/AuthContext";
 
+import { ApiBooking } from "@/lib/types/api";
+
 export default function BookingConfirmPage() {
   const params = useParams();
   const searchParams = useSearchParams();
@@ -17,7 +19,7 @@ export default function BookingConfirmPage() {
   const bookingId = params.id as string;
   const sessionId = searchParams.get("session_id");
 
-  const [booking, setBooking] = useState<any>(null);
+  const [booking, setBooking] = useState<ApiBooking | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
   const [paymentVerified, setPaymentVerified] = useState(false);

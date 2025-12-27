@@ -75,7 +75,7 @@ export default function ShopperProfilePage() {
     setUserDetails({
       name: `${user.fname || ""} ${user.lname || ""}`.trim(),
       email: user.email || "",
-      number: (user as any).contactNo || "",
+      number: user.contactNo || user.phone || "",
     });
     loadBookings(user);
   }, [authLoading, isAuthenticated, user, router]);
@@ -144,7 +144,7 @@ export default function ShopperProfilePage() {
         // ✅ NORMALIZE: Ensure every booking has an 'id' property
         allBookings = allBookings.map((b: any) => ({
           ...b,
-          id: b.id || (b._id ? String(b._id) : undefined)
+          id: b.id || b._id
         }));
 
         const now = new Date();
@@ -353,7 +353,7 @@ export default function ShopperProfilePage() {
     }
 
     return {
-      id: booking.id || (booking as any)._id,
+      id: booking.id || booking._id,
       name: service?.serviceName || 'Service',
       price: booking.totalCost,
       image: businessData?.logo || "/placeholder-logo.png",
@@ -363,7 +363,7 @@ export default function ShopperProfilePage() {
       duration: duration || undefined,
       date: formatDateForDisplay(booking.timeSlot.date),
       time: `${formatTime12Hour(booking.timeSlot.startTime)} - ${formatTime12Hour(booking.timeSlot.endTime)}`,
-      bookingId: booking.id || (booking as any)._id,
+      bookingId: booking.id || booking._id,
       bookingNumber: booking.bookingNumber,
       status: booking.status,
     };
@@ -424,7 +424,7 @@ export default function ShopperProfilePage() {
           <div className="container mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex flex-col items-center text-center space-y-4">
               <ImageUpload
-                value={(user as any)?.pic === "avatar.png" ? "" : (user as any)?.pic}
+                value={user.pic === "avatar.png" || !user.pic ? "" : user.pic}
                 onChange={handleUpdateProfilePic}
                 variant="avatar"
               />

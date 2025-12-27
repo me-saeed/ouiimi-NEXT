@@ -1,7 +1,44 @@
 /**
  * Centralized Booking Type Definition
  * matches backend schema in lib/models/Booking.ts
+ *
+ * NOW STRICTLY TYPED matching API Responses.
  */
+
+export interface ApiUser {
+    _id: string;
+    id?: string;
+    fname: string;
+    lname: string;
+    email: string;
+    contactNo?: string;
+    phone?: string; // legacy support
+    pic?: string;
+}
+
+export interface ApiBusiness {
+    _id: string;
+    id?: string;
+    businessName: string;
+    email: string;
+    phone?: string;
+    address: string;
+    logo?: string;
+    status: "pending" | "approved" | "rejected" | "suspended";
+    location?: {
+        type: "Point";
+        coordinates: number[];
+    };
+}
+
+export interface ApiService {
+    _id: string;
+    id?: string;
+    serviceName: string;
+    category: string;
+    subCategory?: string;
+    description?: string;
+}
 
 export type BookingStatus =
     | "pre_payment"
@@ -11,27 +48,15 @@ export type BookingStatus =
     | "cancelled"
     | "refunded";
 
-export type PaymentStatus =
-    | "pending"
-    | "deposit_paid"
-    | "fully_paid"
-    | "refunded";
-
-export type AdminPaymentStatus =
-    | "pending"
-    | "released";
-
 export interface Booking {
-    id: string; // Frontend uses 'id' (mapped from _id)
-    _id?: string; // Optional for raw API responses
+    id: string; // Frontend uses 'id'
+    _id: string; // API sends '_id'
 
-    // Relations - usually populated objects in frontend views
-    // keeping as 'any' for flexibility with varying population levels
-    // in a stricter refactor, these would be generics or union types
-    userId: any;
-    businessId: any;
-    serviceId: any;
-    staffId: any;
+    // Relations - Strictly Typed Union
+    userId: ApiUser | string;
+    businessId: ApiBusiness | string;
+    serviceId: ApiService | string;
+    staffId?: { _id: string; name: string; photo?: string } | string;
 
     // Time Slot
     timeSlot: {
@@ -42,6 +67,7 @@ export interface Booking {
 
     // Financials
     totalCost: number;
+    baseCost?: number;
     depositAmount: number;
     remainingAmount: number;
     platformFee?: number;
@@ -54,9 +80,9 @@ export interface Booking {
     }>;
 
     // Statuses
-    status: BookingStatus | string; // allowing string for safety, but union is preferred
-    paymentStatus: PaymentStatus | string;
-    adminPaymentStatus?: AdminPaymentStatus | string;
+    status: BookingStatus | string;
+    paymentStatus: "pending" | "deposit_paid" | "fully_paid" | "refunded" | string;
+    adminPaymentStatus?: "pending" | "released" | string;
 
     // Metadata
     bookingNumber?: number;

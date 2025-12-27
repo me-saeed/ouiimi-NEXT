@@ -89,14 +89,6 @@ export default function CheckoutForm({
         return (
             <form onSubmit={handleSubmit} className="space-y-6">
                 <div className="space-y-4">
-                    <div className="flex items-center gap-4">
-                        <label className="w-32 text-gray-500 text-lg">Name On Card:</label>
-                        <div className="flex-1 border border-gray-200 rounded-xl h-12 px-4 flex items-center">
-                            {/* Simple text input for name on card if needed, or Stripe handles it in PaymentElement */}
-                            <Input className="border-none shadow-none focus-visible:ring-0 p-0 h-full" placeholder="Full Name" />
-                        </div>
-                    </div>
-
                     <div className="space-y-4 pt-2">
                         <PaymentElement options={{
                             layout: 'tabs',
@@ -116,12 +108,12 @@ export default function CheckoutForm({
                     <Button
                         type="submit"
                         disabled={!stripe || isProcessing}
-                        className="w-full h-12 text-lg font-bold bg-white text-gray-800 border-none shadow-none hover:bg-gray-50 flex items-center justify-center gap-2"
+                        className="w-full h-12 text-lg font-bold bg-[#EECFD1] text-gray-900 border-none shadow-md hover:shadow-lg hover:bg-[#e4b5b8] hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-2 rounded-xl disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:active:scale-100"
                     >
                         {isProcessing ? (
-                            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-gray-800" />
+                            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-gray-900" />
                         ) : (
-                            `STRIPE PAY $${amount.toFixed(2)}`
+                            `Pay Now $${amount.toFixed(2)}`
                         )}
                     </Button>
                 </div>

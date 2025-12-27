@@ -15,9 +15,9 @@
 import { NextRequest } from "next/server";
 import Stripe from "stripe";
 import dbConnect from "@/lib/db";
-import Booking from "@/lib/models/Booking";
-import Business from "@/lib/models/Business";
-import Service from "@/lib/models/Service";
+import Booking, { IBooking, PopulatedBooking } from "@/lib/models/Booking";
+import Business, { IBusiness } from "@/lib/models/Business";
+import Service, { IService } from "@/lib/models/Service";
 import { authenticateRequest } from "@/lib/api-auth";
 import { applyRateLimit } from "@/lib/rate-limit";
 import {
@@ -80,6 +80,11 @@ async function confirmPaymentHandler(req: NextRequest) {
         throw new APIError(404, "Booking not found", "BOOKING_NOT_FOUND");
     }
 
+    // Safety Check: Ensure populated fields exist
+    if (!booking.serviceId || !booking.businessId) {
+        throw new APIError(404, "Associated Service or Business not found", "RESOURCE_MISSING");
+    }
+
     // Security: Verify user owns this booking
     const bookingUserId = typeof booking.userId === 'object' ? (booking.userId._id || booking.userId.id) : booking.userId;
     if (String(bookingUserId) !== String(session.userId)) {
@@ -101,7 +106,9 @@ async function confirmPaymentHandler(req: NextRequest) {
     }
 
     // Verify amount matches (in cents)
-    const expectedAmount = Math.round(booking.depositAmount * 100);
+    // Verify amount matches (in cents)
+    const { PLATFORM_FEE } = await import("@/lib/constants/pricing");
+    const expectedAmount = Math.round((booking.depositAmount + (booking.platformFee || PLATFORM_FEE)) * 100);
     if (paymentIntent.amount !== expectedAmount) {
         throw new APIError(
             400,
@@ -120,16 +127,20 @@ async function confirmPaymentHandler(req: NextRequest) {
         // and saves the booking.
     } catch (error: any) {
         console.error(`[Payment Confirm] Reservation failed for booking ${bookingId}:`, error);
-        // If reservation fails (slot taken), we mark as failed_to_reserve
-        booking.status = "pending";
-        booking.paymentStatus = "pending";
+
+        // CRITICAL FIX: If money was paid but slot taken, we MUST record the payment.
+        // We set status to 'cancelled' (or pending review) but paymentStatus to 'deposit_paid'.
+        // This alerts the admin/system that a refund is needed.
+        booking.status = "cancelled";
+        booking.paymentStatus = "deposit_paid";
+        booking.cancellationReason = "System Error: Slot unavailable after payment";
         booking.paymentIntentId = paymentIntentId;
-        booking.businessNotes = `PAYMENT SUCCESSFUL but Slot was already taken during the checkout process. Error: ${error.message}`;
+        booking.businessNotes = `PAYMENT SUCCESSFUL ($${paymentIntent.amount / 100}) but Slot was already taken during checkout. REFUND NEEDED. Error: ${error.message}`;
         await booking.save();
 
         throw new APIError(
             409,
-            "Payment was successful, but the time slot was unfortunately taken by another customer while you were checking out. Please contact support for a refund or rescheduling.",
+            "Payment was successful, but the time slot was taken by another customer seconds ago. A refund will be processed automatically or please contact support.",
             "SLOT_TAKEN_POST_PAYMENT"
         );
     }

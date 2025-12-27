@@ -263,8 +263,21 @@ bookingSchema.index({ createdAt: -1 });
 // MODEL EXPORT
 // =============================================================================
 
+import { IService } from "./Service";
+import { IBusiness } from "./Business";
+import { IUser } from "./User";
+
+/**
+ * PopulatedBooking - Safe type for populated booking documents
+ * Centralized here to avoid ad-hoc types in API routes
+ */
+export type PopulatedBooking = Omit<IBooking, "serviceId" | "businessId" | "userId"> & {
+  serviceId: IService;
+  businessId: IBusiness;
+  userId: IUser;
+};
+
 const Booking: Model<IBooking> =
   mongoose.models.Booking || mongoose.model<IBooking>("Booking", bookingSchema);
 
 export default Booking;
- 

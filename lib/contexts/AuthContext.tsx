@@ -8,7 +8,9 @@ interface User {
     fname: string;
     lname: string;
     email: string;
+    contactNo?: string;
     phone?: string;
+    pic?: string;
     role?: string; // Singular role from session
     roles?: string[]; // Kept for backward compatibility
 }

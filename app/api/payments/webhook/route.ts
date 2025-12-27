@@ -13,7 +13,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
 import dbConnect from "@/lib/db";
-import Booking from "@/lib/models/Booking";
+import Booking, { PopulatedBooking } from "@/lib/models/Booking";
 import Business from "@/lib/models/Business";
 import Service from "@/lib/models/Service";
 import User from "@/lib/models/User";
@@ -88,6 +88,9 @@ export async function POST(request: NextRequest) {
                     .populate("serviceId", "serviceName");
 
                 if (booking) {
+                    // Use Centralized Type
+                    const populatedBooking = booking as unknown as PopulatedBooking;
+
                     // Use BookingService for atomic slot reservation
                     const { BookingService } = await import("@/lib/services/booking-service");
                     try {
@@ -98,30 +101,34 @@ export async function POST(request: NextRequest) {
                         // Slot was taken during payment process. 
                         // We mark as failure, business will need to handle.
                         booking.paymentStatus = "deposit_paid"; // Money was still paid
-                        booking.status = "pre_payment"; // Slot not reserved, keep it in pre_payment or mark for manual review
+                        booking.status = "cancelled"; // Slot not reserved, wait for manual review or cancel
+                        booking.cancellationReason = "Slot unavailable after payment (Webhook)";
                         booking.businessNotes = `PAYMENT SUCCESS via webhook but Slot was already taken. Error: ${error.message}`;
                         await booking.save();
                     }
 
                     // Refresh booking to ensure we have latest data for emails
+                    // We must perform the query again or cast the previous one.
+                    // Given we saved, let's fetch strictly typed.
+
+
                     const updatedBooking = await Booking.findById(booking._id)
-                        .populate("userId", "fname lname email")
-                        .populate("businessId", "businessName email")
-                        .populate("serviceId", "serviceName");
+                        .populate("userId", "fname lname email contactNo phone")
+                        .populate("businessId", "businessName email phone address")
+                        .populate("serviceId", "serviceName")
+                        .lean();
 
                     if (!updatedBooking) return; // Should not happen
 
-                    // Prepare email data
-                    const user = booking.userId as any;
-                    const business = booking.businessId as any;
-                    const service = booking.serviceId as any;
+                    const safeBooking = updatedBooking as unknown as PopulatedBooking;
 
-                    if (user && business && service) {
+                    // Prepare email data safely using the strict type
+                    if (safeBooking.userId && safeBooking.businessId && safeBooking.serviceId) {
                         const emailPayload = {
-                            booking: booking as any,
-                            customer: user,
-                            business: business,
-                            service: service
+                            booking: safeBooking as any, // BookingEmailPayload is compatible
+                            customer: safeBooking.userId as any,
+                            business: safeBooking.businessId as any,
+                            service: safeBooking.serviceId as any
                         };
 
                         const EmailService = (await import("@/lib/email-service")).default;

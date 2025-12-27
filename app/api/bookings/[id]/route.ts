@@ -12,6 +12,8 @@ import { NextRequest } from "next/server";
 import dbConnect from "@/lib/db";
 // Import from models index to ensure all models are registered
 import { Booking, Service, Business, User, Staff } from "@/lib/models";
+// Also import types directly if needed, or rely on Booking model exports
+import { PopulatedBooking } from "@/lib/models/Booking";
 import { authenticateRequest } from "@/lib/api-auth";
 import { applyRateLimit } from "@/lib/rate-limit";
 import { APIError, asyncHandler, successResponse } from "@/lib/api-response";
@@ -131,19 +133,24 @@ async function updateBookingHandler(
         .populate('serviceId', 'serviceName')
         .lean();
 
-      if (bookingWithPopulated?.userId && bookingWithPopulated?.businessId && bookingWithPopulated?.serviceId) {
-        // Send cancellation emails to BOTH Business and Customer
-        const emailPayload = {
-          booking: bookingWithPopulated as any,
-          customer: bookingWithPopulated.userId as any,
-          business: bookingWithPopulated.businessId as any,
-          service: bookingWithPopulated.serviceId as any
-        };
+      if (bookingWithPopulated) {
+        // Use strictly typed PopulatedBooking (centralized)
+        const safeBooking = bookingWithPopulated as unknown as PopulatedBooking;
 
-        Promise.all([
-          EmailService.sendCancellationToBusiness(emailPayload),
-          EmailService.sendCancellationToCustomer(emailPayload)
-        ]).catch(err => console.error('Cancellation email failed:', err));
+        if (safeBooking.userId && safeBooking.businessId && safeBooking.serviceId) {
+          // Send cancellation emails to BOTH Business and Customer
+          const emailPayload = {
+            booking: safeBooking as any,
+            customer: safeBooking.userId,
+            business: safeBooking.businessId,
+            service: safeBooking.serviceId
+          };
+
+          Promise.all([
+            EmailService.sendCancellationToBusiness(emailPayload),
+            EmailService.sendCancellationToCustomer(emailPayload)
+          ]).catch(err => console.error('Cancellation email failed:', err));
+        }
       }
     } catch (emailError) {
       console.error('Failed to prepare cancellation email:', emailError);

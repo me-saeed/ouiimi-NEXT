@@ -2,13 +2,16 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import Image from "next/image";
 import PageLayout from "@/components/layout/PageLayout";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/lib/contexts/AuthContext";
 import StripeProvider from "@/components/payments/StripeProvider";
 import CheckoutForm from "@/components/payments/CheckoutForm";
-import { DEPOSIT_PERCENTAGE } from "@/lib/constants/pricing";
+import { DEPOSIT_PERCENTAGE, PLATFORM_FEE } from "@/lib/constants/pricing";
+
+import { ApiBooking } from "@/lib/types/api";
 
 export default function CheckoutPage() {
     const params = useParams();
@@ -16,7 +19,7 @@ export default function CheckoutPage() {
     const { user, isAuthenticated, isLoading: authLoading } = useAuth();
     const bookingId = params.id as string;
 
-    const [booking, setBooking] = useState<any>(null);
+    const [booking, setBooking] = useState<ApiBooking | null>(null);
     const [clientSecret, setClientSecret] = useState<string>("");
     const [paymentAmount, setPaymentAmount] = useState<number>(0);
     const [isLoading, setIsLoading] = useState(true);
@@ -57,6 +60,13 @@ export default function CheckoutPage() {
 
                 const bookingData = await bookingResponse.json();
                 const booking = bookingData.data?.booking || bookingData.booking;
+
+                // If already paid, redirect to confirmation immediately
+                if (booking.paymentStatus === 'deposit_paid' || booking.status === 'confirmed') {
+                    router.push(`/bookings/${bookingId}/confirm`);
+                    return;
+                }
+
                 setBooking(booking);
 
                 // Then, create payment intent for embedded checkout
@@ -152,7 +162,14 @@ export default function CheckoutPage() {
                                 <div className="flex items-center gap-4 pb-6 border-b border-gray-100">
                                     <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl border-2 border-gray-100 flex items-center justify-center bg-gradient-to-br from-gray-50 to-white shadow-sm overflow-hidden flex-shrink-0">
                                         {business?.logo ? (
-                                            <img src={business.logo} alt={business.businessName} className="w-full h-full object-cover" />
+                                            <div className="relative w-full h-full">
+                                                <Image
+                                                    src={business.logo}
+                                                    alt={business.businessName}
+                                                    fill
+                                                    className="object-cover"
+                                                />
+                                            </div>
                                         ) : (
                                             <div className="w-full h-full bg-gradient-to-br from-gray-100 to-gray-50" />
                                         )}
@@ -188,7 +205,7 @@ export default function CheckoutPage() {
                                     <div className="space-y-3">
                                         <div className="flex justify-between items-center">
                                             <span className="text-gray-700 font-medium">{service?.serviceName}</span>
-                                            <span className="text-gray-900 font-semibold">${booking.baseCost || booking.totalCost - (booking.addOns?.reduce((acc: any, curr: any) => acc + curr.cost, 0) || 0)}</span>
+                                            <span className="text-gray-900 font-semibold">${booking.baseCost || booking.totalCost - (booking.addOns?.reduce((acc: number, curr: any) => acc + curr.cost, 0) || 0)}</span>
                                         </div>
 
                                         {booking.addOns && booking.addOns.length > 0 && (
@@ -216,19 +233,22 @@ export default function CheckoutPage() {
                                         <h3 className="font-semibold text-gray-900 mb-4">Payment Breakdown</h3>
                                         <div className="space-y-2">
 
-                                            // [Inside the component]
+
                                             <div className="flex justify-between items-center">
                                                 <span className="text-gray-600">{DEPOSIT_PERCENTAGE * 100}% Deposit</span>
                                                 <span className="font-semibold text-gray-900">${booking.depositAmount}</span>
                                             </div>
                                             <div className="flex justify-between items-center">
-                                                <span className="text-gray-600">Platform Fee</span>
-                                                <span className="font-semibold text-gray-900">$1.99</span>
+                                                <span className="text-gray-600 flex items-center gap-1">
+                                                    Platform Fee
+                                                    <span className="text-xs bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded-full">Non-refundable</span>
+                                                </span>
+                                                <span className="font-semibold text-gray-900">${PLATFORM_FEE}</span>
                                             </div>
                                             <div className="pt-3 border-t border-gray-300 mt-3">
                                                 <div className="flex justify-between items-center">
                                                     <span className="text-lg font-bold text-gray-900">Total Today</span>
-                                                    <span className="text-2xl font-bold text-[#EECFD1]">${(booking.depositAmount + 1.99).toFixed(2)}</span>
+                                                    <span className="text-3xl font-extrabold text-gray-900">${(booking.depositAmount + PLATFORM_FEE).toFixed(2)}</span>
                                                 </div>
                                             </div>
                                         </div>
@@ -298,11 +318,12 @@ export default function CheckoutPage() {
 
                                 {/* Security Badge */}
                                 <div className="pt-6 border-t border-gray-100">
-                                    <div className="flex items-center justify-center gap-2 text-sm text-gray-500">
-                                        <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                                    <div className="flex items-center justify-center gap-2 text-sm text-gray-500 bg-gray-50 py-3 rounded-lg border border-gray-100">
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-green-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10" />
+                                            <path d="m9 12 2 2 4-4" />
                                         </svg>
-                                        <span>Secured by Stripe - Your payment information is encrypted</span>
+                                        <span className="font-medium">Protected by Stripe 256-bit Encryption</span>
                                     </div>
                                 </div>
                             </div>

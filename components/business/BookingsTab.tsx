@@ -402,6 +402,19 @@ export function BookingsTab({ business }: BookingsTabProps) {
     const service = typeof booking.serviceId === 'object' ? booking.serviceId : null;
     const businessData = typeof booking.businessId === 'object' ? booking.businessId : null;
 
+    // Calculate duration from time slot if available
+    let duration = undefined;
+    if (booking.timeSlot?.startTime && booking.timeSlot?.endTime) {
+      try {
+        const [startH, startM] = booking.timeSlot.startTime.split(':').map(Number);
+        const [endH, endM] = booking.timeSlot.endTime.split(':').map(Number);
+        const diffMins = (endH * 60 + endM) - (startH * 60 + startM);
+        duration = diffMins > 0 ? `${diffMins} min` : undefined;
+      } catch (e) {
+        // Fallback or ignore
+      }
+    }
+
     return {
       id: booking.id,
       name: service?.serviceName || 'Service',
@@ -410,7 +423,7 @@ export function BookingsTab({ business }: BookingsTabProps) {
       category: service?.category || '',
       businessName: businessData?.businessName || business?.businessName || 'Business',
       location: businessData?.address || business?.address || '',
-      duration: service?.duration ? `${service.duration} min` : undefined,
+      duration: duration,
       date: formatDateForDisplay(booking.timeSlot.date),
       time: `${formatTimeForDisplay(booking.timeSlot.startTime)} - ${formatTimeForDisplay(booking.timeSlot.endTime)}`,
       bookingNumber: booking.bookingNumber || null,
