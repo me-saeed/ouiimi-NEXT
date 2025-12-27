@@ -928,28 +928,56 @@ export default function CreateServicePage() {
                 {/* Stacked Layout for Dates & Slots */}
                 <div className="space-y-6 pt-6 border-t border-[#E5E5E5]">
                   {/* Toolbar */}
-                  <div className="flex items-center justify-between">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0">
                     <div className="space-y-1">
                       <h3 className="text-sm font-bold text-[#3A3A3A] uppercase tracking-wider">Availability</h3>
                       <p className="text-xs text-gray-500">Manage dates and time slots for this service.</p>
                     </div>
                     <div className="relative">
+                      {/* Mobile: Direct date input styled as button */}
+                      <input
+                        type="date"
+                        className="md:hidden w-full h-10 px-3 text-xs font-semibold rounded-lg border-gray-200 border bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#EECFD1]/50 focus:border-[#EECFD1] transition-all"
+                        min={new Date().toISOString().split('T')[0]}
+                        onChange={(e) => {
+                          if (e.target.value) {
+                            handleSelectDate(e.target.value);
+                            e.target.value = '';
+                          }
+                        }}
+                      />
+
+                      {/* Desktop: Button with showPicker */}
                       <Button
                         type="button"
                         variant="outline"
-                        className="h-9 gap-2 text-xs font-semibold rounded-lg border-gray-200 hover:bg-gray-50 hover:text-[#3A3A3A]"
+                        className="hidden md:flex h-9 gap-2 text-xs font-semibold rounded-lg border-gray-200 hover:bg-gray-50 hover:text-[#3A3A3A]"
                         onClick={() => {
                           const picker = document.getElementById('hidden-date-picker-create');
-                          if (picker) (picker as HTMLInputElement).showPicker();
+                          if (picker) {
+                            // Feature detection for showPicker support
+                            if ('showPicker' in HTMLInputElement.prototype) {
+                              try {
+                                (picker as HTMLInputElement).showPicker();
+                              } catch (err) {
+                                // Fallback to click if showPicker fails
+                                picker.click();
+                              }
+                            } else {
+                              // Fallback for browsers without showPicker
+                              picker.click();
+                            }
+                          }
                         }}
                       >
                         <span className="text-lg leading-none">+</span> Add Date
                       </Button>
+
+                      {/* Hidden input for desktop */}
                       <input
                         id="hidden-date-picker-create"
                         type="date"
-                        className="absolute inset-0 opacity-0 cursor-pointer pointer-events-none"
-                        style={{ visibility: 'hidden', position: 'absolute' }}
+                        className="hidden md:block absolute inset-0 opacity-0 w-full h-full cursor-pointer"
                         min={new Date().toISOString().split('T')[0]}
                         onChange={(e) => {
                           if (e.target.value) {
@@ -990,7 +1018,7 @@ export default function CreateServicePage() {
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => handleRemoveDate(date)}
-                                className="text-gray-400 hover:text-red-500 h-8 w-8 p-0 rounded-full hover:bg-red-50 flex items-center justify-center transition-colors"
+                                className="text-gray-400 hover:text-red-500 h-11 w-11 sm:h-8 sm:w-8 p-0 rounded-full hover:bg-red-50 flex items-center justify-center transition-colors"
                               >
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                               </Button>
@@ -1002,7 +1030,7 @@ export default function CreateServicePage() {
                                 {slots.map((slot, index) => {
                                   const assignedStaff = staff.filter(s => slot.staffIds?.includes(s.id || s._id));
                                   return (
-                                    <div key={index} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 hover:bg-gray-50/50 transition-colors gap-4">
+                                    <div key={index} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 hover:bg-gray-50/50 transition-colors gap-3 sm:gap-4">
                                       {/* Time & Price Group */}
                                       <div className="flex items-center gap-4">
                                         <div className="bg-gray-50 px-3 py-1.5 rounded-lg text-sm font-bold text-[#3A3A3A] border border-gray-200 min-w-[140px] text-center">
@@ -1034,7 +1062,7 @@ export default function CreateServicePage() {
                                         <button
                                           type="button"
                                           onClick={() => handleRemoveTimeSlot(date, index)}
-                                          className="w-8 h-8 flex items-center justify-center rounded-full text-gray-300 hover:text-red-500 hover:bg-red-50 transition-all ml-2"
+                                          className="w-11 h-11 sm:w-8 sm:h-8 flex items-center justify-center rounded-full text-gray-300 hover:text-red-500 hover:bg-red-50 transition-all ml-2"
                                           title="Remove Slot"
                                         >
                                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
@@ -1078,7 +1106,7 @@ export default function CreateServicePage() {
                       </div>
                     )}
 
-                    <div className="space-y-6 max-h-[70vh] overflow-y-auto pr-2 custom-scrollbar">
+                    <div className="space-y-6 max-h-[60vh] sm:max-h-[70vh] overflow-y-auto pr-2 custom-scrollbar">
                       {/* Time Selection */}
                       <div className="space-y-4">
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -1153,7 +1181,7 @@ export default function CreateServicePage() {
                                 key={member.id || member._id}
                                 type="button"
                                 onClick={() => handleToggleStaff(member.id || member._id)}
-                                className={`group flex items-center gap-2 pl-1 pr-4 py-1.5 rounded-full border transition-all ${isSelected
+                                className={`group flex items-center gap-2 pl-1 pr-4 py-2 sm:py-1.5 rounded-full border transition-all min-h-[44px] sm:min-h-0 ${isSelected
                                   ? 'bg-[#3A3A3A] border-[#3A3A3A] text-white shadow-md'
                                   : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'}`}
                               >
@@ -1185,7 +1213,7 @@ export default function CreateServicePage() {
                               const isSelected = !!existing;
 
                               return (
-                                <div key={idx} className={`flex items-center justify-between p-3 transition-colors ${isSelected ? 'bg-[#FFF5F6]/30' : 'bg-white hover:bg-gray-50'}`}>
+                                <div key={idx} className={`flex items-center justify-between p-4 sm:p-3 transition-colors ${isSelected ? 'bg-[#FFF5F6]/30' : 'bg-white hover:bg-gray-50'}`}>
                                   <div className="flex items-center gap-3">
                                     <button
                                       type="button"
@@ -1196,7 +1224,7 @@ export default function CreateServicePage() {
                                           setSelectedAddOns(prev => [...prev, { name: addOnName, cost: 0 }]);
                                         }
                                       }}
-                                      className={`w-5 h-5 rounded border flex items-center justify-center transition-colors ${isSelected ? 'bg-[#3A3A3A] border-[#3A3A3A] text-white' : 'border-gray-300 bg-white'}`}
+                                      className={`w-6 h-6 sm:w-5 sm:h-5 rounded border flex items-center justify-center transition-colors ${isSelected ? 'bg-[#3A3A3A] border-[#3A3A3A] text-white' : 'border-gray-300 bg-white'}`}
                                     >
                                       {isSelected && <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>}
                                     </button>

@@ -39,8 +39,8 @@ export function ServiceEditModal({
                 onClick={onClose}
             />
 
-            {/* Modal Content - Fixed height to ensure internal scrolling works */}
-            <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-4xl h-[90vh] overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-200">
+            {/* Modal Content - Responsive height for mobile and desktop */}
+            <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-4xl h-[95vh] sm:h-[90vh] md:h-[85vh] max-h-screen overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-200">
                 <EditServiceForm
                     serviceId={serviceId}
                     onSuccess={onSuccess}
