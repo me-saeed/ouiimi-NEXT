@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { useAuth } from "@/lib/contexts/AuthContext";
 import StripeProvider from "@/components/payments/StripeProvider";
 import CheckoutForm from "@/components/payments/CheckoutForm";
+import { DEPOSIT_PERCENTAGE } from "@/lib/constants/pricing";
 
 export default function CheckoutPage() {
     const params = useParams();
@@ -214,8 +215,10 @@ export default function CheckoutPage() {
                                     <div className="bg-gradient-to-br from-[#EECFD1]/10 to-[#EECFD1]/5 rounded-2xl p-5 space-y-3">
                                         <h3 className="font-semibold text-gray-900 mb-4">Payment Breakdown</h3>
                                         <div className="space-y-2">
+
+                                            // [Inside the component]
                                             <div className="flex justify-between items-center">
-                                                <span className="text-gray-600">10% Deposit</span>
+                                                <span className="text-gray-600">{DEPOSIT_PERCENTAGE * 100}% Deposit</span>
                                                 <span className="font-semibold text-gray-900">${booking.depositAmount}</span>
                                             </div>
                                             <div className="flex justify-between items-center">

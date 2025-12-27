@@ -195,13 +195,12 @@ async function createBookingHandler(req: NextRequest) {
     throw new APIError(409, "Time slot is already fully booked", "SLOT_UNAVAILABLE");
   }
 
-  // ==========================================================================
-  // STEP 8: Create booking
+  // Create booking
   // ==========================================================================
   const lastBooking = await Booking.findOne().sort({ bookingNumber: -1 }).select('bookingNumber');
   const bookingNumber = lastBooking?.bookingNumber ? lastBooking.bookingNumber + 1 : 5000;
 
-  const PLATFORM_FEE = 1.99;
+  const { PLATFORM_FEE, DEPOSIT_PERCENTAGE } = await import("@/lib/constants/pricing");
   const bookingData: any = {
     _id: bookingId,
     bookingNumber,
@@ -214,8 +213,8 @@ async function createBookingHandler(req: NextRequest) {
       endTime: bookingEndTime,
     },
     totalCost: calculatedTotalCost,
-    depositAmount: Math.round(calculatedTotalCost * 0.1 * 100) / 100,
-    remainingAmount: Math.round(calculatedTotalCost * 0.9 * 100) / 100,
+    depositAmount: Math.round(calculatedTotalCost * DEPOSIT_PERCENTAGE * 100) / 100,
+    remainingAmount: Math.round(calculatedTotalCost * (1 - DEPOSIT_PERCENTAGE) * 100) / 100,
     platformFee: PLATFORM_FEE,
     serviceAmount: calculatedTotalCost - PLATFORM_FEE,
     status: "pre_payment",

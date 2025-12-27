@@ -105,8 +105,8 @@ export async function POST(request: NextRequest) {
         // =====================================================================
         // Platform fee: ouiimi's service charge ($1.99)
         // Deposit: 10% of service cost (stored in booking.depositAmount)
-        // Total: deposit + platformFee
-        const platformFee = booking.platformFee || 1.99;
+        const { PLATFORM_FEE, DEPOSIT_PERCENTAGE } = await import("@/lib/constants/pricing");
+        const platformFee = booking.platformFee || PLATFORM_FEE;
         const totalAmount = booking.depositAmount + platformFee;
         const amountInCents = Math.round(totalAmount * 100);
 
@@ -141,7 +141,7 @@ export async function POST(request: NextRequest) {
                         currency: "usd",
                         product_data: {
                             name: `${serviceId?.serviceName || "Service"} - Deposit`,
-                            description: `10% deposit for ${businessId?.businessName || "Business"}`,
+                            description: `${DEPOSIT_PERCENTAGE * 100}% deposit for ${businessId?.businessName || "Business"}`,
                         },
                         unit_amount: Math.round(booking.depositAmount * 100), // Cents
                     },
