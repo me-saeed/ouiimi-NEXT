@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { AddressAutocomplete } from "@/components/ui/address-autocomplete";
 import { Search } from "lucide-react";
+import { geocodeByAddress, getLatLng } from "react-google-places-autocomplete";
 import {
     Select,
     SelectContent,
@@ -41,7 +42,7 @@ export function ServiceFilters({
     const [selectedDate, setSelectedDate] = useState(initialDate);
     const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
 
-    const { control } = useForm({
+    const { control, getValues } = useForm({
         defaultValues: {
             location: "",
         },
@@ -71,6 +72,30 @@ export function ServiceFilters({
         if (lng !== undefined) params.set("longitude", String(lng));
 
         router.push(`/services?${params.toString()}`);
+    };
+
+    const handleManualSearch = async () => {
+        const locationText = getValues("location");
+
+        if (!locationText) {
+            // If empty, clear location search
+            setUserLocation(null);
+            updateURL(category, subCategory, selectedDate, undefined, undefined, true);
+            return;
+        }
+
+        try {
+            // Geocode the manually typed address
+            const results = await geocodeByAddress(locationText);
+            const coordinates = await getLatLng(results[0]);
+
+            setUserLocation({ lat: coordinates.lat, lng: coordinates.lng });
+            updateURL(category, subCategory, selectedDate, coordinates.lat, coordinates.lng);
+        } catch (error) {
+            console.error("Manual search geocoding failed:", error);
+            // Optionally handle error (e.g. show toast)
+            // For now, if geocoding fails, we just don't update location params
+        }
     };
 
     const handleCategoryChange = (value: string) => {
@@ -137,7 +162,12 @@ export function ServiceFilters({
                         </SelectContent>
                     </Select>
                 </div>
-                <Button size="icon" variant="ghost" className="h-12 w-12 rounded-full hover:bg-gray-100">
+                <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-12 w-12 rounded-full hover:bg-gray-100"
+                    onClick={handleManualSearch}
+                >
                     <Search className="h-6 w-6 text-[#3A3A3A]" />
                 </Button>
             </div>
