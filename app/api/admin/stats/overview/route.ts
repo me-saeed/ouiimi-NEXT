@@ -44,7 +44,7 @@ async function getStatsHandler(req: NextRequest) {
         Business.countDocuments(),
         Business.countDocuments({ status: "pending" }),
         Business.countDocuments({ status: "approved" }),
-        Booking.countDocuments(),
+        Booking.countDocuments({ status: { $ne: "pre_payment" } }),
         Booking.countDocuments({ status: "pending" }),
         Booking.countDocuments({ status: "confirmed" }),
         Booking.aggregate([

@@ -54,9 +54,9 @@ async function getReleasedPaymentsHandler(req: NextRequest) {
         bookings: bookings.map((b: any) => ({
             id: String(b._id),
             bookingNumber: b.bookingNumber,
-            business: b.businessId,
-            service: b.serviceId,
-            user: b.userId,
+            businessId: b.businessId,
+            serviceId: b.serviceId,
+            userId: b.userId,
             serviceAmount: b.serviceAmount,
             updatedAt: b.updatedAt,
         })),

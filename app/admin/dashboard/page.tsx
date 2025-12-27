@@ -20,23 +20,10 @@ import useSWR from "swr";
 import { useAuth } from "@/lib/contexts/AuthContext";
 
 // Existing booking interface
-interface Booking {
-  id: string;
-  userId: any;
-  serviceId: any;
-  businessId: any;
-  timeSlot: {
-    date: string;
-    startTime: string;
-    endTime: string;
-  };
-  totalCost: number;
-  platformFee?: number;
-  serviceAmount?: number;
-  adminPaymentStatus?: string;
-  status: string;
-  paymentStatus: string;
-}
+// Local interface removed in favor of imported type
+import { Booking } from "@/types/booking";
+
+// New interfaces
 
 // New interfaces
 interface Business {

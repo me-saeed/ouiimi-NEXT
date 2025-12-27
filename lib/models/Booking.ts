@@ -267,3 +267,4 @@ const Booking: Model<IBooking> =
   mongoose.models.Booking || mongoose.model<IBooking>("Booking", bookingSchema);
 
 export default Booking;
+ 

@@ -299,9 +299,9 @@ async function getBookingsHandler(req: NextRequest) {
     } else {
       query.status = status;
     }
-  } else if (!businessId) {
-    // Only hide pre-payment bookings from generic user lists
-    // Business owners should see ALL their bookings including pre_payment
+  } else {
+    // Hide pre-payment bookings for everyone by default
+    // Bookings are only valid/visible after payment
     query.status = { $ne: "pre_payment" };
   }
 

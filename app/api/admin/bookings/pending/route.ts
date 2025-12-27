@@ -51,9 +51,9 @@ async function getPendingBookingsHandler(req: NextRequest) {
     bookings: bookings.map((b: any) => ({
       id: String(b._id),
       bookingNumber: b.bookingNumber,
-      user: b.userId,
-      business: b.businessId,
-      service: b.serviceId,
+      userId: b.userId,
+      businessId: b.businessId,
+      serviceId: b.serviceId,
       timeSlot: b.timeSlot,
       totalCost: b.totalCost,
       status: b.status,

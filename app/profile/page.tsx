@@ -14,27 +14,7 @@ import { ImageUpload } from "@/components/ui/image-upload";
 import { useAuth } from "@/lib/contexts/AuthContext";
 import { renderAddress } from "@/lib/utils";
 
-interface Booking {
-  id: string;
-  businessId: any;
-  serviceId: any;
-  staffId: any;
-  timeSlot: {
-    date: string;
-    startTime: string;
-    endTime: string;
-  };
-  addOns: Array<{ name: string; cost: number }>;
-  totalCost: number;
-  depositAmount: number;
-  remainingAmount: number;
-  status: string;
-  paymentStatus: string;
-  customerNotes?: string;
-  cancelledAt?: string;
-  cancellationReason?: string;
-  bookingNumber?: number;  // Sequential booking number (5000, 5001, etc.)
-}
+import { Booking } from "@/types/booking";
 
 export default function ShopperProfilePage() {
   const router = useRouter();
@@ -144,7 +124,12 @@ export default function ShopperProfilePage() {
     try {
       const userId = userData.id || userData._id;
 
-      const response = await fetch(`/api/bookings?userId=${userId}`, {
+      // ROOT FIX: Explicitly request valid statuses
+      // We only want confirmed (paid), completed, or cancelled bookings.
+      // Never show pre_payment (unpaid/in-progress) bookings.
+      const statusFilter = "confirmed,completed,cancelled,refunded";
+
+      const response = await fetch(`/api/bookings?userId=${userId}&status=${statusFilter}`, {
         headers: {
           "Content-Type": "application/json",
         },

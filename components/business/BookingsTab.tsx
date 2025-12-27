@@ -11,32 +11,13 @@ interface BookingsTabProps {
   business: any;
 }
 
-interface Booking {
-  id: string;
-  userId: any;
-  serviceId: any;
-  staffId: any;
-  businessId?: any;
-  timeSlot: {
-    date: string;
-    startTime: string;
-    endTime: string;
-  };
-  addOns: Array<{ name: string; cost: number }>;
-  totalCost: number;
-  depositAmount: number;
-  remainingAmount: number;
-  platformFee?: number;
-  serviceAmount?: number;
-  status: string;
-  paymentStatus: string;
-  adminPaymentStatus?: string;
-  customerNotes?: string;
-  businessNotes?: string;
-  cancelledAt?: string;
-  cancellationReason?: string;
-  bookingNumber?: number;  // Sequential booking number (5000, 5001, etc.)
+import { Booking } from "@/types/booking";
+
+interface BookingsTabProps {
+  business: any;
 }
+
+// Local interface removed in favor of imported type
 
 export function BookingsTab({ business }: BookingsTabProps) {
   const [activeSubTab, setActiveSubTab] = useState<"up-coming" | "pending" | "finished">("up-coming");
@@ -94,21 +75,20 @@ export function BookingsTab({ business }: BookingsTabProps) {
     try {
       const businessId = business.id || business._id;
 
-      // For upcoming, get ALL bookings (no status filter) to check dates client-side
-      // For pending/finished, we can filter by status on server
+      // ROOT FIX: Explicitly request valid statuses for each tab
+      // This ensures 'pre_payment' bookings are never fetched
       let statusFilter = "";
-      if (activeSubTab === "pending") {
-        statusFilter = "confirmed"; // Pending are confirmed bookings with past dates
+      if (activeSubTab === "up-coming") {
+        statusFilter = "confirmed";
+      } else if (activeSubTab === "pending") {
+        // Pending payouts can be for confirmed or completed bookings
+        statusFilter = "confirmed,completed";
       } else if (activeSubTab === "finished") {
-        // Finished are bookings with released payment status, not a status filter
-        statusFilter = "";
-      } else {
-        // Upcoming: get all bookings, filter by date and status client-side
-        statusFilter = ""; // No filter - we'll check status in client-side filter
+        statusFilter = "completed,cancelled,refunded";
       }
 
       const response = await fetch(
-        `/api/bookings?businessId=${businessId}${statusFilter ? `&status=${statusFilter}` : ""}`,
+        `/api/bookings?businessId=${businessId}&status=${statusFilter}`,
         {
           headers: {
             "Content-Type": "application/json",
@@ -145,9 +125,9 @@ export function BookingsTab({ business }: BookingsTabProps) {
         if (activeSubTab === "up-coming") {
           filteredBookings = filteredBookings.filter((b: Booking) => {
             try {
-              // UPCOMING: Show CONFIRMED bookings (payment succeeded) AND PRE_PAYMENT (in checkout)
-              // This allows business owners to see all reservations, including those in payment process
-              if (b.status !== "confirmed" && b.status !== "pre_payment") {
+              // UPCOMING: Show CONFIRMED bookings (payment succeeded) only
+              // We strictly only show bookings that have been paid for
+              if (b.status !== "confirmed") {
                 return false;
               }
 
