@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { sendEmail } from "@/lib/services/mailjet";
+import EmailService from "@/lib/email-service";
 
 export const dynamic = 'force-dynamic';
 
@@ -13,34 +13,38 @@ export async function GET(req: NextRequest) {
 
     // Hardcoded known-good data for Business Booking Confirmation
     const testData = {
-        fname: "Test Owner",
-        customerName: "John Doe (Test)",
-        email: email, // Recipient business email
-        businessName: "Test Business",
-        serviceName: "Test Service",
-        date: "12/12/2025",
-        time: "10:00 - 11:00",
-        bookingId: "TEST-123",
-        depositAmount: 25.00,
-        totalCost: 50.00,
-        outstanding: 25.00
+        booking: {
+            _id: "TEST-123",
+            bookingNumber: "TEST-123",
+            totalCost: 50.00,
+            depositAmount: 25.00,
+            remainingAmount: 25.00,
+            timeSlot: {
+                date: new Date(),
+                startTime: "10:00",
+                endTime: "11:00"
+            }
+        },
+        customer: {
+            fname: "John",
+            lname: "Doe (Test)",
+            email: "test@shopper.com"
+        },
+        business: {
+            businessName: "Test Business",
+            email: email, // Recipient business email
+            address: "123 Test St"
+        },
+        service: {
+            serviceName: "Test Service"
+        }
     };
 
-    console.log(`[DebugEmail] Attempting to send Business Confirmation to ${email}`);
+    console.log(`[DebugEmail] Attempting to send Business Confirmation via EmailService to ${email}`);
 
     try {
-        const success = await sendEmail(
-            [email],
-            "TEST - New Booking Received",
-            testData,
-            "booking_confirmation_business" // Using the exact template ID failing
-        );
-
-        if (success) {
-            return NextResponse.json({ message: "Email sent successfully", data: testData });
-        } else {
-            return NextResponse.json({ error: "Email send failed (Check terminal logs for Mailjet error)" }, { status: 500 });
-        }
+        await EmailService.sendNewBookingToBusiness(testData as any);
+        return NextResponse.json({ message: "Email sent successfully via EmailService", data: testData });
     } catch (error: any) {
         return NextResponse.json({ error: error.message }, { status: 500 });
     }

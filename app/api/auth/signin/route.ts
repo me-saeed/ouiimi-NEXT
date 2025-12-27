@@ -32,7 +32,7 @@ import {
   APIError,
   asyncHandler
 } from "@/lib/api-response";
-import { sendWelcomeEmail } from "@/lib/services/mailjet";
+import EmailService from "@/lib/email-service";
 
 // Force dynamic rendering
 export const dynamic = 'force-dynamic';
@@ -145,7 +145,7 @@ async function signinHandler(req: NextRequest) {
   // STEP 9: Send welcome email on first login (async, don't wait)
   // ==========================================================================
   if (isFirstLogin) {
-    sendWelcomeEmail(user.email, user.fname).catch(error => {
+    EmailService.sendShopperWelcome(user as any).catch(error => {
       console.error('[Signin] Welcome email failed:', error);
     });
   }

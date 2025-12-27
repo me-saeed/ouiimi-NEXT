@@ -51,7 +51,11 @@ async function rejectBusinessHandler(
     try {
         const businessWithUser = await Business.findById(params.id).populate('userId', 'fname lname email');
         if (businessWithUser && businessWithUser.userId) {
-            await EmailService.sendBusinessRejected(businessWithUser, businessWithUser.userId, reason);
+            await EmailService.sendBusinessRejected({
+                business: businessWithUser as any,
+                owner: businessWithUser.userId as any,
+                reason: reason
+            });
         }
     } catch (emailError) {
         console.error('[ADMIN] Failed to send rejection email:', emailError);

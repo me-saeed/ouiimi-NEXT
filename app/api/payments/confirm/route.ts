@@ -150,19 +150,16 @@ async function confirmPaymentHandler(req: NextRequest) {
 
         if (bookingWithPopulated?.userId && bookingWithPopulated?.businessId && bookingWithPopulated?.serviceId) {
             // Send emails asynchronously (don't wait for them)
+            const emailPayload = {
+                booking: bookingWithPopulated as any,
+                customer: bookingWithPopulated.userId as any,
+                business: bookingWithPopulated.businessId as any,
+                service: bookingWithPopulated.serviceId as any
+            };
+
             Promise.all([
-                EmailService.sendBookingConfirmation(
-                    bookingWithPopulated,
-                    bookingWithPopulated.userId,
-                    bookingWithPopulated.businessId,
-                    bookingWithPopulated.serviceId
-                ),
-                EmailService.sendNewBookingToBusiness(
-                    bookingWithPopulated,
-                    bookingWithPopulated.userId,
-                    bookingWithPopulated.businessId,
-                    bookingWithPopulated.serviceId
-                )
+                EmailService.sendBookingConfirmation(emailPayload),
+                EmailService.sendNewBookingToBusiness(emailPayload)
             ]).catch(error => {
                 console.error('[Payment Confirm] Email sending failed:', error);
                 // Don't throw - emails should not block payment confirmation

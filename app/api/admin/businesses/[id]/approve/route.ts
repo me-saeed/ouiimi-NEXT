@@ -46,7 +46,10 @@ async function approveBusinessHandler(
     try {
         const businessWithUser = await Business.findById(params.id).populate('userId', 'fname lname email');
         if (businessWithUser && businessWithUser.userId) {
-            await EmailService.sendBusinessApproved(businessWithUser, businessWithUser.userId);
+            await EmailService.sendBusinessApproved({
+                business: businessWithUser as any,
+                owner: businessWithUser.userId as any
+            });
         }
     } catch (emailError) {
         console.error('[ADMIN] Failed to send approval email:', emailError);

@@ -32,8 +32,9 @@ async function releasePaymentHandler(
   await dbConnect();
 
   const booking = await Booking.findById(params.id)
-    .populate("businessId", "businessName")
-    .populate("serviceId", "serviceName category");
+    .populate("businessId", "businessName email") // Added email
+    .populate("serviceId", "serviceName category")
+    .populate("userId", "fname lname");
 
   if (!booking) {
     throw new APIError(404, "Booking not found", "NOT_FOUND");
@@ -57,12 +58,13 @@ async function releasePaymentHandler(
   // Send payment released email to business
   try {
     if (booking.businessId && booking.serviceId) {
-      await EmailService.sendPaymentReleased(
-        booking,
-        booking.businessId,
-        booking.serviceId,
-        (booking.serviceId as any).category // Pass category explicitly
-      );
+      await EmailService.sendPaymentReleased({
+        booking: booking as any,
+        business: booking.businessId as any,
+        service: booking.serviceId as any,
+        customer: booking.userId as any, // Pass customer
+        category: (booking.serviceId as any).category // Pass category explicitly
+      });
     }
   } catch (emailError) {
     console.error('Failed to send payment released email:', emailError);

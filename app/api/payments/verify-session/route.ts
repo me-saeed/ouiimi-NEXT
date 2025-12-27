@@ -146,36 +146,19 @@ export async function POST(request: NextRequest) {
                 const service = populatedBooking.serviceId as any;
 
                 if (user && business && service) {
-                    const emailData = {
-                        fname: user.fname,
-                        lname: user.lname,
-                        email: user.email,
-                        businessName: business.businessName,
-                        serviceName: service.serviceName,
-                        date: new Date(booking.timeSlot.date).toLocaleDateString('en-US', {
-                            year: 'numeric', month: 'long', day: 'numeric'
-                        }),
-                        time: `${booking.timeSlot.startTime} - ${booking.timeSlot.endTime}`,
-                        totalCost: booking.totalCost,
-                        depositAmount: booking.depositAmount,
-                        paymentAmount: booking.depositAmount,
-                        remainingAmount: booking.remainingAmount,
-                        bookingId: booking.bookingNumber || (booking._id as any).toString().slice(-6).toUpperCase(),
-                        location: business.address || "Business Location"
+                    const emailPayload = {
+                        booking: booking as any,
+                        customer: user,
+                        business: business,
+                        service: service
                     };
 
-                    const { sendBookingConfirmationToShopper, sendBookingConfirmationToBusiness } = require("@/lib/services/mailjet");
+                    const EmailService = (await import("@/lib/email-service")).default;
 
-                    await sendBookingConfirmationToShopper(user.email, user.fname, emailData);
-                    console.log(`📧 [Verify] Shopper confirmation sent to ${user.email}`);
-
-                    if (business.email) {
-                        await sendBookingConfirmationToBusiness(business.email, "Business Owner", {
-                            ...emailData,
-                            customerName: `${user.fname} ${user.lname}`
-                        });
-                        console.log(`📧 [Verify] Business notification sent to ${business.email}`);
-                    }
+                    Promise.all([
+                        EmailService.sendBookingConfirmation(emailPayload),
+                        EmailService.sendNewBookingToBusiness(emailPayload)
+                    ]).catch(err => console.error("⚠️ Failed to send confirmation emails in verify-session:", err));
                 }
             }
         } catch (emailErr) {

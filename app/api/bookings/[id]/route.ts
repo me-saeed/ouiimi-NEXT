@@ -132,12 +132,18 @@ async function updateBookingHandler(
         .lean();
 
       if (bookingWithPopulated?.userId && bookingWithPopulated?.businessId && bookingWithPopulated?.serviceId) {
-        EmailService.sendCancellationToBusiness(
-          bookingWithPopulated,
-          bookingWithPopulated.userId,
-          bookingWithPopulated.businessId,
-          bookingWithPopulated.serviceId
-        ).catch(err => console.error('Cancellation email failed:', err));
+        // Send cancellation emails to BOTH Business and Customer
+        const emailPayload = {
+          booking: bookingWithPopulated as any,
+          customer: bookingWithPopulated.userId as any,
+          business: bookingWithPopulated.businessId as any,
+          service: bookingWithPopulated.serviceId as any
+        };
+
+        Promise.all([
+          EmailService.sendCancellationToBusiness(emailPayload),
+          EmailService.sendCancellationToCustomer(emailPayload)
+        ]).catch(err => console.error('Cancellation email failed:', err));
       }
     } catch (emailError) {
       console.error('Failed to prepare cancellation email:', emailError);

@@ -44,7 +44,7 @@ export interface EmailData {
 }
 
 // Mailjet Template IDs (Verified via API)
-const TEMPLATE_IDS = {
+export const TEMPLATE_IDS = {
   welcome: 7470194,                           // "welcome Email"
   business_welcome: 7470222,                  // "Business Signup Welcome Email"
   business_approved: 7470249,                 // "business Approved"
@@ -54,8 +54,8 @@ const TEMPLATE_IDS = {
   appointment_reminder: 7568563,              // "Appointment Reminder (Shopper)"
   booking_complete: 7568493,                  // "Booking Complete (shopper)"
   payment_receipt: 7568471,                   // "Payment Receipt (small business)"
-  booking_cancellation: 7579484,              // Legacy alias for "Booking Cancelled By Shopper - Premium"
-  booking_cancellation_shopper: 7579484,      // "Booking Cancelled By Shopper - Premium"
+  booking_cancellation: 7579254,              // "Booking Cancelled (Shopper) - Premium" (Updated ID)
+  booking_cancellation_shopper: 7579254,      // "Booking Cancelled By Shopper - Premium" (Updated ID)
   booking_cancellation_business: 7579485,     // "Booking Cancelled by shopper (to business) - Premium"
   booking_cancellation_by_business: 7579486,  // "Booking Cancelled By Small business - Premium"
   cancellation_payout: 7579487,               // "Deposit Payout Confirmation (Cancellation) - Premium"
@@ -100,6 +100,11 @@ export async function sendEmail(
           Subject: subject,
           Variables: {
             ...data,
+            // Critical: Explicit Defaults for Dynamic Content
+            emailTitle: data.emailTitle || subject,
+            emailBody: data.emailBody || '',
+            introText: data.introText || '',
+
             // Format numbers to strings with 2 decimals for display
             totalCost: data.totalCost !== undefined ? Number(data.totalCost).toFixed(2) : "0.00",
             depositAmount: data.depositAmount !== undefined ? Number(data.depositAmount).toFixed(2) : "0.00",
@@ -120,6 +125,7 @@ export async function sendEmail(
             booking_id: data.bookingId,
             reset_link: data.uniquelink,
             refund_amount: data.refundAmount !== undefined ? Number(data.refundAmount).toFixed(2) : "0.00",
+            email_title: data.emailTitle || subject, // snake_case variant
 
             // Pascal Case Variants
             FirstName: data.fname,

@@ -1,7 +1,15 @@
 /**
  * Centralized Email Service
- * Handles all email sending via Mailjet
+ * Handles all email sending via Mailjet with Strict Type Safety
  */
+
+import {
+    BookingEmailPayload,
+    PaymentReleasedPayload,
+    BusinessStatusPayload,
+    EmailBusiness,
+    EmailRecipient
+} from "@/lib/types/email-notifications";
 
 interface EmailParams {
     to: string;
@@ -15,17 +23,16 @@ interface EmailParams {
 export class EmailService {
     private static mailjetApiKey = process.env.MAILJET_API_KEY;
     private static mailjetSecretKey = process.env.MAILJET_SECRET_KEY;
-    private static fromEmail = process.env.MAILJET_FROM_EMAIL || "noreply@ouiimi.com";
-    private static fromName = process.env.MAILJET_FROM_NAME || "Ouiimi";
+
 
     /**
      * Send booking confirmation email to customer
      */
-    static async sendBookingConfirmation(booking: any, customer: any, business: any, service: any) {
+    static async sendBookingConfirmation({ booking, customer, business, service }: BookingEmailPayload) {
         try {
             const variables = {
-                customerName: `${customer.fname} ${customer.lname}`,
-                bookingNumber: booking.bookingNumber || booking._id.toString().slice(-8),
+                customerName: `${customer.fname} ${customer.lname || ''}`.trim(),
+                bookingNumber: booking.bookingNumber || booking._id?.toString().slice(-8),
                 serviceName: service.serviceName,
                 businessName: business.businessName,
                 date: new Date(booking.timeSlot.date).toLocaleDateString('en-US', {
@@ -36,9 +43,9 @@ export class EmailService {
                 }),
                 startTime: booking.timeSlot.startTime,
                 endTime: booking.timeSlot.endTime,
-                totalCost: booking.totalCost.toFixed(2),
-                depositPaid: booking.depositAmount.toFixed(2),
-                remainingAmount: booking.remainingAmount.toFixed(2),
+                totalCost: Number(booking.totalCost).toFixed(2),
+                depositPaid: Number(booking.depositAmount).toFixed(2),
+                remainingAmount: Number(booking.remainingAmount).toFixed(2),
                 businessAddress: typeof business.address === 'object'
                     ? `${business.address.street}, ${business.address.city}`
                     : business.address,
@@ -47,26 +54,26 @@ export class EmailService {
 
             await this.sendEmail({
                 to: customer.email,
-                toName: `${customer.fname} ${customer.lname}`,
+                toName: `${customer.fname} ${customer.lname || ''}`.trim(),
                 subject: `Booking Confirmed - ${service.serviceName}`,
-                variables
+                variables,
+                templateType: 'booking_confirmation_shopper'
             });
 
             console.log(`✅ Booking confirmation email sent to ${customer.email}`);
         } catch (error) {
             console.error('❌ Failed to send booking confirmation email:', error);
-            // Don't throw - email failure shouldn't block booking
         }
     }
 
     /**
      * Send new booking notification to business
      */
-    static async sendNewBookingToBusiness(booking: any, customer: any, business: any, service: any) {
+    static async sendNewBookingToBusiness({ booking, customer, business, service }: BookingEmailPayload) {
         try {
             const variables = {
                 businessName: business.businessName,
-                customerName: `${customer.fname} ${customer.lname}`,
+                customerName: `${customer.fname} ${customer.lname || ''}`.trim(),
                 customerEmail: customer.email,
                 customerPhone: customer.contactNo || customer.phone || 'Not provided',
                 serviceName: service.serviceName,
@@ -78,16 +85,19 @@ export class EmailService {
                 }),
                 startTime: booking.timeSlot.startTime,
                 endTime: booking.timeSlot.endTime,
-                totalCost: booking.totalCost.toFixed(2),
-                businessRevenue: (booking.depositAmount - booking.platformFee).toFixed(2),
-                bookingNumber: booking.bookingNumber || booking._id.toString().slice(-8)
+                totalCost: Number(booking.totalCost).toFixed(2),
+                businessRevenue: (Number(booking.depositAmount) - Number(booking.platformFee)).toFixed(2),
+                bookingNumber: booking.bookingNumber || booking._id?.toString().slice(-8),
+                emailTitle: "New Booking Received",
+                introText: `You have received a new booking request for <strong>${service.serviceName}</strong>.`
             };
 
             await this.sendEmail({
                 to: business.email,
                 toName: business.businessName,
                 subject: `New Booking Received - ${service.serviceName}`,
-                variables
+                variables,
+                templateType: 'booking_confirmation_business'
             });
 
             console.log(`✅ New booking notification sent to business: ${business.email}`);
@@ -99,10 +109,10 @@ export class EmailService {
     /**
      * Send service completion email to customer
      */
-    static async sendServiceCompletedToCustomer(booking: any, customer: any, business: any, service: any) {
+    static async sendServiceCompletedToCustomer({ booking, customer, business, service }: BookingEmailPayload) {
         try {
             const variables = {
-                customerName: `${customer.fname} ${customer.lname}`,
+                customerName: `${customer.fname} ${customer.lname || ''}`.trim(),
                 serviceName: service.serviceName,
                 businessName: business.businessName,
                 date: new Date(booking.timeSlot.date).toLocaleDateString('en-US', {
@@ -111,14 +121,16 @@ export class EmailService {
                     month: 'long',
                     day: 'numeric'
                 }),
-                remainingAmount: booking.remainingAmount.toFixed(2)
+                remainingAmount: Number(booking.remainingAmount).toFixed(2),
+                totalCost: Number(booking.totalCost).toFixed(2)
             };
 
             await this.sendEmail({
                 to: customer.email,
-                toName: `${customer.fname} ${customer.lname}`,
+                toName: `${customer.fname} ${customer.lname || ''}`.trim(),
                 subject: `Service Completed - ${service.serviceName}`,
-                variables
+                variables,
+                templateType: 'booking_complete'
             });
 
             console.log(`✅ Service completion email sent to customer: ${customer.email}`);
@@ -130,27 +142,33 @@ export class EmailService {
     /**
      * Send service completion notification to business
      */
-    static async sendServiceCompletedToBusiness(booking: any, customer: any, business: any, service: any) {
+    static async sendServiceCompletedToBusiness({ booking, customer, business, service }: BookingEmailPayload) {
         try {
             const variables = {
                 businessName: business.businessName,
                 serviceName: service.serviceName,
-                customerName: `${customer.fname} ${customer.lname}`,
+                customerName: `${customer.fname} ${customer.lname || ''}`.trim(),
                 date: new Date(booking.timeSlot.date).toLocaleDateString('en-US', {
                     weekday: 'long',
                     year: 'numeric',
                     month: 'long',
                     day: 'numeric'
                 }),
-                expectedPayout: (booking.depositAmount - booking.platformFee).toFixed(2),
-                bookingNumber: booking.bookingNumber || booking._id.toString().slice(-8)
+                startTime: booking.timeSlot.startTime,
+                endTime: booking.timeSlot.endTime,
+                expectedPayout: (Number(booking.depositAmount) - Number(booking.platformFee)).toFixed(2),
+                totalCost: Number(booking.totalCost).toFixed(2),
+                bookingNumber: booking.bookingNumber || booking._id?.toString().slice(-8),
+                emailTitle: "Service Completed",
+                introText: `The service <strong>${service.serviceName}</strong> has been marked as completed.`
             };
 
             await this.sendEmail({
                 to: business.email,
                 toName: business.businessName,
                 subject: `Service Completed - Payment Pending Release`,
-                variables
+                variables,
+                templateType: 'booking_confirmation_business'
             });
 
             console.log(`✅ Service completion email sent to business: ${business.email}`);
@@ -162,17 +180,18 @@ export class EmailService {
     /**
      * Send payment released notification to business
      */
-    static async sendPaymentReleased(booking: any, business: any, service: any, category?: string) {
+    static async sendPaymentReleased({ booking, business, service, customer, category }: PaymentReleasedPayload) {
         try {
-            const amountReleased = booking.depositAmount - booking.platformFee;
-
+            const amountReleased = Number(booking.depositAmount) - Number(booking.platformFee);
+            const customerName = customer?.fname ? `${customer.fname} ${customer.lname || ''}`.trim() : 'Customer';
             const variables = {
                 businessName: business.businessName,
                 serviceName: service.serviceName,
-                category: category || "Service", // Add category
+                customerName: customerName,
+                category: category || "Service",
                 amountReleased: amountReleased.toFixed(2),
                 paymentAmount: amountReleased.toFixed(2), // For template compatibility
-                bookingNumber: booking.bookingNumber || booking._id.toString().slice(-8),
+                bookingNumber: booking.bookingNumber || booking._id?.toString().slice(-8),
                 releaseDate: new Date().toLocaleDateString('en-US', {
                     year: 'numeric',
                     month: 'long',
@@ -180,14 +199,13 @@ export class EmailService {
                 })
             };
 
-            // Use the specific Mailjet service function to ensure correct template is used
-            // (Avoiding the generic fallback in this.sendEmail)
-            const mailjetService = await import('@/lib/services/mailjet');
-            await mailjetService.sendPaymentReceiptToBusiness(
-                business.email,
-                business.businessName,
-                variables
-            );
+            await this.sendEmail({
+                to: business.email,
+                toName: business.businessName,
+                subject: `Payment Receipt - ${service.serviceName} Booking Completed`,
+                variables,
+                templateType: 'payment_receipt'
+            });
 
             console.log(`✅ Payment released email sent to business: ${business.email}`);
         } catch (error) {
@@ -196,13 +214,51 @@ export class EmailService {
     }
 
     /**
+     * Send cancellation notification to customer
+     */
+    static async sendCancellationToCustomer({ booking, customer, business, service }: BookingEmailPayload) {
+        try {
+            const refundAmount = booking.paymentStatus === 'deposit_paid' || booking.paymentStatus === 'fully_paid'
+                ? Number(booking.depositAmount)
+                : 0;
+
+            const variables = {
+                customerName: `${customer.fname} ${customer.lname || ''}`.trim(),
+                businessName: business.businessName,
+                serviceName: service.serviceName,
+                date: new Date(booking.timeSlot.date).toLocaleDateString('en-US', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                }),
+                time: booking.timeSlot.startTime,
+                refundAmount: refundAmount.toFixed(2),
+                bookingNumber: booking.bookingNumber || booking._id?.toString().slice(-8)
+            };
+
+            await this.sendEmail({
+                to: customer.email,
+                toName: `${customer.fname} ${customer.lname || ''}`.trim(),
+                subject: `Booking Cancelled - ${service.serviceName}`,
+                variables,
+                templateType: 'booking_cancellation_shopper'
+            });
+
+            console.log(`✅ Cancellation notification sent to customer: ${customer.email}`);
+        } catch (error) {
+            console.error('❌ Failed to send cancellation email to customer:', error);
+        }
+    }
+
+    /**
      * Send cancellation notification to business
      */
-    static async sendCancellationToBusiness(booking: any, customer: any, business: any, service: any) {
+    static async sendCancellationToBusiness({ booking, customer, business, service }: BookingEmailPayload) {
         try {
             const variables = {
                 businessName: business.businessName,
-                customerName: `${customer.fname} ${customer.lname}`,
+                customerName: `${customer.fname} ${customer.lname || ''}`.trim(),
                 serviceName: service.serviceName,
                 date: new Date(booking.timeSlot.date).toLocaleDateString('en-US', {
                     weekday: 'long',
@@ -211,14 +267,15 @@ export class EmailService {
                     day: 'numeric'
                 }),
                 startTime: booking.timeSlot.startTime,
-                bookingNumber: booking.bookingNumber || booking._id.toString().slice(-8)
+                bookingNumber: booking.bookingNumber || booking._id?.toString().slice(-8)
             };
 
             await this.sendEmail({
                 to: business.email,
                 toName: business.businessName,
                 subject: `Booking Cancelled - ${service.serviceName}`,
-                variables
+                variables,
+                templateType: 'booking_cancellation_business'
             });
 
             console.log(`✅ Cancellation notification sent to business: ${business.email}`);
@@ -228,12 +285,38 @@ export class EmailService {
     }
 
     /**
-     * Send business approval notification
+     * Send business welcome notification
      */
-    static async sendBusinessApproved(business: any, owner: any) {
+    static async sendBusinessWelcome(business: EmailBusiness, owner: EmailRecipient) {
         try {
             const variables = {
-                ownerName: `${owner.fname} ${owner.lname}`,
+                ownerName: `${owner.fname} ${owner.lname || ''}`.trim(),
+                businessName: business.businessName,
+                emailTitle: "Welcome to Ouiimi Business",
+                emailBody: `<p class="p">Congratulations on taking the next step for your business! We are excited to partner with you.</p><p class="p">Your dashboard is ready. Log in now to complete your profile, list your services, and start accepting new clients.</p>`
+            };
+
+            await this.sendEmail({
+                to: business.email,
+                toName: business.businessName,
+                subject: `Welcome to Ouiimi - Business Account Created`,
+                variables,
+                templateType: 'business_welcome'
+            });
+
+            console.log(`✅ Business welcome email sent to: ${business.email}`);
+        } catch (error) {
+            console.error('❌ Failed to send business welcome email:', error);
+        }
+    }
+
+    /**
+     * Send business approval notification
+     */
+    static async sendBusinessApproved({ business, owner }: BusinessStatusPayload) {
+        try {
+            const variables = {
+                ownerName: `${owner.fname} ${owner.lname || ''}`.trim(),
                 businessName: business.businessName,
                 dashboardUrl: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://ouiimi.com.au'}/business/dashboard`,
                 createServiceUrl: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://ouiimi.com.au'}/business/services/create`
@@ -243,7 +326,8 @@ export class EmailService {
                 to: business.email,
                 toName: business.businessName,
                 subject: `🎉 Your Ouiimi Business Account Has Been Approved!`,
-                variables
+                variables,
+                templateType: 'business_approved'
             });
 
             console.log(`✅ Business approval email sent to: ${business.email}`);
@@ -255,20 +339,23 @@ export class EmailService {
     /**
      * Send business rejection notification
      */
-    static async sendBusinessRejected(business: any, owner: any, reason: string) {
+    static async sendBusinessRejected({ business, owner, reason }: BusinessStatusPayload) {
         try {
             const variables = {
-                ownerName: `${owner.fname} ${owner.lname}`,
+                ownerName: `${owner.fname} ${owner.lname || ''}`.trim(),
                 businessName: business.businessName,
                 rejectionReason: reason || 'Not specified',
-                supportEmail: process.env.MAILJET_FROM_EMAIL || 'support@ouiimi.com.au'
+                supportEmail: process.env.MAILJET_FROM_EMAIL || 'support@ouiimi.com.au',
+                emailTitle: "Business Application Update",
+                emailBody: `<p class="p">We regret to inform you that your application for <strong>${business.businessName}</strong> has been declined.</p><p class="p"><strong>Reason:</strong> ${reason || 'Does not meet our criteria'}</p><p class="p">If you have any questions, please contact support.</p>`
             };
 
             await this.sendEmail({
                 to: business.email,
                 toName: business.businessName,
                 subject: `Business Application Update - ${business.businessName}`,
-                variables
+                variables,
+                templateType: 'business_welcome'
             });
 
             console.log(`✅ Business rejection email sent to: ${business.email}`);
@@ -280,20 +367,23 @@ export class EmailService {
     /**
      * Send business suspension notification
      */
-    static async sendBusinessSuspended(business: any, owner: any, reason: string) {
+    static async sendBusinessSuspended({ business, owner, reason }: BusinessStatusPayload) {
         try {
             const variables = {
-                ownerName: `${owner.fname} ${owner.lname}`,
+                ownerName: `${owner.fname} ${owner.lname || ''}`.trim(),
                 businessName: business.businessName,
                 suspensionReason: reason || 'Not specified',
-                supportEmail: process.env.MAILJET_FROM_EMAIL || 'support@ouiimi.com.au'
+                supportEmail: process.env.MAILJET_FROM_EMAIL || 'support@ouiimi.com.au',
+                emailTitle: "Account Suspended",
+                emailBody: `<p class="p">Your account for <strong>${business.businessName}</strong> has been suspended.</p><p class="p"><strong>Reason:</strong> ${reason || 'Violation of terms'}</p><p class="p">Please contact support to resolve this issue.</p>`
             };
 
             await this.sendEmail({
                 to: business.email,
                 toName: business.businessName,
                 subject: `Business Account Suspended - ${business.businessName}`,
-                variables
+                variables,
+                templateType: 'business_welcome'
             });
 
             console.log(`✅ Business suspension email sent to: ${business.email}`);
@@ -303,10 +393,72 @@ export class EmailService {
     }
 
     /**
+     * Send account verification email
+     */
+    static async sendAccountVerification(recipient: EmailRecipient, link: string) {
+        try {
+            await this.sendEmail({
+                to: recipient.email,
+                toName: recipient.fname,
+                subject: "Verify Your Email - Ouiimi",
+                variables: {
+                    fname: recipient.fname,
+                    uniquelink: link
+                },
+                templateType: 'account_verification'
+            });
+            console.log(`✅ Verification email sent to ${recipient.email}`);
+        } catch (error) {
+            console.error('❌ Failed to send verification email:', error);
+        }
+    }
+
+    /**
+     * Send password reset email
+     */
+    static async sendPasswordReset(recipient: EmailRecipient, link: string) {
+        try {
+            await this.sendEmail({
+                to: recipient.email,
+                toName: recipient.fname,
+                subject: "Password Reset Request - Ouiimi",
+                variables: {
+                    fname: recipient.fname,
+                    uniquelink: link
+                },
+                templateType: 'forgot_password'
+            });
+            console.log(`✅ Password reset email sent to ${recipient.email}`);
+        } catch (error) {
+            console.error('❌ Failed to send password reset email:', error);
+        }
+    }
+
+    /**
+     * Send shopper welcome email
+     */
+    static async sendShopperWelcome(recipient: EmailRecipient) {
+        try {
+            await this.sendEmail({
+                to: recipient.email,
+                toName: recipient.fname,
+                subject: "Welcome to Ouiimi",
+                variables: {
+                    fname: recipient.fname
+                },
+                templateType: 'welcome'
+            });
+            console.log(`✅ Shopper welcome email sent to ${recipient.email}`);
+        } catch (error) {
+            console.error('❌ Failed to send shopper welcome email:', error);
+        }
+    }
+
+    /**
      * Generic email sender - uses Mailjet
      */
-    private static async sendEmail(params: EmailParams) {
-        const { to, toName, subject, variables = {} } = params;
+    private static async sendEmail(params: EmailParams & { templateType?: string }) {
+        const { to, toName, subject, variables = {}, templateType } = params;
 
         try {
             // Import the Mailjet service dynamically
@@ -315,6 +467,7 @@ export class EmailService {
             // Log for debugging
             console.log(`📧 Sending email via Mailjet to: ${to}`);
             console.log(`Subject: ${subject}`);
+            console.log(`Template: ${templateType || 'GUESSED'}`);
 
             // Prepare base data for Mailjet
             const emailData = {
@@ -323,67 +476,16 @@ export class EmailService {
                 ...variables
             };
 
-            if (subject.toLowerCase().includes('approved')) {
-                await mailjetService.sendBusinessApprovedEmail(
-                    to,
-                    variables.ownerName || toName,
-                    variables.businessName || 'Your Business'
-                );
-            } else if (subject.toLowerCase().includes('rejected')) {
-                await mailjetService.sendEmail(
-                    [to],
-                    subject,
-                    {
-                        ...emailData,
-                        rejectionReason: variables.rejectionReason,
-                        supportEmail: variables.supportEmail,
-                    },
-                    'business_welcome'
-                );
-            } else if (subject.toLowerCase().includes('suspended')) {
-                await mailjetService.sendEmail(
-                    [to],
-                    subject,
-                    {
-                        ...emailData,
-                        suspensionReason: variables.suspensionReason,
-                        supportEmail: variables.supportEmail,
-                    },
-                    'business_welcome'
-                );
-            } else if (subject.toLowerCase().includes('booking') && (subject.toLowerCase().includes('confirmed') || subject.toLowerCase().includes('received') || subject.toLowerCase().includes('new'))) {
-                // Attempt to distinguish business vs shopper
-                // Business emails usually have businessRevenue or customerEmail (shopper's email)
-                const isBusiness = !!variables.businessRevenue || !!variables.customerEmail;
-
+            // Use explicit template if provided (PREFERRED)
+            if (templateType && templateType in mailjetService.TEMPLATE_IDS) {
                 await mailjetService.sendEmail(
                     [to],
                     subject,
                     emailData,
-                    isBusiness ? 'booking_confirmation_business' : 'booking_confirmation_shopper'
-                );
-            } else if (subject.toLowerCase().includes('service completed')) {
-                await mailjetService.sendEmail(
-                    [to],
-                    subject,
-                    emailData,
-                    'booking_complete'
-                );
-            } else if (subject.toLowerCase().includes('cancelled')) {
-                await mailjetService.sendEmail(
-                    [to],
-                    subject,
-                    emailData,
-                    'booking_cancellation'
+                    templateType as any
                 );
             } else {
-                // Use generic welcome/message template
-                await mailjetService.sendEmail(
-                    [to],
-                    subject,
-                    emailData,
-                    'welcome'
-                );
+                console.warn(`⚠️  Template type '${templateType}' not found in known IDs.`);
             }
 
             console.log(`✅ Email sent successfully to ${to}`);

@@ -17,7 +17,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/db";
 import User from "@/lib/models/User";
-import { sendWelcomeEmail } from "@/lib/services/mailjet";
+import EmailService from "@/lib/email-service";
 import { getBaseUrl } from "@/lib/utils/url";
 
 export const dynamic = 'force-dynamic';
@@ -57,7 +57,7 @@ export async function GET(req: NextRequest) {
 
         // Send welcome email now that user is verified
         try {
-            await sendWelcomeEmail(user.email, user.fname);
+            await EmailService.sendShopperWelcome(user as any);
         } catch (emailError) {
             console.error("Error sending welcome email:", emailError);
         }

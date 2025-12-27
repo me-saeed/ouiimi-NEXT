@@ -32,7 +32,7 @@ import {
   asyncHandler,
   APIError
 } from "@/lib/api-response";
-import { sendAccountVerificationEmail } from "@/lib/services/mailjet";
+import EmailService from "@/lib/email-service";
 import crypto from "crypto";
 
 // Force dynamic rendering
@@ -147,7 +147,7 @@ async function signupHandler(req: NextRequest) {
   const baseUrl = getBaseUrl();
   const verificationLink = `${baseUrl}/api/auth/verify-email?token=${verificationToken}`;
 
-  sendAccountVerificationEmail(user.email, user.fname, verificationLink).catch(error => {
+  EmailService.sendAccountVerification(user as any, verificationLink).catch(error => {
     console.error('[Signup] Verification email failed:', error);
   });
 

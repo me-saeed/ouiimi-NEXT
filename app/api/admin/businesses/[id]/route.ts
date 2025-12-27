@@ -4,6 +4,7 @@ import Business from "@/lib/models/Business";
 import { verifyToken } from "@/lib/jwt";
 import { withRateLimitDynamic } from "@/lib/security/rate-limit";
 import { z } from "zod";
+import EmailService from "@/lib/email-service";
 
 export const dynamic = 'force-dynamic';
 
@@ -65,12 +66,26 @@ async function updateBusinessHandler(
 
         await business.save();
 
-        // TODO: Send email notification to business owner about status change
-        // if (validatedData.status === "approved") {
-        //   await sendBusinessApprovalEmail(business.email, business.businessName);
-        // } else if (validatedData.status === "suspended") {
-        //   await sendBusinessSuspensionEmail(business.email, business.businessName, validatedData.notes);
-        // }
+        // Send email notification to business owner about status change
+        try {
+            const businessWithUser = await Business.findById(business._id).populate('userId', 'fname lname email');
+            if (businessWithUser && businessWithUser.userId) {
+                if (validatedData.status === "approved") {
+                    await EmailService.sendBusinessApproved({
+                        business: businessWithUser as any,
+                        owner: businessWithUser.userId as any
+                    });
+                } else if (validatedData.status === "suspended") {
+                    await EmailService.sendBusinessSuspended({
+                        business: businessWithUser as any,
+                        owner: businessWithUser.userId as any,
+                        reason: validatedData.notes || 'Violation of terms'
+                    });
+                }
+            }
+        } catch (emailError) {
+            console.error("Failed to send status update email:", emailError);
+        }
 
         return NextResponse.json({
             message: "Business updated successfully",

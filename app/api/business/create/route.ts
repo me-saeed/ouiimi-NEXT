@@ -42,7 +42,8 @@ import User from "@/lib/models/User";
 import { businessCreateSchema } from "@/lib/validation";
 import { applyRateLimit } from "@/lib/rate-limit";
 import { getSession } from "@/lib/session";
-import { sendEmail } from "@/lib/services/mailjet";
+
+import EmailService from "@/lib/email-service";
 import { asyncHandler, APIError, successResponse } from "@/lib/api-response";
 
 export const dynamic = 'force-dynamic';
@@ -147,15 +148,14 @@ async function createBusinessHandler(req: NextRequest) {
   }
 
   // Send welcome email (non-blocking)
-  sendEmail(
-    [business.email],
-    "Welcome to Ouiimi - Business Account Created",
-    {
-      email: business.email,
-      businessName: business.businessName
-    },
-    "business_welcome"
-  ).catch(e => console.error("Failed to send welcome email:", e));
+  // Send welcome email (non-blocking)
+  // Get user details for name
+  // Get user details for name
+  // User is already fetched and verified above
+  if (user) {
+    EmailService.sendBusinessWelcome(business, user)
+      .catch(e => console.error("Failed to send welcome email:", e));
+  }
 
   // CRITICAL: Update user role to 'business' and create new session
   // This must happen BEFORE returning the response

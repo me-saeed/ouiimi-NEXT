@@ -4,7 +4,7 @@ import User from "@/lib/models/User";
 import ForgetPass from "@/lib/models/ForgetPass";
 import { withRateLimit } from "@/lib/security/rate-limit";
 import { forgotPasswordSchema } from "@/lib/validation";
-import { sendPasswordResetEmail } from "@/lib/services/mailjet";
+import EmailService from "@/lib/email-service";
 
 export const dynamic = 'force-dynamic';
 
@@ -43,11 +43,7 @@ async function forgotPasswordHandler(req: NextRequest) {
 
     // Send password reset email
     try {
-      await sendPasswordResetEmail(
-        validatedData.email,
-        user.fname,
-        resetLink
-      );
+      await EmailService.sendPasswordReset(user as any, resetLink);
     } catch (emailError) {
       console.error("Error sending password reset email:", emailError);
       // Don't reveal if email failed for security

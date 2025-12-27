@@ -17,10 +17,7 @@ import Booking from "@/lib/models/Booking";
 import Business from "@/lib/models/Business";
 import Service from "@/lib/models/Service";
 import User from "@/lib/models/User";
-import {
-    sendBookingConfirmationToShopper,
-    sendBookingConfirmationToBusiness
-} from "@/lib/services/mailjet";
+
 
 // =============================================================================
 // LAZY STRIPE INITIALIZATION
@@ -120,42 +117,19 @@ export async function POST(request: NextRequest) {
                     const service = booking.serviceId as any;
 
                     if (user && business && service) {
-                        const emailData = {
-                            fname: user.fname,
-                            lname: user.lname,
-                            email: user.email,
-                            businessName: business.businessName,
-                            serviceName: service.serviceName,
-                            date: new Date(booking.timeSlot.date).toLocaleDateString('en-US', {
-                                year: 'numeric', month: 'long', day: 'numeric'
-                            }),
-                            time: `${booking.timeSlot.startTime} - ${booking.timeSlot.endTime}`,
-                            totalCost: booking.totalCost,
-                            depositAmount: booking.depositAmount,
-                            paymentAmount: booking.depositAmount, // The amount just paid
-                            remainingAmount: booking.remainingAmount,
-                            bookingId: booking.bookingNumber || (booking._id as any).toString().slice(-6).toUpperCase(),
-                            location: business.address || "Business Location" // Fallback if address not populated
+                        const emailPayload = {
+                            booking: booking as any,
+                            customer: user,
+                            business: business,
+                            service: service
                         };
 
-                        // Send confirmation to Shopper
-                        try {
-                            await sendBookingConfirmationToShopper(user.email, user.fname, emailData);
-                            console.log(`📧 Shopper confirmation sent to ${user.email}`);
+                        const EmailService = (await import("@/lib/email-service")).default;
 
-                            // Send notification to Business
-                            // Note: We send to business email, usually fetched from business profile
-                            if (business.email) {
-                                await sendBookingConfirmationToBusiness(business.email, "Business Owner", {
-                                    ...emailData,
-                                    customerName: `${user.fname} ${user.lname}`
-                                });
-                                console.log(`📧 Business notification sent to ${business.email}`);
-                            }
-                        } catch (emailError) {
-                            console.error("⚠️ Failed to send confirmation emails:", emailError);
-                            // Don't fail the webhook, just log
-                        }
+                        Promise.all([
+                            EmailService.sendBookingConfirmation(emailPayload),
+                            EmailService.sendNewBookingToBusiness(emailPayload)
+                        ]).catch(err => console.error("⚠️ Failed to send confirmation emails via webhook:", err));
                     }
                 } else {
                     console.error(`❌ No booking found for payment ${paymentIntent.id}`);

@@ -50,19 +50,15 @@ export class BookingJobs {
 
                         // Send completion emails
                         if (booking.userId && booking.businessId && booking.serviceId) {
-                            await EmailService.sendServiceCompletedToCustomer(
-                                booking,
-                                booking.userId,
-                                booking.businessId,
-                                booking.serviceId
-                            );
+                            const emailPayload = {
+                                booking: booking as any,
+                                customer: booking.userId as any,
+                                business: booking.businessId as any,
+                                service: booking.serviceId as any
+                            };
 
-                            await EmailService.sendServiceCompletedToBusiness(
-                                booking,
-                                booking.userId,
-                                booking.businessId,
-                                booking.serviceId
-                            );
+                            await EmailService.sendServiceCompletedToCustomer(emailPayload);
+                            await EmailService.sendServiceCompletedToBusiness(emailPayload);
                         }
                     }
                 } catch (error) {
