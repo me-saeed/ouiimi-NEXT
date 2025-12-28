@@ -66,7 +66,6 @@ export class EmailService {
         } catch (error) {
             console.error(`❌ [BOOKING_CONFIRMATION] Failed to send to ${customer.email}:`, error);
             throw error;
-            throw error;
         }
     }
 

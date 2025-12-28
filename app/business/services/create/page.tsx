@@ -948,7 +948,6 @@ export default function CreateServicePage() {
                     </div>
                     <div className="relative">
                       {/* Mobile: Visible button with hidden date input */}
-                      {/* Mobile: Visible button with hidden date input */}
                       <div className="md:hidden relative">
                         <button
                           type="button"
@@ -978,7 +977,7 @@ export default function CreateServicePage() {
                         <input
                           id="mobile-date-input"
                           type="date"
-                          className="hidden" // Completely hidden
+                          className="sr-only opacity-0 absolute pointer-events-none" // Invisible but in DOM for showPicker()
                           min={new Date().toISOString().split('T')[0]}
                           onChange={(e) => {
                             if (e.target.value) {

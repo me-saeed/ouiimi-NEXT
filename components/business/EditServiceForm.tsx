@@ -757,8 +757,6 @@ export function EditServiceForm({ serviceId, onSuccess, onCancel }: EditServiceF
                                 </div>
                                 <div className="relative">
                                     {/* Mobile: Visible button with hidden date input */}
-                                    {/* Mobile: Visible button with hidden date input */}
-                                    {/* Mobile: Visible button with hidden date input */}
                                     <div className="md:hidden relative">
                                         <button
                                             type="button"
@@ -788,7 +786,7 @@ export function EditServiceForm({ serviceId, onSuccess, onCancel }: EditServiceF
                                         <input
                                             id="mobile-date-input-edit"
                                             type="date"
-                                            className="hidden" // Completely hidden, triggered programmatically
+                                            className="sr-only opacity-0 absolute pointer-events-none" // Invisible but in DOM for showPicker()
                                             min={new Date().toISOString().split('T')[0]}
                                             onChange={(e) => {
                                                 if (e.target.value) {
