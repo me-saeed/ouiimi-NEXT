@@ -948,15 +948,37 @@ export default function CreateServicePage() {
                     </div>
                     <div className="relative">
                       {/* Mobile: Visible button with hidden date input */}
+                      {/* Mobile: Visible button with hidden date input */}
                       <div className="md:hidden relative">
-                        <label htmlFor="mobile-date-input" className="flex items-center justify-center gap-2 w-full h-10 px-3 text-xs font-semibold rounded-lg border-gray-200 border bg-white hover:bg-gray-50 transition-all cursor-pointer">
-                          <span className="text-lg leading-none">+</span>
+                        <button
+                          type="button"
+                          className="flex items-center justify-center gap-2 w-full h-10 px-3 text-xs font-semibold rounded-lg border-gray-200 border bg-white hover:bg-gray-50 transition-all cursor-pointer active:scale-95 transform text-[#3A3A3A]"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            const input = document.getElementById('mobile-date-input') as HTMLInputElement;
+                            if (input) {
+                              // Try showPicker first (modern browsers)
+                              if (typeof input.showPicker === 'function') {
+                                try {
+                                  input.showPicker();
+                                  return;
+                                } catch (err) {
+                                  console.error('showPicker failed', err);
+                                }
+                              }
+                              // Fallback to click
+                              input.click();
+                            }
+                          }}
+                        >
+                          <span className="text-lg leading-none mb-0.5">+</span>
                           <span>Add Date</span>
-                        </label>
+                        </button>
                         <input
                           id="mobile-date-input"
                           type="date"
-                          className="absolute inset-0 opacity-0 w-full h-full pointer-events-none"
+                          className="hidden" // Completely hidden
                           min={new Date().toISOString().split('T')[0]}
                           onChange={(e) => {
                             if (e.target.value) {
