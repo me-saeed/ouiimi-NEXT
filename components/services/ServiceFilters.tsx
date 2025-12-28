@@ -117,7 +117,7 @@ export function ServiceFilters({
     return (
         <div className="space-y-4 mb-8">
             {/* Row 1: Location & Date */}
-            <div className="flex gap-3">
+            <div className="flex gap-2 md:gap-3">
                 <div className="relative flex-1">
                     <AddressAutocomplete
                         control={control}
@@ -132,7 +132,7 @@ export function ServiceFilters({
                                 updateURL(category, subCategory, selectedDate, undefined, undefined, true);
                             }
                         }}
-                        className="h-12"
+                        className="h-10 md:h-12 text-sm md:text-base"
                     />
                 </div>
                 <div className="relative">
@@ -141,16 +141,16 @@ export function ServiceFilters({
                         value={selectedDate}
                         onChange={(e) => handleDateChange(e.target.value)}
                         min={new Date().toISOString().split('T')[0]}
-                        className="h-12 px-4 rounded-xl border-gray-200 bg-white text-base text-[#3A3A3A] font-medium"
+                        className="h-10 md:h-12 px-3 md:px-4 rounded-xl border-gray-200 bg-white text-sm md:text-base text-[#3A3A3A] font-medium"
                     />
                 </div>
             </div>
 
             {/* Row 2: Category Dropdown & Search */}
-            <div className="flex gap-3 items-center">
+            <div className="flex gap-2 md:gap-3 items-center">
                 <div className="flex-1">
                     <Select value={category} onValueChange={handleCategoryChange}>
-                        <SelectTrigger className="h-12 rounded-xl border-gray-200 bg-white text-base font-medium text-[#3A3A3A]">
+                        <SelectTrigger className="h-10 md:h-12 rounded-xl border-gray-200 bg-white text-sm md:text-base font-medium text-[#3A3A3A]">
                             <SelectValue placeholder="Select Category" />
                         </SelectTrigger>
                         <SelectContent>
@@ -165,10 +165,10 @@ export function ServiceFilters({
                 <Button
                     size="icon"
                     variant="ghost"
-                    className="h-12 w-12 rounded-full hover:bg-gray-100"
+                    className="h-10 w-10 md:h-12 md:w-12 rounded-full hover:bg-gray-100"
                     onClick={handleManualSearch}
                 >
-                    <Search className="h-6 w-6 text-[#3A3A3A]" />
+                    <Search className="h-5 w-5 md:h-6 md:w-6 text-[#3A3A3A]" />
                 </Button>
             </div>
 
@@ -176,9 +176,9 @@ export function ServiceFilters({
             <div className="flex gap-2 overflow-x-auto scrollbar-hide py-2 -mx-4 px-4 md:mx-0 md:px-0">
                 <button
                     onClick={() => handleSubCategoryChange("")}
-                    className={`whitespace-nowrap px-4 py-2 rounded-full text-sm font-medium transition-all ${subCategory === ""
-                        ? "bg-[#3A3A3A] text-white"
-                        : "bg-transparent text-[#888888] hover:text-[#3A3A3A]"
+                    className={`whitespace-nowrap px-3 md:px-4 py-1.5 md:py-2 text-sm font-medium transition-all ${subCategory === ""
+                        ? "text-[#3A3A3A] border-b-2 border-[#3A3A3A]"
+                        : "text-[#888888] hover:text-[#3A3A3A]"
                         }`}
                 >
                     All
@@ -188,9 +188,9 @@ export function ServiceFilters({
                     <button
                         key={sub}
                         onClick={() => handleSubCategoryChange(sub)}
-                        className={`whitespace-nowrap px-4 py-2 rounded-full text-sm font-medium transition-all ${sub === subCategory
-                            ? "bg-[#3A3A3A] text-white"
-                            : "bg-transparent text-[#888888] hover:text-[#3A3A3A]"
+                        className={`whitespace-nowrap px-3 md:px-4 py-1.5 md:py-2 text-sm font-medium transition-all ${sub === subCategory
+                            ? "text-[#3A3A3A] border-b-2 border-[#3A3A3A]"
+                            : "text-[#888888] hover:text-[#3A3A3A]"
                             }`}
                     >
                         {sub}
