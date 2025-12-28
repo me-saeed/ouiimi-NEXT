@@ -112,10 +112,10 @@ export function DetailsTab({ business }: DetailsTabProps) {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Business Details */}
         <div className="space-y-6">
-          <h2 className="text-2xl font-bold text-[#3A3A3A] mx-auto text-center">Details</h2>
+          <h2 className="text-xl md:text-2xl font-bold text-[#3A3A3A] mx-auto text-center">Details</h2>
 
           <div className="border border-gray-200 rounded-[24px] p-8 shadow-sm bg-white max-w-lg mx-auto">
-            <h3 className="text-lg font-medium text-[#3A3A3A] border-b border-gray-200 pb-2 mb-6 inline-block">Business</h3>
+            <h3 className="text-base md:text-lg font-medium text-[#3A3A3A] border-b border-gray-200 pb-2 mb-6 inline-block">Business</h3>
 
             <div className="space-y-4">
               <div className="grid grid-cols-[80px_1fr] items-baseline gap-4">
@@ -161,7 +161,7 @@ export function DetailsTab({ business }: DetailsTabProps) {
 
         {/* Bank Details */}
         <div className="space-y-5">
-          <h2 className="text-2xl font-bold text-[#3A3A3A] pb-3 border-b border-gray-200">Bank Details</h2>
+          <h2 className="text-xl md:text-2xl font-bold text-[#3A3A3A] pb-3 border-b border-gray-200">Bank Details</h2>
 
           <div className="bg-gradient-to-br from-white to-gray-50 rounded-2xl p-6 space-y-5 shadow-sm">
             <div className="space-y-2">
@@ -172,7 +172,7 @@ export function DetailsTab({ business }: DetailsTabProps) {
                 onChange={(e) =>
                   setBankDetails({ ...bankDetails, name: e.target.value })
                 }
-                className="h-12 rounded-xl border-gray-300 bg-white focus:ring-2 focus:ring-[#EECFD1] focus:border-[#EECFD1] transition-all shadow-sm"
+                className="h-10 md:h-12 rounded-xl border-gray-300 bg-white focus:ring-2 focus:ring-[#EECFD1] focus:border-[#EECFD1] transition-all shadow-sm text-sm md:text-base"
               />
             </div>
             <div className="grid grid-cols-2 gap-4">
@@ -182,7 +182,7 @@ export function DetailsTab({ business }: DetailsTabProps) {
                   placeholder="000-000"
                   value={bankDetails.bsb}
                   onChange={(e) => setBankDetails({ ...bankDetails, bsb: e.target.value })}
-                  className="h-12 rounded-xl border-gray-300 bg-white focus:ring-2 focus:ring-[#EECFD1] focus:border-[#EECFD1] transition-all shadow-sm"
+                  className="h-10 md:h-12 rounded-xl border-gray-300 bg-white focus:ring-2 focus:ring-[#EECFD1] focus:border-[#EECFD1] transition-all shadow-sm text-sm md:text-base"
                 />
               </div>
               <div className="space-y-2">
@@ -193,7 +193,7 @@ export function DetailsTab({ business }: DetailsTabProps) {
                   onChange={(e) =>
                     setBankDetails({ ...bankDetails, accountNumber: e.target.value })
                   }
-                  className="h-12 rounded-xl border-gray-300 bg-white focus:ring-2 focus:ring-[#EECFD1] focus:border-[#EECFD1] transition-all shadow-sm"
+                  className="h-10 md:h-12 rounded-xl border-gray-300 bg-white focus:ring-2 focus:ring-[#EECFD1] focus:border-[#EECFD1] transition-all shadow-sm text-sm md:text-base"
                 />
               </div>
             </div>
@@ -205,11 +205,11 @@ export function DetailsTab({ business }: DetailsTabProps) {
                 onChange={(e) =>
                   setBankDetails({ ...bankDetails, contactNumber: e.target.value })
                 }
-                className="h-12 rounded-xl border-gray-300 bg-white focus:ring-2 focus:ring-[#EECFD1] focus:border-[#EECFD1] transition-all shadow-sm"
+                className="h-10 md:h-12 rounded-xl border-gray-300 bg-white focus:ring-2 focus:ring-[#EECFD1] focus:border-[#EECFD1] transition-all shadow-sm text-sm md:text-base"
               />
             </div>
             <Button
-              className="w-full h-12 rounded-xl bg-[#3A3A3A] text-white hover:bg-[#2a2a2a] font-semibold transition-all shadow-md hover:shadow-lg mt-2"
+              className="w-full h-10 md:h-12 rounded-xl bg-[#3A3A3A] text-white hover:bg-[#2a2a2a] text-sm md:text-base font-semibold transition-all shadow-md hover:shadow-lg mt-2"
               onClick={handleSaveBankDetails}
               disabled={isLoading}
             >

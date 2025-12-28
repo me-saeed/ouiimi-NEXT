@@ -103,10 +103,10 @@ export function ImageUpload({
                         <img
                             src={value}
                             alt="Avatar"
-                            className="w-24 h-24 rounded-full object-cover border-4 border-[#EECFD1] shadow-sm"
+                            className="w-20 h-20 md:w-24 md:h-24 rounded-full object-cover border-4 border-[#EECFD1] shadow-sm"
                         />
                     ) : (
-                        <div className="w-24 h-24 rounded-full bg-[#EECFD1] border-4 border-white shadow-sm flex items-center justify-center">
+                        <div className="w-20 h-20 md:w-24 md:h-24 rounded-full bg-[#EECFD1] border-4 border-white shadow-sm flex items-center justify-center">
                             <span className="text-2xl font-bold text-white">
                                 +
                             </span>

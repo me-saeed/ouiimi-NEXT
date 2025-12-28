@@ -114,12 +114,12 @@ export function StaffTab({ business }: StaffTabProps) {
 
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-[#3A3A3A]">Staff Members</h2>
+          <h2 className="text-xl md:text-2xl font-bold text-[#3A3A3A]">Staff Members</h2>
           <p className="text-[#888888] text-sm mt-1">Manage your team members</p>
         </div>
         <Button
           onClick={handleOpenAddModal}
-          className="bg-[#EECFD1] text-white hover:bg-[#e5c4c7] rounded-xl px-6 py-2.5 font-semibold shadow-sm hover:shadow-md transition-all flex items-center gap-2"
+          className="bg-[#EECFD1] text-white hover:bg-[#e5c4c7] rounded-xl px-4 md:px-6 py-2 md:py-2.5 text-sm md:text-base font-semibold shadow-sm hover:shadow-md transition-all flex items-center gap-2"
         >
           <User className="w-4 h-4" />
           Add Staff
@@ -153,7 +153,7 @@ export function StaffTab({ business }: StaffTabProps) {
               className="flex items-center gap-4 p-4 bg-white rounded-lg hover:bg-gray-50 transition-all cursor-pointer"
             >
               {/* Avatar */}
-              <div className="w-12 h-12 rounded-full bg-[#EECFD1] flex items-center justify-center flex-shrink-0">
+              <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-[#EECFD1] flex items-center justify-center flex-shrink-0">
                 {member.photo ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
@@ -170,7 +170,7 @@ export function StaffTab({ business }: StaffTabProps) {
 
               {/* Name */}
               <div className="flex-1">
-                <h3 className="text-base font-semibold text-[#3A3A3A]">{member.name}</h3>
+                <h3 className="text-sm md:text-base font-semibold text-[#3A3A3A]">{member.name}</h3>
               </div>
             </div>
           ))}

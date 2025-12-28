@@ -447,7 +447,7 @@ export function BookingsTab({ business }: BookingsTabProps) {
       <div className="flex border-b border-border/50">
         <button
           onClick={() => setActiveSubTab("up-coming")}
-          className={`px-6 py-3 text-sm font-medium transition-colors relative ${activeSubTab === "up-coming"
+          className={`px-4 md:px-6 py-2.5 md:py-3 text-xs md:text-sm font-medium transition-colors relative ${activeSubTab === "up-coming"
             ? "text-foreground"
             : "text-muted-foreground hover:text-foreground"
             }`}
@@ -459,7 +459,7 @@ export function BookingsTab({ business }: BookingsTabProps) {
         </button>
         <button
           onClick={() => setActiveSubTab("pending")}
-          className={`px-6 py-3 text-sm font-medium transition-colors relative ${activeSubTab === "pending"
+          className={`px-4 md:px-6 py-2.5 md:py-3 text-xs md:text-sm font-medium transition-colors relative ${activeSubTab === "pending"
             ? "text-red-500"
             : "text-muted-foreground hover:text-red-500"
             }`}
@@ -471,7 +471,7 @@ export function BookingsTab({ business }: BookingsTabProps) {
         </button>
         <button
           onClick={() => setActiveSubTab("finished")}
-          className={`px-6 py-3 text-sm font-medium transition-colors relative ${activeSubTab === "finished"
+          className={`px-4 md:px-6 py-2.5 md:py-3 text-xs md:text-sm font-medium transition-colors relative ${activeSubTab === "finished"
             ? "text-green-600"
             : "text-muted-foreground hover:text-green-600"
             }`}
@@ -487,7 +487,7 @@ export function BookingsTab({ business }: BookingsTabProps) {
       {activeSubTab === "up-coming" && (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="text-lg font-semibold">Up-coming</h3>
+            <h3 className="text-base md:text-lg font-semibold">Up-coming</h3>
             <div className="flex items-center gap-2">
               <Button
                 variant="outline"
@@ -552,7 +552,7 @@ export function BookingsTab({ business }: BookingsTabProps) {
                   <button
                     key={dateStr}
                     onClick={() => setSelectedDate(isSelected ? null : dateStr)}
-                    className={`flex flex-col items-center justify-center min-w-[50px] h-[70px] rounded-2xl transition-all duration-200 relative group ${isSelected
+                    className={`flex flex-col items-center justify-center min-w-[50px] h-[60px] md:h-[70px] rounded-2xl transition-all duration-200 relative group ${isSelected
                       ? "bg-[#3A3A3A] text-white shadow-md transform scale-105"
                       : isPast
                         ? "text-gray-300"
@@ -563,7 +563,7 @@ export function BookingsTab({ business }: BookingsTabProps) {
                       }`}>
                       {weekday}
                     </span>
-                    <span className={`text-lg font-bold ${isSelected ? 'text-white' : 'text-[#3A3A3A]'
+                    <span className={`text-base md:text-lg font-bold ${isSelected ? 'text-white' : 'text-[#3A3A3A]'
                       }`}>
                       {day}
                     </span>

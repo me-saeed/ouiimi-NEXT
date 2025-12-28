@@ -678,12 +678,12 @@ export function EditServiceForm({ serviceId, onSuccess, onCancel }: EditServiceF
                             value={selectedCategory}
                             onValueChange={(val) => setValue("category", val)}
                         >
-                            <SelectTrigger className="w-full h-[52px] rounded-xl border-gray-200 bg-white focus:ring-2 focus:ring-[#EECFD1]/50 focus:border-[#EECFD1] text-gray-700 font-normal shadow-sm hover:border-[#EECFD1] transition-all">
+                            <SelectTrigger className="w-full h-10 md:h-[52px] px-3 md:px-4 rounded-xl border-gray-200 bg-white focus:ring-2 focus:ring-[#EECFD1]/50 focus:border-[#EECFD1] text-sm md:text-base text-gray-700 font-normal shadow-sm hover:border-[#EECFD1] transition-all">
                                 <SelectValue placeholder="Select category" />
                             </SelectTrigger>
-                            <SelectContent className="max-h-[300px]">
+                            <SelectContent className="max-h-[200px] md:max-h-[300px]">
                                 {CATEGORIES.map((cat) => (
-                                    <SelectItem key={cat} value={cat} className="cursor-pointer py-3 hover:bg-[#FFF5F6] hover:text-[#3A3A3A] focus:bg-[#FFF5F6] focus:text-[#3A3A3A]">
+                                    <SelectItem key={cat} value={cat} className="cursor-pointer py-2 md:py-3 text-sm md:text-base hover:bg-[#FFF5F6] hover:text-[#3A3A3A] focus:bg-[#FFF5F6] focus:text-[#3A3A3A]">
                                         {cat}
                                     </SelectItem>
                                 ))}
@@ -700,12 +700,12 @@ export function EditServiceForm({ serviceId, onSuccess, onCancel }: EditServiceF
                             onValueChange={(val) => setValue("subCategory", val)}
                             disabled={!selectedCategory}
                         >
-                            <SelectTrigger className={`w-full h-[52px] rounded-xl border-gray-200 shadow-sm transition-all text-gray-700 font-normal ${!selectedCategory ? "bg-gray-50 cursor-not-allowed opacity-75" : "bg-white hover:border-[#EECFD1] focus:ring-2 focus:ring-[#EECFD1]/50 focus:border-[#EECFD1]"}`}>
+                            <SelectTrigger className={`w-full h-10 md:h-[52px] px-3 md:px-4 rounded-xl border-gray-200 shadow-sm transition-all text-sm md:text-base text-gray-700 font-normal ${!selectedCategory ? "bg-gray-50 cursor-not-allowed opacity-75" : "bg-white hover:border-[#EECFD1] focus:ring-2 focus:ring-[#EECFD1]/50 focus:border-[#EECFD1]"}`}>
                                 <SelectValue placeholder={selectedCategory && SUB_CATEGORIES[selectedCategory] ? "Select Service Name" : "Select Category First"} />
                             </SelectTrigger>
-                            <SelectContent className="max-h-[300px]">
+                            <SelectContent className="max-h-[200px] md:max-h-[300px]">
                                 {selectedCategory && SUB_CATEGORIES[selectedCategory] && SUB_CATEGORIES[selectedCategory].map((subCat) => (
-                                    <SelectItem key={subCat} value={subCat} className="cursor-pointer py-3 hover:bg-[#FFF5F6] hover:text-[#3A3A3A] focus:bg-[#FFF5F6] focus:text-[#3A3A3A]">
+                                    <SelectItem key={subCat} value={subCat} className="cursor-pointer py-2 md:py-3 text-sm md:text-base hover:bg-[#FFF5F6] hover:text-[#3A3A3A] focus:bg-[#FFF5F6] focus:text-[#3A3A3A]">
                                         {subCat}
                                     </SelectItem>
                                 ))}
@@ -855,10 +855,10 @@ export function EditServiceForm({ serviceId, onSuccess, onCancel }: EditServiceF
                                                                 <div key={index} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 hover:bg-gray-50/50 transition-colors gap-3 sm:gap-4">
                                                                     {/* Time & Price Group */}
                                                                     <div className="flex items-center gap-4">
-                                                                        <div className="bg-gray-50 px-3 py-1.5 rounded-lg text-sm font-bold text-[#3A3A3A] border border-gray-200 min-w-[140px] text-center">
+                                                                        <div className="bg-gray-50 px-2 md:px-3 py-1 md:py-1.5 rounded-lg text-xs md:text-sm font-bold text-[#3A3A3A] border border-gray-200 min-w-[120px] md:min-w-[140px] text-center">
                                                                             {formatTime12Hour(slot.startTime)} - {formatTime12Hour(slot.endTime)}
                                                                         </div>
-                                                                        <div className="text-base font-bold text-[#3A3A3A]">
+                                                                        <div className="text-sm md:text-base font-bold text-[#3A3A3A]">
                                                                             ${typeof slot.price === 'number' ? slot.price.toFixed(2) : slot.price}
                                                                         </div>
                                                                     </div>
@@ -1084,7 +1084,7 @@ export function EditServiceForm({ serviceId, onSuccess, onCancel }: EditServiceF
                                     <div className="pt-2">
                                         <Button
                                             onClick={handleAddTimeSlot}
-                                            className="w-full bg-[#3A3A3A] hover:bg-black text-white h-12 rounded-xl text-base font-bold shadow-lg shadow-gray-200/50 transition-all hover:scale-[1.01] active:scale-[0.99]"
+                                            className="w-full bg-[#3A3A3A] hover:bg-black text-white h-10 md:h-12 rounded-xl text-sm md:text-base font-bold shadow-lg shadow-gray-200/50 transition-all hover:scale-[1.01] active:scale-[0.99]"
                                         >
                                             Save Time Slot
                                         </Button>
@@ -1102,14 +1102,14 @@ export function EditServiceForm({ serviceId, onSuccess, onCancel }: EditServiceF
                     onClick={onCancel}
                     disabled={isLoading}
                     variant="outline"
-                    className="flex-1 h-12 rounded-xl text-base font-semibold border-gray-200 hover:bg-gray-50 text-gray-700"
+                    className="flex-1 h-10 md:h-12 rounded-xl text-sm md:text-base font-semibold border-gray-200 hover:bg-gray-50 text-gray-700"
                 >
                     Cancel
                 </Button>
                 <Button
                     type="submit"
                     disabled={isLoading}
-                    className="flex-1 h-12 rounded-xl text-base font-semibold bg-[#EECFD1] hover:bg-[#e5c4c7] text-white shadow-md disabled:opacity-50"
+                    className="flex-1 h-10 md:h-12 rounded-xl text-sm md:text-base font-semibold bg-[#EECFD1] hover:bg-[#e5c4c7] text-white shadow-md disabled:opacity-50"
                 >
                     {isLoading ? "Saving..." : "Save Changes"}
                 </Button>

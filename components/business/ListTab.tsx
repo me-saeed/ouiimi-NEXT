@@ -276,13 +276,13 @@ export function ListTab({ business }: ListTabProps) {
 
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-[#3A3A3A]">Your Services</h2>
+          <h2 className="text-xl md:text-2xl font-bold text-[#3A3A3A]">Your Services</h2>
           <p className="text-sm text-[#888888] mt-1">
             Manage your services
           </p>
         </div>
         <Link href="/business/services/create">
-          <Button className="bg-[#EECFD1] text-white hover:bg-[#e5c4c7] rounded-xl px-6 py-2.5 font-semibold flex items-center gap-2">
+          <Button className="bg-[#EECFD1] text-white hover:bg-[#e5c4c7] rounded-xl px-4 md:px-6 py-2 md:py-2.5 text-sm md:text-base font-semibold flex items-center gap-2">
             <Plus className="w-4 h-4" />
             Add Service
           </Button>
@@ -320,23 +320,23 @@ export function ListTab({ business }: ListTabProps) {
             }, {} as Record<string, Service[]>);
 
             return (
-              <div key={category} className="space-y-6 pb-8 border-b-2 border-gray-100 last:border-b-0">
+              <div key={category} className="space-y-4 pb-8 border-b-2 border-gray-100 last:border-b-0">
                 {/* Category Header */}
-                <div className="pb-3 px-4 py-3">
-                  <h2 className="text-2xl font-bold text-[#3A3A3A] truncate">{category}</h2>
+                <div className="pb-2">
+                  <h2 className="text-lg md:text-2xl font-bold text-[#3A3A3A] truncate">{category}</h2>
                 </div>
 
                 {/* Subcategories */}
-                <div className="space-y-6">
+                <div className="space-y-4">
                   {Object.entries(groupedBySubcategory).map(([subCategory, subCategoryServices]) => (
-                    <div key={subCategory} className="space-y-3 pl-4">
+                    <div key={subCategory} className="space-y-3">
                       {/* Subcategory Header */}
-                      <h3 className="text-lg font-semibold text-[#5A5A5A] pl-3 py-2 truncate">
+                      <h3 className="text-base md:text-lg font-semibold text-[#5A5A5A] pl-0 md:pl-2 py-1 truncate">
                         {subCategory}
                       </h3>
 
                       {/* Services List for this subcategory */}
-                      <div className="flex flex-col gap-3 pl-2">
+                      <div className="flex flex-col gap-3 pl-0 md:pl-4">
                         {subCategoryServices.map((service) => {
                           const serviceId = service.id || service._id;
                           const cardData = formatServiceForCard(service);

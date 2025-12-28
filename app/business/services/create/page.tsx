@@ -846,12 +846,12 @@ export default function CreateServicePage() {
                       value={selectedCategory}
                       onValueChange={(val) => setValue("category", val)}
                     >
-                      <SelectTrigger className="w-full h-[46px] px-4 rounded-xl border-gray-200 bg-white focus:ring-2 focus:ring-[#EECFD1]/50 focus:border-[#EECFD1] text-[#3A3A3A] font-normal shadow-sm hover:border-[#EECFD1] transition-all">
+                      <SelectTrigger className="w-full h-10 md:h-[46px] px-3 md:px-4 rounded-xl border-gray-200 bg-white focus:ring-2 focus:ring-[#EECFD1]/50 focus:border-[#EECFD1] text-sm md:text-base text-[#3A3A3A] font-normal shadow-sm hover:border-[#EECFD1] transition-all">
                         <SelectValue placeholder="Select Category" />
                       </SelectTrigger>
-                      <SelectContent className="max-h-[300px]">
+                      <SelectContent className="max-h-[200px] md:max-h-[300px]">
                         {CATEGORIES.map((cat) => (
-                          <SelectItem key={cat} value={cat} className="cursor-pointer py-3 hover:bg-[#FFF5F6] hover:text-[#3A3A3A] focus:bg-[#FFF5F6] focus:text-[#3A3A3A]">
+                          <SelectItem key={cat} value={cat} className="cursor-pointer py-2 md:py-3 text-sm md:text-base hover:bg-[#FFF5F6] hover:text-[#3A3A3A] focus:bg-[#FFF5F6] focus:text-[#3A3A3A]">
                             {cat}
                           </SelectItem>
                         ))}
@@ -873,12 +873,12 @@ export default function CreateServicePage() {
                       onValueChange={(val) => setValue("subCategory", val)}
                       disabled={!selectedCategory || !SUB_CATEGORIES[selectedCategory]}
                     >
-                      <SelectTrigger className={`w-full h-[46px] px-4 rounded-xl border-gray-200 shadow-sm transition-all text-[#3A3A3A] font-normal ${!selectedCategory ? "bg-gray-50 cursor-not-allowed opacity-75" : "bg-white hover:border-[#EECFD1] focus:ring-2 focus:ring-[#EECFD1]/50 focus:border-[#EECFD1]"}`}>
+                      <SelectTrigger className={`w-full h-10 md:h-[46px] px-3 md:px-4 rounded-xl border-gray-200 shadow-sm transition-all text-sm md:text-base text-[#3A3A3A] font-normal ${!selectedCategory ? "bg-gray-50 cursor-not-allowed opacity-75" : "bg-white hover:border-[#EECFD1] focus:ring-2 focus:ring-[#EECFD1]/50 focus:border-[#EECFD1]"}`}>
                         <SelectValue placeholder={selectedCategory && SUB_CATEGORIES[selectedCategory] ? "Select Service Name" : "Select Category First"} />
                       </SelectTrigger>
-                      <SelectContent className="max-h-[300px]">
+                      <SelectContent className="max-h-[200px] md:max-h-[300px]">
                         {selectedCategory && SUB_CATEGORIES[selectedCategory] && SUB_CATEGORIES[selectedCategory].map((subCat) => (
-                          <SelectItem key={subCat} value={subCat} className="cursor-pointer py-3 hover:bg-[#FFF5F6] hover:text-[#3A3A3A] focus:bg-[#FFF5F6] focus:text-[#3A3A3A]">
+                          <SelectItem key={subCat} value={subCat} className="cursor-pointer py-2 md:py-3 text-sm md:text-base hover:bg-[#FFF5F6] hover:text-[#3A3A3A] focus:bg-[#FFF5F6] focus:text-[#3A3A3A]">
                             {subCat}
                           </SelectItem>
                         ))}
@@ -930,8 +930,8 @@ export default function CreateServicePage() {
                   {/* Toolbar */}
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0">
                     <div className="space-y-1">
-                      <h3 className="text-sm font-bold text-[#3A3A3A] uppercase tracking-wider">Availability</h3>
-                      <p className="text-xs text-gray-500">Manage dates and time slots for this service.</p>
+                      <h3 className="text-xs md:text-sm font-bold text-[#3A3A3A] uppercase tracking-wider">Availability</h3>
+                      <p className="text-[10px] md:text-xs text-gray-500">Manage dates and time slots for this service.</p>
                     </div>
                     <div className="relative">
                       {/* Mobile: Direct date input styled as button */}
@@ -1033,10 +1033,10 @@ export default function CreateServicePage() {
                                     <div key={index} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 hover:bg-gray-50/50 transition-colors gap-3 sm:gap-4">
                                       {/* Time & Price Group */}
                                       <div className="flex items-center gap-4">
-                                        <div className="bg-gray-50 px-3 py-1.5 rounded-lg text-sm font-bold text-[#3A3A3A] border border-gray-200 min-w-[140px] text-center">
+                                        <div className="bg-gray-50 px-2 md:px-3 py-1 md:py-1.5 rounded-lg text-xs md:text-sm font-bold text-[#3A3A3A] border border-gray-200 min-w-[120px] md:min-w-[140px] text-center">
                                           {formatTime12Hour(slot.startTime)} - {formatTime12Hour(slot.endTime)}
                                         </div>
-                                        <div className="text-base font-bold text-[#3A3A3A]">
+                                        <div className="text-sm md:text-base font-bold text-[#3A3A3A]">
                                           ${typeof slot.price === 'number' ? slot.price.toFixed(2) : slot.price}
                                         </div>
                                       </div>
@@ -1275,7 +1275,7 @@ export default function CreateServicePage() {
                     type="submit"
                     disabled={isLoading}
                     variant="pink"
-                    className="flex-1 h-11 rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="flex-1 h-10 md:h-11 rounded-lg text-sm md:text-base font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                     onClick={handleSubmit(onSubmit, (errors) => {
                       console.log("Form validation errors:", errors);
                       // Toast for form validation errors
@@ -1308,7 +1308,7 @@ export default function CreateServicePage() {
                     type="button"
                     onClick={() => router.push("/business/dashboard")}
                     variant="outline"
-                    className="flex-1 h-11 rounded-lg border border-[#E5E5E5] bg-white hover:bg-[#F5F5F5] text-[#3A3A3A] font-medium transition-colors"
+                    className="flex-1 h-10 md:h-11 rounded-lg border border-[#E5E5E5] bg-white hover:bg-[#F5F5F5] text-sm md:text-base text-[#3A3A3A] font-medium transition-colors"
                   >
                     Cancel
                   </Button>
