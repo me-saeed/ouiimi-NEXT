@@ -756,18 +756,25 @@ export function EditServiceForm({ serviceId, onSuccess, onCancel }: EditServiceF
                                     <p className="text-xs text-gray-500">Manage dates and time slots for this service.</p>
                                 </div>
                                 <div className="relative">
-                                    {/* Mobile: Direct date input styled as button */}
-                                    <input
-                                        type="date"
-                                        className="md:hidden w-full h-10 px-3 text-xs font-semibold rounded-lg border-gray-200 border bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#EECFD1]/50 focus:border-[#EECFD1] transition-all"
-                                        min={new Date().toISOString().split('T')[0]}
-                                        onChange={(e) => {
-                                            if (e.target.value) {
-                                                handleSelectDate(e.target.value);
-                                                e.target.value = '';
-                                            }
-                                        }}
-                                    />
+                                    {/* Mobile: Visible button with hidden date input */}
+                                    <div className="md:hidden relative">
+                                        <label htmlFor="mobile-date-input-edit" className="flex items-center justify-center gap-2 w-full h-10 px-3 text-xs font-semibold rounded-lg border-gray-200 border bg-white hover:bg-gray-50 transition-all cursor-pointer">
+                                            <span className="text-lg leading-none">+</span>
+                                            <span>Add Date</span>
+                                        </label>
+                                        <input
+                                            id="mobile-date-input-edit"
+                                            type="date"
+                                            className="absolute inset-0 opacity-0 w-full h-full pointer-events-none"
+                                            min={new Date().toISOString().split('T')[0]}
+                                            onChange={(e) => {
+                                                if (e.target.value) {
+                                                    handleSelectDate(e.target.value);
+                                                    e.target.value = '';
+                                                }
+                                            }}
+                                        />
+                                    </div>
 
                                     {/* Desktop: Button with showPicker */}
                                     <Button

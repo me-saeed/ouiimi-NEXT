@@ -144,8 +144,8 @@ export default function CheckoutPage() {
                 <div className="container mx-auto px-4 max-w-7xl">
                     {/* Modern Header */}
                     <div className="mb-8 sm:mb-12">
-                        <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-2">Secure Checkout</h1>
-                        <p className="text-gray-600">Complete your booking payment safely and securely</p>
+                        <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-gray-900 mb-2">Secure Checkout</h1>
+                        <p className="text-sm md:text-base text-gray-600">Complete your booking payment safely and securely</p>
                     </div>
 
                     {error && (
@@ -160,7 +160,7 @@ export default function CheckoutPage() {
                             <div className="space-y-6">
                                 {/* Header with Business Info */}
                                 <div className="flex items-center gap-4 pb-6 border-b border-gray-100">
-                                    <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl border-2 border-gray-100 flex items-center justify-center bg-gradient-to-br from-gray-50 to-white shadow-sm overflow-hidden flex-shrink-0">
+                                    <div className="w-12 h-12 md:w-16 md:h-16 lg:w-20 lg:h-20 rounded-2xl border-2 border-gray-100 flex items-center justify-center bg-gradient-to-br from-gray-50 to-white shadow-sm overflow-hidden flex-shrink-0">
                                         {business?.logo ? (
                                             <div className="relative w-full h-full">
                                                 <Image
@@ -175,8 +175,8 @@ export default function CheckoutPage() {
                                         )}
                                     </div>
                                     <div>
-                                        <h2 className="text-xl sm:text-2xl font-bold text-gray-900">{business?.businessName || "Business"}</h2>
-                                        <p className="text-sm text-gray-500 mt-1">Booking Summary</p>
+                                        <h2 className="text-lg md:text-xl lg:text-2xl font-bold text-gray-900">{business?.businessName || "Business"}</h2>
+                                        <p className="text-xs md:text-sm text-gray-500 mt-1">Booking Summary</p>
                                     </div>
                                 </div>
 
@@ -185,7 +185,7 @@ export default function CheckoutPage() {
                                     <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
                                         <div>
                                             <p className="text-sm font-medium text-gray-500 mb-1">Date</p>
-                                            <p className="text-lg font-semibold text-gray-900">
+                                            <p className="text-sm md:text-base font-semibold text-gray-900">
                                                 {new Date(booking.timeSlot.date).toLocaleDateString('en-US', {
                                                     weekday: 'short',
                                                     month: 'short',
@@ -196,7 +196,7 @@ export default function CheckoutPage() {
                                         </div>
                                         <div className="text-right">
                                             <p className="text-sm font-medium text-gray-500 mb-1">Time</p>
-                                            <p className="text-lg font-semibold text-gray-900">
+                                            <p className="text-sm md:text-base font-semibold text-gray-900">
                                                 {booking.timeSlot.startTime} - {booking.timeSlot.endTime}
                                             </p>
                                         </div>
@@ -230,7 +230,7 @@ export default function CheckoutPage() {
 
                                 <div className="border-t border-gray-200 pt-6 mt-6">
                                     <div className="bg-gradient-to-br from-[#EECFD1]/10 to-[#EECFD1]/5 rounded-2xl p-5 space-y-3">
-                                        <h3 className="font-semibold text-gray-900 mb-4">Payment Breakdown</h3>
+                                        <h3 className="text-base md:text-lg font-semibold text-gray-900 mb-4">Payment Breakdown</h3>
                                         <div className="space-y-2">
 
 
@@ -248,7 +248,7 @@ export default function CheckoutPage() {
                                             <div className="pt-3 border-t border-gray-300 mt-3">
                                                 <div className="flex justify-between items-center">
                                                     <span className="text-lg font-bold text-gray-900">Total Today</span>
-                                                    <span className="text-3xl font-extrabold text-gray-900">${(booking.depositAmount + PLATFORM_FEE).toFixed(2)}</span>
+                                                    <span className="text-2xl md:text-3xl font-extrabold text-gray-900">${(booking.depositAmount + PLATFORM_FEE).toFixed(2)}</span>
                                                 </div>
                                             </div>
                                         </div>
@@ -265,8 +265,8 @@ export default function CheckoutPage() {
                             <div className="space-y-6">
                                 {/* Section Header */}
                                 <div className="pb-6 border-b border-gray-100">
-                                    <h2 className="text-2xl font-bold text-gray-900">Payment Details</h2>
-                                    <p className="text-sm text-gray-500 mt-1">Enter your information to complete the booking</p>
+                                    <h2 className="text-xl md:text-2xl font-bold text-gray-900">Payment Details</h2>
+                                    <p className="text-xs md:text-sm text-gray-500 mt-1">Enter your information to complete the booking</p>
                                 </div>
 
                                 {/* Customer Info Fields */}
@@ -274,7 +274,7 @@ export default function CheckoutPage() {
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-2">Full Name</label>
                                         <Input
-                                            className="w-full h-12 rounded-xl border-gray-300 bg-gray-50 text-gray-900 font-medium"
+                                            className="w-full h-10 md:h-12 rounded-xl border-gray-300 bg-gray-50 text-sm md:text-base text-gray-900 font-medium"
                                             value={user?.fname + " " + (user?.lname || "")}
                                             readOnly
                                         />
@@ -282,7 +282,7 @@ export default function CheckoutPage() {
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-2">Email Address</label>
                                         <Input
-                                            className="w-full h-12 rounded-xl border-gray-300 bg-gray-50 text-gray-900 font-medium"
+                                            className="w-full h-10 md:h-12 rounded-xl border-gray-300 bg-gray-50 text-sm md:text-base text-gray-900 font-medium"
                                             value={user?.email}
                                             readOnly
                                         />
@@ -290,7 +290,7 @@ export default function CheckoutPage() {
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-2">Phone Number</label>
                                         <Input
-                                            className="w-full h-12 rounded-xl border-gray-300 bg-white focus:border-[#EECFD1] focus:ring-[#EECFD1]"
+                                            className="w-full h-10 md:h-12 rounded-xl border-gray-300 bg-white text-sm md:text-base focus:border-[#EECFD1] focus:ring-[#EECFD1]"
                                             value={user?.phone || ""}
                                             placeholder="Enter your phone number"
                                         />
@@ -298,7 +298,7 @@ export default function CheckoutPage() {
                                 </div>
 
                                 <div className="border-t border-gray-100 pt-6">
-                                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Card Information</h3>
+                                    <h3 className="text-base md:text-lg font-semibold text-gray-900 mb-4">Card Information</h3>
                                     {clientSecret ? (
                                         <StripeProvider clientSecret={clientSecret} amount={paymentAmount}>
                                             <CheckoutForm

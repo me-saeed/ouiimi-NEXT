@@ -270,7 +270,7 @@ export function ServiceBookingForm({ service, business }: BookingFormProps) {
                         className="flex items-center gap-3 hover:opacity-80 transition-opacity cursor-pointer group"
                     >
                         {business?.logo ? (
-                            <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-gray-200 group-hover:border-[#EECFD1] transition-colors flex-shrink-0">
+                            <div className="w-10 h-10 md:w-12 md:h-12 rounded-full overflow-hidden border-2 border-gray-200 group-hover:border-[#EECFD1] transition-colors flex-shrink-0">
                                 <Image
                                     src={business.logo}
                                     alt={business.businessName || "Business Logo"}
@@ -287,7 +287,7 @@ export function ServiceBookingForm({ service, business }: BookingFormProps) {
                             </div>
                         )}
                         <div className="flex-1 min-w-0">
-                            <h2 className="text-2xl font-bold text-[#3A3A3A] group-hover:text-[#EECFD1] transition-colors">
+                            <h2 className="text-xl md:text-2xl font-bold text-[#3A3A3A] group-hover:text-[#EECFD1] transition-colors">
                                 {business?.businessName || 'Booking'}
                             </h2>
                             {business?.businessName && (
@@ -312,7 +312,7 @@ export function ServiceBookingForm({ service, business }: BookingFormProps) {
                                 setSelectedTimeSlot(null);
                                 setSelectedStaff("");
                             }}
-                            className="w-full px-4 py-3.5 pr-10 rounded-xl border border-gray-200 bg-white text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-[#EECFD1] focus:border-[#EECFD1] transition-all appearance-none hover:border-gray-300"
+                            className="w-full px-3 md:px-4 py-2.5 md:py-3.5 pr-10 rounded-xl border border-gray-200 bg-white text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-[#EECFD1] focus:border-[#EECFD1] transition-all appearance-none hover:border-gray-300"
                         >
                             <option value="">Select Date</option>
                             {availableDates.map((date: string) => {
@@ -365,7 +365,7 @@ export function ServiceBookingForm({ service, business }: BookingFormProps) {
                                 setSelectedStaff("");
                             }}
                             disabled={!selectedDate || availableTimeSlots.length === 0}
-                            className="w-full px-4 py-3.5 pr-10 rounded-xl border border-gray-200 bg-white text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-[#EECFD1] focus:border-[#EECFD1] transition-all appearance-none hover:border-gray-300 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed disabled:opacity-60"
+                            className="w-full px-3 md:px-4 py-2.5 md:py-3.5 pr-10 rounded-xl border border-gray-200 bg-white text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-[#EECFD1] focus:border-[#EECFD1] transition-all appearance-none hover:border-gray-300 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed disabled:opacity-60"
                         >
                             <option value="">{selectedDate && availableTimeSlots.length > 0 ? "Select Preferred Time" : selectedDate ? "No time slots available" : "Select Date First"}</option>
                             {availableTimeSlots.map((slot: any, idx: number) => {
@@ -404,7 +404,7 @@ export function ServiceBookingForm({ service, business }: BookingFormProps) {
                             value={selectedStaff}
                             onChange={(e) => setSelectedStaff(e.target.value)}
                             disabled={!selectedTimeSlot || availableStaff.length === 0}
-                            className="w-full px-4 py-3.5 pr-10 rounded-xl border border-gray-200 bg-white text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-[#EECFD1] focus:border-[#EECFD1] transition-all appearance-none hover:border-gray-300 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed disabled:opacity-60"
+                            className="w-full px-3 md:px-4 py-2.5 md:py-3.5 pr-10 rounded-xl border border-gray-200 bg-white text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-[#EECFD1] focus:border-[#EECFD1] transition-all appearance-none hover:border-gray-300 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed disabled:opacity-60"
                         >
                             <option value="">{selectedTimeSlot && availableStaff.length > 0 ? "Select Preferred Staff" : selectedTimeSlot ? "No staff available" : "Select Time First"}</option>
                             {availableStaff.map((staff: any) => {
@@ -430,7 +430,7 @@ export function ServiceBookingForm({ service, business }: BookingFormProps) {
                         <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 block">
                             SERVICE
                         </label>
-                        <p className="text-base font-bold text-[#3A3A3A]">{service.serviceName || ""}</p>
+                        <p className="text-sm md:text-base font-bold text-[#3A3A3A]">{service.serviceName || ""}</p>
                     </div>
 
                     <div>
@@ -452,7 +452,7 @@ export function ServiceBookingForm({ service, business }: BookingFormProps) {
                     )}
                 </div>
 
-                {/* Add-ons */}
+                {/* Add-ons - Always Visible */}
                 {availableAddOns && availableAddOns.length > 0 && (
                     <div className="space-y-2">
                         <label className="text-sm font-semibold text-gray-700 mb-2 block">
@@ -469,9 +469,10 @@ export function ServiceBookingForm({ service, business }: BookingFormProps) {
                                     e.target.value = "";
                                 }
                             }}
-                            className="w-full px-4 py-3.5 rounded-xl border border-gray-200 bg-white text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-[#EECFD1] focus:border-[#EECFD1] transition-all appearance-none bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTIiIGhlaWdodD0iOCIgdmlld0JveD0iMCAwIDEyIDgiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0iTTEgMUw2IDZMMTEgMSIgc3Ryb2tlPSIjNjY2IiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPjwvc3ZnPg==')] bg-no-repeat bg-right-4 pr-10 hover:border-gray-300"
+                            disabled={!selectedTimeSlot}
+                            className="w-full px-3 md:px-4 py-2.5 md:py-3.5 rounded-xl border border-gray-200 bg-white text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-[#EECFD1] focus:border-[#EECFD1] transition-all appearance-none bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTIiIGhlaWdodD0iOCIgdmlld0JveD0iMCAwIDEyIDgiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0iTTEgMUw2IDZMMTEgMSIgc3Ryb2tlPSIjNjY2IiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPjwvc3ZnPg==')] bg-no-repeat bg-right-4 pr-10 hover:border-gray-300 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed disabled:opacity-60"
                         >
-                            <option value="">Select Add-Ons</option>
+                            <option value="">{!selectedTimeSlot ? "Select Time First" : "Select Add-Ons"}</option>
                             {availableAddOns.map((addon: any, idx: number) => (
                                 <option key={idx} value={addon.name}>
                                     {addon.name} - ${addon.cost?.toFixed(2) || "0.00"}
@@ -524,7 +525,7 @@ export function ServiceBookingForm({ service, business }: BookingFormProps) {
                         )}
                         <div className="flex justify-between items-center pt-4 border-t border-gray-300">
                             <span className="text-base font-bold text-[#3A3A3A]">Total</span>
-                            <span className="text-2xl font-bold text-[#3A3A3A]">${calculateTotal().toFixed(2)}</span>
+                            <span className="text-xl md:text-2xl font-bold text-[#3A3A3A]">${calculateTotal().toFixed(2)}</span>
                         </div>
                     </div>
                 </div>
@@ -534,7 +535,7 @@ export function ServiceBookingForm({ service, business }: BookingFormProps) {
                     onClick={handleAddToCart}
                     disabled={isLoading || authLoading || !selectedDate || !selectedTimeSlot || availableDates.length === 0}
                     size="lg"
-                    className="w-full h-14 rounded-xl bg-[#EECFD1] hover:bg-[#EECFD1]/90 text-[#3A3A3A] font-semibold text-base shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full h-12 md:h-14 rounded-xl bg-[#EECFD1] hover:bg-[#EECFD1]/90 text-[#3A3A3A] text-sm md:text-base font-semibold shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                     {isLoading || authLoading ? (
                         <>
