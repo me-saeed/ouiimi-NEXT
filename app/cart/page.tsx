@@ -52,7 +52,7 @@ export default function CartPage() {
     const totalCost = cartItems.reduce((sum, item) => sum + item.totalCost, 0);
     const deposit = Math.round(totalCost * 0.1 * 100) / 100;
     const ouiimiFee = 1.99;
-    const totalToday = deposit; // Fee is cut from business's deposit share
+    const totalToday = deposit + ouiimiFee; // Deposit + platform fee is what customer pays today
     const remainingAmount = totalCost - deposit;
 
     return {
