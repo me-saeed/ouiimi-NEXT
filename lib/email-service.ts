@@ -168,7 +168,7 @@ export class EmailService {
                 toName: business.businessName,
                 subject: `Service Completed - Payment Pending Release`,
                 variables,
-                templateType: 'booking_confirmation_business'
+                templateType: 'booking_complete'
             });
 
             console.log(`✅ Service completion email sent to business: ${business.email}`);
@@ -355,7 +355,7 @@ export class EmailService {
                 toName: business.businessName,
                 subject: `Business Application Update - ${business.businessName}`,
                 variables,
-                templateType: 'business_welcome'
+                templateType: 'business_rejected'
             });
 
             console.log(`✅ Business rejection email sent to: ${business.email}`);
@@ -383,7 +383,7 @@ export class EmailService {
                 toName: business.businessName,
                 subject: `Business Account Suspended - ${business.businessName}`,
                 variables,
-                templateType: 'business_welcome'
+                templateType: 'business_suspended'
             });
 
             console.log(`✅ Business suspension email sent to: ${business.email}`);
@@ -547,6 +547,64 @@ export class EmailService {
                     htmlContent = templates.generateAccountVerificationEmail({
                         fname: variables.fname,
                         uniquelink: variables.uniquelink
+                    });
+                    break;
+
+                // NEW BOOKING TO BUSINESS
+                case 'booking_confirmation_business':
+                    htmlContent = templates.generateNewBookingToBusinessEmail({
+                        businessName: variables.businessName,
+                        customerName: variables.customerName,
+                        customerEmail: variables.customerEmail,
+                        customerPhone: variables.customerPhone,
+                        serviceName: variables.serviceName,
+                        date: variables.date,
+                        startTime: variables.startTime,
+                        endTime: variables.endTime,
+                        totalCost: variables.totalCost,
+                        businessRevenue: variables.businessRevenue,
+                        bookingNumber: variables.bookingNumber
+                    });
+                    break;
+
+                // CANCELLATION TO CUSTOMER
+                case 'booking_cancellation_shopper':
+                    htmlContent = templates.generateCancellationToCustomerEmail({
+                        customerName: variables.customerName,
+                        businessName: variables.businessName,
+                        serviceName: variables.serviceName,
+                        date: variables.date,
+                        time: variables.time,
+                        refundAmount: variables.refundAmount,
+                        bookingNumber: variables.bookingNumber
+                    });
+                    break;
+
+                // BUSINESS WELCOME
+                case 'business_welcome':
+                    htmlContent = templates.generateBusinessWelcomeEmail({
+                        ownerName: variables.ownerName || variables.businessName,
+                        businessName: variables.businessName
+                    });
+                    break;
+
+                // BUSINESS REJECTED
+                case 'business_rejected':
+                    htmlContent = templates.generateBusinessRejectedEmail({
+                        ownerName: variables.ownerName,
+                        businessName: variables.businessName,
+                        rejectionReason: variables.rejectionReason,
+                        supportEmail: variables.supportEmail
+                    });
+                    break;
+
+                // BUSINESS SUSPENDED
+                case 'business_suspended':
+                    htmlContent = templates.generateBusinessSuspendedEmail({
+                        ownerName: variables.ownerName,
+                        businessName: variables.businessName,
+                        suspensionReason: variables.suspensionReason,
+                        supportEmail: variables.supportEmail
                     });
                     break;
 
