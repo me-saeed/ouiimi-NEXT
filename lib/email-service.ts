@@ -455,38 +455,111 @@ export class EmailService {
     }
 
     /**
-     * Generic email sender - uses Mailjet
+     * Generic email sender - uses new centralized HTML templates
      */
     private static async sendEmail(params: EmailParams & { templateType?: string }) {
         const { to, toName, subject, variables = {}, templateType } = params;
 
         try {
-            // Import the Mailjet service dynamically
+            // Import template generators
+            const templates = await import('@/lib/email-templates');
             const mailjetService = await import('@/lib/services/mailjet');
 
-            // Log for debugging
-            console.log(`📧 Sending email via Mailjet to: ${to}`);
+            console.log(`📧 Sending email to: ${to}`);
             console.log(`Subject: ${subject}`);
-            console.log(`Template: ${templateType || 'GUESSED'}`);
+            console.log(`Template: ${templateType || 'CUSTOM'}`);
 
-            // Prepare base data for Mailjet
-            const emailData = {
-                email: to,
-                fname: variables.ownerName || toName || variables.customerName || variables.fname,
-                ...variables
-            };
+            let htmlContent: string;
 
-            // Use explicit template if provided (PREFERRED)
-            if (templateType && templateType in mailjetService.TEMPLATE_IDS) {
-                await mailjetService.sendEmail(
-                    [to],
-                    subject,
-                    emailData,
-                    templateType as any
-                );
-            } else {
-                console.warn(`⚠️  Template type '${templateType}' not found in known IDs.`);
+            // Generate HTML based on template type
+            switch (templateType) {
+                case 'welcome':
+                    htmlContent = templates.generateWelcomeEmail({
+                        fname: variables.fname || variables.customerName || toName
+                    });
+                    break;
+
+                case 'booking_confirmation_shopper':
+                    htmlContent = templates.generateBookingConfirmationEmail({
+                        customerName: variables.customerName,
+                        serviceName: variables.serviceName,
+                        businessName: variables.businessName,
+                        date: variables.date,
+                        startTime: variables.startTime,
+                        endTime: variables.endTime,
+                        depositPaid: variables.depositPaid,
+                        remainingAmount: variables.remainingAmount,
+                        businessAddress: variables.businessAddress,
+                        bookingNumber: variables.bookingNumber
+                    });
+                    break;
+
+                case 'booking_complete':
+                    htmlContent = templates.generateBookingCompleteEmail({
+                        businessName: variables.businessName,
+                        shopperName: variables.customerName,
+                        serviceName: variables.serviceName,
+                        date: variables.date,
+                        time: `${variables.startTime} - ${variables.endTime}`,
+                        depositAmount: variables.depositPaid || variables.depositAmount,
+                        payoutAmount: variables.businessRevenue || variables.expectedPayout,
+                        bookingId: variables.bookingNumber
+                    });
+                    break;
+
+                case 'booking_cancellation_business':
+                    htmlContent = templates.generateCancellationBusinessEmail({
+                        businessName: variables.businessName,
+                        shopperName: variables.customerName,
+                        serviceName: variables.serviceName,
+                        date: variables.date
+                    });
+                    break;
+
+                case 'cancellation_payout':
+                case 'payment_receipt':
+                    htmlContent = templates.generateCancellationPaymentEmail({
+                        shopperName: variables.customerName,
+                        serviceName: variables.serviceName,
+                        date: variables.date,
+                        time: variables.startTime,
+                        depositAmount: variables.paymentAmount || variables.amountReleased,
+                        payoutStatus: 'Completed'
+                    });
+                    break;
+
+                case 'business_approved':
+                    htmlContent = templates.generateBusinessApprovedEmail({
+                        ownerName: variables.ownerName,
+                        businessName: variables.businessName,
+                        dashboardUrl: variables.dashboardUrl
+                    });
+                    break;
+
+                case 'forgot_password':
+                    htmlContent = templates.generatePasswordResetEmail({
+                        fname: variables.fname,
+                        uniquelink: variables.uniquelink
+                    });
+                    break;
+
+                case 'account_verification':
+                    htmlContent = templates.generateAccountVerificationEmail({
+                        fname: variables.fname,
+                        uniquelink: variables.uniquelink
+                    });
+                    break;
+
+                default:
+                    console.warn(`⚠️  Template type '${templateType}' not yet migrated to HTML templates. Using fallback.`);
+                    // Fallback: create a simple HTML email
+                    htmlContent = templates.generateWelcomeEmail({
+                        fname: variables.fname || toName || 'User'
+                    });
             }
+
+            // Send HTML email via Mailjet
+            await mailjetService.sendHTMLEmail([to], subject, htmlContent, toName);
 
             console.log(`✅ Email sent successfully to ${to}`);
         } catch (error) {

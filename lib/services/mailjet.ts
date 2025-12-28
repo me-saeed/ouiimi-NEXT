@@ -65,6 +65,62 @@ export const TEMPLATE_IDS = {
 export type EmailTemplateType = keyof typeof TEMPLATE_IDS;
 
 /**
+ * Send email using custom HTML content (for new centralized templates)
+ */
+export async function sendHTMLEmail(
+  emailToSend: string[],
+  subject: string,
+  htmlContent: string,
+  recipientName?: string
+): Promise<boolean> {
+  try {
+    const mailjetClient = getMailjetClient();
+
+    if (!mailjetClient) {
+      console.error("Mailjet client not configured. Cannot send email.");
+      return false;
+    }
+
+    const recipients = emailToSend.map((email) => ({
+      Email: email,
+      Name: recipientName || "",
+    }));
+
+    const request = mailjetClient.post("send", { version: "v3.1" }).request({
+      Messages: [
+        {
+          From: {
+            Email: process.env.MAILJET_FROM_EMAIL || "information@ouiimi.com",
+            Name: process.env.MAILJET_FROM_NAME || "Ouiimi",
+          },
+          To: recipients,
+          Subject: subject,
+          HTMLPart: htmlContent,
+          CustomID: "OuiimiEmail",
+        },
+      ],
+    });
+
+    const response = await request;
+    console.log(`[Mailjet] HTML email sent successfully to ${emailToSend.join(", ")}`);
+    return true;
+  } catch (error: any) {
+    console.error(`[Mailjet] FATAL ERROR sending HTML email to ${emailToSend.join(", ")}`);
+
+    if (error.statusCode) {
+      console.error(`[Mailjet] Status Code: ${error.statusCode}`);
+      console.error(`[Mailjet] Error Message: ${error.message}`);
+      if (error.response && error.response.text) {
+        console.error(`[Mailjet] Full Response: ${error.response.text}`);
+      }
+    } else {
+      console.error(`[Mailjet] Error details:`, error);
+    }
+    return false;
+  }
+}
+
+/**
  * Send email using Mailjet template
  */
 export async function sendEmail(

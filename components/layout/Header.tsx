@@ -240,10 +240,10 @@ export default function Header({ user: userProp }: HeaderProps) {
             className="fixed inset-0 bg-black/50 z-50 transition-opacity"
             onClick={() => setSidebarOpen(false)}
           />
-          <div className="fixed left-0 top-0 h-full w-72 bg-white shadow-2xl z-50 transform transition-transform animate-in">
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-10">
-                <h2 className="text-2xl font-bold text-[#3A3A3A]">Menu</h2>
+          <div className="fixed left-0 top-0 h-full w-64 sm:w-72 bg-white shadow-2xl z-50 transform transition-transform animate-in">
+            <div className="p-4 sm:p-6">
+              <div className="flex items-center justify-between mb-6 sm:mb-10">
+                <h2 className="text-xl sm:text-2xl font-bold text-[#3A3A3A]">Menu</h2>
                 <button
                   onClick={() => setSidebarOpen(false)}
                   className="text-[#3A3A3A] hover:text-black p-2 hover:bg-gray-100 rounded-lg transition-all tap-target"
@@ -268,19 +268,19 @@ export default function Header({ user: userProp }: HeaderProps) {
               {/* Authentication Section */}
               {user ? (
                 <div className="mb-6 pb-6 border-b border-gray-200">
-                  <div className="flex items-center gap-3 px-5 py-3 bg-[#EECFD1]/10 rounded-lg">
-                    <div className="w-10 h-10 rounded-full bg-[#EECFD1] flex items-center justify-center text-white text-sm font-semibold">
+                  <div className="flex items-center gap-3 px-3 sm:px-5 py-2.5 sm:py-3 bg-[#EECFD1]/10 rounded-lg">
+                    <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-[#EECFD1] flex items-center justify-center text-white text-sm font-semibold">
                       {getUserInitials()}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-gray-900 truncate">
+                      <p className="text-xs sm:text-sm font-semibold text-gray-900 truncate">
                         {`${user.fname} ${user.lname}`}
                       </p>
                     </div>
                   </div>
                   <button
                     onClick={handleLogout}
-                    className="w-full mt-3 px-5 py-2.5 text-sm font-medium text-red-600 hover:bg-red-50 rounded-lg transition-colors text-left"
+                    className="w-full mt-3 px-3 sm:px-5 py-2 sm:py-2.5 text-xs sm:text-sm font-medium text-red-600 hover:bg-red-50 rounded-lg transition-colors text-left"
                   >
                     Sign Out
                   </button>
@@ -290,14 +290,14 @@ export default function Header({ user: userProp }: HeaderProps) {
                   <Link
                     href="/signin"
                     onClick={() => setSidebarOpen(false)}
-                    className="block px-5 py-3 text-[#3A3A3A] font-medium underline text-center hover:text-[#888] transition-all"
+                    className="block px-3 sm:px-5 py-2.5 sm:py-3 text-sm sm:text-base text-[#3A3A3A] font-medium underline text-center hover:text-[#888] transition-all"
                   >
                     Sign In
                   </Link>
                   <Link
                     href="/signup"
                     onClick={() => setSidebarOpen(false)}
-                    className="block px-5 py-3 text-[#3A3A3A] font-medium underline text-center hover:text-[#888] transition-all"
+                    className="block px-3 sm:px-5 py-2.5 sm:py-3 text-sm sm:text-base text-[#3A3A3A] font-medium underline text-center hover:text-[#888] transition-all"
                   >
                     Sign Up
                   </Link>
@@ -312,7 +312,7 @@ export default function Header({ user: userProp }: HeaderProps) {
                       key={link.href}
                       href={link.href}
                       onClick={() => setSidebarOpen(false)}
-                      className={`block px-5 py-3.5 rounded-lg text-[#3A3A3A] font-medium transition-all duration-200 ${isActive
+                      className={`block px-3 sm:px-5 py-2.5 sm:py-3.5 rounded-lg text-sm sm:text-base text-[#3A3A3A] font-medium transition-all duration-200 ${isActive
                         ? "bg-[#EECFD1] text-[#3A3A3A] font-semibold"
                         : "hover:bg-[#EECFD1]/30 hover:text-[#3A3A3A]"
                         }`}
