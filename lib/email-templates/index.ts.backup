@@ -13,7 +13,7 @@ export function generateWelcomeEmail(variables: { fname: string }): string {
   const content = `
     <h1 class="heading">Welcome To ouiimi</h1>
     
-    <p class="body-text">Hi ${escapeHTML(variables.fname)},</p>
+    <p class="body-text">Hi ${variables.fname},</p>
     
     <p class="body-text">
       Welcome to ouiimi — an easier way to discover, book, and manage everyday services.
@@ -56,7 +56,7 @@ export function generateBookingConfirmationEmail(variables: {
     <h1 class="heading">Booking Confirmed.</h1>
     
     <p class="body-text">
-      Your booking with ${escapeHTML(variables.businessName)} has been confirmed.
+      Your booking with ${variables.businessName} has been confirmed.
     </p>
     
     <p class="section-label">Booking Details.</p>
@@ -97,7 +97,7 @@ export function generateBookingCompleteEmail(variables: {
     <h1 class="heading">Booking Complete.</h1>
     
     <p class="body-text">
-      Your booking with [${escapeHTML(variables.shopperName)}] has been marked as completed, and your payout has now been processed.
+      Your booking with [${variables.shopperName}] has been marked as completed, and your payout has now been processed.
     </p>
     
     <p class="section-label">Booking Details.</p>
@@ -139,10 +139,10 @@ export function generateCancellationBusinessEmail(variables: {
   const content = `
     <h1 class="heading">Booking Details.</h1>
     
-    <p class="body-text">Hi [${escapeHTML(variables.businessName)}],</p>
+    <p class="body-text">Hi [${variables.businessName}],</p>
     
     <p class="body-text">
-      We regret to inform you that your recent booking by [${escapeHTML(variables.shopperName)}] for [${escapeHTML(variables.serviceName)}] on [${variables.date}] has been cancelled.
+      We regret to inform you that your recent booking by [${variables.shopperName}] for [${variables.serviceName}] on [${variables.date}] has been cancelled.
     </p>
     
     <p class="body-text">
@@ -211,10 +211,10 @@ export function generateBusinessApprovedEmail(variables: {
   const content = `
     <h1 class="heading">Your Business Has Been Approved!</h1>
     
-    <p class="body-text">Hi ${escapeHTML(variables.ownerName)},</p>
+    <p class="body-text">Hi ${variables.ownerName},</p>
     
     <p class="body-text">
-      Great news! Your business <strong>${escapeHTML(variables.businessName)}</strong> has been approved and is now live on ouiimi.
+      Great news! Your business <strong>${variables.businessName}</strong> has been approved and is now live on ouiimi.
     </p>
     
     <p class="body-text">
@@ -241,7 +241,7 @@ export function generatePasswordResetEmail(variables: {
   const content = `
     <h1 class="heading">Password Reset Request</h1>
     
-    <p class="body-text">Hi ${escapeHTML(variables.fname)},</p>
+    <p class="body-text">Hi ${variables.fname},</p>
     
     <p class="body-text">
       We received a request to reset your password. Click the link below to create a new password:
@@ -271,7 +271,7 @@ export function generateAccountVerificationEmail(variables: {
   const content = `
     <h1 class="heading">Verify Your Email</h1>
     
-    <p class="body-text">Hi ${escapeHTML(variables.fname)},</p>
+    <p class="body-text">Hi ${variables.fname},</p>
     
     <p class="body-text">
       Welcome to ouiimi! Please verify your email address to get started:
@@ -306,10 +306,10 @@ export function generateNewBookingToBusinessEmail(variables: {
   const content = `
     <h1 class="heading">New Booking Received.</h1>
     
-    <p class="body-text">Hi ${escapeHTML(variables.businessName)},</p>
+    <p class="body-text">Hi ${variables.businessName},</p>
     
     <p class="body-text">
-      You have received a new booking request for <strong>${escapeHTML(variables.serviceName)}</strong>.
+      You have received a new booking request for <strong>${variables.serviceName}</strong>.
     </p>
     
     <p class="section-label">Booking Details.</p>
@@ -348,10 +348,10 @@ export function generateServiceCompletedToCustomerEmail(variables: {
   const content = `
     <h1 class="heading">Service Completed.</h1>
     
-    <p class="body-text">Hi ${escapeHTML(variables.customerName)},</p>
+    <p class="body-text">Hi ${variables.customerName},</p>
     
     <p class="body-text">
-      Your service <strong>${escapeHTML(variables.serviceName)}</strong> with ${escapeHTML(variables.businessName)} has been marked as completed.
+      Your service <strong>${variables.serviceName}</strong> with ${variables.businessName} has been marked as completed.
     </p>
     
     <p class="body-text">
@@ -383,10 +383,10 @@ export function generateCancellationToCustomerEmail(variables: {
   const content = `
     <h1 class="heading">Booking Cancelled.</h1>
     
-    <p class="body-text">Hi ${escapeHTML(variables.customerName)},</p>
+    <p class="body-text">Hi ${variables.customerName},</p>
     
     <p class="body-text">
-      Your booking for <strong>${escapeHTML(variables.serviceName)}</strong> with ${escapeHTML(variables.businessName)} on ${variables.date} at ${variables.time} has been cancelled.
+      Your booking for <strong>${variables.serviceName}</strong> with ${variables.businessName} on ${variables.date} at ${variables.time} has been cancelled.
     </p>
     
     <p class="section-label">Refund Information:</p>
@@ -418,7 +418,7 @@ export function generateBusinessWelcomeEmail(variables: {
   const content = `
     <h1 class="heading">Welcome to Ouiimi Business</h1>
     
-    <p class="body-text">Hi ${escapeHTML(variables.ownerName)},</p>
+    <p class="body-text">Hi ${variables.ownerName},</p>
     
     <p class="body-text">
       Congratulations on taking the next step for your business! We are excited to partner with you.
@@ -450,14 +450,14 @@ export function generateBusinessRejectedEmail(variables: {
   const content = `
     <h1 class="heading">Business Application Update</h1>
     
-    <p class="body-text">Hi ${escapeHTML(variables.ownerName)},</p>
+    <p class="body-text">Hi ${variables.ownerName},</p>
     
     <p class="body-text">
-      We regret to inform you that your application for <strong>${escapeHTML(variables.businessName)}</strong> has been declined.
+      We regret to inform you that your application for <strong>${variables.businessName}</strong> has been declined.
     </p>
     
     <p class="body-text">
-      <strong>Reason:</strong> ${escapeHTML(variables.rejectionReason)}
+      <strong>Reason:</strong> ${variables.rejectionReason}
     </p>
     
     <p class="body-text">
@@ -482,14 +482,14 @@ export function generateBusinessSuspendedEmail(variables: {
   const content = `
     <h1 class="heading">Account Suspended</h1>
     
-    <p class="body-text">Hi ${escapeHTML(variables.ownerName)},</p>
+    <p class="body-text">Hi ${variables.ownerName},</p>
     
     <p class="body-text">
-      Your account for <strong>${escapeHTML(variables.businessName)}</strong> has been suspended.
+      Your account for <strong>${variables.businessName}</strong> has been suspended.
     </p>
     
     <p class="body-text">
-      <strong>Reason:</strong> ${escapeHTML(variables.suspensionReason)}
+      <strong>Reason:</strong> ${variables.suspensionReason}
     </p>
     
     <p class="body-text">

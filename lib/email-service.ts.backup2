@@ -45,8 +45,8 @@ export class EmailService {
                 serviceName: service.serviceName,
                 businessName: business.businessName,
                 date: formatBookingDate(booking.timeSlot.date),
-                startTime: booking.timeSlot?.startTime || 'TBD',
-                endTime: booking.timeSlot?.endTime || 'TBD',
+                startTime: booking.timeSlot.startTime,
+                endTime: booking.timeSlot.endTime,
                 totalCost: formatAmount(booking.totalCost),
                 depositPaid: formatAmount(booking.depositAmount),
                 remainingAmount: formatAmount(booking.remainingAmount),
@@ -62,10 +62,9 @@ export class EmailService {
                 templateType: 'booking_confirmation_shopper'
             });
 
-            console.log(`✅ [BOOKING_CONFIRMATION] Email sent to ${customer.email}`);
+            console.log(`✅ Booking confirmation email sent to ${customer.email}`);
         } catch (error) {
-            console.error(`❌ [BOOKING_CONFIRMATION] Failed to send to ${customer.email}:`, error);
-            throw error;
+            console.error('❌ Failed to send booking confirmation email:', error);
             throw error;
         }
     }
@@ -77,16 +76,23 @@ export class EmailService {
         try {
             const variables = {
                 businessName: business.businessName,
-                customerName: getCustomerName(customer.fname, customer.lname),
+                customerName: `${customer.fname} ${customer.lname || ''}`.trim(),
                 customerEmail: customer.email,
                 customerPhone: customer.contactNo || customer.phone || 'Not provided',
                 serviceName: service.serviceName,
-                date: formatBookingDate(booking.timeSlot?.date),
-                startTime: booking.timeSlot?.startTime || 'TBD',
-                endTime: booking.timeSlot?.endTime || 'TBD',
-                totalCost: formatAmount(booking.totalCost),
-                businessRevenue: formatAmount(Number(booking.depositAmount) - Number(booking.platformFee)),
-                bookingNumber: getBookingNumber(booking.bookingNumber, booking._id),
+                date: new Date(booking.timeSlot.date).toLocaleDateString('en-US', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                }),
+                startTime: booking.timeSlot.startTime,
+                endTime: booking.timeSlot.endTime,
+                totalCost: Number(booking.totalCost).toFixed(2),
+                businessRevenue: (Number(booking.depositAmount) - Number(booking.platformFee)).toFixed(2),
+                bookingNumber: booking.bookingNumber || booking._id?.toString().slice(-8),
+                emailTitle: "New Booking Received",
+                introText: `You have received a new booking request for <strong>${service.serviceName}</strong>.`
             };
 
             await this.sendEmail({
@@ -100,7 +106,6 @@ export class EmailService {
             console.log(`✅ New booking notification sent to business: ${business.email}`);
         } catch (error) {
             console.error('❌ Failed to send business notification:', error);
-            throw error;
         }
     }
 
@@ -110,26 +115,30 @@ export class EmailService {
     static async sendServiceCompletedToCustomer({ booking, customer, business, service }: BookingEmailPayload) {
         try {
             const variables = {
-                customerName: getCustomerName(customer.fname, customer.lname),
+                customerName: `${customer.fname} ${customer.lname || ''}`.trim(),
                 serviceName: service.serviceName,
                 businessName: business.businessName,
-                date: formatBookingDate(booking.timeSlot?.date),
-                remainingAmount: formatAmount(booking.remainingAmount),
-                totalCost: formatAmount(booking.totalCost)
+                date: new Date(booking.timeSlot.date).toLocaleDateString('en-US', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                }),
+                remainingAmount: Number(booking.remainingAmount).toFixed(2),
+                totalCost: Number(booking.totalCost).toFixed(2)
             };
 
             await this.sendEmail({
                 to: customer.email,
-                toName: getCustomerName(customer.fname, customer.lname),
+                toName: `${customer.fname} ${customer.lname || ''}`.trim(),
                 subject: `Service Completed - ${service.serviceName}`,
                 variables,
                 templateType: 'booking_complete'
             });
 
-            console.log(`✅ [SERVICE_COMPLETE_CUSTOMER] Email sent to ${customer.email}`);
+            console.log(`✅ Service completion email sent to customer: ${customer.email}`);
         } catch (error) {
-            console.error(`❌ [SERVICE_COMPLETE_CUSTOMER] Failed to send to ${customer.email}:`, error);
-            throw error;
+            console.error('❌ Failed to send completion email to customer:', error);
         }
     }
 
@@ -141,13 +150,20 @@ export class EmailService {
             const variables = {
                 businessName: business.businessName,
                 serviceName: service.serviceName,
-                customerName: getCustomerName(customer.fname, customer.lname),
-                date: formatBookingDate(booking.timeSlot?.date),
-                startTime: booking.timeSlot?.startTime || 'TBD',
-                endTime: booking.timeSlot?.endTime || 'TBD',
-                expectedPayout: formatAmount(Number(booking.depositAmount) - Number(booking.platformFee)),
-                totalCost: formatAmount(booking.totalCost),
-                bookingNumber: getBookingNumber(booking.bookingNumber, booking._id),
+                customerName: `${customer.fname} ${customer.lname || ''}`.trim(),
+                date: new Date(booking.timeSlot.date).toLocaleDateString('en-US', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                }),
+                startTime: booking.timeSlot.startTime,
+                endTime: booking.timeSlot.endTime,
+                expectedPayout: (Number(booking.depositAmount) - Number(booking.platformFee)).toFixed(2),
+                totalCost: Number(booking.totalCost).toFixed(2),
+                bookingNumber: booking.bookingNumber || booking._id?.toString().slice(-8),
+                emailTitle: "Service Completed",
+                introText: `The service <strong>${service.serviceName}</strong> has been marked as completed.`
             };
 
             await this.sendEmail({
@@ -158,10 +174,9 @@ export class EmailService {
                 templateType: 'booking_complete'
             });
 
-            console.log(`✅ [SERVICE_COMPLETE_BUSINESS] Email sent to ${business.email}`);
+            console.log(`✅ Service completion email sent to business: ${business.email}`);
         } catch (error) {
-            console.error(`❌ [SERVICE_COMPLETE_BUSINESS] Failed to send to ${business.email}:`, error);
-            throw error;
+            console.error('❌ Failed to send completion email to business:', error);
         }
     }
 
@@ -171,15 +186,15 @@ export class EmailService {
     static async sendPaymentReleased({ booking, business, service, customer, category }: PaymentReleasedPayload) {
         try {
             const amountReleased = Number(booking.depositAmount) - Number(booking.platformFee);
-            const customerName = customer?.fname ? getCustomerName(customer.fname, customer.lname) : 'Customer';
+            const customerName = customer?.fname ? `${customer.fname} ${customer.lname || ''}`.trim() : 'Customer';
             const variables = {
                 businessName: business.businessName,
                 serviceName: service.serviceName,
                 customerName: customerName,
                 category: category || "Service",
-                amountReleased: formatAmount(amountReleased),
-                paymentAmount: formatAmount(amountReleased), // For template compatibility
-                bookingNumber: getBookingNumber(booking.bookingNumber, booking._id),
+                amountReleased: amountReleased.toFixed(2),
+                paymentAmount: amountReleased.toFixed(2), // For template compatibility
+                bookingNumber: booking.bookingNumber || booking._id?.toString().slice(-8),
                 releaseDate: new Date().toLocaleDateString('en-US', {
                     year: 'numeric',
                     month: 'long',
@@ -195,10 +210,9 @@ export class EmailService {
                 templateType: 'payment_receipt'
             });
 
-            console.log(`✅ [PAYMENT_RELEASED] Email sent to ${business.email}`);
+            console.log(`✅ Payment released email sent to business: ${business.email}`);
         } catch (error) {
-            console.error(`❌ [PAYMENT_RELEASED] Failed to send to ${business.email}:`, error);
-            throw error;
+            console.error('❌ Failed to send payment released email:', error);
         }
     }
 
@@ -212,27 +226,31 @@ export class EmailService {
                 : 0;
 
             const variables = {
-                customerName: getCustomerName(customer.fname, customer.lname),
+                customerName: `${customer.fname} ${customer.lname || ''}`.trim(),
                 businessName: business.businessName,
                 serviceName: service.serviceName,
-                date: formatBookingDate(booking.timeSlot?.date),
-                time: booking.timeSlot?.startTime || 'TBD',
-                refundAmount: formatAmount(refundAmount),
-                bookingNumber: getBookingNumber(booking.bookingNumber, booking._id)
+                date: new Date(booking.timeSlot.date).toLocaleDateString('en-US', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                }),
+                time: booking.timeSlot.startTime,
+                refundAmount: refundAmount.toFixed(2),
+                bookingNumber: booking.bookingNumber || booking._id?.toString().slice(-8)
             };
 
             await this.sendEmail({
                 to: customer.email,
-                toName: getCustomerName(customer.fname, customer.lname),
+                toName: `${customer.fname} ${customer.lname || ''}`.trim(),
                 subject: `Booking Cancelled - ${service.serviceName}`,
                 variables,
                 templateType: 'booking_cancellation_shopper'
             });
 
-            console.log(`✅ [CANCELLATION_CUSTOMER] Email sent to ${customer.email}`);
+            console.log(`✅ Cancellation notification sent to customer: ${customer.email}`);
         } catch (error) {
-            console.error(`❌ [CANCELLATION_CUSTOMER] Failed to send to ${customer.email}:`, error);
-            throw error;
+            console.error('❌ Failed to send cancellation email to customer:', error);
         }
     }
 
@@ -243,11 +261,16 @@ export class EmailService {
         try {
             const variables = {
                 businessName: business.businessName,
-                customerName: getCustomerName(customer.fname, customer.lname),
+                customerName: `${customer.fname} ${customer.lname || ''}`.trim(),
                 serviceName: service.serviceName,
-                date: formatBookingDate(booking.timeSlot?.date),
-                startTime: booking.timeSlot?.startTime || 'TBD',
-                bookingNumber: getBookingNumber(booking.bookingNumber, booking._id)
+                date: new Date(booking.timeSlot.date).toLocaleDateString('en-US', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                }),
+                startTime: booking.timeSlot.startTime,
+                bookingNumber: booking.bookingNumber || booking._id?.toString().slice(-8)
             };
 
             await this.sendEmail({
@@ -258,10 +281,9 @@ export class EmailService {
                 templateType: 'booking_cancellation_business'
             });
 
-            console.log(`✅ [CANCELLATION_BUSINESS] Email sent to ${business.email}`);
+            console.log(`✅ Cancellation notification sent to business: ${business.email}`);
         } catch (error) {
-            console.error(`❌ [CANCELLATION_BUSINESS] Failed to send to ${business.email}:`, error);
-            throw error;
+            console.error('❌ Failed to send cancellation email:', error);
         }
     }
 
@@ -273,6 +295,7 @@ export class EmailService {
             const variables = {
                 ownerName: `${owner.fname} ${owner.lname || ''}`.trim(),
                 businessName: business.businessName,
+                emailTitle: "Welcome to Ouiimi Business",
                 emailBody: `<p class="p">Congratulations on taking the next step for your business! We are excited to partner with you.</p><p class="p">Your dashboard is ready. Log in now to complete your profile, list your services, and start accepting new clients.</p>`
             };
 
@@ -284,10 +307,9 @@ export class EmailService {
                 templateType: 'business_welcome'
             });
 
-            console.log(`✅ [BUSINESS_WELCOME] Email sent to ${business.email}`);
+            console.log(`✅ Business welcome email sent to: ${business.email}`);
         } catch (error) {
-            console.error(`❌ [BUSINESS_WELCOME] Failed to send to ${business.email}:`, error);
-            throw error;
+            console.error('❌ Failed to send business welcome email:', error);
         }
     }
 
@@ -311,10 +333,9 @@ export class EmailService {
                 templateType: 'business_approved'
             });
 
-            console.log(`✅ [BUSINESS_APPROVED] Email sent to ${business.email}`);
+            console.log(`✅ Business approval email sent to: ${business.email}`);
         } catch (error) {
-            console.error(`❌ [BUSINESS_APPROVED] Failed to send to ${business.email}:`, error);
-            throw error;
+            console.error('❌ Failed to send business approval email:', error);
         }
     }
 
@@ -328,6 +349,7 @@ export class EmailService {
                 businessName: business.businessName,
                 rejectionReason: reason || 'Not specified',
                 supportEmail: process.env.MAILJET_FROM_EMAIL || 'support@ouiimi.com.au',
+                emailTitle: "Business Application Update",
                 emailBody: `<p class="p">We regret to inform you that your application for <strong>${business.businessName}</strong> has been declined.</p><p class="p"><strong>Reason:</strong> ${reason || 'Does not meet our criteria'}</p><p class="p">If you have any questions, please contact support.</p>`
             };
 
@@ -339,10 +361,9 @@ export class EmailService {
                 templateType: 'business_rejected'
             });
 
-            console.log(`✅ [BUSINESS_REJECTED] Email sent to ${business.email}`);
+            console.log(`✅ Business rejection email sent to: ${business.email}`);
         } catch (error) {
-            console.error(`❌ [BUSINESS_REJECTED] Failed to send to ${business.email}:`, error);
-            throw error;
+            console.error('❌ Failed to send business rejection email:', error);
         }
     }
 
@@ -356,6 +377,7 @@ export class EmailService {
                 businessName: business.businessName,
                 suspensionReason: reason || 'Not specified',
                 supportEmail: process.env.MAILJET_FROM_EMAIL || 'support@ouiimi.com.au',
+                emailTitle: "Account Suspended",
                 emailBody: `<p class="p">Your account for <strong>${business.businessName}</strong> has been suspended.</p><p class="p"><strong>Reason:</strong> ${reason || 'Violation of terms'}</p><p class="p">Please contact support to resolve this issue.</p>`
             };
 
@@ -367,10 +389,9 @@ export class EmailService {
                 templateType: 'business_suspended'
             });
 
-            console.log(`✅ [BUSINESS_SUSPENDED] Email sent to ${business.email}`);
+            console.log(`✅ Business suspension email sent to: ${business.email}`);
         } catch (error) {
-            console.error(`❌ [BUSINESS_SUSPENDED] Failed to send to ${business.email}:`, error);
-            throw error;
+            console.error('❌ Failed to send business suspension email:', error);
         }
     }
 
@@ -389,10 +410,9 @@ export class EmailService {
                 },
                 templateType: 'account_verification'
             });
-            console.log(`✅ [ACCOUNT_VERIFICATION] Email sent to ${recipient.email}`);
+            console.log(`✅ Verification email sent to ${recipient.email}`);
         } catch (error) {
-            console.error(`❌ [ACCOUNT_VERIFICATION] Failed to send to ${recipient.email}:`, error);
-            throw error;
+            console.error('❌ Failed to send verification email:', error);
         }
     }
 
@@ -411,10 +431,9 @@ export class EmailService {
                 },
                 templateType: 'forgot_password'
             });
-            console.log(`✅ [PASSWORD_RESET] Email sent to ${recipient.email}`);
+            console.log(`✅ Password reset email sent to ${recipient.email}`);
         } catch (error) {
-            console.error(`❌ [PASSWORD_RESET] Failed to send to ${recipient.email}:`, error);
-            throw error;
+            console.error('❌ Failed to send password reset email:', error);
         }
     }
 
@@ -432,10 +451,9 @@ export class EmailService {
                 },
                 templateType: 'welcome'
             });
-            console.log(`✅ [SHOPPER_WELCOME] Email sent to ${recipient.email}`);
+            console.log(`✅ Shopper welcome email sent to ${recipient.email}`);
         } catch (error) {
-            console.error(`❌ [SHOPPER_WELCOME] Failed to send to ${recipient.email}:`, error);
-            throw error;
+            console.error('❌ Failed to send shopper welcome email:', error);
         }
     }
 
@@ -607,7 +625,6 @@ export class EmailService {
             console.log(`✅ Email sent successfully to ${to}`);
         } catch (error) {
             console.error(`❌ Failed to send email to ${to}:`, error);
-            throw error;
         }
     }
 }

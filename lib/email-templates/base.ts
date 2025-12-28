@@ -3,11 +3,13 @@
  * Provides consistent header, footer, and HTML structure for all emails
  */
 
+import { escapeHTML } from '@/lib/email-utils';
+
 /**
  * Generate email header with pink background and ouiimi logo
  */
 export function getEmailHeader(): string {
-    return `
+  return `
     <div style="background-color: #EECFD1; padding: 40px 20px; text-align: center;">
       <h1 style="margin: 0; font-family: 'Didot', 'Bodoni MT', 'Noto Serif Display', serif; font-size: 48px; color: white; font-weight: 400; letter-spacing: 2px;">
         ouiimi
@@ -20,7 +22,7 @@ export function getEmailHeader(): string {
  * Generate email footer with dark background and contact info
  */
 export function getEmailFooter(): string {
-    return `
+  return `
     <div style="background-color: #4A4A4A; padding: 30px 20px; text-align: center; color: white;">
       <p style="margin: 0 0 8px 0; font-family: 'Didot', 'Bodoni MT', 'Noto Serif Display', serif; font-size: 20px; font-weight: 400; letter-spacing: 1px;">
         ouiimi
@@ -42,7 +44,7 @@ export function getEmailFooter(): string {
  * Wrap email content with base HTML structure, header, and footer
  */
 export function wrapEmailContent(content: string): string {
-    return `
+  return `
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -119,12 +121,12 @@ export function wrapEmailContent(content: string): string {
  * Helper: Format detail row
  */
 export function formatDetailRow(label: string, value: string): string {
-    return `<p class="detail-row">${label}: ${value}</p>`;
+  return `<p class="detail-row">${label}: ${value}</p>`;
 }
 
 /**
  * Helper: Format closing
  */
 export function formatClosing(text: string = "Warm regards,<br>The ouiimi Team"): string {
-    return `<p class="closing">${text}</p>`;
+  return `<p class="closing">${text}</p>`;
 }
