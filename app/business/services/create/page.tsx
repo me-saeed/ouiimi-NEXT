@@ -336,6 +336,27 @@ export default function CreateServicePage() {
       return;
     }
 
+    // ✅ NEW: Check for duplicate time slot on the same date
+    const existingSlots: Array<{
+      startTime: string;
+      endTime: string;
+      price: number;
+      duration: number;
+      staffIds: string[];
+      addOns: Array<{ name: string; cost: number }>;
+    }> = datesWithSlots[selectedDate] || [];
+
+    const isDuplicate = existingSlots.some(
+      (slot) => slot.startTime === newTimeSlot.startTime && slot.endTime === newTimeSlot.endTime
+    );
+
+    if (isDuplicate) {
+      setError(
+        `This time slot (${formatTime12Hour(newTimeSlot.startTime)} - ${formatTime12Hour(newTimeSlot.endTime)}) already exists for this date. Please select a different time.`
+      );
+      return;
+    }
+
     // Final check for conflicts (in case staff was changed after time selection)
     const slot = {
       startTime: newTimeSlot.startTime,
@@ -354,14 +375,6 @@ export default function CreateServicePage() {
     }
 
     // Add slot to the selected date
-    const existingSlots: Array<{
-      startTime: string;
-      endTime: string;
-      price: number;
-      duration: number;
-      staffIds: string[];
-      addOns: Array<{ name: string; cost: number }>;
-    }> = datesWithSlots[selectedDate] || [];
     setDatesWithSlots({
       ...datesWithSlots,
       [selectedDate]: [...existingSlots, slot],
@@ -1245,13 +1258,19 @@ export default function CreateServicePage() {
                                         <span className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400 text-xs">$</span>
                                         <input
                                           type="number"
-                                          value={existing.cost}
+                                          value={existing.cost || ""}
                                           onChange={(e) => {
                                             const val = parseFloat(e.target.value) || 0;
                                             setSelectedAddOns(prev => prev.map(p => p.name === addOnName ? { ...p, cost: val } : p));
                                           }}
+                                          onFocus={(e) => {
+                                            // Clear "0" when user focuses to start typing
+                                            if (e.target.value === "0") {
+                                              setSelectedAddOns(prev => prev.map(p => p.name === addOnName ? { ...p, cost: 0 } : p));
+                                            }
+                                          }}
                                           className="w-full pl-5 pr-2 py-1.5 text-right text-sm font-bold bg-white border border-gray-200 rounded-lg focus:outline-none focus:border-[#EECFD1] focus:ring-1 focus:ring-[#EECFD1]"
-                                          placeholder="0"
+                                          placeholder="0.00"
                                         />
                                       </div>
                                     </div>

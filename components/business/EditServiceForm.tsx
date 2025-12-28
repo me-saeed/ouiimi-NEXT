@@ -1068,13 +1068,19 @@ export function EditServiceForm({ serviceId, onSuccess, onCancel }: EditServiceF
                                                                         <span className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400 text-xs">$</span>
                                                                         <input
                                                                             type="number"
-                                                                            value={existing.cost}
+                                                                            value={existing.cost || ""}
                                                                             onChange={(e) => {
                                                                                 const val = parseFloat(e.target.value) || 0;
                                                                                 setSelectedAddOns(prev => prev.map(p => p.name === addOnName ? { ...p, cost: val } : p));
                                                                             }}
+                                                                            onFocus={(e) => {
+                                                                                // Clear "0" when user focuses to start typing
+                                                                                if (e.target.value === "0") {
+                                                                                    setSelectedAddOns(prev => prev.map(p => p.name === addOnName ? { ...p, cost: 0 } : p));
+                                                                                }
+                                                                            }}
                                                                             className="w-full pl-5 pr-2 py-1.5 text-right text-sm font-bold bg-white border border-gray-200 rounded-lg focus:outline-none focus:border-[#EECFD1] focus:ring-1 focus:ring-[#EECFD1]"
-                                                                            placeholder="0"
+                                                                            placeholder="0.00"
                                                                         />
                                                                     </div>
                                                                 </div>
