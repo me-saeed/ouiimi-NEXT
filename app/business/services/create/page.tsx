@@ -289,22 +289,34 @@ export default function CreateServicePage() {
     setDuration(newDuration);
   };
 
-  // Effect to check for conflicts when time changes
+  // Effect to check for conflicts when time or staff changes
   useEffect(() => {
-    if (newTimeSlot.startTime && newTimeSlot.endTime && selectedDate) {
-      const selectedStaffIds = newTimeSlot.staffIds;
-      if (selectedStaffIds.length > 0) {
-        const hasConflict = checkTimeConflict(newTimeSlot.startTime, newTimeSlot.endTime, selectedStaffIds);
-        if (hasConflict) {
-          setTimeSlotError(`This time slot conflicts with an existing booking for the selected staff on this date.`);
-        } else {
-          // Clear only if it was a conflict error
-          if (timeSlotError && timeSlotError.includes("conflicts")) setTimeSlotError("");
-        }
+    // Only run if we have all required fields
+    if (!newTimeSlot.startTime || !newTimeSlot.endTime || !selectedDate) {
+      return;
+    }
+
+    const selectedStaffIds = newTimeSlot.staffIds;
+
+    // If no staff selected, clear any conflict errors
+    if (selectedStaffIds.length === 0) {
+      if (timeSlotError && timeSlotError.includes("conflicts")) {
+        setTimeSlotError("");
+      }
+      return;
+    }
+
+    const hasConflict = checkTimeConflict(newTimeSlot.startTime, newTimeSlot.endTime, selectedStaffIds);
+    if (hasConflict) {
+      setTimeSlotError(`This time slot conflicts with an existing booking for the selected staff on this date.`);
+    } else {
+      // Clear only if it was a conflict error
+      if (timeSlotError && timeSlotError.includes("conflicts")) {
+        setTimeSlotError("");
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [newTimeSlot.startTime, newTimeSlot.endTime, duration]);
+  }, [newTimeSlot.startTime, newTimeSlot.endTime, newTimeSlot.staffIds, selectedDate]);
 
 
 
@@ -396,6 +408,7 @@ export default function CreateServicePage() {
     setDuration(60); // Reset to default 60
     setSelectedAddOns([]); // Reset add-ons
     setTimeSlotError("");
+    setError(""); // Clear any lingering errors on successful add
 
     // Close the time slot form modal
     setShowTimeSlotForm(false);
