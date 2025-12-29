@@ -947,21 +947,11 @@ export default function CreateServicePage() {
                       <p className="text-[10px] md:text-xs text-gray-500">Manage dates and time slots for this service.</p>
                     </div>
                     <div className="relative">
-                      {/* Mobile: Visible button with hidden date input */}
+                      {/* Mobile: Visible native date input styled as button (guaranteed to work) */}
                       <div className="md:hidden relative">
-                        <button
-                          type="button"
-                          className="flex items-center justify-center gap-2 w-full h-10 px-3 text-xs font-semibold rounded-lg border-gray-200 border bg-white hover:bg-gray-50 transition-all cursor-pointer active:scale-95 transform text-[#3A3A3A] pointer-events-none"
-                          aria-hidden="true"
-                        >
-                          <span className="text-lg leading-none mb-0.5">+</span>
-                          <span>Add Date</span>
-                        </button>
-                        {/* Input overlaid on button for iOS compatibility - must be directly clickable */}
                         <input
-                          id="mobile-date-input"
                           type="date"
-                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                          className="w-full h-10 px-3 text-xs font-semibold rounded-lg border border-gray-200 bg-white cursor-pointer text-transparent"
                           min={new Date().toISOString().split('T')[0]}
                           onChange={(e) => {
                             if (e.target.value) {
@@ -970,6 +960,11 @@ export default function CreateServicePage() {
                             }
                           }}
                         />
+                        {/* Button text overlay */}
+                        <div className="absolute inset-0 flex items-center justify-center gap-2 pointer-events-none text-xs font-semibold text-[#3A3A3A]">
+                          <span className="text-lg leading-none">+</span>
+                          <span>Add Date</span>
+                        </div>
                       </div>
 
                       {/* Desktop: Button with showPicker */}

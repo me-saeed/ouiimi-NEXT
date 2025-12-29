@@ -756,42 +756,64 @@ export function EditServiceForm({ serviceId, onSuccess, onCancel }: EditServiceF
                                     <p className="text-xs text-gray-500">Manage dates and time slots for this service.</p>
                                 </div>
                                 <div className="relative">
-                                    {/* Mobile: Native date input styled as button */}
-                                    <div className="md:hidden">
-                                        <div className="relative flex items-center justify-center gap-2 h-10 px-3 text-xs font-semibold rounded-lg border border-gray-200 bg-white text-[#3A3A3A]">
-                                            <span className="pointer-events-none">+</span>
-                                            <span className="pointer-events-none">Add Date</span>
-                                            <input
-                                                type="date"
-                                                className="absolute top-0 left-0 w-full h-full opacity-0 cursor-pointer z-10"
-                                                min={new Date().toISOString().split('T')[0]}
-                                                onChange={(e) => {
-                                                    if (e.target.value) {
-                                                        handleSelectDate(e.target.value);
-                                                        e.target.value = '';
-                                                    }
-                                                }}
-                                            />
+                                    {/* Mobile: Visible native date input styled as button (guaranteed to work) */}
+                                    <div className="md:hidden relative">
+                                        <input
+                                            type="date"
+                                            className="w-full h-10 px-3 text-xs font-semibold rounded-lg border border-gray-200 bg-white cursor-pointer text-transparent"
+                                            min={new Date().toISOString().split('T')[0]}
+                                            onChange={(e) => {
+                                                if (e.target.value) {
+                                                    handleSelectDate(e.target.value);
+                                                    e.target.value = '';
+                                                }
+                                            }}
+                                        />
+                                        {/* Button text overlay */}
+                                        <div className="absolute inset-0 flex items-center justify-center gap-2 pointer-events-none text-xs font-semibold text-[#3A3A3A]">
+                                            <span className="text-lg leading-none">+</span>
+                                            <span>Add Date</span>
                                         </div>
                                     </div>
 
-                                    {/* Desktop: Native date input styled as button */}
-                                    <div className="hidden md:block">
-                                        <div className="relative flex items-center justify-center gap-2 h-9 px-4 text-xs font-semibold rounded-lg border border-gray-200 bg-white text-[#3A3A3A] hover:bg-gray-50 transition-all">
-                                            <span className="pointer-events-none text-lg leading-none">+</span>
-                                            <span className="pointer-events-none">Add Date</span>
-                                            <input
-                                                type="date"
-                                                className="absolute top-0 left-0 w-full h-full opacity-0 cursor-pointer z-10"
-                                                min={new Date().toISOString().split('T')[0]}
-                                                onChange={(e) => {
-                                                    if (e.target.value) {
-                                                        handleSelectDate(e.target.value);
-                                                        e.target.value = '';
+                                    {/* Desktop: Button with showPicker */}
+                                    <div className="hidden md:block relative">
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            className="h-9 gap-2 text-xs font-semibold rounded-lg border-gray-200 hover:bg-gray-50 hover:text-[#3A3A3A]"
+                                            onClick={(e) => {
+                                                e.preventDefault();
+                                                e.stopPropagation();
+                                                const picker = document.getElementById('desktop-date-input-edit') as HTMLInputElement;
+                                                if (picker) {
+                                                    if (typeof picker.showPicker === 'function') {
+                                                        try {
+                                                            picker.showPicker();
+                                                            return;
+                                                        } catch (err) {
+                                                            console.error('showPicker failed', err);
+                                                        }
                                                     }
-                                                }}
-                                            />
-                                        </div>
+                                                    picker.focus();
+                                                    picker.click();
+                                                }
+                                            }}
+                                        >
+                                            <span className="text-lg leading-none">+</span> Add Date
+                                        </Button>
+                                        <input
+                                            id="desktop-date-input-edit"
+                                            type="date"
+                                            className="sr-only opacity-0 absolute pointer-events-none"
+                                            min={new Date().toISOString().split('T')[0]}
+                                            onChange={(e) => {
+                                                if (e.target.value) {
+                                                    handleSelectDate(e.target.value);
+                                                    e.target.value = '';
+                                                }
+                                            }}
+                                        />
                                     </div>
                                 </div>
                             </div>
