@@ -11,6 +11,7 @@ import { AddressAutocomplete } from "@/components/ui/address-autocomplete";
 import { getAllCategories, getAddOnsByCategory } from "@/lib/constants/categories";
 import { TimeSelect } from "@/components/ui/time-select";
 import { Modal } from "@/components/ui/modal";
+import { DatePickerModal } from "@/components/ui/DatePickerModal";
 import {
     Select,
     SelectContent,
@@ -57,6 +58,7 @@ export function EditServiceForm({ serviceId, onSuccess, onCancel }: EditServiceF
     }>>>({});
     const [selectedDate, setSelectedDate] = useState<string>("");
     const [showTimeSlotForm, setShowTimeSlotForm] = useState(false);
+    const [showDatePicker, setShowDatePicker] = useState(false);
     const dateInputRef = useRef<HTMLInputElement>(null);
     const [newTimeSlot, setNewTimeSlot] = useState({
         startTime: "",
@@ -755,33 +757,25 @@ export function EditServiceForm({ serviceId, onSuccess, onCancel }: EditServiceF
                                     <h3 className="text-sm font-bold text-[#3A3A3A] uppercase tracking-wider">Availability</h3>
                                     <p className="text-xs text-gray-500">Manage dates and time slots for this service.</p>
                                 </div>
-                                {/* Add Date Button - Single unified solution for ALL devices */}
-                                <label
-                                    className="relative inline-flex cursor-pointer"
-                                    style={{ minWidth: '130px' }}
-                                    aria-label="Add a new date"
+                                {/* Add Date Button */}
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    className="h-10 md:h-9 gap-2 text-xs font-semibold rounded-lg border-gray-200"
+                                    onClick={() => setShowDatePicker(true)}
                                 >
-                                    {/* Native date input - covers entire button area */}
-                                    <input
-                                        type="date"
-                                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                                        style={{ fontSize: '16px' }}
-                                        min={new Date().toISOString().split('T')[0]}
-                                        aria-label="Select date"
-                                        onChange={(e) => {
-                                            if (e.target.value) {
-                                                handleSelectDate(e.target.value);
-                                                e.target.value = '';
-                                            }
-                                        }}
-                                    />
-                                    {/* Button appearance - pointer-events-none ensures all clicks go to input */}
-                                    <div className="pointer-events-none flex items-center justify-center gap-2 h-10 md:h-9 px-4 text-xs font-semibold rounded-lg border border-gray-200 bg-white text-[#3A3A3A] hover:bg-gray-50 transition-colors">
-                                        <span className="text-lg leading-none">+</span>
-                                        <span>Add Date</span>
-                                    </div>
-                                </label>
+                                    <span className="text-lg leading-none">+</span>
+                                    <span>Add Date</span>
+                                </Button>
                             </div>
+
+                            {/* Date Picker Modal */}
+                            <DatePickerModal
+                                isOpen={showDatePicker}
+                                onClose={() => setShowDatePicker(false)}
+                                onSelectDate={handleSelectDate}
+                                minDate={new Date()}
+                            />
 
                             {/* Dates List */}
                             <div className="space-y-6">
