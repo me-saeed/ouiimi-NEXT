@@ -79,11 +79,13 @@ export function BookingsTab({ business }: BookingsTabProps) {
       // This ensures 'pre_payment' bookings are never fetched
       let statusFilter = "";
       if (activeSubTab === "up-coming") {
+        // Upcoming: confirmed bookings (not yet completed)
         statusFilter = "confirmed";
       } else if (activeSubTab === "pending") {
-        // Pending payouts can be for confirmed or completed bookings
-        statusFilter = "confirmed,completed";
+        // Pending: completed bookings waiting for admin payment release
+        statusFilter = "completed";
       } else if (activeSubTab === "finished") {
+        // Finished: cancelled OR payment released (multiple statuses for query)
         statusFilter = "completed,cancelled,refunded";
       }
 
@@ -154,13 +156,18 @@ export function BookingsTab({ business }: BookingsTabProps) {
             }
           });
         } else if (activeSubTab === "pending") {
-          // PENDING: Confirmed or Completed bookings where admin hasn't released payment
+          // PENDING: Completed bookings waiting for admin to release payment
+          // Only show completed bookings where admin hasn't released payment yet
           filteredBookings = filteredBookings.filter((b: Booking) => {
-            return (b.status === "confirmed" || b.status === "completed") &&
+            return b.status === "completed" &&
               (b.adminPaymentStatus === "pending" || !b.adminPaymentStatus);
           });
         } else if (activeSubTab === "finished") {
+          // FINISHED: Cancelled OR Payment Released
+          // Show: cancelled bookings OR bookings where admin released payment
           filteredBookings = filteredBookings.filter((b: Booking) =>
+            b.status === "cancelled" ||
+            b.status === "refunded" ||
             b.adminPaymentStatus === "released"
           );
         }
@@ -672,14 +679,44 @@ export function BookingsTab({ business }: BookingsTabProps) {
                           Awaiting Payment
                         </span>
                       )}
-                      {booking.status === "confirmed" && (
-                        <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium">
-                          Confirmed
+                      {booking.status === "confirmed" && (() => {
+                        // Check if service time has passed for Ready to Complete badge
+                        const now = new Date();
+                        const bookingDate = parseLocalDate(booking.timeSlot.date);
+                        const [endH, endM] = booking.timeSlot.endTime.split(':').map(Number);
+                        const serviceEndTime = new Date(bookingDate);
+                        serviceEndTime.setHours(endH, endM, 0, 0);
+                        const isTimePassed = now > serviceEndTime;
+
+                        return isTimePassed ? (
+                          <span className="px-2 py-1 bg-orange-100 text-orange-800 rounded-full text-xs font-medium animate-pulse">
+                            Ready to Complete
+                          </span>
+                        ) : (
+                          <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">
+                            Upcoming
+                          </span>
+                        );
+                      })()}
+                      {booking.status === "completed" && (
+                        booking.adminPaymentStatus === "released" ? (
+                          <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium">
+                            ✓ Completed
+                          </span>
+                        ) : (
+                          <span className="px-2 py-1 bg-amber-100 text-amber-800 rounded-full text-xs font-medium">
+                            Pending Payment
+                          </span>
+                        )
+                      )}
+                      {booking.status === "cancelled" && (
+                        <span className="px-2 py-1 bg-red-100 text-red-800 rounded-full text-xs font-medium">
+                          Cancelled
                         </span>
                       )}
-                      {booking.status === "completed" && (
-                        <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">
-                          Completed
+                      {booking.status === "refunded" && (
+                        <span className="px-2 py-1 bg-purple-100 text-purple-800 rounded-full text-xs font-medium">
+                          Refunded
                         </span>
                       )}
                     </div>
@@ -807,32 +844,45 @@ export function BookingsTab({ business }: BookingsTabProps) {
               </div>
             )}
 
-            {activeSubTab === "pending" && selectedBooking.status !== "cancelled" && (
-              <div className="flex gap-3">
-                <Button
-                  onClick={() => handleCompleteBooking(selectedBooking.id)}
-                  className="flex-1 bg-primary hover:bg-primary/90"
-                >
-                  Complete
-                </Button>
-                <Button
-                  onClick={() => handleCancelBooking(selectedBooking.id)}
-                  variant="outline"
-                  className="flex-1 border-red-500 text-red-500 hover:bg-red-50"
-                >
-                  Cancel
-                </Button>
-              </div>
-            )}
+            {activeSubTab === "up-coming" && selectedBooking.status !== "cancelled" && (() => {
+              // Check if service time has passed
+              const now = new Date();
+              const bookingDate = parseLocalDate(selectedBooking.timeSlot.date);
+              const [endH, endM] = selectedBooking.timeSlot.endTime.split(':').map(Number);
+              const serviceEndTime = new Date(bookingDate);
+              serviceEndTime.setHours(endH, endM, 0, 0);
+              const isTimePassed = now > serviceEndTime;
 
-            {activeSubTab === "up-coming" && selectedBooking.status !== "cancelled" && (
-              <Button
-                onClick={() => handleCancelBooking(selectedBooking.id)}
-                variant="outline"
-                className="w-full border-red-500 text-red-500 hover:bg-red-50"
-              >
-                Cancel Booking
-              </Button>
+              return (
+                <div className="flex gap-3">
+                  <Button
+                    onClick={() => handleCompleteBooking(selectedBooking.id)}
+                    className={`flex-1 ${isTimePassed
+                      ? "bg-primary hover:bg-primary/90"
+                      : "bg-gray-300 cursor-not-allowed"}`}
+                    disabled={!isTimePassed}
+                    title={isTimePassed ? "Mark service as completed" : "Complete button available after service time ends"}
+                  >
+                    {isTimePassed ? "✓ Mark Complete" : "Complete (After Service)"}
+                  </Button>
+                  <Button
+                    onClick={() => handleCancelBooking(selectedBooking.id)}
+                    variant="outline"
+                    className="flex-1 border-red-500 text-red-500 hover:bg-red-50"
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              );
+            })()}
+
+            {/* Pending tab - no Complete button, just info (waiting for admin) */}
+            {activeSubTab === "pending" && (
+              <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                <p className="text-sm text-amber-700">
+                  ⏳ Waiting for admin to release payment
+                </p>
+              </div>
             )}
           </div>
         )}
