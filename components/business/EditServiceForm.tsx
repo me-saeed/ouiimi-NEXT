@@ -775,45 +775,24 @@ export function EditServiceForm({ serviceId, onSuccess, onCancel }: EditServiceF
                                         </div>
                                     </div>
 
-                                    {/* Desktop: Button with showPicker */}
-                                    <Button
-                                        type="button"
-                                        variant="outline"
-                                        className="hidden md:flex h-9 gap-2 text-xs font-semibold rounded-lg border-gray-200 hover:bg-gray-50 hover:text-[#3A3A3A]"
-                                        onClick={() => {
-                                            const picker = document.getElementById('hidden-date-picker');
-                                            if (picker) {
-                                                // Feature detection for showPicker support
-                                                if ('showPicker' in HTMLInputElement.prototype) {
-                                                    try {
-                                                        (picker as HTMLInputElement).showPicker();
-                                                    } catch (err) {
-                                                        // Fallback to click if showPicker fails
-                                                        picker.click();
+                                    {/* Desktop: Native date input styled as button */}
+                                    <div className="hidden md:block">
+                                        <div className="relative flex items-center justify-center gap-2 h-9 px-4 text-xs font-semibold rounded-lg border border-gray-200 bg-white text-[#3A3A3A] hover:bg-gray-50 transition-all">
+                                            <span className="pointer-events-none text-lg leading-none">+</span>
+                                            <span className="pointer-events-none">Add Date</span>
+                                            <input
+                                                type="date"
+                                                className="absolute top-0 left-0 w-full h-full opacity-0 cursor-pointer z-10"
+                                                min={new Date().toISOString().split('T')[0]}
+                                                onChange={(e) => {
+                                                    if (e.target.value) {
+                                                        handleSelectDate(e.target.value);
+                                                        e.target.value = '';
                                                     }
-                                                } else {
-                                                    // Fallback for browsers without showPicker
-                                                    picker.click();
-                                                }
-                                            }
-                                        }}
-                                    >
-                                        <span className="text-lg leading-none">+</span> Add Date
-                                    </Button>
-
-                                    {/* Hidden input for desktop */}
-                                    <input
-                                        id="hidden-date-picker"
-                                        type="date"
-                                        className="hidden md:block absolute inset-0 opacity-0 w-full h-full cursor-pointer"
-                                        min={new Date().toISOString().split('T')[0]}
-                                        onChange={(e) => {
-                                            if (e.target.value) {
-                                                handleSelectDate(e.target.value);
-                                                e.target.value = '';
-                                            }
-                                        }}
-                                    />
+                                                }}
+                                            />
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
 
