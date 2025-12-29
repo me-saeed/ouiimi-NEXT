@@ -756,17 +756,18 @@ export function EditServiceForm({ serviceId, onSuccess, onCancel }: EditServiceF
                                     <p className="text-xs text-gray-500">Manage dates and time slots for this service.</p>
                                 </div>
                                 {/* Add Date Button - Single unified solution for ALL devices */}
-                                <label className="relative block cursor-pointer" style={{ minWidth: '130px' }}>
+                                <label
+                                    className="relative inline-flex cursor-pointer"
+                                    style={{ minWidth: '130px' }}
+                                    aria-label="Add a new date"
+                                >
                                     {/* Native date input - covers entire button area */}
                                     <input
                                         type="date"
-                                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                                        style={{
-                                            fontSize: '16px', // Prevents iOS zoom
-                                            WebkitAppearance: 'none',
-                                            MozAppearance: 'none'
-                                        }}
+                                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                                        style={{ fontSize: '16px' }}
                                         min={new Date().toISOString().split('T')[0]}
+                                        aria-label="Select date"
                                         onChange={(e) => {
                                             if (e.target.value) {
                                                 handleSelectDate(e.target.value);
@@ -774,8 +775,8 @@ export function EditServiceForm({ serviceId, onSuccess, onCancel }: EditServiceF
                                             }
                                         }}
                                     />
-                                    {/* Button appearance */}
-                                    <div className="flex items-center justify-center gap-2 h-10 md:h-9 px-4 text-xs font-semibold rounded-lg border border-gray-200 bg-white text-[#3A3A3A] hover:bg-gray-50 transition-colors">
+                                    {/* Button appearance - pointer-events-none ensures all clicks go to input */}
+                                    <div className="pointer-events-none flex items-center justify-center gap-2 h-10 md:h-9 px-4 text-xs font-semibold rounded-lg border border-gray-200 bg-white text-[#3A3A3A] hover:bg-gray-50 transition-colors">
                                         <span className="text-lg leading-none">+</span>
                                         <span>Add Date</span>
                                     </div>
