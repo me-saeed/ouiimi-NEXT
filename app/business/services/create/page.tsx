@@ -100,7 +100,7 @@ export default function CreateServicePage() {
     formState: { errors },
   } = useForm<Omit<ServiceCreateInput, 'businessId'>>({
     resolver: zodResolver(formSchema),
-    mode: "onChange", // Validate on change
+    mode: "onBlur", // Validate on blur - more mobile-friendly than onChange
   });
 
   const selectedCategory = watch("category");
