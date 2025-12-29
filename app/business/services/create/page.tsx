@@ -213,6 +213,7 @@ export default function CreateServicePage() {
     setDuration(60);
     setSelectedAddOns([]);
     setTimeSlotError(""); // Clear time slot errors
+    setError(""); // Clear general errors when user takes new action
     setSuccess("");
   };
 
@@ -1080,10 +1081,10 @@ export default function CreateServicePage() {
                   title={`Add Slot for ${selectedDate ? new Date(selectedDate).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }) : ''}`}
                 >
                   <div className="space-y-6">
-                    {/* Error Display */}
+                    {/* Validation Hints */}
                     {timeSlotError && (
-                      <div className="text-xs font-medium text-red-600 bg-red-50 p-3 rounded-lg border border-red-100 flex items-center gap-2">
-                        <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                      <div className="text-xs font-medium text-amber-700 bg-amber-50 p-3 rounded-lg border border-amber-200 flex items-center gap-2">
+                        <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                         {timeSlotError}
                       </div>
                     )}
@@ -1248,6 +1249,7 @@ export default function CreateServicePage() {
 
                       <div className="pt-2">
                         <Button
+                          type="button"
                           onClick={handleAddTimeSlot}
                           className="w-full bg-[#3A3A3A] hover:bg-black text-white h-12 rounded-xl text-base font-bold shadow-lg shadow-gray-200/50 transition-all hover:scale-[1.01] active:scale-[0.99]"
                         >

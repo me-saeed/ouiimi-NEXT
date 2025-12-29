@@ -662,7 +662,7 @@ export function BookingsTab({ business }: BookingsTabProps) {
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <p className="font-medium">
-                        {typeof booking.serviceId === 'object'
+                        {(booking.serviceId && typeof booking.serviceId === 'object')
                           ? booking.serviceId.serviceName
                           : 'Service'}
                       </p>
@@ -733,7 +733,7 @@ export function BookingsTab({ business }: BookingsTabProps) {
         <Modal
           isOpen={!!selectedBooking}
           onClose={() => setSelectedBooking(null)}
-          title={typeof selectedBooking?.serviceId === 'object'
+          title={(selectedBooking?.serviceId && typeof selectedBooking?.serviceId === 'object')
             ? selectedBooking.serviceId.serviceName
             : 'Booking Details'}
           maxWidth="max-w-lg"

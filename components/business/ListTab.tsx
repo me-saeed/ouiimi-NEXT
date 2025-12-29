@@ -4,9 +4,10 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Modal } from "@/components/ui/modal";
 import { renderAddress } from "@/lib/utils";
 import Link from "next/link";
-import { Plus, Pencil, Trash2 } from "lucide-react";
+import { Plus, Pencil, Trash2, Clock, DollarSign, Calendar, Tag } from "lucide-react";
 import { ServiceCard } from "@/components/ui/service-card";
 import { ServiceEditModal } from "./ServiceEditModal";
 
@@ -38,6 +39,8 @@ export function ListTab({ business }: ListTabProps) {
   const [isDeleting, setIsDeleting] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingServiceId, setEditingServiceId] = useState<string | null>(null);
+  // New: Separate state for viewing service details
+  const [viewingService, setViewingService] = useState<Service | null>(null);
 
   useEffect(() => {
     if (business?.id || business?._id) {
@@ -346,7 +349,7 @@ export function ListTab({ business }: ListTabProps) {
                               className="relative group block w-fit"
                             >
                               <div
-                                onClick={(e) => handleEditClick(serviceId, e)}
+                                onClick={() => setViewingService(service)}
                                 className="cursor-pointer [&_a]:pointer-events-none"
                               >
                                 <ServiceCard {...cardData} />
@@ -491,6 +494,109 @@ export function ListTab({ business }: ListTabProps) {
         serviceId={editingServiceId}
         onSuccess={handleEditSuccess}
       />
+
+      {/* Service Details Modal */}
+      <Modal
+        isOpen={!!viewingService}
+        onClose={() => setViewingService(null)}
+        title={viewingService?.serviceName || "Service Details"}
+        maxWidth="max-w-md"
+      >
+        {viewingService && (
+          <div className="space-y-5">
+            {/* Category Badge */}
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="px-3 py-1 bg-[#EECFD1]/20 text-[#EECFD1] rounded-full text-sm font-medium">
+                {viewingService.category}
+              </span>
+              {viewingService.subCategory && (
+                <span className="px-3 py-1 bg-gray-100 text-gray-600 rounded-full text-sm font-medium">
+                  {viewingService.subCategory}
+                </span>
+              )}
+            </div>
+
+            {/* Service Info */}
+            <div className="space-y-4">
+              {/* Duration */}
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center">
+                  <Clock className="w-4 h-4 text-blue-600" />
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 uppercase">Duration</p>
+                  <p className="font-medium text-gray-800">{viewingService.duration || "N/A"}</p>
+                </div>
+              </div>
+
+              {/* Price */}
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full bg-green-50 flex items-center justify-center">
+                  <DollarSign className="w-4 h-4 text-green-600" />
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 uppercase">Base Price</p>
+                  <p className="font-medium text-gray-800">
+                    ${viewingService.timeSlots && viewingService.timeSlots.length > 0
+                      ? (viewingService.timeSlots[0]?.price?.toFixed(2) || "0.00")
+                      : "0.00"}
+                  </p>
+                </div>
+              </div>
+
+              {/* Time Slots */}
+              {viewingService.timeSlots && viewingService.timeSlots.length > 0 && (
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-purple-50 flex items-center justify-center">
+                    <Calendar className="w-4 h-4 text-purple-600" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500 uppercase">Available Slots</p>
+                    <p className="font-medium text-gray-800">
+                      {viewingService.timeSlots.filter((slot: any) => !slot.isBooked).length} available
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Description */}
+            {viewingService.description && (
+              <div className="pt-4 border-t">
+                <p className="text-xs text-gray-500 uppercase mb-2">Description</p>
+                <p className="text-sm text-gray-700 leading-relaxed">{viewingService.description}</p>
+              </div>
+            )}
+
+            {/* Action Buttons */}
+            <div className="flex gap-3 pt-4 border-t">
+              <Button
+                onClick={() => {
+                  const serviceId = viewingService.id || viewingService._id;
+                  setViewingService(null);
+                  handleEditClick(serviceId);
+                }}
+                className="flex-1 bg-[#EECFD1] text-white hover:bg-[#e5c4c7]"
+              >
+                <Pencil className="w-4 h-4 mr-2" />
+                Edit Service
+              </Button>
+              <Button
+                onClick={() => {
+                  const serviceId = viewingService.id || viewingService._id;
+                  setViewingService(null);
+                  handleDeleteClick(serviceId, { stopPropagation: () => { } } as React.MouseEvent);
+                }}
+                variant="outline"
+                className="flex-1 border-red-300 text-red-600 hover:bg-red-50"
+              >
+                <Trash2 className="w-4 h-4 mr-2" />
+                Delete
+              </Button>
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }
