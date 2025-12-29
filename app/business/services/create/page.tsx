@@ -308,7 +308,7 @@ export default function CreateServicePage() {
 
     const hasConflict = checkTimeConflict(newTimeSlot.startTime, newTimeSlot.endTime, selectedStaffIds);
     if (hasConflict) {
-      setTimeSlotError(`This time slot conflicts with an existing booking for the selected staff on this date.`);
+      setTimeSlotError(`Time conflict detected! The selected staff is already assigned during this time. Try a different time slot or choose another staff member.`);
     } else {
       // Clear only if it was a conflict error
       if (timeSlotError && timeSlotError.includes("conflicts")) {
@@ -388,7 +388,7 @@ export default function CreateServicePage() {
     const hasConflict = checkTimeConflict(slot.startTime, slot.endTime, slot.staffIds);
 
     if (hasConflict) {
-      setTimeSlotError(`This time slot conflicts with an existing booking for the selected staff on this date.`);
+      setTimeSlotError(`Time conflict detected! The selected staff is already assigned during this time. Try a different time slot or choose another staff member.`);
       return;
     }
 
@@ -689,14 +689,29 @@ export default function CreateServicePage() {
           displayError += ": " + result.details.map((d: any) => d.message || d).join(", ");
         }
 
+        // Check if this is a duplicate or conflict - show as warning, not error
+        const isDuplicateOrConflict =
+          displayError.toLowerCase().includes("already exists") ||
+          displayError.toLowerCase().includes("duplicate") ||
+          displayError.toLowerCase().includes("conflict");
+
+        if (isDuplicateOrConflict) {
+          // Show as warning with helpful guidance
+          toast({
+            variant: "default",
+            title: "⚠️ Service Already Exists",
+            description: "A similar service is already set up. You can edit the existing service or choose a different name/time.",
+          });
+        } else {
+          // Show as error for actual failures
+          toast({
+            variant: "destructive",
+            title: "Error",
+            description: displayError,
+          });
+        }
+
         setError(displayError);
-
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: displayError,
-        });
-
         setIsLoading(false);
         return;
       }
