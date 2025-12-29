@@ -4,7 +4,8 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ServiceCard } from "@/components/ui/service-card";
-import { Calendar } from "lucide-react";
+import { Modal } from "@/components/ui/modal";
+import { Calendar, Clock, MapPin, User, Phone, Mail, CreditCard } from "lucide-react";
 import { parseLocalDate, formatDateLocal, formatDateForDisplay as formatDateDisplay } from "@/lib/utils/date-utils";
 
 interface BookingsTabProps {
@@ -727,165 +728,174 @@ export function BookingsTab({ business }: BookingsTabProps) {
           )}
         </div>
 
-        {/* Booking Details */}
-        {selectedBooking && (
-          <div className="border rounded-lg p-6 space-y-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-lg font-semibold">
-                  {typeof selectedBooking.serviceId === 'object'
-                    ? selectedBooking.serviceId.serviceName
-                    : 'Service'}
-                </h3>
+
+        {/* Booking Details Modal */}
+        <Modal
+          isOpen={!!selectedBooking}
+          onClose={() => setSelectedBooking(null)}
+          title={typeof selectedBooking?.serviceId === 'object'
+            ? selectedBooking.serviceId.serviceName
+            : 'Booking Details'}
+          maxWidth="max-w-lg"
+        >
+          {selectedBooking && (
+            <div className="space-y-5">
+              {/* Status Badge */}
+              <div className="flex items-center justify-between">
                 <p className="text-sm text-muted-foreground">
                   Booking #{selectedBooking.bookingNumber || selectedBooking.id.slice(-8)}
                 </p>
-              </div>
-              {selectedBooking.status === "cancelled" && (
-                <span className="px-3 py-1 bg-red-100 text-red-800 rounded-full text-sm">
-                  Cancelled
-                </span>
-              )}
-              {selectedBooking.status === "completed" && (
-                <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm">
-                  Completed
-                </span>
-              )}
-            </div>
-
-            <div className="space-y-3">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Date</p>
-                <p>{formatDate(selectedBooking.timeSlot.date)}</p>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Time</p>
-                <p>{formatTime(selectedBooking.timeSlot.startTime)} - {formatTime(selectedBooking.timeSlot.endTime)}</p>
-              </div>
-              {selectedBooking.staffId && (
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Staff</p>
-                  <p>{typeof selectedBooking.staffId === 'object' ? selectedBooking.staffId.name : 'N/A'}</p>
-                </div>
-              )}
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Service</p>
-                <p>
-                  {(selectedBooking.serviceId && typeof selectedBooking.serviceId === 'object')
-                    ? selectedBooking.serviceId.serviceName
-                    : selectedBooking.serviceId || 'Service deleted'}
-                </p>
-                {(selectedBooking.serviceId && typeof selectedBooking.serviceId === 'object') && (
-                  <p className="text-sm text-muted-foreground">{selectedBooking.serviceId.category}</p>
+                {selectedBooking.status === "cancelled" && (
+                  <span className="px-3 py-1 bg-red-100 text-red-800 rounded-full text-sm font-medium">
+                    Cancelled
+                  </span>
+                )}
+                {selectedBooking.status === "completed" && (
+                  <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium">
+                    Completed
+                  </span>
+                )}
+                {selectedBooking.status === "confirmed" && (
+                  <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium">
+                    Upcoming
+                  </span>
                 )}
               </div>
-              {(selectedBooking.userId && typeof selectedBooking.userId === 'object') && (
+
+              <div className="space-y-3">
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Customer</p>
-                  <p>{selectedBooking.userId.fname} {selectedBooking.userId.lname}</p>
-                  <p className="text-sm text-muted-foreground">{selectedBooking.userId.email}</p>
-                  {selectedBooking.userId.contactNo && (
-                    <p className="text-sm text-muted-foreground">{selectedBooking.userId.contactNo}</p>
+                  <p className="text-sm font-medium text-muted-foreground">Date</p>
+                  <p>{formatDate(selectedBooking.timeSlot.date)}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Time</p>
+                  <p>{formatTime(selectedBooking.timeSlot.startTime)} - {formatTime(selectedBooking.timeSlot.endTime)}</p>
+                </div>
+                {selectedBooking.staffId && (
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Staff</p>
+                    <p>{typeof selectedBooking.staffId === 'object' ? selectedBooking.staffId.name : 'N/A'}</p>
+                  </div>
+                )}
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Service</p>
+                  <p>
+                    {(selectedBooking.serviceId && typeof selectedBooking.serviceId === 'object')
+                      ? selectedBooking.serviceId.serviceName
+                      : selectedBooking.serviceId || 'Service deleted'}
+                  </p>
+                  {(selectedBooking.serviceId && typeof selectedBooking.serviceId === 'object') && (
+                    <p className="text-sm text-muted-foreground">{selectedBooking.serviceId.category}</p>
                   )}
                 </div>
-              )}
-              {!selectedBooking.userId && (
+                {(selectedBooking.userId && typeof selectedBooking.userId === 'object') && (
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Customer</p>
+                    <p>{selectedBooking.userId.fname} {selectedBooking.userId.lname}</p>
+                    <p className="text-sm text-muted-foreground">{selectedBooking.userId.email}</p>
+                    {selectedBooking.userId.contactNo && (
+                      <p className="text-sm text-muted-foreground">{selectedBooking.userId.contactNo}</p>
+                    )}
+                  </div>
+                )}
+                {!selectedBooking.userId && (
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Customer</p>
+                    <p className="text-sm text-red-500">Account deleted</p>
+                  </div>
+                )}
+              </div>
+
+              <div className="border-t pt-4 space-y-2">
+                <div className="flex justify-between">
+                  <span>Cost:</span>
+                  <span>${selectedBooking.totalCost.toFixed(2)}</span>
+                </div>
+                {selectedBooking.addOns && selectedBooking.addOns.length > 0 && (
+                  <div>
+                    <p className="text-sm font-medium mb-1">Add-Ons:</p>
+                    {selectedBooking.addOns.map((addon, idx) => (
+                      <div key={idx} className="flex justify-between text-sm">
+                        <span>{addon.name}</span>
+                        <span>${addon.cost.toFixed(2)}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <div className="flex justify-between font-semibold border-t pt-2">
+                  <span>Total Cost:</span>
+                  <span>${selectedBooking.totalCost.toFixed(2)}</span>
+                </div>
+              </div>
+
+              <div className="border-t pt-4 space-y-2">
+                <p className="text-sm font-medium">Payments</p>
+                <div className="flex justify-between text-sm">
+                  <span className="text-green-600">Paid 10% Deposit:</span>
+                  <span>${selectedBooking.depositAmount.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span>90% to Business:</span>
+                  <span>${selectedBooking.remainingAmount.toFixed(2)}</span>
+                </div>
+                {selectedBooking.status === "completed" && (
+                  <div className="flex justify-between text-sm text-green-600">
+                    <span>ouiimi pays 50% of Deposit:</span>
+                    <span>${(selectedBooking.depositAmount * 0.5).toFixed(2)}</span>
+                  </div>
+                )}
+              </div>
+
+              {selectedBooking.customerNotes && (
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Customer</p>
-                  <p className="text-sm text-red-500">Account deleted</p>
+                  <p className="text-sm font-medium text-muted-foreground mb-1">Customer Notes:</p>
+                  <p className="text-sm">{selectedBooking.customerNotes}</p>
+                </div>
+              )}
+
+              {activeSubTab === "up-coming" && selectedBooking.status !== "cancelled" && (() => {
+                // Check if service time has passed
+                const now = new Date();
+                const bookingDate = parseLocalDate(selectedBooking.timeSlot.date);
+                const [endH, endM] = selectedBooking.timeSlot.endTime.split(':').map(Number);
+                const serviceEndTime = new Date(bookingDate);
+                serviceEndTime.setHours(endH, endM, 0, 0);
+                const isTimePassed = now > serviceEndTime;
+
+                return (
+                  <div className="flex gap-3">
+                    <Button
+                      onClick={() => handleCompleteBooking(selectedBooking.id)}
+                      className={`flex-1 ${isTimePassed
+                        ? "bg-primary hover:bg-primary/90"
+                        : "bg-gray-300 cursor-not-allowed"}`}
+                      disabled={!isTimePassed}
+                      title={isTimePassed ? "Mark service as completed" : "Complete button available after service time ends"}
+                    >
+                      {isTimePassed ? "✓ Mark Complete" : "Complete (After Service)"}
+                    </Button>
+                    <Button
+                      onClick={() => handleCancelBooking(selectedBooking.id)}
+                      variant="outline"
+                      className="flex-1 border-red-500 text-red-500 hover:bg-red-50"
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                );
+              })()}
+
+              {/* Pending tab - no Complete button, just info (waiting for admin) */}
+              {activeSubTab === "pending" && (
+                <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                  <p className="text-sm text-amber-700">
+                    ⏳ Waiting for admin to release payment
+                  </p>
                 </div>
               )}
             </div>
-
-            <div className="border-t pt-4 space-y-2">
-              <div className="flex justify-between">
-                <span>Cost:</span>
-                <span>${selectedBooking.totalCost.toFixed(2)}</span>
-              </div>
-              {selectedBooking.addOns && selectedBooking.addOns.length > 0 && (
-                <div>
-                  <p className="text-sm font-medium mb-1">Add-Ons:</p>
-                  {selectedBooking.addOns.map((addon, idx) => (
-                    <div key={idx} className="flex justify-between text-sm">
-                      <span>{addon.name}</span>
-                      <span>${addon.cost.toFixed(2)}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-              <div className="flex justify-between font-semibold border-t pt-2">
-                <span>Total Cost:</span>
-                <span>${selectedBooking.totalCost.toFixed(2)}</span>
-              </div>
-            </div>
-
-            <div className="border-t pt-4 space-y-2">
-              <p className="text-sm font-medium">Payments</p>
-              <div className="flex justify-between text-sm">
-                <span className="text-green-600">Paid 10% Deposit:</span>
-                <span>${selectedBooking.depositAmount.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span>90% to Business:</span>
-                <span>${selectedBooking.remainingAmount.toFixed(2)}</span>
-              </div>
-              {selectedBooking.status === "completed" && (
-                <div className="flex justify-between text-sm text-green-600">
-                  <span>ouiimi pays 50% of Deposit:</span>
-                  <span>${(selectedBooking.depositAmount * 0.5).toFixed(2)}</span>
-                </div>
-              )}
-            </div>
-
-            {selectedBooking.customerNotes && (
-              <div>
-                <p className="text-sm font-medium text-muted-foreground mb-1">Customer Notes:</p>
-                <p className="text-sm">{selectedBooking.customerNotes}</p>
-              </div>
-            )}
-
-            {activeSubTab === "up-coming" && selectedBooking.status !== "cancelled" && (() => {
-              // Check if service time has passed
-              const now = new Date();
-              const bookingDate = parseLocalDate(selectedBooking.timeSlot.date);
-              const [endH, endM] = selectedBooking.timeSlot.endTime.split(':').map(Number);
-              const serviceEndTime = new Date(bookingDate);
-              serviceEndTime.setHours(endH, endM, 0, 0);
-              const isTimePassed = now > serviceEndTime;
-
-              return (
-                <div className="flex gap-3">
-                  <Button
-                    onClick={() => handleCompleteBooking(selectedBooking.id)}
-                    className={`flex-1 ${isTimePassed
-                      ? "bg-primary hover:bg-primary/90"
-                      : "bg-gray-300 cursor-not-allowed"}`}
-                    disabled={!isTimePassed}
-                    title={isTimePassed ? "Mark service as completed" : "Complete button available after service time ends"}
-                  >
-                    {isTimePassed ? "✓ Mark Complete" : "Complete (After Service)"}
-                  </Button>
-                  <Button
-                    onClick={() => handleCancelBooking(selectedBooking.id)}
-                    variant="outline"
-                    className="flex-1 border-red-500 text-red-500 hover:bg-red-50"
-                  >
-                    Cancel
-                  </Button>
-                </div>
-              );
-            })()}
-
-            {/* Pending tab - no Complete button, just info (waiting for admin) */}
-            {activeSubTab === "pending" && (
-              <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
-                <p className="text-sm text-amber-700">
-                  ⏳ Waiting for admin to release payment
-                </p>
-              </div>
-            )}
-          </div>
-        )}
+          )}
+        </Modal>
       </div>
     </div>
   );

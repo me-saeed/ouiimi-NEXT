@@ -4,7 +4,8 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { User } from "lucide-react";
+import { Modal } from "@/components/ui/modal";
+import { User, Edit, Calendar, MapPin, Briefcase, Info } from "lucide-react";
 import { StaffModal } from "./StaffModal";
 
 interface StaffTabProps {
@@ -29,6 +30,8 @@ export function StaffTab({ business }: StaffTabProps) {
   const [error, setError] = useState<string>("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingStaffId, setEditingStaffId] = useState<string | undefined>(undefined);
+  // New: Separate state for viewing staff details
+  const [viewingStaff, setViewingStaff] = useState<Staff | null>(null);
 
   useEffect(() => {
     if (business?.id || business?._id) {
@@ -149,8 +152,8 @@ export function StaffTab({ business }: StaffTabProps) {
           {staff.map((member) => (
             <div
               key={member.id}
-              onClick={() => handleOpenEditModal(member.id)}
-              className="flex items-center gap-4 p-4 bg-white rounded-lg hover:bg-gray-50 transition-all cursor-pointer"
+              onClick={() => setViewingStaff(member)}
+              className="flex items-center gap-4 p-4 bg-white rounded-lg hover:bg-gray-50 transition-all cursor-pointer group relative"
             >
               {/* Avatar */}
               <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-[#EECFD1] flex items-center justify-center flex-shrink-0">
@@ -171,7 +174,22 @@ export function StaffTab({ business }: StaffTabProps) {
               {/* Name */}
               <div className="flex-1">
                 <h3 className="text-sm md:text-base font-semibold text-[#3A3A3A]">{member.name}</h3>
+                {(member.bio || member.about) && (
+                  <p className="text-xs text-gray-500 truncate max-w-xs">{member.bio || member.about}</p>
+                )}
               </div>
+
+              {/* Edit Button - Only visible on hover */}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleOpenEditModal(member.id);
+                }}
+                className="p-2 bg-white hover:bg-gray-100 rounded-lg shadow-sm opacity-0 group-hover:opacity-100 transition-opacity"
+                title="Edit Staff"
+              >
+                <Edit className="w-4 h-4 text-gray-600" />
+              </button>
             </div>
           ))}
         </div>
@@ -182,6 +200,85 @@ export function StaffTab({ business }: StaffTabProps) {
         staffId={editingStaffId}
         onSuccess={handleSuccess}
       />
+
+      {/* Staff Details Modal */}
+      <Modal
+        isOpen={!!viewingStaff}
+        onClose={() => setViewingStaff(null)}
+        title={viewingStaff?.name || "Staff Details"}
+        maxWidth="max-w-md"
+      >
+        {viewingStaff && (
+          <div className="space-y-5">
+            {/* Profile Header */}
+            <div className="flex items-center gap-4">
+              <div className="w-16 h-16 rounded-full bg-[#EECFD1] flex items-center justify-center flex-shrink-0">
+                {viewingStaff.photo ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={viewingStaff.photo}
+                    alt={viewingStaff.name}
+                    className="w-full h-full rounded-full object-cover"
+                  />
+                ) : (
+                  <span className="text-2xl font-bold text-[#3A3A3A]">
+                    {viewingStaff.name?.charAt(0)?.toUpperCase() || "S"}
+                  </span>
+                )}
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-[#3A3A3A]">{viewingStaff.name}</h3>
+                <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${viewingStaff.isActive ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
+                  {viewingStaff.isActive ? 'Active' : 'Inactive'}
+                </span>
+              </div>
+            </div>
+
+            {/* Bio/About */}
+            {(viewingStaff.bio || viewingStaff.about) && (
+              <div className="space-y-1">
+                <div className="flex items-center gap-2 text-sm font-medium text-gray-500">
+                  <Info className="w-4 h-4" />
+                  About
+                </div>
+                <p className="text-sm text-gray-700">{viewingStaff.bio || viewingStaff.about}</p>
+              </div>
+            )}
+
+            {/* Qualifications */}
+            {viewingStaff.qualifications && (
+              <div className="space-y-1">
+                <div className="flex items-center gap-2 text-sm font-medium text-gray-500">
+                  <Briefcase className="w-4 h-4" />
+                  Qualifications
+                </div>
+                <p className="text-sm text-gray-700">{viewingStaff.qualifications}</p>
+              </div>
+            )}
+
+            {/* Action Buttons */}
+            <div className="flex gap-3 pt-4 border-t">
+              <Button
+                onClick={() => {
+                  setViewingStaff(null);
+                  handleOpenEditModal(viewingStaff.id);
+                }}
+                className="flex-1 bg-[#EECFD1] text-white hover:bg-[#e5c4c7]"
+              >
+                <Edit className="w-4 h-4 mr-2" />
+                Edit Staff
+              </Button>
+              <Button
+                onClick={() => handleDelete(viewingStaff.id)}
+                variant="outline"
+                className="flex-1 border-red-300 text-red-600 hover:bg-red-50"
+              >
+                Remove
+              </Button>
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }

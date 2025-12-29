@@ -7,6 +7,7 @@ import PageLayout from "@/components/layout/PageLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Modal } from "@/components/ui/modal";
 import { Calendar } from "lucide-react";
 import { ServiceCard } from "@/components/ui/service-card";
 import { useRef } from "react";
@@ -617,18 +618,27 @@ export default function ShopperProfilePage() {
                     ))}
                   </div>
 
-                  {/* Booking Details */}
-                  {selectedBooking && (
-                    <BookingDetailView
-                      booking={selectedBooking}
-                      onCancel={() => handleCancelBooking(selectedBooking.id)}
-                      onReschedule={() => handleRebook(selectedBooking)}
-                      onContact={() => setShowContact(true)}
-                      showContact={showContact}
-                      onCloseContact={() => setShowContact(false)}
-                      isFinished={activeTab === "finished"}
-                    />
-                  )}
+                  {/* Booking Details Modal */}
+                  <Modal
+                    isOpen={!!selectedBooking}
+                    onClose={() => setSelectedBooking(null)}
+                    title={typeof selectedBooking?.serviceId === 'object'
+                      ? selectedBooking.serviceId.serviceName
+                      : 'Booking Details'}
+                    maxWidth="max-w-lg"
+                  >
+                    {selectedBooking && (
+                      <BookingDetailView
+                        booking={selectedBooking}
+                        onCancel={() => handleCancelBooking(selectedBooking.id)}
+                        onReschedule={() => handleRebook(selectedBooking)}
+                        onContact={() => setShowContact(true)}
+                        showContact={showContact}
+                        onCloseContact={() => setShowContact(false)}
+                        isFinished={activeTab === "finished"}
+                      />
+                    )}
+                  </Modal>
                 </div>
               )}
             </div>
