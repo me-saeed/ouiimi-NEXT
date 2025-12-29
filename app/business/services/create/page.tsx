@@ -947,45 +947,23 @@ export default function CreateServicePage() {
                       <p className="text-[10px] md:text-xs text-gray-500">Manage dates and time slots for this service.</p>
                     </div>
                     <div className="relative">
-                      {/* Mobile: Visible button with hidden date input */}
-                      <div className="md:hidden relative">
-                        <button
-                          type="button"
-                          className="flex items-center justify-center gap-2 w-full h-10 px-3 text-xs font-semibold rounded-lg border-gray-200 border bg-white hover:bg-gray-50 transition-all cursor-pointer active:scale-95 transform text-[#3A3A3A]"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            const input = document.getElementById('mobile-date-input') as HTMLInputElement;
-                            if (input) {
-                              // Try showPicker first (modern browsers)
-                              if (typeof input.showPicker === 'function') {
-                                try {
-                                  input.showPicker();
-                                  return;
-                                } catch (err) {
-                                  console.error('showPicker failed', err);
-                                }
+                      {/* Mobile: Native date input styled as button */}
+                      <div className="md:hidden">
+                        <div className="relative flex items-center justify-center gap-2 h-10 px-3 text-xs font-semibold rounded-lg border border-gray-200 bg-white text-[#3A3A3A]">
+                          <span className="pointer-events-none">+</span>
+                          <span className="pointer-events-none">Add Date</span>
+                          <input
+                            type="date"
+                            className="absolute top-0 left-0 w-full h-full opacity-0 cursor-pointer z-10"
+                            min={new Date().toISOString().split('T')[0]}
+                            onChange={(e) => {
+                              if (e.target.value) {
+                                handleSelectDate(e.target.value);
+                                e.target.value = '';
                               }
-                              // Fallback to click
-                              input.click();
-                            }
-                          }}
-                        >
-                          <span className="text-lg leading-none mb-0.5">+</span>
-                          <span>Add Date</span>
-                        </button>
-                        <input
-                          id="mobile-date-input"
-                          type="date"
-                          className="sr-only opacity-0 absolute pointer-events-none" // Invisible but in DOM for showPicker()
-                          min={new Date().toISOString().split('T')[0]}
-                          onChange={(e) => {
-                            if (e.target.value) {
-                              handleSelectDate(e.target.value);
-                              e.target.value = '';
-                            }
-                          }}
-                        />
+                            }}
+                          />
+                        </div>
                       </div>
 
                       {/* Desktop: Button with showPicker */}
