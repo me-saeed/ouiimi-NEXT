@@ -946,70 +946,31 @@ export default function CreateServicePage() {
                       <h3 className="text-xs md:text-sm font-bold text-[#3A3A3A] uppercase tracking-wider">Availability</h3>
                       <p className="text-[10px] md:text-xs text-gray-500">Manage dates and time slots for this service.</p>
                     </div>
-                    <div className="relative">
-                      {/* Mobile: Visible native date input styled as button (guaranteed to work) */}
-                      <div className="md:hidden relative">
-                        <input
-                          type="date"
-                          className="w-full h-10 px-3 text-xs font-semibold rounded-lg border border-gray-200 bg-white cursor-pointer text-transparent"
-                          min={new Date().toISOString().split('T')[0]}
-                          onChange={(e) => {
-                            if (e.target.value) {
-                              handleSelectDate(e.target.value);
-                              e.target.value = '';
-                            }
-                          }}
-                        />
-                        {/* Button text overlay */}
-                        <div className="absolute inset-0 flex items-center justify-center gap-2 pointer-events-none text-xs font-semibold text-[#3A3A3A]">
-                          <span className="text-lg leading-none">+</span>
-                          <span>Add Date</span>
-                        </div>
+                    {/* Add Date Button - Single unified solution for ALL devices */}
+                    <label className="relative block cursor-pointer" style={{ minWidth: '130px' }}>
+                      {/* Native date input - covers entire button area */}
+                      <input
+                        type="date"
+                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                        style={{
+                          fontSize: '16px', // Prevents iOS zoom
+                          WebkitAppearance: 'none',
+                          MozAppearance: 'none'
+                        }}
+                        min={new Date().toISOString().split('T')[0]}
+                        onChange={(e) => {
+                          if (e.target.value) {
+                            handleSelectDate(e.target.value);
+                            e.target.value = '';
+                          }
+                        }}
+                      />
+                      {/* Button appearance */}
+                      <div className="flex items-center justify-center gap-2 h-10 md:h-9 px-4 text-xs font-semibold rounded-lg border border-gray-200 bg-white text-[#3A3A3A] hover:bg-gray-50 transition-colors">
+                        <span className="text-lg leading-none">+</span>
+                        <span>Add Date</span>
                       </div>
-
-                      {/* Desktop: Button with showPicker */}
-                      <div className="hidden md:block relative">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          className="h-9 gap-2 text-xs font-semibold rounded-lg border-gray-200 hover:bg-gray-50 hover:text-[#3A3A3A]"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            const picker = document.getElementById('hidden-date-picker-create') as HTMLInputElement;
-                            if (picker) {
-                              // Try showPicker first (modern browsers)
-                              if (typeof picker.showPicker === 'function') {
-                                try {
-                                  picker.showPicker();
-                                  return;
-                                } catch (err) {
-                                  console.error('showPicker failed', err);
-                                }
-                              }
-                              // Fallback to click if showPicker fails or not available
-                              picker.click();
-                            }
-                          }}
-                        >
-                          <span className="text-lg leading-none">+</span> Add Date
-                        </Button>
-
-                        {/* Hidden input for desktop */}
-                        <input
-                          id="hidden-date-picker-create"
-                          type="date"
-                          className="sr-only opacity-0 absolute pointer-events-none"
-                          min={new Date().toISOString().split('T')[0]}
-                          onChange={(e) => {
-                            if (e.target.value) {
-                              handleSelectDate(e.target.value);
-                              e.target.value = '';
-                            }
-                          }}
-                        />
-                      </div>
-                    </div>
+                    </label>
                   </div>
 
                   {/* Dates List */}
