@@ -217,29 +217,45 @@ export default function CreateServicePage() {
     setSuccess("");
   };
 
-  // Check for time conflicts (overlapping time ranges)
-  const checkTimeConflict = (startTime24: string, endTime24: string, staffIds: string[]): boolean => {
-    if (!selectedDate || !startTime24 || !endTime24) return false;
-    if (staffIds.length === 0) return false; // Cannot check for conflicts without assigned staff
+  // Check for time conflicts (overlapping time ranges) - returns conflict details
+  const checkTimeConflict = (startTime24: string, endTime24: string, staffIds: string[]): { hasConflict: boolean; conflictDetails?: string } => {
+    if (!selectedDate || !startTime24 || !endTime24) return { hasConflict: false };
+    if (staffIds.length === 0) return { hasConflict: false }; // Cannot check for conflicts without assigned staff
 
     const existingSlots = datesWithSlots[selectedDate] || [];
     const start = new Date(`2000-01-01T${startTime24}`);
     const end = new Date(`2000-01-01T${endTime24}`);
 
-    return existingSlots.some((existingSlot: any) => {
+    for (const existingSlot of existingSlots) {
       const existingStart = new Date(`2000-01-01T${existingSlot.startTime}`);
       const existingEnd = new Date(`2000-01-01T${existingSlot.endTime}`);
-      const existingStaff = (existingSlot.staffIds || []).sort();
-      const selectedStaff = staffIds.sort();
+      const existingStaff = (existingSlot.staffIds || []);
 
       // Check if staff overlap
-      const staffOverlap = selectedStaff.some(id => existingStaff.includes(id));
+      const conflictingStaffIds = staffIds.filter(id => existingStaff.includes(id));
 
-      if (!staffOverlap) return false;
+      if (conflictingStaffIds.length === 0) continue;
 
       // Check if time ranges overlap
-      return (start < existingEnd && end > existingStart);
-    });
+      const timeOverlap = (start < existingEnd && end > existingStart);
+
+      if (timeOverlap) {
+        // Get staff names for the conflict
+        const conflictingStaffNames = staff
+          .filter(s => conflictingStaffIds.includes(s.id || s._id))
+          .map(s => s.name)
+          .join(", ");
+
+        const existingTimeStr = `${formatTime12Hour(existingSlot.startTime)} - ${formatTime12Hour(existingSlot.endTime)}`;
+
+        return {
+          hasConflict: true,
+          conflictDetails: `👤 ${conflictingStaffNames || 'Staff'} is already assigned ${existingTimeStr} on this date. Choose a different time or staff member.`
+        };
+      }
+    }
+
+    return { hasConflict: false };
   };
 
   // Calculate end time from start time and duration minutes
@@ -306,12 +322,12 @@ export default function CreateServicePage() {
       return;
     }
 
-    const hasConflict = checkTimeConflict(newTimeSlot.startTime, newTimeSlot.endTime, selectedStaffIds);
-    if (hasConflict) {
-      setTimeSlotError(`Time conflict detected! The selected staff is already assigned during this time. Try a different time slot or choose another staff member.`);
+    const conflictResult = checkTimeConflict(newTimeSlot.startTime, newTimeSlot.endTime, selectedStaffIds);
+    if (conflictResult.hasConflict) {
+      setTimeSlotError(conflictResult.conflictDetails || "Time conflict detected!");
     } else {
       // Clear only if it was a conflict error
-      if (timeSlotError && timeSlotError.includes("conflicts")) {
+      if (timeSlotError && (timeSlotError.includes("already assigned") || timeSlotError.includes("conflict"))) {
         setTimeSlotError("");
       }
     }
@@ -385,10 +401,10 @@ export default function CreateServicePage() {
       addOns: [...selectedAddOns], // Copy current add-ons
     };
 
-    const hasConflict = checkTimeConflict(slot.startTime, slot.endTime, slot.staffIds);
+    const conflictResult = checkTimeConflict(slot.startTime, slot.endTime, slot.staffIds);
 
-    if (hasConflict) {
-      setTimeSlotError(`Time conflict detected! The selected staff is already assigned during this time. Try a different time slot or choose another staff member.`);
+    if (conflictResult.hasConflict) {
+      setTimeSlotError(conflictResult.conflictDetails || "Time conflict detected!");
       return;
     }
 
@@ -531,13 +547,59 @@ export default function CreateServicePage() {
   };
 
   const onSubmit = async (data: Omit<ServiceCreateInput, 'businessId'>) => {
-    // Validate that dates and time slots are added
+    // Smart pre-validation with specific guidance
+    const issues: string[] = [];
+
+    // Check category
+    if (!data.category) {
+      issues.push("📁 Select a category for your service");
+    }
+
+    // Check service name (subCategory)
+    if (!data.subCategory) {
+      issues.push("✏️ Select a service name from the dropdown");
+    }
+
+    // Check address
+    if (!data.address?.street) {
+      issues.push("📍 Add an address for your service location");
+    }
+
+    // Check dates and time slots
+    const totalSlots = Object.values(datesWithSlots).reduce((sum, slots) => sum + slots.length, 0);
     if (Object.keys(datesWithSlots).length === 0) {
-      setError("Please add at least one date with time slots");
+      issues.push("📅 Add at least one date - scroll down to 'Availability' section");
+    } else if (totalSlots === 0) {
+      issues.push("⏰ Add time slots for your selected dates");
+    } else {
+      // Check if all slots have prices
+      const slotsWithoutPrice = Object.values(datesWithSlots)
+        .flat()
+        .filter(slot => !slot.price || slot.price <= 0);
+      if (slotsWithoutPrice.length > 0) {
+        issues.push(`💰 Set a price for all time slots (${slotsWithoutPrice.length} missing)`);
+      }
+
+      // Check if all slots have staff
+      const slotsWithoutStaff = Object.values(datesWithSlots)
+        .flat()
+        .filter(slot => !slot.staffIds || slot.staffIds.length === 0);
+      if (slotsWithoutStaff.length > 0) {
+        issues.push(`👤 Assign staff to all time slots (${slotsWithoutStaff.length} missing)`);
+      }
+    }
+
+    // If there are issues, show them and return
+    if (issues.length > 0) {
+      const errorMessage = issues.length === 1
+        ? issues[0]
+        : `Please complete the following:\n• ${issues.join('\n• ')}`;
+
+      setError(errorMessage);
       toast({
-        variant: "destructive",
-        title: "Validation Error",
-        description: "Please add at least one date with time slots",
+        variant: "default",
+        title: "Almost there! 👋",
+        description: issues.length === 1 ? issues[0] : `${issues.length} items need attention`,
       });
       return;
     }
@@ -842,8 +904,33 @@ export default function CreateServicePage() {
             <div className="bg-white rounded-xl border border-[#E5E5E5] p-6 md:p-8 shadow-sm">
 
               {error && (
-                <Alert className="mb-6 border-red-200 bg-red-50">
-                  <AlertDescription className="text-red-800 font-medium">{error}</AlertDescription>
+                <Alert className={`mb-6 ${error.toLowerCase().includes('unexpected') || error.toLowerCase().includes('try again')
+                  ? 'border-amber-200 bg-amber-50'
+                  : 'border-red-200 bg-red-50'
+                  }`}>
+                  <AlertDescription className={`${error.toLowerCase().includes('unexpected') || error.toLowerCase().includes('try again')
+                    ? 'text-amber-800'
+                    : 'text-red-800'
+                    } font-medium`}>
+                    {error.toLowerCase().includes('unexpected') || error.toLowerCase().includes('try again') ? (
+                      <div className="space-y-2">
+                        <p>⚠️ Something went wrong while saving.</p>
+                        <p className="text-sm font-normal">This is usually temporary. Please try the following:</p>
+                        <ul className="text-sm font-normal list-disc pl-5 space-y-1">
+                          <li>Check your internet connection</li>
+                          <li>Make sure all required fields are filled</li>
+                          <li>Try refreshing the page and starting again</li>
+                        </ul>
+                      </div>
+                    ) : (
+                      <div className="space-y-1">
+                        <p>{error}</p>
+                        {error.toLowerCase().includes('already exists') && (
+                          <p className="text-sm font-normal">💡 Tip: Edit your existing service instead of creating a duplicate.</p>
+                        )}
+                      </div>
+                    )}
+                  </AlertDescription>
                 </Alert>
               )}
 
@@ -985,7 +1072,10 @@ export default function CreateServicePage() {
                       type="button"
                       variant="outline"
                       className="h-10 md:h-9 gap-2 text-xs font-semibold rounded-lg border-gray-200"
-                      onClick={() => setShowDatePicker(true)}
+                      onClick={() => {
+                        setError(""); // Clear any lingering errors
+                        setShowDatePicker(true);
+                      }}
                     >
                       <span className="text-lg leading-none">+</span>
                       <span>Add Date</span>

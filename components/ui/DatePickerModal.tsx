@@ -88,6 +88,7 @@ export function DatePickerModal({ isOpen, onClose, onSelectDate, minDate }: Date
                 <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
                     <h3 className="text-sm font-semibold text-gray-900">Select Date</h3>
                     <button
+                        type="button"
                         onClick={onClose}
                         className="p-1 rounded-full hover:bg-gray-100 transition-colors"
                     >
@@ -98,6 +99,7 @@ export function DatePickerModal({ isOpen, onClose, onSelectDate, minDate }: Date
                 {/* Month Navigation */}
                 <div className="flex items-center justify-between px-4 py-3 bg-gray-50">
                     <button
+                        type="button"
                         onClick={prevMonth}
                         disabled={!canGoPrev()}
                         className="p-2 rounded-lg hover:bg-gray-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
@@ -108,6 +110,7 @@ export function DatePickerModal({ isOpen, onClose, onSelectDate, minDate }: Date
                         {monthNames[currentMonth.getMonth()]} {currentMonth.getFullYear()}
                     </span>
                     <button
+                        type="button"
                         onClick={nextMonth}
                         className="p-2 rounded-lg hover:bg-gray-200 transition-colors"
                     >
@@ -144,6 +147,7 @@ export function DatePickerModal({ isOpen, onClose, onSelectDate, minDate }: Date
 
                             return (
                                 <button
+                                    type="button"
                                     key={day}
                                     onClick={() => !disabled && handleDateClick(day)}
                                     disabled={disabled}
@@ -166,6 +170,7 @@ export function DatePickerModal({ isOpen, onClose, onSelectDate, minDate }: Date
                 {/* Footer */}
                 <div className="flex justify-end gap-2 px-4 py-3 border-t border-gray-100 bg-gray-50">
                     <Button
+                        type="button"
                         variant="outline"
                         size="sm"
                         onClick={onClose}
