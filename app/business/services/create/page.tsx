@@ -54,6 +54,7 @@ export default function CreateServicePage() {
   const [business, setBusiness] = useState<any>(null);
   const [error, setError] = useState<string>("");
   const [success, setSuccess] = useState<string>("");
+  const [timeSlotError, setTimeSlotError] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
   const [staff, setStaff] = useState<any[]>([]);
 
@@ -211,7 +212,7 @@ export default function CreateServicePage() {
     });
     setDuration(60);
     setSelectedAddOns([]);
-    setError("");
+    setTimeSlotError(""); // Clear time slot errors
     setSuccess("");
   };
 
@@ -294,10 +295,10 @@ export default function CreateServicePage() {
       if (selectedStaffIds.length > 0) {
         const hasConflict = checkTimeConflict(newTimeSlot.startTime, newTimeSlot.endTime, selectedStaffIds);
         if (hasConflict) {
-          setError(`This time slot conflicts with an existing booking for the selected staff on this date.`);
+          setTimeSlotError(`This time slot conflicts with an existing booking for the selected staff on this date.`);
         } else {
           // Clear only if it was a conflict error
-          if (error && error.includes("conflicts")) setError("");
+          if (timeSlotError && timeSlotError.includes("conflicts")) setTimeSlotError("");
         }
       }
     }
@@ -308,36 +309,36 @@ export default function CreateServicePage() {
 
   const handleAddTimeSlot = () => {
     if (!selectedDate || !newTimeSlot.startTime) {
-      setError("Please select a date and start time");
+      setTimeSlotError("Please select a date and start time");
       return;
     }
 
     if (!newTimeSlot.endTime) {
-      setError("End time is required");
+      setTimeSlotError("End time is required");
       return;
     }
 
     // Validate price
     if (!newTimeSlot.price || newTimeSlot.price === "" || (typeof newTimeSlot.price === 'number' && newTimeSlot.price <= 0)) {
-      setError("Price is required for this time slot");
+      setTimeSlotError("Price is required for this time slot");
       return;
     }
 
     // Calculate duration
     const duration = calculateDuration(newTimeSlot.startTime, newTimeSlot.endTime);
     if (duration <= 0) {
-      setError("End time must be after start time");
+      setTimeSlotError("End time must be after start time");
       return;
     }
 
     // Validate staff assignment
     const finalStaffIds = newTimeSlot.staffIds;
     if (finalStaffIds.length === 0) {
-      setError("Please assign at least one staff member to this time slot");
+      setTimeSlotError("Please assign at least one staff member to this time slot");
       return;
     }
 
-    // ✅ NEW: Check for duplicate time slot on the same date
+    // ✅ Check for duplicate time slot with same staff on the same date
     const existingSlots: Array<{
       startTime: string;
       endTime: string;
@@ -347,13 +348,16 @@ export default function CreateServicePage() {
       addOns: Array<{ name: string; cost: number }>;
     }> = datesWithSlots[selectedDate] || [];
 
-    const isDuplicate = existingSlots.some(
-      (slot) => slot.startTime === newTimeSlot.startTime && slot.endTime === newTimeSlot.endTime
-    );
+    const isDuplicate = existingSlots.some((slot) => {
+      const sameTime = slot.startTime === newTimeSlot.startTime && slot.endTime === newTimeSlot.endTime;
+      // Check if any staff member overlaps (same staff can't have exact duplicate time)
+      const staffOverlap = finalStaffIds.some(id => (slot.staffIds || []).includes(id));
+      return sameTime && staffOverlap;
+    });
 
     if (isDuplicate) {
-      setError(
-        `This time slot (${formatTime12Hour(newTimeSlot.startTime)} - ${formatTime12Hour(newTimeSlot.endTime)}) already exists for this date. Please select a different time.`
+      setTimeSlotError(
+        `This time slot (${formatTime12Hour(newTimeSlot.startTime)} - ${formatTime12Hour(newTimeSlot.endTime)}) with the selected staff already exists for this date. Please select a different time or staff.`
       );
       return;
     }
@@ -371,7 +375,7 @@ export default function CreateServicePage() {
     const hasConflict = checkTimeConflict(slot.startTime, slot.endTime, slot.staffIds);
 
     if (hasConflict) {
-      setError(`This time slot conflicts with an existing booking for the selected staff on this date.`);
+      setTimeSlotError(`This time slot conflicts with an existing booking for the selected staff on this date.`);
       return;
     }
 
@@ -390,7 +394,7 @@ export default function CreateServicePage() {
     });
     setDuration(60); // Reset to default 60
     setSelectedAddOns([]); // Reset add-ons
-    setError("");
+    setTimeSlotError("");
 
     // Close the time slot form modal
     setShowTimeSlotForm(false);
@@ -1077,10 +1081,10 @@ export default function CreateServicePage() {
                 >
                   <div className="space-y-6">
                     {/* Error Display */}
-                    {error && error.includes("conflicts") && (
+                    {timeSlotError && (
                       <div className="text-xs font-medium text-red-600 bg-red-50 p-3 rounded-lg border border-red-100 flex items-center gap-2">
                         <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                        {error}
+                        {timeSlotError}
                       </div>
                     )}
 

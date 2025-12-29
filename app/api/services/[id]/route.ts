@@ -18,6 +18,7 @@ import { APIError, asyncHandler, successResponse } from "@/lib/api-response";
 import mongoose from "mongoose";
 import { getGlobalBusyMap, isStaffBusy } from "@/lib/utils/availability";
 import Booking from "@/lib/models/Booking";
+import type { StaffIdEntry, TimeSlotEntry } from "@/lib/types/api";
 
 export const dynamic = 'force-dynamic';
 
@@ -151,6 +152,74 @@ async function updateServiceHandler(
 
   const body = await req.json();
   const validatedData = serviceUpdateSchema.parse(body);
+
+  // ========================================================================
+  // CROSS-SERVICE STAFF AVAILABILITY CHECK
+  // Prevent same staff from being assigned to overlapping time slots across services
+  // ========================================================================
+  const timeSlots = body.timeSlots || [];
+  if (timeSlots.length > 0) {
+
+    // Get all staff IDs from the new time slots
+    const staffIdsToCheck: string[] = [];
+    timeSlots.forEach((slot: any) => {
+      (slot.staffIds || []).forEach((staff: any) => {
+        const sid = typeof staff === 'string' ? staff : String(staff.staffId || staff);
+        if (sid && !staffIdsToCheck.includes(sid)) {
+          staffIdsToCheck.push(sid);
+        }
+      });
+    });
+
+    if (staffIdsToCheck.length > 0) {
+      // Find all OTHER services for this business that have any of these staff in their time slots
+      const existingServices = await Service.find({
+        businessId: service.businessId,
+        _id: { $ne: params.id }, // Exclude current service
+        "timeSlots.staffIds.staffId": { $in: staffIdsToCheck.map(id => new mongoose.Types.ObjectId(id)) }
+      }).select("serviceName timeSlots");
+
+      // Check each new time slot against existing ones
+      for (const newSlot of timeSlots) {
+        const newStart = new Date(`2000-01-01T${newSlot.startTime}`);
+        const newEnd = new Date(`2000-01-01T${newSlot.endTime}`);
+        const newDateStr = new Date(newSlot.date).toISOString().split('T')[0];
+
+        for (const existingService of existingServices) {
+          for (const existingSlot of existingService.timeSlots || []) {
+            const existingDateStr = new Date(existingSlot.date).toISOString().split('T')[0];
+
+            // Skip if dates don't match
+            if (newDateStr !== existingDateStr) continue;
+
+            const existingStart = new Date(`2000-01-01T${existingSlot.startTime}`);
+            const existingEnd = new Date(`2000-01-01T${existingSlot.endTime}`);
+
+            // Check for time overlap: (s1 < e2 && s2 < e1)
+            const timeOverlaps = newStart < existingEnd && existingStart < newEnd;
+            if (!timeOverlaps) continue;
+
+            // Check for staff overlap
+            for (const newStaff of newSlot.staffIds || []) {
+              const newStaffId = typeof newStaff === 'string' ? newStaff : String(newStaff.staffId || newStaff);
+              const existingStaffIds = (existingSlot.staffIds || []).map((s: any) =>
+                String(s.staffId || s)
+              );
+
+              if (existingStaffIds.includes(newStaffId)) {
+                throw new APIError(
+                  400,
+                  `Staff member is already assigned to "${existingService.serviceName}" at ${existingSlot.startTime}-${existingSlot.endTime} on ${newDateStr}. A staff member cannot serve multiple services at the same time.`,
+                  "STAFF_CONFLICT"
+                );
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+  // ======================================================================== 
 
   // Update service fields
   Object.assign(service, validatedData);

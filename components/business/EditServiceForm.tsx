@@ -373,9 +373,9 @@ export function EditServiceForm({ serviceId, onSuccess, onCancel }: EditServiceF
             const hasConflict = checkTimeConflict(newTimeSlot.startTime, newTimeSlot.endTime, selectedStaffIds);
 
             if (hasConflict) {
-                setError(`This time slot conflicts with an existing booking for the selected staff on this date.`);
+                setTimeSlotError(`This time slot conflicts with an existing booking for the selected staff on this date.`);
             } else {
-                setError("");
+                setTimeSlotError("");
             }
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -609,9 +609,9 @@ export function EditServiceForm({ serviceId, onSuccess, onCancel }: EditServiceF
             });
 
             if (isConflict) {
-                setError(`This time slot(${formatTime12Hour(newTimeSlot.startTime)} - ${formatTime12Hour(newTimeSlot.endTime)}) with the selected staff is already booked for this date.`);
+                setTimeSlotError(`This time slot(${formatTime12Hour(newTimeSlot.startTime)} - ${formatTime12Hour(newTimeSlot.endTime)}) with the selected staff is already booked for this date.`);
             } else {
-                setError("");
+                setTimeSlotError("");
             }
         }
     };

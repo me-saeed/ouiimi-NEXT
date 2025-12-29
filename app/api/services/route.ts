@@ -13,6 +13,14 @@ import { logger } from "@/lib/logger";
 import { cache, MemoryCache } from "@/lib/cache";
 import { getGlobalBusyMap, isStaffBusy } from "@/lib/utils/availability";
 import Booking from "@/lib/models/Booking";
+import type {
+  StaffIdEntry,
+  TimeSlotEntry,
+  AddOnEntry,
+  ServiceFilterQuery,
+  ProcessedTimeSlot,
+  ServiceListItem
+} from "@/lib/types/api";
 
 export const dynamic = 'force-dynamic';
 
@@ -56,6 +64,42 @@ async function createServiceHandler(req: NextRequest) {
       throw new APIError(403, message, "BUSINESS_NOT_APPROVED");
     }
 
+    // ========================================================================
+    // DUPLICATE SERVICE CHECK
+    // Prevent creating services with same category + subCategory/serviceName for same business
+    // Only checks within THIS business - doesn't affect other businesses
+    // ========================================================================
+    const duplicateQuery: Record<string, unknown> = {
+      businessId: new mongoose.Types.ObjectId(validatedData.businessId),
+      category: validatedData.category,
+    };
+
+    // Build $or conditions for matching by subCategory or serviceName
+    const orConditions: Array<{ subCategory?: string; serviceName?: string }> = [];
+    if (validatedData.subCategory) {
+      orConditions.push({ subCategory: validatedData.subCategory });
+    }
+    if (validatedData.serviceName) {
+      orConditions.push({ serviceName: validatedData.serviceName });
+    }
+
+    // Only run duplicate check if we have at least one identifier to match
+    if (orConditions.length > 0) {
+      duplicateQuery.$or = orConditions;
+
+      const existingService = await Service.findOne(duplicateQuery);
+
+      if (existingService) {
+        const matchedName = validatedData.subCategory || validatedData.serviceName;
+        throw new APIError(
+          400,
+          `A service "${matchedName}" already exists in "${validatedData.category}" category. Please use a different service name or edit the existing service.`,
+          "DUPLICATE_SERVICE"
+        );
+      }
+    }
+    // ======================================================================== 
+
     // Calculate duration helper function
     const calculateDuration = (startTime: string, endTime: string): number => {
       const [startHours, startMinutes] = startTime.split(":").map(Number);
@@ -94,6 +138,71 @@ async function createServiceHandler(req: NextRequest) {
         isBooked: false,
       };
     });
+
+    // ========================================================================
+    // CROSS-SERVICE STAFF AVAILABILITY CHECK
+    // Prevent same staff from being assigned to overlapping time slots across services
+    // ========================================================================
+    if (timeSlots.length > 0) {
+      // Get all staff IDs from the new time slots
+      const staffIdsToCheck: string[] = [];
+      timeSlots.forEach(slot => {
+        slot.staffIds.forEach((staff: any) => {
+          const sid = String(staff.staffId);
+          if (!staffIdsToCheck.includes(sid)) {
+            staffIdsToCheck.push(sid);
+          }
+        });
+      });
+
+      if (staffIdsToCheck.length > 0) {
+        // Find all services for this business that have any of these staff in their time slots
+        const existingServices = await Service.find({
+          businessId: validatedData.businessId,
+          "timeSlots.staffIds.staffId": { $in: staffIdsToCheck.map(id => new mongoose.Types.ObjectId(id)) }
+        }).select("serviceName timeSlots");
+
+        // Check each new time slot against existing ones
+        for (const newSlot of timeSlots) {
+          const newStart = new Date(`2000-01-01T${newSlot.startTime}`);
+          const newEnd = new Date(`2000-01-01T${newSlot.endTime}`);
+          const newDateStr = newSlot.date.toISOString().split('T')[0];
+
+          for (const existingService of existingServices) {
+            for (const existingSlot of existingService.timeSlots || []) {
+              const existingDateStr = new Date(existingSlot.date).toISOString().split('T')[0];
+
+              // Skip if dates don't match
+              if (newDateStr !== existingDateStr) continue;
+
+              const existingStart = new Date(`2000-01-01T${existingSlot.startTime}`);
+              const existingEnd = new Date(`2000-01-01T${existingSlot.endTime}`);
+
+              // Check for time overlap: (s1 < e2 && s2 < e1)
+              const timeOverlaps = newStart < existingEnd && existingStart < newEnd;
+              if (!timeOverlaps) continue;
+
+              // Check for staff overlap
+              for (const newStaff of newSlot.staffIds) {
+                const newStaffId = String(newStaff.staffId);
+                const existingStaffIds = (existingSlot.staffIds || []).map((s: any) =>
+                  String(s.staffId || s)
+                );
+
+                if (existingStaffIds.includes(newStaffId)) {
+                  throw new APIError(
+                    400,
+                    `Staff member is already assigned to "${existingService.serviceName}" at ${existingSlot.startTime}-${existingSlot.endTime} on ${newDateStr}. A staff member cannot serve multiple services at the same time.`,
+                    "STAFF_CONFLICT"
+                  );
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+    // ======================================================================== 
 
     const service = await Service.create({
       businessId: validatedData.businessId,
@@ -218,7 +327,7 @@ async function getServicesHandler(req: NextRequest) {
 
     console.log("[API /api/services GET] Building filter with businessId:", businessId);
 
-    const filter: any = {};
+    const filter: Record<string, unknown> = {};
 
     // Only apply status filter if explicitly provided OR if no businessId (public listing)
     if (status) {

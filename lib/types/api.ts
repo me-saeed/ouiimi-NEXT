@@ -87,3 +87,132 @@ export interface ApiBooking {
     createdAt: string; // ISO Date String
     updatedAt: string; // ISO Date String
 }
+
+// =============================================================================
+// SERVICE TYPES - For type-safe service validation and API operations
+// =============================================================================
+
+/**
+ * Staff ID entry with booking status
+ * Used in time slot's staffIds array
+ */
+export interface StaffIdEntry {
+    staffId: string;
+    isBooked: boolean;
+    staffDetails?: {
+        _id: string;
+        name: string;
+        photo?: string;
+    };
+}
+
+/**
+ * Add-on entry for services
+ */
+export interface AddOnEntry {
+    name: string;
+    cost: number;
+}
+
+/**
+ * Time slot entry for service creation/editing
+ * Input format (before Mongoose conversion)
+ */
+export interface TimeSlotInput {
+    date: string | Date;
+    startTime: string;
+    endTime: string;
+    price: number;
+    duration?: number;
+    staffIds: string[];
+    addOns?: AddOnEntry[];
+}
+
+/**
+ * Time slot entry after processing (from database)
+ * Output format with full staff data
+ */
+export interface TimeSlotEntry {
+    date: Date | string;
+    startTime: string;
+    endTime: string;
+    price: number;
+    duration: number;
+    staffIds: StaffIdEntry[];
+    addOns?: AddOnEntry[];
+    isBooked: boolean;
+    bookingId?: string;
+}
+
+/**
+ * Processed time slot for API responses
+ */
+export interface ProcessedTimeSlot {
+    date: string | Date;
+    startTime: string;
+    endTime: string;
+    price: number;
+    duration: number;
+    staffIds: StaffIdEntry[];
+    isBooked: boolean;
+}
+
+/**
+ * MongoDB filter query for services
+ */
+export interface ServiceFilterQuery {
+    businessId?: string;
+    category?: string;
+    subCategory?: string;
+    status?: string;
+    $or?: Array<{ subCategory?: string; serviceName?: string }>;
+}
+
+/**
+ * Service list item for API responses
+ */
+export interface ServiceListItem {
+    id: string;
+    _id: string;
+    businessId: ApiBusiness | string;
+    category: string;
+    subCategory?: string;
+    serviceName: string;
+    description?: string;
+    duration?: number;
+    address: string;
+    addressLocation?: {
+        type: "Point";
+        coordinates: number[];
+    };
+    addOns: AddOnEntry[];
+    timeSlots: ProcessedTimeSlot[];
+    date?: string;
+    time?: string;
+    status: string;
+    createdAt?: string;
+    distance?: string;
+}
+
+/**
+ * Service creation/update data
+ */
+export interface ServiceData {
+    businessId: string;
+    category: string;
+    subCategory?: string;
+    serviceName: string;
+    description?: string;
+    address: {
+        street: string;
+        location: {
+            type: "Point";
+            coordinates: [number, number];
+        };
+    };
+    addOns?: AddOnEntry[];
+    timeSlots?: TimeSlotInput[];
+    defaultStaffIds?: string[];
+    status?: "listed" | "booked" | "completed" | "cancelled";
+}
+
