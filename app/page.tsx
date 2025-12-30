@@ -4,8 +4,8 @@ import { ServiceCard } from "@/components/ui/service-card";
 import { ServiceCarousel } from "@/components/ui/service-carousel";
 import { getAllCategories } from "@/lib/constants/categories";
 
-// Enable ISR - revalidate every 60 seconds
-export const revalidate = 60;
+// Enable ISR - revalidate every 5 seconds (Near Real-time)
+export const revalidate = 5;
 
 // Get all category names for homepage display
 const SERVICE_CATEGORIES = getAllCategories().map(cat => cat.name);
@@ -34,7 +34,7 @@ async function fetchCategoryServices(category: string): Promise<{ services: Serv
     const response = await fetch(
       `${baseUrl}/api/services?category=${encodeURIComponent(category)}&status=listed&limit=12`,
       {
-        next: { revalidate: 60 }, // Cache for 60 seconds
+        next: { revalidate: 5 }, // Cache for 5 seconds
         headers: {
           'Content-Type': 'application/json',
         },

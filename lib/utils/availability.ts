@@ -51,7 +51,7 @@ export async function getGlobalBusyMap(
     bookings.forEach(b => {
         const sid = String(b.staffId);
         if (!busyMap[sid]) busyMap[sid] = [];
-        
+
         busyMap[sid].push({
             date: new Date(b.timeSlot.date).toISOString().split('T')[0],
             startTime: b.timeSlot.startTime,
@@ -64,22 +64,41 @@ export async function getGlobalBusyMap(
 
 /**
  * Checks if a staff member is busy based on a pre-fetched busy map.
+ * Uses proper time overlap detection: (s1 < e2 && s2 < e1)
  */
 export function isStaffBusy(
     busyMap: Record<string, any[]>,
     staffId: string,
     date: Date | string,
-    startTime: string
+    startTime: string,
+    endTime?: string // Optional: if provided, checks for any overlap
 ): boolean {
     const sid = String(staffId);
     const dateStr = new Date(date).toISOString().split('T')[0];
     const staffBookings = busyMap[sid];
-    
+
     if (!staffBookings) return false;
 
-    // Direct match for simplicity in this implementation
-    // Ideally should handle overlaps if slot durations vary
-    return staffBookings.some(b => b.date === dateStr && b.startTime === startTime);
+    // Convert time strings to minutes for comparison
+    const timeToMinutes = (time: string): number => {
+        const [hours, minutes] = time.split(':').map(Number);
+        return hours * 60 + minutes;
+    };
+
+    const slotStart = timeToMinutes(startTime);
+    // If no endTime provided, assume 1 hour duration for overlap check
+    const slotEnd = endTime ? timeToMinutes(endTime) : slotStart + 60;
+
+    // Check for ANY overlapping booking: (existingStart < slotEnd) && (existingEnd > slotStart)
+    return staffBookings.some(b => {
+        if (b.date !== dateStr) return false;
+
+        const bookingStart = timeToMinutes(b.startTime);
+        const bookingEnd = timeToMinutes(b.endTime);
+
+        // Overlap formula: two ranges [s1, e1] and [s2, e2] overlap if s1 < e2 AND s2 < e1
+        return bookingStart < slotEnd && bookingEnd > slotStart;
+    });
 }
 
 /**

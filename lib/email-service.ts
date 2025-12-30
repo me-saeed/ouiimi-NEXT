@@ -559,7 +559,7 @@ export class EmailService {
                         serviceName: variables.serviceName,
                         date: variables.date,
                         time: variables.time,
-                        refundAmount: variables.refundAmount,
+                        refundAmount: variables.refundAmount, // Passed from payload
                         bookingNumber: variables.bookingNumber
                     });
                     break;

@@ -60,12 +60,12 @@ export function rateLimit(identifier: string, limit = 60): RateLimitResult {
 /**
  * Middleware helper to apply rate limiting to API routes
  * @param request - Next.js request object
- * @param limit - Maximum requests per minute
+ * @param limit - Maximum requests per minute (Increased default to 120)
  * @returns Response if rate limited, null otherwise
  */
 export function applyRateLimit(
     request: NextRequest,
-    limit = 60
+    limit = 120
 ): NextResponse | null {
     // Get IP address from various headers (proxy-aware)
     const ip =
@@ -101,7 +101,7 @@ export function applyRateLimit(
 /**
  * Rate limit by user ID (for authenticated requests)
  */
-export function rateLimitByUser(userId: string, limit = 120): RateLimitResult {
+export function rateLimitByUser(userId: string, limit = 240): RateLimitResult {
     return rateLimit(`user:${userId}`, limit);
 }
 

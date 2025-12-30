@@ -291,23 +291,8 @@ export function BookingsTab({ business }: BookingsTabProps) {
 
       if (response.ok) {
         // Notify admin about completed booking
-        try {
-          await fetch("/api/admin/notifications", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            credentials: "include", // Use session cookies
-            body: JSON.stringify({
-              type: "booking_completed",
-              bookingId: bookingId,
-              message: `Booking #${selectedBooking?.bookingNumber || bookingId.slice(-8)} has been marked as completed`,
-            }),
-          });
-        } catch (notifyError) {
-          console.error("Failed to notify admin:", notifyError);
-          // Don't block the completion flow if notification fails
-        }
+        // Admin notification is now handled by the backend API upon completion status update.
+        // verified by task: Fix Booking Completion Flow
 
         setSuccess("Booking completed successfully");
         loadBookings();

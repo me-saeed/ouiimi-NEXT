@@ -27,9 +27,9 @@ export const dynamic = 'force-dynamic';
 async function createServiceHandler(req: NextRequest) {
   try {
     // ==========================================================================
-    // STEP 1: Rate Limiting (20 req/min for service creation)
+    // STEP 1: Rate Limiting (60 req/min for service creation - increased)
     // ==========================================================================
-    const rateLimitResponse = applyRateLimit(req, 20);
+    const rateLimitResponse = applyRateLimit(req, 60);
     if (rateLimitResponse) return rateLimitResponse;
 
     // ==========================================================================
@@ -141,67 +141,9 @@ async function createServiceHandler(req: NextRequest) {
 
     // ========================================================================
     // CROSS-SERVICE STAFF AVAILABILITY CHECK
-    // Prevent same staff from being assigned to overlapping time slots across services
-    // ========================================================================
-    if (timeSlots.length > 0) {
-      // Get all staff IDs from the new time slots
-      const staffIdsToCheck: string[] = [];
-      timeSlots.forEach(slot => {
-        slot.staffIds.forEach((staff: any) => {
-          const sid = String(staff.staffId);
-          if (!staffIdsToCheck.includes(sid)) {
-            staffIdsToCheck.push(sid);
-          }
-        });
-      });
-
-      if (staffIdsToCheck.length > 0) {
-        // Find all services for this business that have any of these staff in their time slots
-        const existingServices = await Service.find({
-          businessId: validatedData.businessId,
-          "timeSlots.staffIds.staffId": { $in: staffIdsToCheck.map(id => new mongoose.Types.ObjectId(id)) }
-        }).select("serviceName timeSlots");
-
-        // Check each new time slot against existing ones
-        for (const newSlot of timeSlots) {
-          const newStart = new Date(`2000-01-01T${newSlot.startTime}`);
-          const newEnd = new Date(`2000-01-01T${newSlot.endTime}`);
-          const newDateStr = newSlot.date.toISOString().split('T')[0];
-
-          for (const existingService of existingServices) {
-            for (const existingSlot of existingService.timeSlots || []) {
-              const existingDateStr = new Date(existingSlot.date).toISOString().split('T')[0];
-
-              // Skip if dates don't match
-              if (newDateStr !== existingDateStr) continue;
-
-              const existingStart = new Date(`2000-01-01T${existingSlot.startTime}`);
-              const existingEnd = new Date(`2000-01-01T${existingSlot.endTime}`);
-
-              // Check for time overlap: (s1 < e2 && s2 < e1)
-              const timeOverlaps = newStart < existingEnd && existingStart < newEnd;
-              if (!timeOverlaps) continue;
-
-              // Check for staff overlap
-              for (const newStaff of newSlot.staffIds) {
-                const newStaffId = String(newStaff.staffId);
-                const existingStaffIds = (existingSlot.staffIds || []).map((s: any) =>
-                  String(s.staffId || s)
-                );
-
-                if (existingStaffIds.includes(newStaffId)) {
-                  throw new APIError(
-                    400,
-                    `Staff member is already assigned to "${existingService.serviceName}" at ${existingSlot.startTime}-${existingSlot.endTime} on ${newDateStr}. A staff member cannot serve multiple services at the same time.`,
-                    "STAFF_CONFLICT"
-                  );
-                }
-              }
-            }
-          }
-        }
-      }
-    }
+    // REMOVED FOR DYNAMIC AVAILABILITY
+    // We now allow staff to be assigned to overlapping slots.
+    // Availability is checked strictly at BOOKING time, not Service Creation time.
     // ======================================================================== 
 
     const service = await Service.create({
@@ -764,7 +706,7 @@ async function getServicesHandler(req: NextRequest) {
           const processedSlots = (s.timeSlots || []).map((ts: any) => {
             const updatedStaffIds = ts.staffIds?.map((staff: any) => {
               const staffIdStr = typeof staff === 'string' ? staff : String(staff.staffId || staff.id || staff);
-              const isGloballyBooked = isStaffBusy(busyMap, staffIdStr, ts.date, ts.startTime);
+              const isGloballyBooked = isStaffBusy(busyMap, staffIdStr, ts.date, ts.startTime, ts.endTime);
 
               if (typeof staff === 'string' || !staff.staffId) {
                 return {

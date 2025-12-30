@@ -138,10 +138,12 @@ export default function SigninPage() {
         // Regular users stay at "/"
       }
 
-      // Execute redirect immediately to avoid glitches
-      await refreshSession(); // Update AuthContext state with new cookie data
-      router.refresh(); // Refresh server-side data
-      router.replace(redirectUrl);
+      // Refresh AuthContext state BEFORE redirecting
+      await refreshSession();
+
+      // Use hard redirect for admin to ensure middleware picks up the new cookie
+      // This is more reliable than client-side router.replace for role changes
+      window.location.href = redirectUrl;
     } catch (err: any) {
       setError("Something went wrong. Please try again.");
       setIsSubmitting(false);

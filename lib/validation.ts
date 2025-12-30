@@ -135,7 +135,7 @@ export const timeSlotSchema = z.object({
   startTime: z.string().min(1, "Start time is required"),
   endTime: z.string().min(1, "End time is required"),
   price: z.number().min(0, "Price is required and must be 0 or greater"), // Required price for this time slot
-  duration: z.number().min(0).optional(), // Computed duration in minutes (will be calculated)
+  duration: z.number().min(5, "Duration must be at least 5 minutes").optional(), // Computed duration in minutes
   staffIds: z.array(z.string()).min(1, "At least one staff member must be assigned"),
   addOns: z.array(addOnSchema).optional(),
 });
@@ -172,7 +172,10 @@ export const serviceUpdateSchema = z.object({
     street: z.string().min(5),
     location: z.object({
       type: z.literal("Point"),
-      coordinates: z.tuple([z.number(), z.number()]), // [longitude, latitude]
+      coordinates: z.tuple([
+        z.number().min(-180).max(180), // Longitude
+        z.number().min(-90).max(90)    // Latitude
+      ]),
     }),
   }).optional(),
   addOns: z.array(addOnSchema).optional(),

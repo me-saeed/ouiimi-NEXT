@@ -96,6 +96,7 @@ async function updateBookingHandler(
   if (validatedData.status === "cancelled") {
     booking.status = "cancelled";
     booking.cancelledAt = new Date();
+    booking.cancelledBy = validatedData.cancelledBy; // Save who cancelled it
     booking.cancellationReason = validatedData.cancellationReason || "";
 
     // Free up the time slot
@@ -127,6 +128,12 @@ async function updateBookingHandler(
 
     // Send cancellation email (async, don't block response)
     try {
+      // Set status for Admin Dashboard Refund Tracking
+      if (validatedData.cancelledBy === 'customer') {
+        // Set to a special status or use adminPaymentStatus
+        booking.adminPaymentStatus = 'refund_pending';
+      }
+
       const bookingWithPopulated = await Booking.findById(booking._id)
         .populate('userId', 'fname lname email contactNo phone')
         .populate('businessId', 'businessName email phone address')
@@ -143,7 +150,11 @@ async function updateBookingHandler(
             booking: safeBooking as any,
             customer: safeBooking.userId,
             business: safeBooking.businessId,
-            service: safeBooking.serviceId
+            service: safeBooking.serviceId,
+            // Add refund details specifically for shopper cancellation
+            refundAmount: validatedData.cancelledBy === 'customer'
+              ? ((booking.depositAmount || (booking.totalCost * 0.10)) * 0.50).toFixed(2) // 50% of deposit
+              : undefined
           };
 
           Promise.all([
@@ -155,6 +166,17 @@ async function updateBookingHandler(
     } catch (emailError) {
       console.error('Failed to prepare cancellation email:', emailError);
     }
+  }
+
+  // Handle completion
+  if (validatedData.status === "completed") {
+    booking.status = "completed";
+
+    // IMPORTANT: When marked complete, it moves to "Pending Payout" queue for Admin
+    booking.adminPaymentStatus = "pending";
+  } else if (validatedData.status) {
+    // Other status updates
+    booking.status = validatedData.status;
   }
 
   // Apply other updates

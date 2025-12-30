@@ -7,11 +7,12 @@
 import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import PageLayout from "@/components/layout/PageLayout";
-import { LayoutDashboard, Building2, Clock, History, Landmark, CheckCircle, Info } from "lucide-react";
+import { LayoutDashboard, Building2, Clock, History, Landmark, CheckCircle, Info, Undo2, Ban } from "lucide-react";
 import { AdminTabs } from "@/components/admin/AdminTabs";
 import { OverviewTab } from "@/components/admin/OverviewTab";
 import { BusinessesTab } from "@/components/admin/BusinessesTab";
 import { PaymentHistoryTab } from "@/components/admin/PaymentHistoryTab";
+import { CancelledBookingsTab } from "@/components/admin/CancelledBookingsTab";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 import { AdminDashboardSkeleton } from "@/components/skeletons/AdminDashboardSkeleton";
@@ -51,7 +52,7 @@ interface Business {
   createdAt: string;
 }
 
-type TabId = "overview" | "businesses" | "pending" | "history";
+type TabId = "overview" | "businesses" | "pending" | "history" | "refunds" | "cancelled";
 
 // Fetcher for SWR
 const fetcher = (url: string, token: string) =>
@@ -80,37 +81,48 @@ export default function AdminDashboardPage() {
     }
   }, [user, isAdmin, authLoading, router]);
 
-  // SWR hooks for auto-refresh data - no more token needed in headers
+  // SWR hooks - LAZY LOADED based on active tab to reduce concurrent API calls
+  // Stats always load for badge counts in tab bar
   const { data: statsData, error: statsError } = useSWR(
     user && isAdmin ? "/api/admin/stats/overview" : null,
-    (url) => fetch(url).then(res => res.json()),
-    { refreshInterval: 30000 }
+    (url: string) => fetch(url).then(res => res.json()),
+    { refreshInterval: 60000 } // Increased to 60s to reduce calls
   );
 
+  // Only fetch when the corresponding tab is active
   const { data: businessesData, error: businessesError, mutate: mutateBusinesses } = useSWR(
-    user && isAdmin ? "/api/admin/businesses" : null,
-    (url) => fetch(url).then(res => res.json()),
+    user && isAdmin && activeTab === "businesses" ? "/api/admin/businesses" : null,
+    (url: string) => fetch(url).then(res => res.json()),
     { refreshInterval: 60000 }
   );
 
   const { data: pendingPaymentsData, error: pendingError, mutate: mutatePending } = useSWR(
-    user && isAdmin ? "/api/admin/bookings/pending" : null,
-    (url) => fetch(url).then(res => res.json()),
-    { refreshInterval: 30000 }
-  );
-
-  const { data: paymentHistoryData, error: historyError, mutate: mutateHistory } = useSWR(
-    user && isAdmin ? "/api/admin/bookings/released" : null,
-    (url) => fetch(url).then(res => res.json()),
+    user && isAdmin && activeTab === "pending" ? "/api/admin/bookings/pending" : null,
+    (url: string) => fetch(url).then(res => res.json()),
     { refreshInterval: 60000 }
   );
 
+  const { data: paymentHistoryData, error: historyError, mutate: mutateHistory } = useSWR(
+    user && isAdmin && activeTab === "history" ? "/api/admin/bookings/released" : null,
+    (url: string) => fetch(url).then(res => res.json()),
+    { refreshInterval: 60000 }
+  );
+
+  const { data: refundsData, error: refundsError, mutate: mutateRefunds } = useSWR(
+    user && isAdmin && activeTab === "refunds" ? "/api/admin/bookings/refunds" : null,
+    (url: string) => fetch(url).then(res => res.json()),
+    { refreshInterval: 60000 }
+  );
+
+
   const businesses = businessesData?.data?.businesses || [];
-  const businessesLoading = !businessesData && !businessesError;
+  const businessesLoading = activeTab === "businesses" && !businessesData && !businessesError;
   const pendingPayments = pendingPaymentsData?.data?.bookings || [];
-  const pendingPaymentsLoading = !pendingPaymentsData && !pendingError;
+  const pendingPaymentsLoading = activeTab === "pending" && !pendingPaymentsData && !pendingError;
   const paymentHistory = paymentHistoryData?.data?.bookings || [];
-  const paymentHistoryLoading = !paymentHistoryData && !historyError;
+  const paymentHistoryLoading = activeTab === "history" && !paymentHistoryData && !historyError;
+  const refundsList = refundsData?.data?.bookings || [];
+  const refundsLoading = activeTab === "refunds" && !refundsData && !refundsError;
 
   const stats = useMemo(() => {
     if (!statsData?.data) {
@@ -268,6 +280,19 @@ export default function AdminDashboardPage() {
       count: pendingPaymentsData?.data?.pagination?.total || pendingPaymentsData?.data?.bookings?.length || 0
     },
     {
+      id: "refunds",
+      label: "Refunds",
+      icon: <Undo2 className="w-4 h-4" />,
+      count: refundsData?.data?.pagination?.total || refundsData?.data?.bookings?.length || 0
+    },
+    {
+      id: "cancelled",
+      label: "Cancelled",
+      icon: <Ban className="w-4 h-4" />,
+      // Count could be fetched via a separate count endpoint if needed, or we just don't show a badge for now to avoid extra calls
+      // For now, let's leave count undefined or 0
+    },
+    {
       id: "history",
       label: "Payment History",
       icon: <History className="w-4 h-4" />,
@@ -309,12 +334,24 @@ export default function AdminDashboardPage() {
             />
           )}
 
+
           {activeTab === "pending" && (
             <PendingPaymentsView
               bookings={pendingPayments}
               isLoading={pendingPaymentsLoading}
               onReleasePayment={handleReleasePayment}
             />
+          )}
+
+          {activeTab === "refunds" && (
+            <RefundsView
+              bookings={refundsList}
+              isLoading={refundsLoading}
+            />
+          )}
+
+          {activeTab === "cancelled" && (
+            <CancelledBookingsTab />
           )}
 
           {activeTab === "history" && (
@@ -386,6 +423,89 @@ export default function AdminDashboardPage() {
   );
 }
 
+// Refunds View Component
+function RefundsView({
+  bookings,
+  isLoading,
+}: {
+  bookings: Booking[];
+  isLoading: boolean;
+}) {
+  if (isLoading) {
+    return <div className="text-center py-12">Loading refund requests...</div>;
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="bg-orange-50 rounded-2xl p-6 border border-orange-100 mb-6">
+        <h3 className="font-bold text-orange-900 text-lg mb-2">Refunds Due (50% Policy)</h3>
+        <p className="text-sm text-orange-800">
+          These bookings were cancelled by the shopper. Per policy, 50% of the deposit should be refunded manually via Stripe/Bank, and the other 50% retained.
+        </p>
+      </div>
+
+      {bookings.length === 0 ? (
+        <div className="text-center py-12 text-gray-500">No refunds pending</div>
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {bookings.map((booking) => (
+            <RefundCard
+              key={booking.id}
+              booking={booking}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function RefundCard({ booking }: { booking: Booking }) {
+  const service = typeof booking.serviceId === 'object' ? booking.serviceId : null;
+  const shopper = typeof booking.userId === 'object' ? booking.userId : null;
+
+  // 50% of deposit
+  const depositPaid = booking.depositAmount || (booking.totalCost * 0.10);
+  const refundAmount = depositPaid * 0.50;
+
+  return (
+    <div className="bg-white rounded-xl border border-gray-200 p-6 flex flex-col justify-between">
+      <div>
+        <div className="flex justify-between items-start mb-4">
+          <div>
+            <h3 className="font-semibold text-lg text-gray-900">Ref #{booking.bookingNumber || booking.id.slice(-6)}</h3>
+            <p className="text-xs text-gray-500">Cancelled by Shopper</p>
+          </div>
+          <span className="bg-orange-100 text-orange-800 px-2 py-1 rounded text-xs font-bold">Refund Due</span>
+        </div>
+
+        <div className="space-y-3 mb-6">
+          <div className="p-3 bg-gray-50 rounded-lg">
+            <p className="text-xs text-gray-500 uppercase font-bold mb-1">Shopper Details</p>
+            <p className="font-medium text-gray-900">{shopper?.fname} {shopper?.lname}</p>
+            <p className="text-sm text-gray-600">{shopper?.email}</p>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <p className="text-xs text-gray-500">Deposit Paid</p>
+              <p className="font-semibold text-gray-900">${depositPaid.toFixed(2)}</p>
+            </div>
+            <div>
+              <p className="text-xs text-gray-500">To Refund (50%)</p>
+              <p className="font-bold text-lg text-red-600">${refundAmount.toFixed(2)}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-yellow-50 p-3 rounded-lg text-xs text-yellow-800 border border-yellow-200">
+        <strong>Action Required:</strong> Process ${refundAmount.toFixed(2)} refund manually to {shopper?.email}.
+      </div>
+    </div>
+  );
+}
+
 // Pending Payments View Component  
 function PendingPaymentsView({
   bookings,
@@ -401,7 +521,6 @@ function PendingPaymentsView({
   }
 
   const totalDeposits = bookings.reduce((sum, b) => sum + (b.totalCost * 0.10), 0);
-  const totalPlatformFees = bookings.reduce((sum, b) => sum + (b.platformFee || 1.99), 0);
 
   return (
     <div className="space-y-6">
@@ -409,13 +528,9 @@ function PendingPaymentsView({
       <div className="bg-gradient-to-br from-white to-gray-50 rounded-2xl p-6 border border-gray-200">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
-            <p className="text-sm text-gray-500 mb-1">Total Deposits (10%)</p>
+            <p className="text-sm text-gray-500 mb-1">Total Payouts Pending</p>
             <p className="text-3xl font-bold text-[#3A3A3A]">${totalDeposits.toFixed(2)}</p>
             <p className="text-sm text-gray-500 mt-1">{bookings.length} bookings</p>
-          </div>
-          <div>
-            <p className="text-sm text-gray-500 mb-1">Platform Fees</p>
-            <p className="text-2xl font-bold text-blue-600">${totalPlatformFees.toFixed(2)}</p>
           </div>
         </div>
       </div>
@@ -458,18 +573,11 @@ function PendingPaymentCard({ booking, onRelease }: { booking: Booking; onReleas
           <span className="text-gray-600">Total Booking:</span>
           <span className="font-semibold">${booking.totalCost.toFixed(2)}</span>
         </div>
-        <div className="flex justify-between">
-          <span className="text-gray-600">Deposit (10%):</span>
-          <span className="font-semibold text-blue-600">${(booking.totalCost * 0.10).toFixed(2)}</span>
-        </div>
-        <div className="flex justify-between">
-          <span className="text-gray-600">Platform Fee:</span>
-          <span className="font-semibold text-green-600">${(booking.platformFee || 1.99).toFixed(2)}</span>
-        </div>
         <div className="flex justify-between pt-2 border-t">
-          <span className="font-semibold">To Release:</span>
-          <span className="font-bold text-lg">${((booking.totalCost * 0.10) - (booking.platformFee || 1.99)).toFixed(2)}</span>
+          <span className="font-semibold">Payout Amount:</span>
+          <span className="font-bold text-lg text-green-600">${(booking.totalCost * 0.10).toFixed(2)}</span>
         </div>
+        <p className="text-xs text-gray-400 mt-1">Full deposit amount (no fees deducted)</p>
       </div>
 
       <button

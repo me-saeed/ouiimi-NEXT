@@ -9,7 +9,7 @@ import { renderAddress } from "@/lib/utils";
 import Link from "next/link";
 import { Plus, Pencil, Trash2, Clock, DollarSign, Calendar, Tag } from "lucide-react";
 import { ServiceCard } from "@/components/ui/service-card";
-import { ServiceEditModal } from "./ServiceEditModal";
+import { ServiceDetailModal } from "./ServiceDetailModal";
 
 interface ListTabProps {
   business: any;
@@ -27,6 +27,13 @@ interface Service {
   status: string;
   timeSlots?: any[];
   businessId?: any;
+  address?: {
+    street: string;
+    location: {
+      type: "Point";
+      coordinates: [number, number];
+    };
+  };
 }
 
 export function ListTab({ business }: ListTabProps) {
@@ -37,8 +44,9 @@ export function ListTab({ business }: ListTabProps) {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [serviceToDelete, setServiceToDelete] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [editingServiceId, setEditingServiceId] = useState<string | null>(null);
+  // const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  // const [editingServiceId, setEditingServiceId] = useState<string | null>(null);
+
   // New: Separate state for viewing service details
   const [viewingService, setViewingService] = useState<Service | null>(null);
 
@@ -141,17 +149,7 @@ export function ListTab({ business }: ListTabProps) {
     setError("");
   };
 
-  const handleEditClick = (serviceId: string, e?: React.MouseEvent) => {
-    if (e) e.stopPropagation();
-    setEditingServiceId(serviceId);
-    setIsEditModalOpen(true);
-  };
-
-  const handleEditSuccess = () => {
-    setIsEditModalOpen(false);
-    setEditingServiceId(null);
-    loadServices();
-  };
+  // Removed handleEditClick and handleEditSuccess
 
   // Separate services into active (has future time slots) and pending (no slots)
   const today = new Date().toISOString().split('T')[0];
@@ -357,15 +355,7 @@ export function ListTab({ business }: ListTabProps) {
 
                               {/* Action Buttons - Absolute Top Right (Professional Look) */}
                               <div className="absolute top-2 right-2 flex gap-1 z-20">
-                                <Button
-                                  variant="secondary"
-                                  size="icon"
-                                  onClick={(e) => handleEditClick(serviceId, e)}
-                                  className="h-7 w-7 rounded-full bg-white/90 shadow-sm border border-gray-100 text-gray-600 hover:text-[#EECFD1] hover:bg-white"
-                                  title="Edit"
-                                >
-                                  <Pencil className="w-3.5 h-3.5" />
-                                </Button>
+                                {/* Edit Button Removed - Read Only Mode */}
                                 <Button
                                   variant="secondary"
                                   size="icon"
@@ -394,36 +384,59 @@ export function ListTab({ business }: ListTabProps) {
         <div className="mt-12 pt-8 border-t border-gray-100">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h2 className="text-lg font-bold text-[#3A3A3A]">Draft Services</h2>
-              <p className="text-sm text-gray-500">Services visible only to you (no time slots set)</p>
+              <h2 className="text-lg font-bold text-[#3A3A3A]">Inactive / Expired Services</h2>
+              <p className="text-sm text-gray-500">Services with no future time slots available.</p>
             </div>
             <div className="bg-gray-100 px-3 py-1 rounded-full text-xs font-semibold text-gray-600">
-              {pendingServices.length} Drafts
+              {pendingServices.length} Inactive
             </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {pendingServices.map((service) => {
               const serviceId = service.id || service._id;
+
+              // Construct card data
+              const cardData = {
+                id: serviceId,
+                image: "/placeholder-service.jpg", // Default placeholder
+                name: service.serviceName || service.subCategory || "Untitled Service",
+                price: service.baseCost || 0,
+                rating: 0,
+                reviews: 0,
+                businessName: business.businessName,
+                businessId: business._id,
+                nextSlot: "Expired", // Explicitly show expired
+                category: service.category,
+              };
+
               return (
-                <div key={serviceId} className="group bg-white border border-dashed border-gray-300 rounded-xl p-4 flex items-center justify-between hover:border-gray-400 transition-colors">
-                  <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-lg bg-gray-50 flex items-center justify-center text-gray-400">
-                      <Pencil className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-gray-700 truncate">{service.serviceName || service.subCategory}</h3>
-                      <p className="text-sm text-gray-500">{service.category}</p>
+                <div key={serviceId} className="relative group block w-fit">
+                  {/* Card rendering with click to view */}
+                  <div
+                    onClick={() => setViewingService(service)}
+                    className="cursor-pointer opacity-75 hover:opacity-100 transition-opacity grayscale hover:grayscale-0 relative"
+                  >
+                    <ServiceCard {...cardData} />
+
+                    {/* Expired Overlay Badge */}
+                    <div className="absolute top-2 left-2 bg-amber-100 text-amber-800 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider z-10 border border-amber-200 shadow-sm">
+                      Expired / Draft
                     </div>
                   </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={(e) => handleEditClick(serviceId, e)}
-                    className="text-[#3A3A3A] border-gray-200 hover:bg-gray-50"
-                  >
-                    Finish Setup
-                  </Button>
+
+                  {/* Delete Action - Top Right */}
+                  <div className="absolute top-2 right-2 flex gap-1 z-20">
+                    <Button
+                      variant="secondary"
+                      size="icon"
+                      onClick={(e) => handleDeleteClick(serviceId, e)}
+                      className="h-7 w-7 rounded-full bg-white/90 shadow-sm border border-gray-100 text-gray-400 hover:text-red-500 hover:bg-white"
+                      title="Delete Service"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </Button>
+                  </div>
                 </div>
               );
             })}
@@ -488,115 +501,14 @@ export function ListTab({ business }: ListTabProps) {
           </div>
         </div>
       )}
-      <ServiceEditModal
-        isOpen={isEditModalOpen}
-        onClose={() => setIsEditModalOpen(false)}
-        serviceId={editingServiceId}
-        onSuccess={handleEditSuccess}
-      />
+
 
       {/* Service Details Modal */}
-      <Modal
+      <ServiceDetailModal
         isOpen={!!viewingService}
         onClose={() => setViewingService(null)}
-        title={viewingService?.serviceName || "Service Details"}
-        maxWidth="max-w-md"
-      >
-        {viewingService && (
-          <div className="space-y-5">
-            {/* Category Badge */}
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="px-3 py-1 bg-[#EECFD1]/20 text-[#EECFD1] rounded-full text-sm font-medium">
-                {viewingService.category}
-              </span>
-              {viewingService.subCategory && (
-                <span className="px-3 py-1 bg-gray-100 text-gray-600 rounded-full text-sm font-medium">
-                  {viewingService.subCategory}
-                </span>
-              )}
-            </div>
-
-            {/* Service Info */}
-            <div className="space-y-4">
-              {/* Duration */}
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center">
-                  <Clock className="w-4 h-4 text-blue-600" />
-                </div>
-                <div>
-                  <p className="text-xs text-gray-500 uppercase">Duration</p>
-                  <p className="font-medium text-gray-800">{viewingService.duration || "N/A"}</p>
-                </div>
-              </div>
-
-              {/* Price */}
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-green-50 flex items-center justify-center">
-                  <DollarSign className="w-4 h-4 text-green-600" />
-                </div>
-                <div>
-                  <p className="text-xs text-gray-500 uppercase">Base Price</p>
-                  <p className="font-medium text-gray-800">
-                    ${viewingService.timeSlots && viewingService.timeSlots.length > 0
-                      ? (viewingService.timeSlots[0]?.price?.toFixed(2) || "0.00")
-                      : "0.00"}
-                  </p>
-                </div>
-              </div>
-
-              {/* Time Slots */}
-              {viewingService.timeSlots && viewingService.timeSlots.length > 0 && (
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-purple-50 flex items-center justify-center">
-                    <Calendar className="w-4 h-4 text-purple-600" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-500 uppercase">Available Slots</p>
-                    <p className="font-medium text-gray-800">
-                      {viewingService.timeSlots.filter((slot: any) => !slot.isBooked).length} available
-                    </p>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Description */}
-            {viewingService.description && (
-              <div className="pt-4 border-t">
-                <p className="text-xs text-gray-500 uppercase mb-2">Description</p>
-                <p className="text-sm text-gray-700 leading-relaxed">{viewingService.description}</p>
-              </div>
-            )}
-
-            {/* Action Buttons */}
-            <div className="flex gap-3 pt-4 border-t">
-              <Button
-                onClick={() => {
-                  const serviceId = viewingService.id || viewingService._id;
-                  setViewingService(null);
-                  handleEditClick(serviceId);
-                }}
-                className="flex-1 bg-[#EECFD1] text-white hover:bg-[#e5c4c7]"
-              >
-                <Pencil className="w-4 h-4 mr-2" />
-                Edit Service
-              </Button>
-              <Button
-                onClick={() => {
-                  const serviceId = viewingService.id || viewingService._id;
-                  setViewingService(null);
-                  handleDeleteClick(serviceId, { stopPropagation: () => { } } as React.MouseEvent);
-                }}
-                variant="outline"
-                className="flex-1 border-red-300 text-red-600 hover:bg-red-50"
-              >
-                <Trash2 className="w-4 h-4 mr-2" />
-                Delete
-              </Button>
-            </div>
-          </div>
-        )}
-      </Modal>
+        service={viewingService}
+      />
     </div>
   );
 }

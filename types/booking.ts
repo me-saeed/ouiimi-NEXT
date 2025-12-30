@@ -82,7 +82,7 @@ export interface Booking {
     // Statuses
     status: BookingStatus | string;
     paymentStatus: "pending" | "deposit_paid" | "fully_paid" | "refunded" | string;
-    adminPaymentStatus?: "pending" | "released" | string;
+    adminPaymentStatus?: "pending" | "released" | "refund_pending" | string;
 
     // Metadata
     bookingNumber?: number;
@@ -92,7 +92,7 @@ export interface Booking {
     // Cancellation
     cancelledAt?: string;
     cancellationReason?: string;
-    cancelledBy?: "customer" | "business";
+    cancelledBy?: "customer" | "business" | "admin";
 
     // Payment
     paymentIntentId?: string;

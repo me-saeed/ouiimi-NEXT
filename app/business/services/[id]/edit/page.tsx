@@ -370,9 +370,11 @@ export default function EditServicePage() {
     const selectedStaffIds = newTimeSlot.staffIds.length > 0 ? newTimeSlot.staffIds : [];
     const hasConflict = checkTimeConflict(startTime24, endTime24, selectedStaffIds);
 
+    // Dynamic Availability: We ALLOW overlaps.
+    // Strict check is at booking time.
     if (hasConflict) {
-      setError(`This time slot conflicts with an existing booking for the selected staff on this date.`);
-      return;
+      // Optional: Set a warning if desired, or just clear error
+      setError("");
     }
 
     setNewTimeSlot({
@@ -396,7 +398,8 @@ export default function EditServicePage() {
       const hasConflict = checkTimeConflict(newTimeSlot.startTime, newTimeSlot.endTime, selectedStaffIds);
 
       if (hasConflict) {
-        setError(`This time slot conflicts with an existing booking for the selected staff on this date.`);
+        // Dynamic Availability: just clear error or show note
+        setError("");
       } else {
         setError("");
       }

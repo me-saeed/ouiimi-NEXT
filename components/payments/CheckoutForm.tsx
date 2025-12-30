@@ -32,7 +32,7 @@ export default function CheckoutForm({
     const handleSubmit = async (e: FormEvent) => {
         e.preventDefault();
 
-        if (!stripe || !elements) {
+        if (!stripe || !elements || isProcessing) {
             return;
         }
 

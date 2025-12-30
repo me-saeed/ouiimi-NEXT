@@ -20,7 +20,7 @@ export const dynamic = 'force-dynamic';
 
 async function getReleasedPaymentsHandler(req: NextRequest) {
     // Rate limiting
-    const rateLimitResponse = applyRateLimit(req, 30);
+    const rateLimitResponse = applyRateLimit(req, 100);
     if (rateLimitResponse) return rateLimitResponse;
 
     // Admin authentication

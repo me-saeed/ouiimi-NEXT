@@ -26,7 +26,7 @@ export function ServiceBookingForm({ service, business }: BookingFormProps) {
     const [error, setError] = useState<string>("");
     const [isLoading, setIsLoading] = useState(false);
     const isCurrentlyProcessing = useRef(false);
-    const [staffBusyStatus, setStaffBusyStatus] = useState<Record<string, boolean>>({});
+    const [dailyBookings, setDailyBookings] = useState<any[]>([]);
 
     const formatTime12Hour = (time24: string): string => {
         if (!time24) return "";
@@ -39,36 +39,73 @@ export function ServiceBookingForm({ service, business }: BookingFormProps) {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
+    // Fetch bookings for the selected date
+    useEffect(() => {
+        const fetchDailyBookings = async () => {
+            if (!selectedDate) {
+                setDailyBookings([]);
+                return;
+            }
+
+            try {
+                // Fetch all confirmed/pending bookings for this business on this date
+                // Optimize: Filter by serviceId if needed, but fetching for business covers cross-service checks
+                const businessId = typeof service.businessId === 'object' ? service.businessId.id || service.businessId._id : service.businessId;
+
+                const response = await fetch(
+                    `/api/bookings?businessId=${businessId}&date=${selectedDate}&status=confirmed,pending`,
+                    {
+                        headers: { "Content-Type": "application/json" },
+                        credentials: "include",
+                    }
+                );
+
+                if (response.ok) {
+                    const data = await response.json();
+                    setDailyBookings(data.bookings || []);
+                }
+            } catch (err) {
+                console.error("Error fetching daily bookings:", err);
+            }
+        };
+
+        fetchDailyBookings();
+    }, [selectedDate, service.businessId]);
+
+    // Helper to check if a staff member is busy at a specific time
+    const isStaffBusy = (staffId: string, slotStartTime: string, slotEndTime: string) => {
+        return dailyBookings.some((booking: any) => {
+            // Check if booking belongs to this staff
+            const bookingStaffId = typeof booking.staffId === 'object' ? booking.staffId._id || booking.staffId.id : booking.staffId;
+            if (String(bookingStaffId) !== String(staffId)) return false;
+
+            const bookingStart = booking.timeSlot.startTime;
+            const bookingEnd = booking.timeSlot.endTime;
+
+            // Check overlap
+            return (
+                (slotStartTime >= bookingStart && slotStartTime < bookingEnd) ||
+                (slotEndTime > bookingStart && slotEndTime <= bookingEnd) ||
+                (slotStartTime <= bookingStart && slotEndTime >= bookingEnd)
+            );
+        });
+    };
+
     const availableDates: string[] = service.timeSlots && Array.isArray(service.timeSlots) && service.timeSlots.length > 0
         ? (() => {
             const dateStrings: string[] = service.timeSlots
                 .filter((slot: any) => {
                     if (!slot || slot.isBooked) return false;
-
-                    // ✅ Point 1: If no available staff, consider slot blocked/hidden
-                    if (slot.staffIds && slot.staffIds.length > 0) {
-                        const hasAvailableStaff = slot.staffIds.some((s: any) => !s.isBooked);
-                        if (!hasAvailableStaff) return false;
-                    }
-
                     try {
                         const slotDate = parseLocalDate(slot.date);
                         if (isNaN(slotDate.getTime())) return false;
                         slotDate.setHours(0, 0, 0, 0);
                         return slotDate >= today;
                     } catch (e) {
-                        console.error("Error filtering slot:", e, slot);
                         return false;
                     }
                 })
-                .map((slot: any) => {
-                    try {
-                        return formatDateLocal(slot.date);
-                    } catch (e) {
-                        console.error("Error mapping slot date:", e, slot);
-                        return null;
-                    }
-                })
+                .map((slot: any) => formatDateLocal(slot.date))
                 .filter((date: string | null): date is string => date !== null);
             return [...new Set(dateStrings)].sort((a: string, b: string) =>
                 parseLocalDate(a).getTime() - parseLocalDate(b).getTime()
@@ -88,13 +125,23 @@ export function ServiceBookingForm({ service, business }: BookingFormProps) {
                 const [hours, minutes] = slot.startTime.split(':').map(Number);
                 slotDateTime.setHours(hours, minutes, 0, 0);
 
-                // ✅ Point 1: Filter out slots with no available staff
-                if (slot.staffIds && slot.staffIds.length > 0) {
-                    const hasAvailableStaff = slot.staffIds.some((s: any) => !s.isBooked);
-                    if (!hasAvailableStaff) return false;
-                }
+                if (slotDateTime <= now) return false;
 
-                return slotDateTime > now;
+                // ✅ Dynamic Availability Filtration
+                // 1. Get all assigned staff for this slot
+                const assignedStaff = slot.staffIds || [];
+                if (assignedStaff.length === 0) return false; // Needs at least one staff
+
+                // 2. Check if at least ONE staff member is free (not busy)
+                // We use isStaffBusy against the pre-fetched dailyBookings
+                const hasAvailableStaff = assignedStaff.some((s: any) => {
+                    if (s.isBooked) return false; // Static check
+                    const sId = typeof s.staffId === 'object' ? s.staffId._id : s.staffId;
+                    return !isStaffBusy(String(sId), slot.startTime, slot.endTime); // Dynamic check
+                });
+
+                // If NO staff are available (all are either statically blocked or dynamically busy), hide the slot
+                return hasAvailableStaff;
             } catch (e) {
                 console.error("Error parsing slot date:", e, slot);
                 return false;
@@ -104,72 +151,22 @@ export function ServiceBookingForm({ service, business }: BookingFormProps) {
 
     const availableStaff = selectedTimeSlot?.staffIds
         ?.filter((staff: any) => !staff.isBooked)
-        ?.map((staff: any) => ({
-            id: staff.staffId.toString(),
-            name: staff.staffDetails?.name || staff.name || "Staff"
-        })) || [];
+        ?.map((staff: any) => {
+            const sId = staff.staffId.toString();
+            // Check dynamic status for this specific selected slot
+            const busy = isStaffBusy(sId, selectedTimeSlot.startTime, selectedTimeSlot.endTime);
+            return {
+                id: sId,
+                name: staff.staffDetails?.name || staff.name || "Staff",
+                isBusy: busy
+            };
+        }) || [];
 
-    const availableAddOns = selectedTimeSlot?.addOns?.length > 0
+    // Removed the old useEffect for checkStaffAvailability since we now pre-fetch dailyBookings
+
+    const availableAddOns = selectedTimeSlot?.addOns && selectedTimeSlot.addOns.length > 0
         ? selectedTimeSlot.addOns
         : (service.addOns || []);
-
-    useEffect(() => {
-        const checkStaffAvailability = async () => {
-            if (!selectedDate || !selectedTimeSlot) {
-                setStaffBusyStatus({});
-                return;
-            }
-
-            try {
-                const busyStatus: Record<string, boolean> = {};
-
-                await Promise.all(
-                    availableStaff.map(async (staff: any) => {
-                        try {
-                            const response = await fetch(
-                                `/api/bookings?staffId=${staff.id}&date=${selectedDate}&status=confirmed,pending`,
-                                {
-                                    headers: {
-                                        "Content-Type": "application/json",
-                                    },
-                                    credentials: "include", // Use session cookies
-                                }
-                            );
-
-                            if (response.ok) {
-                                const data = await response.json();
-                                const bookings = data.bookings || [];
-
-                                const isBusy = bookings.some((booking: any) => {
-                                    const bookingStart = booking.timeSlot.startTime;
-                                    const bookingEnd = booking.timeSlot.endTime;
-                                    const slotStart = selectedTimeSlot.startTime;
-                                    const slotEnd = selectedTimeSlot.endTime;
-
-                                    return (
-                                        (slotStart >= bookingStart && slotStart < bookingEnd) ||
-                                        (slotEnd > bookingStart && slotEnd <= bookingEnd) ||
-                                        (slotStart <= bookingStart && slotEnd >= bookingEnd)
-                                    );
-                                });
-
-                                busyStatus[staff.id] = isBusy;
-                            }
-                        } catch (err) {
-                            console.error(`Error checking availability for staff ${staff.id}:`, err);
-                        }
-                    })
-                );
-
-                setStaffBusyStatus(busyStatus);
-            } catch (err) {
-                console.error("Error checking staff availability:", err);
-            }
-        };
-
-        checkStaffAvailability();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [selectedDate, selectedTimeSlot]);
 
     const calculateTotal = () => {
         const slotPrice = selectedTimeSlot?.price || 0;
@@ -408,10 +405,9 @@ export function ServiceBookingForm({ service, business }: BookingFormProps) {
                         >
                             <option value="">{selectedTimeSlot && availableStaff.length > 0 ? "Select Preferred Staff" : selectedTimeSlot ? "No staff available" : "Select Time First"}</option>
                             {availableStaff.map((staff: any) => {
-                                const isBusy = staffBusyStatus[staff.id] || false;
                                 return (
-                                    <option key={staff.id} value={staff.id} disabled={isBusy}>
-                                        {staff.name} {isBusy ? "Busy" : ""}
+                                    <option key={staff.id} value={staff.id} disabled={staff.isBusy}>
+                                        {staff.name} {staff.isBusy ? "(Busy)" : ""}
                                     </option>
                                 );
                             })}

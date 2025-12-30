@@ -130,121 +130,155 @@ async function createBookingHandler(req: NextRequest) {
   }
 
   // ==========================================================================
-  // STEP 6: Server-side integrity checks (SECURITY)
+  // STEP 6: Execute Booking with Transaction (Prevents Race Conditions)
   // ==========================================================================
+  const dbSession = await mongoose.startSession();
+  let result: any;
 
-  // 1. Verify Service exists and is listed
-  const service = await Service.findById(validatedData.serviceId);
-  if (!service) {
-    throw new APIError(404, "Service not found", "SERVICE_NOT_FOUND");
-  }
-  if (service.status !== 'listed') {
-    throw new APIError(409, "This service is no longer available for booking", "SERVICE_UNAVAILABLE");
-  }
+  try {
+    await dbSession.withTransaction(async () => {
+      // 1. Re-Verify staff availability INSIDE the transaction
+      if (staffId) {
+        const bookingDayStart = new Date(bookingDate);
+        bookingDayStart.setHours(0, 0, 0, 0);
+        const bookingDayEnd = new Date(bookingDate);
+        bookingDayEnd.setHours(23, 59, 59, 999);
 
-  // 2. Verify Business exists and is approved
-  const business = await Business.findById(validatedData.businessId);
-  if (!business) {
-    throw new APIError(404, "Business not found", "BUSINESS_NOT_FOUND");
-  }
-  if (business.status !== 'approved') {
-    throw new APIError(403, "This business is not currently accepting bookings", "BUSINESS_UNAVAILABLE");
-  }
+        // Explicitly check for overlapping bookings locked by this transaction
+        const conflictingBookings = await Booking.find({
+          staffId: staffId,
+          status: { $in: ["confirmed", "completed"] },
+          "timeSlot.date": {
+            $gte: bookingDayStart,
+            $lte: bookingDayEnd,
+          },
+          $and: [
+            { "timeSlot.startTime": { $lt: bookingEndTime } },
+            { "timeSlot.endTime": { $gt: bookingStartTime } },
+          ],
+        }).session(dbSession); // Pass session to lock/read consistent state
 
-  // 3. Verify Date is not in the past (allow today, but check time)
-  // We compare the slot start time against now
-  const slotDateObj = new Date(bookingDate);
-  // Set date based on input string YYYY-MM-DD
-  const [sHours, sMinutes] = bookingStartTime.split(':').map(Number);
-  slotDateObj.setHours(sHours, sMinutes, 0, 0);
+        if (conflictingBookings.length > 0) {
+          throw new APIError(
+            409,
+            "Staff member is already booked at this time (race detected)",
+            "STAFF_UNAVAILABLE"
+          );
+        }
+      }
 
-  if (slotDateObj.getTime() < Date.now()) {
-    throw new APIError(400, "Cannot book a time slot in the past", "INVALID_DATE");
-  }
+      // 2. Server-side integrity checks
+      const service = await Service.findById(validatedData.serviceId).session(dbSession);
+      if (!service) {
+        throw new APIError(404, "Service not found", "SERVICE_NOT_FOUND");
+      }
+      if (service.status !== 'listed') {
+        throw new APIError(409, "This service is no longer available for booking", "SERVICE_UNAVAILABLE");
+      }
 
-  const bookingDateObj = new Date(bookingDate);
-  bookingDateObj.setHours(0, 0, 0, 0);
-  const bookingDateTimestamp = bookingDateObj.getTime();
+      const business = await Business.findById(validatedData.businessId).session(dbSession);
+      if (!business) {
+        throw new APIError(404, "Business not found", "BUSINESS_NOT_FOUND");
+      }
+      if (business.status !== 'approved') {
+        throw new APIError(403, "This business is not currently accepting bookings", "BUSINESS_UNAVAILABLE");
+      }
 
-  const targetSlot = service.timeSlots.find((slot: any) => {
-    const slotDate = new Date(slot.date);
-    slotDate.setHours(0, 0, 0, 0);
-    return slotDate.getTime() === bookingDateTimestamp &&
-      slot.startTime === bookingStartTime &&
-      slot.endTime === bookingEndTime;
-  });
+      // Verify Time (Past check)
+      const slotDateObj = new Date(bookingDate);
+      const [sHours, sMinutes] = bookingStartTime.split(':').map(Number);
+      slotDateObj.setHours(sHours, sMinutes, 0, 0);
 
-  let calculatedTotalCost = targetSlot?.price || 0;
+      if (slotDateObj.getTime() < Date.now()) {
+        throw new APIError(400, "Cannot book a time slot in the past", "INVALID_DATE");
+      }
 
-  // Add add-ons cost
-  if (validatedData.addOns && validatedData.addOns.length > 0) {
-    validatedData.addOns.forEach((addOn: any) => {
-      calculatedTotalCost += addOn.cost;
+      // Calculate Cost
+      const bookingDateObj = new Date(bookingDate);
+      bookingDateObj.setHours(0, 0, 0, 0);
+      const bookingDateTimestamp = bookingDateObj.getTime();
+
+      const targetSlot = service.timeSlots.find((slot: any) => {
+        const slotDate = new Date(slot.date);
+        slotDate.setHours(0, 0, 0, 0);
+        return slotDate.getTime() === bookingDateTimestamp &&
+          slot.startTime === bookingStartTime &&
+          slot.endTime === bookingEndTime;
+      });
+
+      if (!targetSlot) {
+        throw new APIError(409, "Time slot no longer exists", "SLOT_UNAVAILABLE");
+      }
+
+      // Strict Staff check inside transaction
+      if (staffId && targetSlot.staffIds) {
+        const isStaffInSlot = targetSlot.staffIds.some((s: any) => String(s.staffId) === String(staffId));
+        if (!isStaffInSlot) {
+          throw new APIError(409, "Staff member is not assigned to this slot", "STAFF_INVALID");
+        }
+      }
+
+      let calculatedTotalCost = targetSlot?.price || 0;
+      if (validatedData.addOns && validatedData.addOns.length > 0) {
+        validatedData.addOns.forEach((addOn: any) => {
+          calculatedTotalCost += addOn.cost;
+        });
+      }
+
+      // 3. Create Booking
+      const bookingId = new mongoose.Types.ObjectId();
+      const lastBooking = await Booking.findOne().sort({ bookingNumber: -1 }).session(dbSession).select('bookingNumber');
+      const bookingNumber = lastBooking?.bookingNumber ? lastBooking.bookingNumber + 1 : 5000;
+
+      const { PLATFORM_FEE, DEPOSIT_PERCENTAGE } = await import("@/lib/constants/pricing");
+
+      const bookingData: any = {
+        _id: bookingId,
+        bookingNumber,
+        userId: new mongoose.Types.ObjectId(validatedData.userId),
+        businessId: new mongoose.Types.ObjectId(validatedData.businessId),
+        serviceId: new mongoose.Types.ObjectId(validatedData.serviceId),
+        timeSlot: {
+          date: bookingDate,
+          startTime: bookingStartTime,
+          endTime: bookingEndTime,
+        },
+        totalCost: calculatedTotalCost,
+        depositAmount: Math.round(calculatedTotalCost * DEPOSIT_PERCENTAGE * 100) / 100,
+        remainingAmount: Math.round(calculatedTotalCost * (1 - DEPOSIT_PERCENTAGE) * 100) / 100,
+        platformFee: PLATFORM_FEE,
+        serviceAmount: calculatedTotalCost - PLATFORM_FEE,
+        status: "pre_payment",
+        paymentStatus: "pending",
+        adminPaymentStatus: "pending",
+      };
+
+      if (validatedData.staffId) {
+        bookingData.staffId = new mongoose.Types.ObjectId(validatedData.staffId);
+      }
+      if (validatedData.addOns) {
+        bookingData.addOns = validatedData.addOns;
+      }
+      if (validatedData.customerNotes) {
+        bookingData.customerNotes = validatedData.customerNotes;
+      }
+
+      const booking = await Booking.create([bookingData], { session: dbSession });
+      result = booking[0];
     });
+
+    await dbSession.endSession();
+  } catch (error) {
+    await dbSession.endSession();
+    throw error;
   }
 
-  // ==========================================================================
-  // STEP 7: Verify slot availability (Without reserving yet)
-  // ==========================================================================
-  const bookingId = new mongoose.Types.ObjectId();
-
-  // Basic check: Does the slot exist and is it not already booked?
-  if (!targetSlot) {
-    throw new APIError(409, "Time slot no longer exists", "SLOT_UNAVAILABLE");
+  if (!result) {
+    throw new APIError(500, "Failed to create booking", "BOOKING_CREATION_FAILED");
   }
 
-  // If staff is specified, check that specific staff member's availability
-  if (staffId) {
-    const staffAvailability = targetSlot.staffIds?.find((s: any) => String(s.staffId) === String(staffId));
-    if (!staffAvailability || staffAvailability.isBooked) {
-      throw new APIError(409, "Staff member is no longer available for this slot", "STAFF_UNAVAILABLE");
-    }
-  } else if (targetSlot.isBooked) {
-    // If no specific staff, check the general slot status
-    throw new APIError(409, "Time slot is already fully booked", "SLOT_UNAVAILABLE");
-  }
-
-  // Create booking
-  // ==========================================================================
-  const lastBooking = await Booking.findOne().sort({ bookingNumber: -1 }).select('bookingNumber');
-  const bookingNumber = lastBooking?.bookingNumber ? lastBooking.bookingNumber + 1 : 5000;
-
-  const { PLATFORM_FEE, DEPOSIT_PERCENTAGE } = await import("@/lib/constants/pricing");
-  const bookingData: any = {
-    _id: bookingId,
-    bookingNumber,
-    userId: new mongoose.Types.ObjectId(validatedData.userId),
-    businessId: new mongoose.Types.ObjectId(validatedData.businessId),
-    serviceId: new mongoose.Types.ObjectId(validatedData.serviceId),
-    timeSlot: {
-      date: bookingDate,
-      startTime: bookingStartTime,
-      endTime: bookingEndTime,
-    },
-    totalCost: calculatedTotalCost,
-    depositAmount: Math.round(calculatedTotalCost * DEPOSIT_PERCENTAGE * 100) / 100,
-    remainingAmount: Math.round(calculatedTotalCost * (1 - DEPOSIT_PERCENTAGE) * 100) / 100,
-    platformFee: PLATFORM_FEE,
-    serviceAmount: calculatedTotalCost - PLATFORM_FEE,
-    status: "pre_payment",
-    paymentStatus: "pending",
-    adminPaymentStatus: "pending",
-  };
-
-  if (validatedData.staffId) {
-    bookingData.staffId = new mongoose.Types.ObjectId(validatedData.staffId);
-  }
-  if (validatedData.addOns) {
-    bookingData.addOns = validatedData.addOns;
-  }
-  if (validatedData.customerNotes) {
-    bookingData.customerNotes = validatedData.customerNotes;
-  }
-
-  const booking = await Booking.create(bookingData);
-
-  // Populate related data
-  const savedBooking = await Booking.findById(booking._id)
+  // Populate related data (outside transaction to reduce lock time, technically safe as ID is fixed)
+  const savedBooking = await Booking.findById(result._id)
     .populate("userId", "fname lname email")
     .populate("businessId", "businessName logo address email phone")
     .populate("serviceId", "serviceName category")

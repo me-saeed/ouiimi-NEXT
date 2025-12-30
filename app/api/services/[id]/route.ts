@@ -155,70 +155,8 @@ async function updateServiceHandler(
 
   // ========================================================================
   // CROSS-SERVICE STAFF AVAILABILITY CHECK
-  // Prevent same staff from being assigned to overlapping time slots across services
-  // ========================================================================
-  const timeSlots = body.timeSlots || [];
-  if (timeSlots.length > 0) {
-
-    // Get all staff IDs from the new time slots
-    const staffIdsToCheck: string[] = [];
-    timeSlots.forEach((slot: any) => {
-      (slot.staffIds || []).forEach((staff: any) => {
-        const sid = typeof staff === 'string' ? staff : String(staff.staffId || staff);
-        if (sid && !staffIdsToCheck.includes(sid)) {
-          staffIdsToCheck.push(sid);
-        }
-      });
-    });
-
-    if (staffIdsToCheck.length > 0) {
-      // Find all OTHER services for this business that have any of these staff in their time slots
-      const existingServices = await Service.find({
-        businessId: service.businessId,
-        _id: { $ne: params.id }, // Exclude current service
-        "timeSlots.staffIds.staffId": { $in: staffIdsToCheck.map(id => new mongoose.Types.ObjectId(id)) }
-      }).select("serviceName timeSlots");
-
-      // Check each new time slot against existing ones
-      for (const newSlot of timeSlots) {
-        const newStart = new Date(`2000-01-01T${newSlot.startTime}`);
-        const newEnd = new Date(`2000-01-01T${newSlot.endTime}`);
-        const newDateStr = new Date(newSlot.date).toISOString().split('T')[0];
-
-        for (const existingService of existingServices) {
-          for (const existingSlot of existingService.timeSlots || []) {
-            const existingDateStr = new Date(existingSlot.date).toISOString().split('T')[0];
-
-            // Skip if dates don't match
-            if (newDateStr !== existingDateStr) continue;
-
-            const existingStart = new Date(`2000-01-01T${existingSlot.startTime}`);
-            const existingEnd = new Date(`2000-01-01T${existingSlot.endTime}`);
-
-            // Check for time overlap: (s1 < e2 && s2 < e1)
-            const timeOverlaps = newStart < existingEnd && existingStart < newEnd;
-            if (!timeOverlaps) continue;
-
-            // Check for staff overlap
-            for (const newStaff of newSlot.staffIds || []) {
-              const newStaffId = typeof newStaff === 'string' ? newStaff : String(newStaff.staffId || newStaff);
-              const existingStaffIds = (existingSlot.staffIds || []).map((s: any) =>
-                String(s.staffId || s)
-              );
-
-              if (existingStaffIds.includes(newStaffId)) {
-                throw new APIError(
-                  400,
-                  `Staff member is already assigned to "${existingService.serviceName}" at ${existingSlot.startTime}-${existingSlot.endTime} on ${newDateStr}. A staff member cannot serve multiple services at the same time.`,
-                  "STAFF_CONFLICT"
-                );
-              }
-            }
-          }
-        }
-      }
-    }
-  }
+  // REMOVED FOR DYNAMIC AVAILABILITY
+  // Availability is checked strictly at BOOKING time.
   // ======================================================================== 
 
   // Update service fields
@@ -268,6 +206,24 @@ async function deleteServiceHandler(
 
   if (String(business.userId) !== String(session.userId)) {
     throw new APIError(403, "You can only delete your own services", "FORBIDDEN");
+  }
+
+  // Check for ANY booked slots (past or future)
+  // Strict safety: If a service was ever booked, we probably shouldn't just delete it strictly?
+  // User spec: "cannot delete those service which are active like on service which are slots booked by customers"
+  // Safe Interpretation: Active future bookings = NO DELETE. Past bookings = Maybe OK?
+  // Let's protect active future bookings specifically as per common logic, or just any booked slot if we want to be super safe.
+  // The service schema stores booking reference in timeSlots.
+
+  // Logic: Check if any time slot has `isBooked: true` AND date >= today
+  // or simply if any slot is booked. Let's start with any booked slot to be safe, or just check 'service.timeSlots'.
+
+  const hasActiveBookings = service.timeSlots?.some((slot: any) =>
+    slot.isBooked && new Date(slot.date) >= new Date()
+  );
+
+  if (hasActiveBookings) {
+    throw new APIError(400, "Cannot delete service with active future bookings.", "ACTIVE_BOOKINGS");
   }
 
   await Service.findByIdAndDelete(params.id);

@@ -322,14 +322,10 @@ export default function CreateServicePage() {
       return;
     }
 
-    const conflictResult = checkTimeConflict(newTimeSlot.startTime, newTimeSlot.endTime, selectedStaffIds);
-    if (conflictResult.hasConflict) {
-      setTimeSlotError(conflictResult.conflictDetails || "Time conflict detected!");
-    } else {
-      // Clear only if it was a conflict error
-      if (timeSlotError && (timeSlotError.includes("already assigned") || timeSlotError.includes("conflict"))) {
-        setTimeSlotError("");
-      }
+    // Conflict check removed for dynamic availability
+    // We now allow overlapping assignments during creation
+    if (timeSlotError && (timeSlotError.includes("already assigned") || timeSlotError.includes("conflict"))) {
+      setTimeSlotError("");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [newTimeSlot.startTime, newTimeSlot.endTime, newTimeSlot.staffIds, selectedDate]);
@@ -401,12 +397,9 @@ export default function CreateServicePage() {
       addOns: [...selectedAddOns], // Copy current add-ons
     };
 
-    const conflictResult = checkTimeConflict(slot.startTime, slot.endTime, slot.staffIds);
-
-    if (conflictResult.hasConflict) {
-      setTimeSlotError(conflictResult.conflictDetails || "Time conflict detected!");
-      return;
-    }
+    // Dynamic Availability: We ALLOW overlaps during creation.
+    // The strict check happens at booking time.
+    // So we skip the checkTimeConflict here.
 
     // Add slot to the selected date
     setDatesWithSlots({
@@ -602,6 +595,75 @@ export default function CreateServicePage() {
         description: issues.length === 1 ? issues[0] : `${issues.length} items need attention`,
       });
       return;
+    }
+
+    // Prevent double submission
+    if (isLoading) return;
+    setIsLoading(true);
+
+    // =========================================================================
+    // GLOBAL DUPLICATE CHECK
+    // =========================================================================
+    // Check if an identical service configuration already exists
+    // (Same Category + SubCategory + Time + Staff)
+    try {
+      if (business?.id || business?._id) {
+        const checkRes = await fetch(`/api/business/${business.id || business._id}`);
+        if (checkRes.ok) {
+          const businessData = await checkRes.json();
+          const existingServices = businessData.business?.services || [];
+
+          // Filter for same type of service
+          const similarServices = existingServices.filter((s: any) =>
+            s.category === data.category &&
+            (s.subCategory === data.subCategory || s.serviceName === data.subCategory)
+          );
+
+          if (similarServices.length > 0) {
+            // Check for Time/Staff overlaps
+            const newSlots = getTimeSlotsForSubmission();
+            let duplicateFound = false;
+
+            for (const simService of similarServices) {
+              // Skip checking against itself if we were editing (but this is create page)
+              if (!simService.timeSlots) continue;
+
+              const hasOverlap = newSlots.some(newSlot => {
+                return simService.timeSlots.some((existingSlot: any) => {
+                  const sameDate = new Date(existingSlot.date).getTime() === new Date(newSlot.date).getTime();
+                  const sameTime = existingSlot.startTime === newSlot.startTime && existingSlot.endTime === newSlot.endTime;
+                  if (!sameDate || !sameTime) return false;
+
+                  // Check staff overlap
+                  // If ANY staff matches in the same slot for the same service type -> Duplicate Warning
+                  const existingStaffIds = (existingSlot.staffIds || []).map((s: any) => String(s.staffId || s));
+                  const newStaffIds = newSlot.staffIds;
+
+                  return newStaffIds.some(id => existingStaffIds.includes(id));
+                });
+              });
+
+              if (hasOverlap) {
+                duplicateFound = true;
+                break;
+              }
+            }
+
+            if (duplicateFound) {
+              toast({
+                variant: "destructive", // Orange/Warning style if available, else standard
+                title: "Potential Duplicate Service",
+                description: `⚠️ You already have a '${data.subCategory}' service with the same staff at these times. This might create duplicate offerings.`,
+                duration: 6000,
+              });
+              // We do NOT block, just warn, as per "allow it" philosophy but "give a warning"
+            }
+          }
+        }
+      }
+    } catch (err) {
+      console.warn("Failed to check for duplicates:", err);
+      // Fail silently, don't block creation
     }
 
     setIsLoading(true);
@@ -1380,7 +1442,7 @@ export default function CreateServicePage() {
 
                 <div className="flex flex-col sm:flex-row gap-3 pt-6 border-t border-[#E5E5E5]">
                   <Button
-                    type="submit"
+                    type="button"
                     disabled={isLoading}
                     variant="pink"
                     className="flex-1 h-10 md:h-11 rounded-lg text-sm md:text-base font-medium disabled:opacity-50 disabled:cursor-not-allowed"
