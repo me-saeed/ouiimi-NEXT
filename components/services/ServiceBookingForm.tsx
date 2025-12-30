@@ -52,6 +52,8 @@ export function ServiceBookingForm({ service, business }: BookingFormProps) {
                 // Optimize: Filter by serviceId if needed, but fetching for business covers cross-service checks
                 const businessId = typeof service.businessId === 'object' ? service.businessId.id || service.businessId._id : service.businessId;
 
+                console.log('[ServiceBookingForm] Fetching bookings for:', { businessId, selectedDate });
+
                 const response = await fetch(
                     `/api/bookings?businessId=${businessId}&date=${selectedDate}&status=confirmed,pending`,
                     {
@@ -62,7 +64,17 @@ export function ServiceBookingForm({ service, business }: BookingFormProps) {
 
                 if (response.ok) {
                     const data = await response.json();
-                    setDailyBookings(data.bookings || []);
+                    // API returns {success, data: {bookings: [...]}} - need to access data.data.bookings
+                    const bookings = data.data?.bookings || data.bookings || [];
+                    console.log('[ServiceBookingForm] Fetched daily bookings:', bookings.length, bookings.map((b: any) => ({
+                        staffId: b.staffId?._id || b.staffId,
+                        startTime: b.timeSlot?.startTime,
+                        endTime: b.timeSlot?.endTime,
+                        status: b.status
+                    })));
+                    setDailyBookings(bookings);
+                } else {
+                    console.log('[ServiceBookingForm] Failed to fetch bookings:', response.status);
                 }
             } catch (err) {
                 console.error("Error fetching daily bookings:", err);
@@ -74,7 +86,7 @@ export function ServiceBookingForm({ service, business }: BookingFormProps) {
 
     // Helper to check if a staff member is busy at a specific time
     const isStaffBusy = (staffId: string, slotStartTime: string, slotEndTime: string) => {
-        return dailyBookings.some((booking: any) => {
+        const result = dailyBookings.some((booking: any) => {
             // Check if booking belongs to this staff
             const bookingStaffId = typeof booking.staffId === 'object' ? booking.staffId._id || booking.staffId.id : booking.staffId;
             if (String(bookingStaffId) !== String(staffId)) return false;
@@ -83,12 +95,27 @@ export function ServiceBookingForm({ service, business }: BookingFormProps) {
             const bookingEnd = booking.timeSlot.endTime;
 
             // Check overlap
-            return (
+            const overlaps = (
                 (slotStartTime >= bookingStart && slotStartTime < bookingEnd) ||
                 (slotEndTime > bookingStart && slotEndTime <= bookingEnd) ||
                 (slotStartTime <= bookingStart && slotEndTime >= bookingEnd)
             );
+
+            if (overlaps) {
+                console.log('[isStaffBusy] MATCH - Staff is busy:', {
+                    staffId,
+                    slotStartTime,
+                    slotEndTime,
+                    bookingStart,
+                    bookingEnd,
+                });
+            }
+
+            return overlaps;
         });
+
+        console.log('[isStaffBusy] Check result for staff', staffId, ':', result, 'dailyBookings count:', dailyBookings.length);
+        return result;
     };
 
     const availableDates: string[] = service.timeSlots && Array.isArray(service.timeSlots) && service.timeSlots.length > 0
@@ -150,15 +177,19 @@ export function ServiceBookingForm({ service, business }: BookingFormProps) {
         : [];
 
     const availableStaff = selectedTimeSlot?.staffIds
-        ?.filter((staff: any) => !staff.isBooked)
+        ?.filter((staff: any) => {
+            if (staff.isBooked) return false; // Already marked as booked in service data
+
+            // Also filter out staff who are dynamically busy in other services
+            const sId = staff.staffId.toString();
+            const busy = isStaffBusy(sId, selectedTimeSlot.startTime, selectedTimeSlot.endTime);
+            return !busy; // Only include staff who are NOT busy
+        })
         ?.map((staff: any) => {
             const sId = staff.staffId.toString();
-            // Check dynamic status for this specific selected slot
-            const busy = isStaffBusy(sId, selectedTimeSlot.startTime, selectedTimeSlot.endTime);
             return {
                 id: sId,
                 name: staff.staffDetails?.name || staff.name || "Staff",
-                isBusy: busy
             };
         }) || [];
 
@@ -406,8 +437,8 @@ export function ServiceBookingForm({ service, business }: BookingFormProps) {
                             <option value="">{selectedTimeSlot && availableStaff.length > 0 ? "Select Preferred Staff" : selectedTimeSlot ? "No staff available" : "Select Time First"}</option>
                             {availableStaff.map((staff: any) => {
                                 return (
-                                    <option key={staff.id} value={staff.id} disabled={staff.isBusy}>
-                                        {staff.name} {staff.isBusy ? "(Busy)" : ""}
+                                    <option key={staff.id} value={staff.id}>
+                                        {staff.name}
                                     </option>
                                 );
                             })}
