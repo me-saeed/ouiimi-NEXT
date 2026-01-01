@@ -202,6 +202,13 @@ jobs:
               mkdir -p "$APP_PATH"
             fi
 
+            # Preserve uploads directory before backup
+            if [ -d "$APP_PATH/uploads" ]; then
+              echo "Preserving uploads directory..."
+              cp -r "$APP_PATH/uploads" /tmp/uploads_preserve
+              echo "✅ Uploads preserved ($(ls -1 /tmp/uploads_preserve | wc -l) files)"
+            fi
+
             if [ -d "$APP_PATH" ] && [ "$(ls -A $APP_PATH 2>/dev/null)" ]; then
               echo "Backing up existing directory..."
               cd /root
@@ -213,6 +220,17 @@ jobs:
             cd "$APP_PATH"
             tar -xzf /tmp/deploy.tar.gz
             rm /tmp/deploy.tar.gz
+
+            # Restore uploads directory after extraction
+            if [ -d "/tmp/uploads_preserve" ]; then
+              echo "Restoring uploads directory..."
+              rm -rf "$APP_PATH/uploads" 2>/dev/null || true
+              mv /tmp/uploads_preserve "$APP_PATH/uploads"
+              echo "✅ Uploads restored ($(ls -1 $APP_PATH/uploads | wc -l) files)"
+            else
+              echo "Creating empty uploads directory..."
+              mkdir -p "$APP_PATH/uploads"
+            fi
 
             echo "Checking Node.js version..."
             NODE_VERSION=$(node -v | cut -d'v' -f2 | cut -d'.' -f1,2)

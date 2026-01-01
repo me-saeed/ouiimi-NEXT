@@ -3,7 +3,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { X } from "lucide-react";
 import { parseLocalDate, formatDateLocal } from "@/lib/utils/date-utils";
@@ -299,11 +298,10 @@ export function ServiceBookingForm({ service, business }: BookingFormProps) {
                     >
                         {business?.logo ? (
                             <div className="w-10 h-10 md:w-12 md:h-12 rounded-full overflow-hidden border-2 border-gray-200 group-hover:border-[#EECFD1] transition-colors flex-shrink-0">
-                                <Image
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img
                                     src={business.logo}
                                     alt={business.businessName || "Business Logo"}
-                                    width={48}
-                                    height={48}
                                     className="w-full h-full object-cover"
                                 />
                             </div>
