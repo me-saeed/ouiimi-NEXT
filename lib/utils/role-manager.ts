@@ -5,9 +5,11 @@
 
 import { NextResponse } from 'next/server';
 import { createSession } from '@/lib/session';
+import { createBusinessSession } from '@/lib/business-session';
 import User from '@/lib/models/User';
 
 const SESSION_DURATION = 7 * 24 * 60 * 60; // 7 days in seconds
+const BUSINESS_SESSION_DURATION = 24 * 60 * 60; // 24 hours in seconds
 
 /**
  * Update user role and create new session cookie
@@ -16,12 +18,14 @@ const SESSION_DURATION = 7 * 24 * 60 * 60; // 7 days in seconds
  * @param userId - User ID to update
  * @param newRole - New role to assign ('business', 'admin', 'user')
  * @param response - Optional NextResponse to set cookie on
+ * @param businessId - Optional business ID for business role
  * @returns Updated user data and session token
  */
 export async function updateUserRoleWithSession(
     userId: string,
     newRole: 'business' | 'admin' | 'user',
-    response?: NextResponse
+    response?: NextResponse,
+    businessId?: string
 ) {
     try {
         // Update user role in database
@@ -56,6 +60,24 @@ export async function updateUserRoleWithSession(
                 path: '/',
             });
             console.log(`[ROLE UPDATE] Session cookie set in response`);
+
+            // If business role, also create business session
+            if (newRole === 'business') {
+                const businessSessionToken = await createBusinessSession({
+                    userId: String(updatedUser._id),
+                    email: updatedUser.email,
+                    businessId: businessId,
+                });
+
+                response.cookies.set('business-session', businessSessionToken, {
+                    httpOnly: true,
+                    secure: process.env.NODE_ENV === 'production',
+                    sameSite: 'lax',
+                    maxAge: BUSINESS_SESSION_DURATION,
+                    path: '/',
+                });
+                console.log(`[ROLE UPDATE] Business session cookie set in response`);
+            }
         }
 
         return {
@@ -76,11 +98,13 @@ export async function updateRoleAndRespond(
     userId: string,
     newRole: 'business' | 'admin' | 'user',
     responseData: any,
-    status: number = 200
+    status: number = 200,
+    businessId?: string
 ): Promise<NextResponse> {
     const response = NextResponse.json(responseData, { status });
 
-    await updateUserRoleWithSession(userId, newRole, response);
+    await updateUserRoleWithSession(userId, newRole, response, businessId);
 
     return response;
 }
+

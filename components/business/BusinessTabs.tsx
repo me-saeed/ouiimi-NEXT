@@ -317,24 +317,58 @@ export function BusinessTabs({ business, services, staff }: BusinessTabsProps) {
                                         >
                                             ×
                                         </button>
-                                        <div className="flex flex-col items-center">
-                                            <div className="w-24 h-24 rounded-full border border-gray-100 overflow-hidden mb-4 bg-white shadow-sm">
+
+                                        {/* Profile Header */}
+                                        <div className="flex items-center gap-4 mb-6">
+                                            <div className="w-20 h-20 rounded-full bg-[#EECFD1] flex items-center justify-center flex-shrink-0 overflow-hidden shadow-sm">
                                                 {selectedStaff.photo ? (
                                                     <img src={selectedStaff.photo} alt={selectedStaff.name} className="w-full h-full object-cover" />
                                                 ) : (
-                                                    <div className="w-full h-full bg-gray-50 flex items-center justify-center text-3xl font-bold text-[#EECFD1]">
-                                                        {selectedStaff.name.charAt(0)}
-                                                    </div>
+                                                    <span className="text-2xl font-bold text-[#3A3A3A]">
+                                                        {selectedStaff.name?.charAt(0)?.toUpperCase() || "S"}
+                                                    </span>
                                                 )}
                                             </div>
-                                            <h3 className="text-2xl font-medium text-gray-700 mb-6">{selectedStaff.name}</h3>
-
-                                            <div className="w-full bg-[#FDFCFD] rounded-[30px] border border-gray-100 p-8 min-h-[200px] flex items-center justify-center text-center">
-                                                <p className="text-lg text-gray-600 leading-relaxed max-w-[300px]">
-                                                    {selectedStaff.about || "when a shopper clicks on a staff member's name, they can get a pop-up to learn more about the staff member, also have their picture"}
-                                                </p>
+                                            <div>
+                                                <h3 className="text-lg font-semibold text-[#3A3A3A]">{selectedStaff.name}</h3>
+                                                <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${selectedStaff.isActive !== false ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
+                                                    {selectedStaff.isActive !== false ? 'Active' : 'Inactive'}
+                                                </span>
                                             </div>
                                         </div>
+
+                                        {/* About Section */}
+                                        {(selectedStaff.bio || selectedStaff.about) && (
+                                            <div className="mb-5">
+                                                <div className="flex items-center gap-2 text-sm font-medium text-gray-500 mb-2">
+                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                    </svg>
+                                                    About
+                                                </div>
+                                                <p className="text-sm text-gray-700 leading-relaxed">{selectedStaff.bio || selectedStaff.about}</p>
+                                            </div>
+                                        )}
+
+                                        {/* Qualifications Section */}
+                                        {selectedStaff.qualifications && (
+                                            <div className="mb-2">
+                                                <div className="flex items-center gap-2 text-sm font-medium text-gray-500 mb-2">
+                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                                                    </svg>
+                                                    Qualifications
+                                                </div>
+                                                <p className="text-sm text-gray-700">{selectedStaff.qualifications}</p>
+                                            </div>
+                                        )}
+
+                                        {/* Fallback if no details */}
+                                        {!selectedStaff.bio && !selectedStaff.about && !selectedStaff.qualifications && (
+                                            <div className="w-full bg-[#FDFCFD] rounded-2xl border border-gray-100 p-6 text-center">
+                                                <p className="text-sm text-gray-500">No additional details available.</p>
+                                            </div>
+                                        )}
                                     </div>
                                 ) : (
                                     <div className="text-center text-gray-400 py-12">

@@ -135,6 +135,20 @@ async function signinHandler(req: NextRequest) {
   });
 
   // ==========================================================================
+  // STEP 7.5: Create business session for business users
+  // This allows them to access /business/dashboard without re-auth after signin
+  // ==========================================================================
+  let businessSessionToken: string | null = null;
+  if (userRole === 'business' && userBusiness) {
+    const { createBusinessSession } = await import('@/lib/business-session');
+    businessSessionToken = await createBusinessSession({
+      userId: String(user._id),
+      email: user.email,
+      businessId: String(userBusiness._id),
+    });
+  }
+
+  // ==========================================================================
   // STEP 8: Update last login date
   // ==========================================================================
   const isFirstLogin = !user.lastLoginDate;
@@ -151,7 +165,7 @@ async function signinHandler(req: NextRequest) {
   }
 
   // ==========================================================================
-  // STEP 10: Return success response with session cookie
+  // STEP 10: Return success response with session cookies
   // ==========================================================================
   const response = successResponse({
     message: "Login successful",
@@ -161,11 +175,11 @@ async function signinHandler(req: NextRequest) {
       lname: user.lname,
       email: user.email,
       username: user.username,
-      role: user.Roles?.[0] || 'user',
+      role: userRole,
     },
   });
 
-  // Set cookie explicitly in response headers
+  // Set main session cookie
   response.cookies.set('session', sessionToken, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
@@ -173,6 +187,17 @@ async function signinHandler(req: NextRequest) {
     maxAge: 7 * 24 * 60 * 60, // 7 days
     path: '/',
   });
+
+  // Set business session cookie if applicable
+  if (businessSessionToken) {
+    response.cookies.set('business-session', businessSessionToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 24 * 60 * 60, // 24 hours
+      path: '/',
+    });
+  }
 
   return response;
 }

@@ -174,7 +174,8 @@ async function createBusinessHandler(req: NextRequest) {
         userId: String(business.userId),
       },
     },
-    201
+    201,
+    String(business._id) // Pass businessId for business session creation
   );
 }
 

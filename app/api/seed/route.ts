@@ -17,7 +17,7 @@ export async function POST(req: NextRequest) {
     let user = await User.findOne({ email: "test@example.com" });
     if (!user) {
       const hashedPassword = await bcrypt.hash("password123", 12);
-      
+
       const lastRecord = await User.findOne().sort({ counterId: -1 }).limit(1);
       const counterId = lastRecord ? lastRecord.counterId + 1 : 1;
 
@@ -110,9 +110,9 @@ export async function POST(req: NextRequest) {
 
     const createdStaff: any[] = [];
     for (const staffData of staffMembers) {
-      let staff = await Staff.findOne({ 
-        businessId: staffData.businessId, 
-        name: staffData.name 
+      let staff = await Staff.findOne({
+        businessId: staffData.businessId,
+        name: staffData.name
       });
       if (!staff) {
         staff = await Staff.create(staffData);
@@ -254,15 +254,16 @@ export async function POST(req: NextRequest) {
       {
         businessId: createdBusinesses[3]._id,
         category: "Dog Grooming",
-        subCategory: "Full Groom",
+        subCategory: "Full Groom — Medium (10–25kg)",
         serviceName: "Full Grooming Service",
         duration: "2hr",
         baseCost: 100,
         description: "Complete grooming service including bath, cut, nail trim, and ear cleaning.",
         address: createdBusinesses[3].address,
         addOns: [
-          { name: "Teeth Cleaning", cost: 25 },
-          { name: "Flea Treatment", cost: 20 },
+          { name: "Teeth Brushing", cost: 25 },
+          { name: "Flea / Tick Treatment", cost: 20 },
+          { name: "Nail Grind", cost: 15 },
         ],
         timeSlots: futureDates.slice(0, 4).map((date, idx) => ({
           date: date,

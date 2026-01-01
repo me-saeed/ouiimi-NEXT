@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Modal } from "@/components/ui/modal";
+import { InlineDatePicker } from "@/components/ui/InlineDatePicker";
 import { Calendar } from "lucide-react";
 import { ServiceCard } from "@/components/ui/service-card";
 import { useRef } from "react";
@@ -29,10 +30,11 @@ export default function ShopperProfilePage() {
   const [error, setError] = useState<string>("");
   const [success, setSuccess] = useState<string>("");
   const [showContact, setShowContact] = useState(false);
-  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [currentMonth, setCurrentMonth] = useState(new Date().getMonth());
+  const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
   const [isMobile, setIsMobile] = useState(false);
   const [expandedCardId, setExpandedCardId] = useState<string | null>(null);
-  const [showDatePicker, setShowDatePicker] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -381,8 +383,8 @@ export default function ShopperProfilePage() {
 
     if (selectedDate) {
       return bookingsToFilter.filter((b) => {
-        const bookingDate = new Date(b.timeSlot.date);
-        return bookingDate.toDateString() === selectedDate.toDateString();
+        const bookingDateStr = b.timeSlot.date.split('T')[0];
+        return bookingDateStr === selectedDate;
       });
     }
     return bookingsToFilter;
@@ -433,47 +435,6 @@ export default function ShopperProfilePage() {
               <h2 className="text-xl font-medium text-foreground">
                 {user.fname} {user.lname}
               </h2>
-
-              <div className="relative">
-                <button
-                  onClick={() => setShowDatePicker(!showDatePicker)}
-                  className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  <Calendar className="w-5 h-5" />
-                  <span className="text-sm">
-                    {selectedDate ? selectedDate.toLocaleDateString() : "Filter by Date"}
-                  </span>
-                  {selectedDate && (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSelectedDate(null);
-                        setShowDatePicker(false);
-                      }}
-                      className="ml-1 text-gray-400 hover:text-red-500"
-                    >
-                      ×
-                    </button>
-                  )}
-                </button>
-                {showDatePicker && (
-                  <div className="absolute top-full mt-2 bg-white rounded-lg shadow-lg border p-3 z-20">
-                    <input
-                      type="date"
-                      className="px-3 py-2 border rounded-md text-sm"
-                      value={selectedDate ? selectedDate.toISOString().split('T')[0] : ''}
-                      onChange={(e) => {
-                        if (e.target.value) {
-                          setSelectedDate(new Date(e.target.value));
-                        } else {
-                          setSelectedDate(null);
-                        }
-                        setShowDatePicker(false);
-                      }}
-                    />
-                  </div>
-                )}
-              </div>
             </div>
           </div>
         </div>
@@ -537,6 +498,42 @@ export default function ShopperProfilePage() {
 
           {(activeTab === "upcoming" || activeTab === "finished") && (
             <div className="space-y-6">
+              {/* Inline Date Picker - Same as Business Dashboard */}
+              <InlineDatePicker
+                selectedDate={selectedDate}
+                onSelectDate={setSelectedDate}
+                currentMonth={currentMonth}
+                currentYear={currentYear}
+                onPrevMonth={() => {
+                  if (currentMonth === 0) {
+                    setCurrentMonth(11);
+                    setCurrentYear(currentYear - 1);
+                  } else {
+                    setCurrentMonth(currentMonth - 1);
+                  }
+                  setSelectedDate(null);
+                }}
+                onNextMonth={() => {
+                  if (currentMonth === 11) {
+                    setCurrentMonth(0);
+                    setCurrentYear(currentYear + 1);
+                  } else {
+                    setCurrentMonth(currentMonth + 1);
+                  }
+                  setSelectedDate(null);
+                }}
+                onGoToCurrentMonth={() => {
+                  const now = new Date();
+                  setCurrentMonth(now.getMonth());
+                  setCurrentYear(now.getFullYear());
+                  setSelectedDate(null);
+                }}
+                getBookingCountForDate={(dateStr) => {
+                  const bookings = activeTab === "upcoming" ? upcomingBookings : finishedBookings;
+                  return bookings.filter(b => b.timeSlot.date.split('T')[0] === dateStr).length;
+                }}
+              />
+
               {isLoading ? (
                 <div className="text-center py-12">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
@@ -707,11 +704,20 @@ function BookingDetailView({
   onCloseContact: () => void;
   isFinished?: boolean;
 }) {
+  const [showStaffPopup, setShowStaffPopup] = useState(false);
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString("en-GB", { day: "2-digit", month: "2-digit", year: "numeric" });
   };
+
+  // Get business ID for linking
+  const businessId = typeof booking.businessId === 'object'
+    ? booking.businessId._id || booking.businessId.id
+    : booking.businessId;
+
+  // Get staff data if available
+  const staffData = typeof booking.staffId === 'object' ? booking.staffId : null;
 
   return (
     <div className="card-polished p-6 space-y-6">
@@ -734,11 +740,14 @@ function BookingDetailView({
             </div>
           )}
           <div>
-            <h3 className="text-lg font-semibold">
+            <Link
+              href={`/business/${businessId}`}
+              className="text-lg font-semibold text-foreground hover:text-primary transition-colors hover:underline"
+            >
               {typeof booking.businessId === 'object'
                 ? booking.businessId.businessName
                 : "Business"}
-            </h3>
+            </Link>
             <p className="text-sm text-muted-foreground">
               Booking #{booking.bookingNumber || booking.id.slice(-8)}
             </p>
@@ -755,10 +764,15 @@ function BookingDetailView({
           <p className="text-sm font-medium text-muted-foreground">Service</p>
           <p>{typeof booking.serviceId === 'object' ? booking.serviceId.serviceName : "Service"}</p>
         </div>
-        {booking.staffId && (
+        {staffData && (
           <div>
             <p className="text-sm font-medium text-muted-foreground">Staff</p>
-            <p>{typeof booking.staffId === 'object' ? booking.staffId.name : "N/A"}</p>
+            <button
+              onClick={() => setShowStaffPopup(true)}
+              className="text-foreground hover:text-primary transition-colors hover:underline cursor-pointer"
+            >
+              {staffData.name}
+            </button>
           </div>
         )}
         <div>
@@ -847,13 +861,6 @@ function BookingDetailView({
               ) : (
                 <>
                   <Button
-                    onClick={onReschedule}
-                    variant="outline"
-                    className="flex-1"
-                  >
-                    Reschedule
-                  </Button>
-                  <Button
                     onClick={onContact}
                     variant="outline"
                     className="flex-1 border-red-500 text-red-500 hover:bg-red-50"
@@ -879,6 +886,60 @@ function BookingDetailView({
           business={booking.businessId}
           onClose={onCloseContact}
         />
+      )}
+
+      {/* Staff Details Popup */}
+      {showStaffPopup && staffData && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            onClick={() => setShowStaffPopup(false)}
+          />
+          <div className="relative bg-white rounded-2xl shadow-2xl w-[340px] max-w-[95vw] p-6 animate-in fade-in zoom-in-95 duration-200">
+            <button
+              onClick={() => setShowStaffPopup(false)}
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-xl"
+            >
+              ×
+            </button>
+
+            <div className="flex flex-col items-center text-center space-y-4">
+              {/* Staff Avatar */}
+              {(staffData as any).photo || (staffData as any).avatar ? (
+                <img
+                  src={(staffData as any).photo || (staffData as any).avatar}
+                  alt={staffData.name}
+                  className="w-20 h-20 rounded-full object-cover border-2 border-[#EECFD1]"
+                />
+              ) : (
+                <div className="w-20 h-20 rounded-full bg-[#EECFD1]/20 flex items-center justify-center">
+                  <span className="text-2xl font-bold text-[#EECFD1]">
+                    {staffData.name?.charAt(0) || "S"}
+                  </span>
+                </div>
+              )}
+
+              {/* Staff Name */}
+              <h3 className="text-lg font-semibold text-gray-900">{staffData.name}</h3>
+
+              {/* About/Bio */}
+              {(staffData as any).about && (
+                <div className="w-full text-left">
+                  <p className="text-sm font-medium text-muted-foreground mb-1">About</p>
+                  <p className="text-sm text-gray-600">{(staffData as any).about}</p>
+                </div>
+              )}
+
+              {/* Qualifications */}
+              {(staffData as any).qualifications && (
+                <div className="w-full text-left">
+                  <p className="text-sm font-medium text-muted-foreground mb-1">Qualifications</p>
+                  <p className="text-sm text-gray-600">{(staffData as any).qualifications}</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

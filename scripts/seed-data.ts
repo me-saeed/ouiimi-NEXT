@@ -44,7 +44,7 @@ async function seedData() {
     if (!user) {
       const bcrypt = await import("bcryptjs");
       const hashedPassword = await bcrypt.default.hash("password123", 12);
-      
+
       const lastRecord = await User.findOne().sort({ counterId: -1 }).limit(1);
       const counterId = lastRecord ? lastRecord.counterId + 1 : 1;
 
@@ -135,11 +135,11 @@ async function seedData() {
       },
     ];
 
-    const createdStaff = [];
+    const createdStaff: any[] = [];
     for (const staffData of staffMembers) {
-      let staff = await Staff.findOne({ 
-        businessId: staffData.businessId, 
-        name: staffData.name 
+      let staff = await Staff.findOne({
+        businessId: staffData.businessId,
+        name: staffData.name
       });
       if (!staff) {
         staff = await Staff.create(staffData);
@@ -281,15 +281,16 @@ async function seedData() {
       {
         businessId: createdBusinesses[3]._id,
         category: "Dog Grooming",
-        subCategory: "Full Groom",
+        subCategory: "Full Groom — Medium (10–25kg)",
         serviceName: "Full Grooming Service",
         duration: "2hr",
         baseCost: 100,
         description: "Complete grooming service including bath, cut, nail trim, and ear cleaning.",
         address: createdBusinesses[3].address,
         addOns: [
-          { name: "Teeth Cleaning", cost: 25 },
-          { name: "Flea Treatment", cost: 20 },
+          { name: "Teeth Brushing", cost: 25 },
+          { name: "Flea / Tick Treatment", cost: 20 },
+          { name: "Nail Grind", cost: 15 },
         ],
         timeSlots: futureDates.slice(0, 4).map((date, idx) => ({
           date: date,

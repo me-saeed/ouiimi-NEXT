@@ -199,30 +199,58 @@ export const SERVICE_CATEGORIES: Record<string, Category> = {
         slug: "dog-grooming",
         description: "Professional dog grooming, bathing, styling, and pet care",
         subcategories: [
-            { name: "Basic Bath", slug: "basic-bath" },
-            { name: "Wash & Dry", slug: "wash-dry" },
-            { name: "Flea & Tick Bath", slug: "flea-tick-bath" },
-            { name: "De-Shedding Bath", slug: "deshedding-bath" },
-            { name: "Full Groom", slug: "full-groom" },
-            { name: "Breed Groom", slug: "breed-groom" },
-            { name: "Puppy Groom", slug: "puppy-groom" },
-            { name: "Partial Groom", slug: "partial-groom" },
-            { name: "De-Shedding Treatment", slug: "deshedding-treatment" },
-            { name: "Coat Conditioning", slug: "coat-conditioning" },
-            { name: "Medicated Bath", slug: "medicated-bath" },
-            { name: "Nail Trim", slug: "nail-trim" },
-            { name: "Nail Grind", slug: "nail-grind" },
-            { name: "Paw Pad Trim", slug: "paw-pad-trim" },
-            { name: "Paw Balm", slug: "paw-balm" },
-            { name: "Ear Cleaning", slug: "ear-cleaning" },
-            { name: "Tear Stain Clean", slug: "tear-stain" },
-            { name: "Teeth Brushing", slug: "teeth-brushing" },
+            // Basic Wash by size
+            { name: "Basic Wash — Small (up to 10kg)", slug: "basic-wash-small" },
+            { name: "Basic Wash — Medium (10–25kg)", slug: "basic-wash-medium" },
+            { name: "Basic Wash — Large (25–40kg)", slug: "basic-wash-large" },
+            { name: "Basic Wash — X-Large (40kg+)", slug: "basic-wash-xlarge" },
+
+            // Bath & Dry by size
+            { name: "Bath & Dry — Small (up to 10kg)", slug: "bath-dry-small" },
+            { name: "Bath & Dry — Medium (10–25kg)", slug: "bath-dry-medium" },
+            { name: "Bath & Dry — Large (25–40kg)", slug: "bath-dry-large" },
+            { name: "Bath & Dry — X-Large (40kg+)", slug: "bath-dry-xlarge" },
+
+            // De-Shedding Bath by size
+            { name: "De-Shedding Bath — Small (up to 10kg)", slug: "deshedding-bath-small" },
+            { name: "De-Shedding Bath — Medium (10–25kg)", slug: "deshedding-bath-medium" },
+            { name: "De-Shedding Bath — Large (25–40kg)", slug: "deshedding-bath-large" },
+            { name: "De-Shedding Bath — X-Large (40kg+)", slug: "deshedding-bath-xlarge" },
+
+            // Full Groom by size
+            { name: "Full Groom — Small (up to 10kg)", slug: "full-groom-small" },
+            { name: "Full Groom — Medium (10–25kg)", slug: "full-groom-medium" },
+            { name: "Full Groom — Large (25–40kg)", slug: "full-groom-large" },
+            { name: "Full Groom — X-Large (40kg+)", slug: "full-groom-xlarge" },
         ],
         addOns: [
+            // Bath & Treatment Add-Ons
+            "Flea & Tick Bath",
+            "De-Shedding Treatment",
+            "Coat Conditioning",
+            "Medicated Bath",
+
+            // Groom Types
+            "Breed Groom",
+            "Puppy Groom",
+            "Partial Groom (Face, Feet, Sanitary)",
+
+            // Nail & Paw Care
+            "Nail Trim",
+            "Nail Grind",
+            "Paw Pad Trim",
+            "Paw Balm",
+
+            // Face & Mouth Care
+            "Ear Cleaning",
+            "Tear Stain Clean",
+            "Teeth Brushing",
+
+            // Extras
             "Anal Gland Expression",
-            "Extra Time for Large/Double-Coated Dogs",
-            "Flea/Tick Treatment",
-            "Bow/Bandana + Cologne Finish",
+            "Extra Time (Large / Double-Coated Dogs)",
+            "Flea / Tick Treatment",
+            "Bow or Bandana + Cologne Finish",
         ],
     },
 

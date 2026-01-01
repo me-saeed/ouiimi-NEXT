@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getSession } from "@/lib/session";
+import { getBusinessSession } from "@/lib/business-session";
 
 export async function middleware(request: NextRequest) {
   const response = NextResponse.next();
@@ -39,22 +40,24 @@ export async function middleware(request: NextRequest) {
   // Get session for protected routes
   const session = await getSession();
 
-  // Protected Business Routes  
+  // Protected Business Routes (require BOTH regular session AND business session)
   if (pathname.startsWith('/business/dashboard') ||
     pathname.startsWith('/business/services') ||
     pathname.startsWith('/business/staff') ||
     pathname.startsWith('/business/profile')) {
 
+    // First check regular session
     if (!session) {
-      // Redirect to signin with return URL
       const signinUrl = new URL('/signin', request.url);
       signinUrl.searchParams.set('redirect', pathname);
       return NextResponse.redirect(signinUrl);
     }
 
-    // Role check for business routes
-    if (session.role !== 'business' && session.role !== 'admin') {
-      return NextResponse.redirect(new URL('/', request.url));
+    // Now check business session (re-authentication required)
+    const businessSession = await getBusinessSession();
+    if (!businessSession) {
+      // Redirect to /business which will show re-auth modal
+      return NextResponse.redirect(new URL('/business', request.url));
     }
   }
 

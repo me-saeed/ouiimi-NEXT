@@ -174,9 +174,6 @@ export function StaffTab({ business }: StaffTabProps) {
               {/* Name */}
               <div className="flex-1">
                 <h3 className="text-sm md:text-base font-semibold text-[#3A3A3A]">{member.name}</h3>
-                {(member.bio || member.about) && (
-                  <p className="text-xs text-gray-500 truncate max-w-xs">{member.bio || member.about}</p>
-                )}
               </div>
 
               {/* Edit Button - Only visible on hover */}
