@@ -7,7 +7,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Modal } from "@/components/ui/modal";
 import { renderAddress } from "@/lib/utils";
 import Link from "next/link";
-import { Plus, Pencil, Trash2, Clock, DollarSign, Calendar, Tag } from "lucide-react";
+import { Plus, Pencil, Trash2, Clock, DollarSign, Calendar, Tag, Lightbulb, ChevronDown, ChevronUp } from "lucide-react";
 import { ServiceCard } from "@/components/ui/service-card";
 import { ServiceDetailModal } from "./ServiceDetailModal";
 
@@ -49,6 +49,9 @@ export function ListTab({ business }: ListTabProps) {
 
   // New: Separate state for viewing service details
   const [viewingService, setViewingService] = useState<Service | null>(null);
+
+  // Tips toggle state
+  const [showTips, setShowTips] = useState(false);
 
   useEffect(() => {
     if (business?.id || business?._id) {
@@ -288,7 +291,69 @@ export function ListTab({ business }: ListTabProps) {
             Add Service
           </Button>
         </Link>
+
+        {/* Tips Button */}
+        <button
+          onClick={() => setShowTips(true)}
+          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#EECFD1]/10 hover:bg-[#EECFD1]/20 border border-[#EECFD1]/30 transition-colors"
+        >
+          <Lightbulb className="w-4 h-4 text-[#EECFD1]" />
+          <span className="text-sm font-medium text-[#3A3A3A]">Tips</span>
+        </button>
       </div>
+
+      {/* Tips Modal Popup */}
+      {showTips && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            onClick={() => setShowTips(false)}
+          />
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto animate-in fade-in zoom-in-95 duration-200">
+            {/* Close Button */}
+            <button
+              onClick={() => setShowTips(false)}
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-2xl z-10"
+            >
+              ×
+            </button>
+
+            {/* Modal Content */}
+            <div className="p-8 md:p-12">
+              <h2 className="text-2xl md:text-3xl font-bold italic text-[#3A3A3A] mb-8 text-center">
+                ouiimi Tips for Listing Your Services
+              </h2>
+
+              <ul className="space-y-6 text-[#3A3A3A]">
+                <li>
+                  <p className="font-bold mb-1">• Add multiple future dates & time slots</p>
+                  <p className="text-gray-600 pl-4">Set up availability across multiple dates so customers can book ahead without constant updates.</p>
+                </li>
+                <li>
+                  <p className="font-bold mb-1">• Assign multiple staff to one time slot</p>
+                  <p className="text-gray-600 pl-4">If more than one staff member can perform a service, assign them to the same slot. ouiimi automatically blocks out the booked staff member once a booking is made.</p>
+                </li>
+                <li>
+                  <p className="font-bold mb-1">• Use add-ons instead of extra services</p>
+                  <p className="text-gray-600 pl-4">Add optional upgrades or extra time as add-ons to keep your service list simple and flexible.</p>
+                </li>
+                <li>
+                  <p className="font-bold mb-1">• Allow buffer time between bookings</p>
+                  <p className="text-gray-600 pl-4">Add time between appointments to allow for add-ons, clean-up, or services that run over.</p>
+                </li>
+                <li>
+                  <p className="font-bold mb-1">• Use a clean, minimal logo</p>
+                  <p className="text-gray-600 pl-4">Simple logos display best across the platform and help your business look clear, professional, and easy to recognise.</p>
+                </li>
+                <li>
+                  <p className="font-bold mb-1">• Set it once, let it run</p>
+                  <p className="text-gray-600 pl-4">Once your services and availability are set, ouiimi handles the rest — bookings, staff availability, and time management.</p>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      )}
 
       {isLoading ? (
         <div className="text-center py-16">
