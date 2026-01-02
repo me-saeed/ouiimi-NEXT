@@ -414,34 +414,41 @@ async function getServicesHandler(req: NextRequest) {
         const total = countResult.length > 0 ? countResult[0].total : 0;
 
         return NextResponse.json({
-          services: services.filter((s: any) => s.businessId).map((s: any) => ({
-            id: s._id?.toString() || s._id,
-            _id: s._id?.toString() || s._id,
-            businessId: s.businessId,
-            category: s.category,
-            subCategory: s.subCategory,
-            serviceName: s.serviceName,
-            description: s.description,
-            address: typeof s.address === 'object' && s.address?.street
-              ? s.address.street
-              : (typeof s.address === 'string' ? s.address : ""),
-            addressLocation: typeof s.address === 'object' && s.address?.location
-              ? s.address.location
-              : null,
-            addOns: s.addOns || [],
-            timeSlots: filterTimeSlotsByDate(s.timeSlots || [], date).map((ts: any) => ({
-              date: ts.date,
-              startTime: ts.startTime,
-              endTime: ts.endTime,
-              price: ts.price,
-              duration: ts.duration,
-              staffIds: ts.staffIds,
-              isBooked: ts.isBooked,
-            })),
-            status: s.status,
-            createdAt: s.createdAt,
-            distance: s.distance ? (s.distance / 1000).toFixed(2) : null, // Distance in km
-          })),
+          services: services
+            .filter((s: any) => s.businessId)
+            .map((s: any) => {
+              const availableSlots = filterTimeSlotsByDate(s.timeSlots || [], date);
+              return {
+                id: s._id?.toString() || s._id,
+                _id: s._id?.toString() || s._id,
+                businessId: s.businessId,
+                category: s.category,
+                subCategory: s.subCategory,
+                serviceName: s.serviceName,
+                description: s.description,
+                address: typeof s.address === 'object' && s.address?.street
+                  ? s.address.street
+                  : (typeof s.address === 'string' ? s.address : ""),
+                addressLocation: typeof s.address === 'object' && s.address?.location
+                  ? s.address.location
+                  : null,
+                addOns: s.addOns || [],
+                timeSlots: availableSlots.map((ts: any) => ({
+                  date: ts.date,
+                  startTime: ts.startTime,
+                  endTime: ts.endTime,
+                  price: ts.price,
+                  duration: ts.duration,
+                  staffIds: ts.staffIds,
+                  isBooked: ts.isBooked,
+                })),
+                status: s.status,
+                createdAt: s.createdAt,
+                distance: s.distance ? (s.distance / 1000).toFixed(2) : null,
+              };
+            })
+            // Filter out services with no available time slots (fully booked)
+            .filter((s: any) => s.timeSlots.length > 0),
           pagination: {
             total,
             page,

@@ -13,6 +13,7 @@
 
 import { NextRequest } from "next/server";
 import { destroySession, getSession } from "@/lib/session";
+import { destroyBusinessSession } from "@/lib/business-session";
 import { successResponse, asyncHandler } from "@/lib/api-response";
 
 // Force dynamic rendering
@@ -24,6 +25,9 @@ async function logoutHandler(req: NextRequest) {
 
     // Destroy session (removes HttpOnly cookie)
     destroySession();
+
+    // Also destroy business session if it exists
+    destroyBusinessSession();
 
     return successResponse({
         message: "Logged out successfully",

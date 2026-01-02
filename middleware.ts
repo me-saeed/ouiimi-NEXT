@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getSession } from "@/lib/session";
-import { getBusinessSession } from "@/lib/business-session";
+import { getBusinessSession, createBusinessSession } from "@/lib/business-session";
 
 export async function middleware(request: NextRequest) {
   const response = NextResponse.next();
@@ -58,6 +58,28 @@ export async function middleware(request: NextRequest) {
     if (!businessSession) {
       // Redirect to /business which will show re-auth modal
       return NextResponse.redirect(new URL('/business', request.url));
+    }
+
+    // SLIDING WINDOW: Refresh business session on every activity
+    // This resets the 15-minute timer
+    try {
+      const newBusinessToken = await createBusinessSession({
+        userId: businessSession.userId,
+        email: businessSession.email,
+        businessId: businessSession.businessId,
+      });
+
+      response.cookies.set('business-session', newBusinessToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 15 * 60, // 15 minutes
+        path: '/',
+      });
+    } catch (error) {
+      console.error("Failed to refresh business session:", error);
+      // Continue without refreshing if it fails, or redirect?
+      // Safer to continue, user will just expire sooner.
     }
   }
 

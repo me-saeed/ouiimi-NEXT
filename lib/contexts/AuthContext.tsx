@@ -1,7 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react';
-import { usePathname } from 'next/navigation';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
 interface User {
     id?: string;
@@ -32,11 +31,9 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-    const pathname = usePathname();
     const [user, setUser] = useState<User | null>(null);
     const [token, setToken] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(true);
-    const previousPathRef = useRef<string | null>(null);
 
     // Load user from session API
     const loadSession = async () => {
@@ -80,80 +77,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         loadSession();
     }, []);
 
-    // Auto-logout after 15 minutes of inactivity
-    useEffect(() => {
-        if (!user) return;
 
-        const INACTIVITY_TIMEOUT = 15 * 60 * 1000; // 15 minutes in milliseconds
-        let timeoutId: NodeJS.Timeout;
 
-        const resetTimer = () => {
-            clearTimeout(timeoutId);
-            timeoutId = setTimeout(() => {
-                console.log("Auto-logout due to inactivity");
-                logout();
-                // Redirect to signin with message
-                if (typeof window !== 'undefined') {
-                    window.location.href = '/signin?reason=timeout';
-                }
-            }, INACTIVITY_TIMEOUT);
-        };
 
-        // Activity events to track
-        const activityEvents = ['mousedown', 'mousemove', 'keydown', 'scroll', 'touchstart', 'click'];
-
-        // Add event listeners
-        activityEvents.forEach(event => {
-            document.addEventListener(event, resetTimer, { passive: true });
-        });
-
-        // Start the timer
-        resetTimer();
-
-        // Cleanup
-        return () => {
-            clearTimeout(timeoutId);
-            activityEvents.forEach(event => {
-                document.removeEventListener(event, resetTimer);
-            });
-        };
-    }, [user, token]);
-
-    // ==========================================================================
-    // Business Session Cleanup: Clear ONLY when navigating to /profile
-    // ==========================================================================
-    useEffect(() => {
-        const isBusinessRoute = (path: string | null) => {
-            if (!path) return false;
-            return path.startsWith('/business/dashboard') ||
-                path.startsWith('/business/services') ||
-                path.startsWith('/business/staff') ||
-                path.startsWith('/business/profile');
-        };
-
-        const isProfileRoute = (path: string | null) => {
-            if (!path) return false;
-            return path === '/profile' || path.startsWith('/profile/');
-        };
-
-        const previousPath = previousPathRef.current;
-        const wasOnBusinessRoute = isBusinessRoute(previousPath);
-        const isNowOnProfile = isProfileRoute(pathname);
-
-        // Only clear business session when going FROM business route TO /profile
-        if (wasOnBusinessRoute && isNowOnProfile && user) {
-            console.log('[AuthContext] Navigated to profile from business, clearing business session');
-            fetch('/api/auth/business-session', {
-                method: 'DELETE',
-                credentials: 'include'
-            }).catch(err => {
-                console.error('[AuthContext] Error clearing business session:', err);
-            });
-        }
-
-        // Update previous path
-        previousPathRef.current = pathname;
-    }, [pathname, user]);
 
     const login = (newToken: string, userData: User) => {
         // Standardize role to roles array for component logic

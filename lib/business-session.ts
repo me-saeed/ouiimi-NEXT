@@ -15,9 +15,8 @@ const SECRET = new TextEncoder().encode(
     process.env.SESSION_SECRET || process.env.NEXTAUTH_SECRET || 'fallback-secret-change-in-production'
 );
 
-// Business session lasts until user leaves business routes (no fixed expiry needed)
-// But we set a max of 24 hours for security
-const BUSINESS_SESSION_DURATION = 24 * 60 * 60; // 24 hours in seconds
+// Business session expires after 15 minutes of inactivity (sliding window)
+const BUSINESS_SESSION_DURATION = 15 * 60; // 15 minutes in seconds
 
 export interface BusinessSessionData {
     userId: string;
@@ -38,7 +37,7 @@ export async function createBusinessSession(data: Omit<BusinessSessionData, 'aut
     const token = await new SignJWT(sessionData as any)
         .setProtectedHeader({ alg: 'HS256' })
         .setIssuedAt()
-        .setExpirationTime('24h')
+        .setExpirationTime('15m')
         .sign(SECRET);
 
     // Set cookie

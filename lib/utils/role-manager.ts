@@ -9,7 +9,7 @@ import { createBusinessSession } from '@/lib/business-session';
 import User from '@/lib/models/User';
 
 const SESSION_DURATION = 7 * 24 * 60 * 60; // 7 days in seconds
-const BUSINESS_SESSION_DURATION = 24 * 60 * 60; // 24 hours in seconds
+const BUSINESS_SESSION_DURATION = 15 * 60; // 15 minutes in seconds
 
 /**
  * Update user role and create new session cookie

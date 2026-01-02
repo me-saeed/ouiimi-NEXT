@@ -194,7 +194,7 @@ async function signinHandler(req: NextRequest) {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
-      maxAge: 24 * 60 * 60, // 24 hours
+      maxAge: 15 * 60, // 15 minutes
       path: '/',
     });
   }
