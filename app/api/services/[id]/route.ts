@@ -154,9 +154,38 @@ async function updateServiceHandler(
   const validatedData = serviceUpdateSchema.parse(body);
 
   // ========================================================================
-  // CROSS-SERVICE STAFF AVAILABILITY CHECK
-  // REMOVED FOR DYNAMIC AVAILABILITY
-  // Availability is checked strictly at BOOKING time.
+  // DUPLICATE SERVICE CHECK (On Update)
+  // Check if updating subCategory or timeSlots causes conflicts
+  // ========================================================================
+
+  // Cast to any because serviceUpdateSchema might not strictly define timeSlots if it's partial
+  // or checks strictly against schema. 
+  const validationAny = validatedData as any;
+
+  if (validationAny.subCategory || validationAny.timeSlots) {
+    const { validateServiceDuplication } = await import("@/lib/utils/service-validator");
+
+    // Use existing values if not updated
+    const subCategoryToCheck = validationAny.subCategory !== undefined
+      ? validationAny.subCategory || ""
+      : service.subCategory;
+
+    // If timeslots are updated, check them. If not, no need to re-check existing ones 
+    // UNLESS subcategory changed, then we MUST check existing slots against new subcategory.
+    const timeSlotsToCheck = validationAny.timeSlots
+      ? validationAny.timeSlots
+      : (validationAny.subCategory ? service.timeSlots : []);
+
+    if (timeSlotsToCheck && timeSlotsToCheck.length > 0) {
+      await validateServiceDuplication({
+        businessId: String(service.businessId),
+        category: (validationAny.category || service.category),
+        subCategory: subCategoryToCheck,
+        timeSlots: timeSlotsToCheck,
+        serviceIdToExclude: String(service._id) // Important: Don't conflict with self
+      });
+    }
+  }
   // ======================================================================== 
 
   // Update service fields

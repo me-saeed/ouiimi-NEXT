@@ -66,39 +66,16 @@ async function createServiceHandler(req: NextRequest) {
 
     // ========================================================================
     // DUPLICATE SERVICE CHECK
-    // Prevent creating services with same category + subCategory/serviceName for same business
-    // Only checks within THIS business - doesn't affect other businesses
     // ========================================================================
-    const duplicateQuery: Record<string, unknown> = {
-      businessId: new mongoose.Types.ObjectId(validatedData.businessId),
+    const { validateServiceDuplication } = await import("@/lib/utils/service-validator");
+
+    await validateServiceDuplication({
+      businessId: validatedData.businessId,
       category: validatedData.category,
-    };
-
-    // Build $or conditions for matching by subCategory or serviceName
-    const orConditions: Array<{ subCategory?: string; serviceName?: string }> = [];
-    if (validatedData.subCategory) {
-      orConditions.push({ subCategory: validatedData.subCategory });
-    }
-    if (validatedData.serviceName) {
-      orConditions.push({ serviceName: validatedData.serviceName });
-    }
-
-    // Only run duplicate check if we have at least one identifier to match
-    if (orConditions.length > 0) {
-      duplicateQuery.$or = orConditions;
-
-      const existingService = await Service.findOne(duplicateQuery);
-
-      if (existingService) {
-        const matchedName = validatedData.subCategory || validatedData.serviceName;
-        throw new APIError(
-          400,
-          `A service "${matchedName}" already exists in "${validatedData.category}" category. Please use a different service name or edit the existing service.`,
-          "DUPLICATE_SERVICE"
-        );
-      }
-    }
-    // ======================================================================== 
+      subCategory: validatedData.subCategory || "", // Ensure string
+      timeSlots: validatedData.timeSlots || []      // Ensure array
+    });
+    // ========================================================================
 
     // Calculate duration helper function
     const calculateDuration = (startTime: string, endTime: string): number => {

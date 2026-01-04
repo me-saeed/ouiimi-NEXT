@@ -31,6 +31,28 @@ async function updateTimeSlotsHandler(
       );
     }
 
+    // ========================================================================
+    // DUPLICATE SLOT CHECK
+    // Only check the NEW slots being added against all exist services
+    // ========================================================================
+    const { validateServiceDuplication } = await import("@/lib/utils/service-validator");
+
+    // We must validate that these new slots don't conflict with OTHER services.
+    // They also shouldn't conflict with THIS service's existing slots (strictly speaking),
+    // but the shared validator excludes "serviceIdToExclude". 
+    // If we want to check for internal duplicates, we should NOT exclude self, 
+    // OR we should trust the validator's logic which is primarily for Cross-Service duplication.
+    // Let's check for cross-service duplication first.
+
+    await validateServiceDuplication({
+      businessId: String(service.businessId),
+      category: service.category,
+      subCategory: service.subCategory || "", // Ensure string
+      timeSlots: validatedData.timeSlots,
+      serviceIdToExclude: String(service._id) // Don't block adding slots to self
+    });
+    // ========================================================================
+
     // Map time slots to the correct format
     const newTimeSlots = validatedData.timeSlots.map((slot) => ({
       date: new Date(slot.date),
