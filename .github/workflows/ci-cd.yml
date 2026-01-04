@@ -7,7 +7,7 @@ on:
     branches: [main, master]
 
 env:
-  NODE_VERSION: '20.x'
+  NODE_VERSION: "20.x"
 
 jobs:
   test:
@@ -33,7 +33,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'yarn'
+          cache: "yarn"
 
       - name: Install dependencies
         run: yarn install --frozen-lockfile
@@ -74,7 +74,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'yarn'
+          cache: "yarn"
 
       - name: Install dependencies
         run: yarn install --frozen-lockfile
@@ -152,6 +152,7 @@ jobs:
             --exclude='*.test.tsx' \
             --exclude='jest.config.js' \
             --exclude='jest.setup.js' \
+            --exclude='uploads' \
             --exclude='jest-reporter.js' \
             . 2>&1 | grep -v "file changed as we read it" || true
           set -e
@@ -182,7 +183,8 @@ jobs:
           export NEXT_PUBLIC_GOOGLE_MAPS_API_KEY_VAL="${{ secrets.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY }}"
           export GOOGLE_CLIENT_ID_VAL="${{ secrets.GOOGLE_CLIENT_ID }}"
           export GOOGLE_CLIENT_SECRET_VAL="${{ secrets.GOOGLE_CLIENT_SECRET }}"
-          export NEXT_PUBLIC_BASE_URL_VAL="${{ secrets.NEXT_PUBLIC_BASE_URL_VAL }}"
+          export NEXT_PUBLIC_BASE_URL_VAL="${{ secrets.NEXT_PUBLIC_BASE_URL }}"
+          export CRON_SECRET_VAL="${{ secrets.CRON_SECRET }}"
           ENVEOF
 
           scp -o ServerAliveInterval=60 -o ServerAliveCountMax=3 /tmp/deploy_env.sh ${{ secrets.DO_USER }}@${{ secrets.DO_HOST }}:/tmp/deploy_env.sh
@@ -197,16 +199,18 @@ jobs:
               exit 1
             fi
 
+            # ---------------------------
+            # ✅ Persistent uploads fix
+            # ---------------------------
+            SHARED_DIR="/var/lib/ouiimi"
+            SHARED_UPLOADS="${SHARED_DIR}/uploads"
+
+            sudo mkdir -p "$SHARED_UPLOADS"
+            sudo chmod -R 755 "$SHARED_DIR" || true
+
             if [ ! -d "$APP_PATH" ]; then
               echo "Creating application directory: $APP_PATH"
               mkdir -p "$APP_PATH"
-            fi
-
-            # Preserve uploads directory before backup
-            if [ -d "$APP_PATH/uploads" ]; then
-              echo "Preserving uploads directory..."
-              cp -r "$APP_PATH/uploads" /tmp/uploads_preserve
-              echo "✅ Uploads preserved ($(ls -1 /tmp/uploads_preserve | wc -l) files)"
             fi
 
             if [ -d "$APP_PATH" ] && [ "$(ls -A $APP_PATH 2>/dev/null)" ]; then
@@ -221,16 +225,10 @@ jobs:
             tar -xzf /tmp/deploy.tar.gz
             rm /tmp/deploy.tar.gz
 
-            # Restore uploads directory after extraction
-            if [ -d "/tmp/uploads_preserve" ]; then
-              echo "Restoring uploads directory..."
-              rm -rf "$APP_PATH/uploads" 2>/dev/null || true
-              mv /tmp/uploads_preserve "$APP_PATH/uploads"
-              echo "✅ Uploads restored ($(ls -1 $APP_PATH/uploads | wc -l) files)"
-            else
-              echo "Creating empty uploads directory..."
-              mkdir -p "$APP_PATH/uploads"
-            fi
+            # Force uploads to point to shared persistent folder (never deleted by deploy)
+            rm -rf "$APP_PATH/uploads" 2>/dev/null || true
+            ln -s "$SHARED_UPLOADS" "$APP_PATH/uploads"
+            echo "✅ uploads -> $SHARED_UPLOADS"
 
             echo "Checking Node.js version..."
             NODE_VERSION=$(node -v | cut -d'v' -f2 | cut -d'.' -f1,2)
