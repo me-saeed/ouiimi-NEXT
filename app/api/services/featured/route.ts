@@ -148,6 +148,8 @@ export async function GET(req: NextRequest) {
                 {
                     $match: { "availableTimeSlots.0": { $exists: true } }
                 },
+                // Sort by recently created FIRST
+                { $sort: { createdAt: -1 } },
                 // Limit to 20 (BUFFER) to allow for runtime filtering of busy staff
                 { $limit: 20 },
                 // Project needed fields
@@ -182,7 +184,7 @@ export async function GET(req: NextRequest) {
 
         // facetResult is an array with one object containing all keys
         const rawResults = facetResult || {};
-        const servicesData: Record<string, any[]> = {};
+        const servicesData: Record<string, any> = {};
 
         // ================================================================================================
         // RUNTIME GLOBAL AVAILABILITY CHECK (Legacy Logic)
@@ -241,37 +243,44 @@ export async function GET(req: NextRequest) {
                 };
             }).filter((s: any) => s.timeSlots.length > 0); // Remove services with no slots left
 
+            // Track if there are more than 6 services BEFORE slicing
+            const totalAfterFiltering = services.length;
+            const hasMore = totalAfterFiltering > 6;
+
             // 4. Slice to top 6 AFTER accurate filtering
             services = services.slice(0, 6);
 
-            // 5. Format for response
-            servicesData[key] = services.map((s: any) => ({
-                id: s._id?.toString() || s._id,
-                _id: s._id?.toString() || s._id,
-                businessId: s.businessId,
-                category: s.category,
-                subCategory: s.subCategory,
-                serviceName: s.serviceName,
-                description: s.description,
-                address: typeof s.address === 'object' && s.address?.street
-                    ? s.address.street
-                    : (typeof s.address === 'string' ? s.address : ""),
-                addressLocation: typeof s.address === 'object' && s.address?.location
-                    ? s.address.location
-                    : null,
-                addOns: s.addOns || [],
-                timeSlots: (s.timeSlots || []).map((ts: any) => ({
-                    date: ts.date,
-                    startTime: ts.startTime,
-                    endTime: ts.endTime,
-                    price: ts.price,
-                    duration: ts.duration,
-                    staffIds: ts.staffIds,
-                    isBooked: ts.isBooked,
+            // 5. Format for response - include hasMore flag
+            servicesData[key] = {
+                items: services.map((s: any) => ({
+                    id: s._id?.toString() || s._id,
+                    _id: s._id?.toString() || s._id,
+                    businessId: s.businessId,
+                    category: s.category,
+                    subCategory: s.subCategory,
+                    serviceName: s.serviceName,
+                    description: s.description,
+                    address: typeof s.address === 'object' && s.address?.street
+                        ? s.address.street
+                        : (typeof s.address === 'string' ? s.address : ""),
+                    addressLocation: typeof s.address === 'object' && s.address?.location
+                        ? s.address.location
+                        : null,
+                    addOns: s.addOns || [],
+                    timeSlots: (s.timeSlots || []).map((ts: any) => ({
+                        date: ts.date,
+                        startTime: ts.startTime,
+                        endTime: ts.endTime,
+                        price: ts.price,
+                        duration: ts.duration,
+                        staffIds: ts.staffIds,
+                        isBooked: ts.isBooked,
+                    })),
+                    status: s.status,
+                    createdAt: s.createdAt,
                 })),
-                status: s.status,
-                createdAt: s.createdAt,
-            }));
+                hasMore: hasMore
+            };
         });
 
         console.timeEnd(`[API /api/services/featured GET] Execution time [${requestId}]`);

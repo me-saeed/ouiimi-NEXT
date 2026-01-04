@@ -28,7 +28,12 @@ interface Service {
 }
 
 // Server-side data fetching function
-async function fetchFeaturedServices(): Promise<Record<string, Service[]>> {
+interface CategoryData {
+  items: Service[];
+  hasMore: boolean;
+}
+
+async function fetchFeaturedServices(): Promise<Record<string, CategoryData>> {
   try {
     const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
     const response = await fetch(
@@ -178,7 +183,9 @@ export default async function HomePage() {
             </h1>
 
             {SERVICE_CATEGORIES.map((category) => {
-              const categoryServices = servicesData[category] || [];
+              const categoryData = servicesData[category] || { items: [], hasMore: false };
+              const categoryServices = categoryData.items || [];
+              const hasMore = categoryData.hasMore || false;
 
               // DOUBLE CHECK: Filter locally as well to ensure getEarliestAvailableTimeSlot returns a valid value.
               // This acts as a safety layer so we never show cards with "null" dates if server/client time differs slightly.
@@ -192,8 +199,8 @@ export default async function HomePage() {
                 <ServiceCarousel
                   key={category}
                   title={category}
-                  totalCount={6} // Fixed 6+ indicator
-                  showMoreHref={`/category/${encodeURIComponent(category)}`}
+                  totalCount={hasMore ? 7 : filteredServices.length} // Show 7+ if hasMore, else actual count
+                  showMoreHref={hasMore ? `/category/${encodeURIComponent(category)}` : undefined} // Only show link if more exist
                   category={category}
                 >
                   {filteredServices.map((service) => (
