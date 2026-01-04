@@ -208,6 +208,9 @@ async function getServicesHandler(req: NextRequest) {
     const radius = parseFloat(searchParams.get("radius") || "15"); // Default 15km
     const date = searchParams.get("date"); // Filter by specific date
 
+    let services: any[] | null = null;
+    let total = 0;
+
     // ==========================================================================
     // CACHE CHECK: Cache public service listings for 30 seconds
     // Only cache requests without businessId (public homepage/browse requests)
@@ -270,7 +273,7 @@ async function getServicesHandler(req: NextRequest) {
 
     console.log("[API /api/services GET] Final filter:", JSON.stringify(filter));
 
-    // Helper function to filter time slots by date
+
     const filterTimeSlotsByDate = (timeSlots: any[], filterDate: string | null) => {
       if (!filterDate) {
         // If no date filter, return all future available slots
@@ -340,6 +343,10 @@ async function getServicesHandler(req: NextRequest) {
                 0
               ]
             },
+            // Check top-level isBooked flag (Legacy/Manual block consistency)
+            {
+              $ne: ["$$slot.isBooked", true]
+            },
             // Date filtering with TIME check (not just date)
             filterDateObj
               ? {
@@ -407,10 +414,12 @@ async function getServicesHandler(req: NextRequest) {
                               year: { $year: "$$slot.date" },
                               month: { $month: "$$slot.date" },
                               day: { $dayOfMonth: "$$slot.date" },
+                              // LEGACY LOGIC: Check END TIME (allow in-progress slots)
+                              // Original: return slotEndDateTime > now;
                               hour: {
                                 $toInt: {
                                   $arrayElemAt: [
-                                    { $split: ["$$slot.startTime", ":"] },
+                                    { $split: ["$$slot.endTime", ":"] },
                                     0,
                                   ],
                                 },
@@ -418,7 +427,7 @@ async function getServicesHandler(req: NextRequest) {
                               minute: {
                                 $toInt: {
                                   $arrayElemAt: [
-                                    { $split: ["$$slot.startTime", ":"] },
+                                    { $split: ["$$slot.endTime", ":"] },
                                     1,
                                   ],
                                 },
@@ -444,7 +453,7 @@ async function getServicesHandler(req: NextRequest) {
 
       if (!isNaN(lat) && !isNaN(lng)) {
         // Use $geoNear for geospatial queries with distance sorting
-        const services = await Service.aggregate([
+        const geoServices = await Service.aggregate([
           {
             $geoNear: {
               near: {
@@ -471,12 +480,14 @@ async function getServicesHandler(req: NextRequest) {
               preserveNullAndEmptyArrays: true,
             },
           },
-          // ADD AVAILABLE SLOTS CALCULATION FOR GEOSPATIAL
+          // REMOVED: availableTimeSlotsStage (We fetch RAW slots and filter manually to match legacy logic)
+          /* 
           {
             $addFields: {
               availableTimeSlots: availableTimeSlotsStage
             }
           },
+          */
           // FILTER OUT FULLY BOOKED SERVICES (If public request)
           ...(businessId ? [] : [{
             $match: { "availableTimeSlots.0": { $exists: true } }
@@ -528,158 +539,145 @@ async function getServicesHandler(req: NextRequest) {
               query: filter,
             },
           },
+          /*
           {
             $addFields: {
               availableTimeSlots: availableTimeSlotsStage
             }
           }
+          */
         ];
 
-        if (!businessId) {
-          countPipeline.push({ $match: { "availableTimeSlots.0": { $exists: true } } });
-        }
+        // if (!businessId) {
+        //   countPipeline.push({ $match: { "availableTimeSlots.0": { $exists: true } } });
+        // }
 
         countPipeline.push({ $count: "total" });
 
         const countResult = await Service.aggregate(countPipeline);
 
-        const total = countResult.length > 0 ? countResult[0].total : 0;
+        const geoTotal = countResult.length > 0 ? countResult[0].total : 0;
 
-        return NextResponse.json({
-          services: services
-            .filter((s: any) => s.businessId)
-            .map((s: any) => {
-              // Time slots are already filtered by server aggregation
-              const slotsToUse = s.timeSlots || [];
-              return {
-                id: s._id?.toString() || s._id,
-                _id: s._id?.toString() || s._id,
-                businessId: s.businessId,
-                category: s.category,
-                subCategory: s.subCategory,
-                serviceName: s.serviceName,
-                description: s.description,
-                address: typeof s.address === 'object' && s.address?.street
-                  ? s.address.street
-                  : (typeof s.address === 'string' ? s.address : ""),
-                addressLocation: typeof s.address === 'object' && s.address?.location
-                  ? s.address.location
-                  : null,
-                addOns: s.addOns || [],
-                timeSlots: slotsToUse.map((ts: any) => ({
-                  date: ts.date,
-                  startTime: ts.startTime,
-                  endTime: ts.endTime,
-                  price: ts.price,
-                  duration: ts.duration,
-                  staffIds: ts.staffIds,
-                  isBooked: ts.isBooked,
-                })),
-                status: s.status,
-                createdAt: s.createdAt,
-                distance: s.distance ? (s.distance / 1000).toFixed(2) : null,
-              };
-            }),
-          pagination: {
-            total,
-            page,
-            limit,
-            pages: Math.ceil(total / limit),
-          },
-        });
-        console.timeEnd(`[API /api/services GET] Execution time [${requestId}]`);
+        // Apply LEGACY date filtration here
+        const filteredServices = geoServices
+          .filter((s: any) => s.businessId)
+          .map((s: any) => {
+            // Use the restored legacy function
+            const availableSlots = filterTimeSlotsByDate(s.timeSlots || [], date);
+
+            // Overwrite timeSlots with the filtered list
+            return {
+              ...s,
+              timeSlots: availableSlots
+            };
+          })
+          // Filter out services with no available time slots (if public)
+          .filter((s: any) => businessId || s.timeSlots.length > 0);
+
+        // Assign to shared variables
+        services = filteredServices;
+        total = geoTotal;
       }
     }
 
     // Non-geospatial query - Use aggregation for server-side filtering
+    // (Or fallback if geospatial query failed/skipped)
     console.log("[API /api/services GET] Executing database query with filter:", filter);
 
 
 
-    // Build aggregation pipeline for server-side slot filtering
-    const aggregationPipeline: any[] = [
-      { $match: filter },
-      {
-        $addFields: {
-          availableTimeSlots: availableTimeSlotsStage
+    // Non-geospatial query execution (ONLY if services not already fetched by geo query)
+    if (!services) {
+      // Build aggregation pipeline for server-side slot filtering
+      const aggregationPipeline: any[] = [
+        { $match: filter },
+        {
+          $addFields: {
+            availableTimeSlots: availableTimeSlotsStage
+          },
         },
-      },
-    ];
+      ];
 
-    // NEW: Filter out services with NO available slots (Fully Booked)
-    // Only apply for public listings (not business dashboard)
-    if (!businessId) {
-      aggregationPipeline.push({
-        $match: { "availableTimeSlots.0": { $exists: true } }
-      });
+      // NEW: Filter out services with NO available slots (Fully Booked)
+      // Only apply for public listings (not business dashboard)
+      if (!businessId) {
+        aggregationPipeline.push({
+          $match: { "availableTimeSlots.0": { $exists: true } }
+        });
+      }
+
+      // Continue with rest of pipeline
+      aggregationPipeline.push(
+        {
+          $lookup: {
+            from: "businesses",
+            localField: "businessId",
+            foreignField: "_id",
+            as: "businessData",
+          },
+        },
+        {
+          $unwind: {
+            path: "$businessData",
+            preserveNullAndEmptyArrays: true,
+          },
+        },
+        // ✅ Requirement: Only show services from APPROVED businesses and LISTED services
+        // In development, also show PENDING businesses for easier testing
+        {
+          $match: businessId
+            ? {} // Dashboard shows everything
+            : (process.env.NODE_ENV === 'development' || process.env.NEXT_PUBLIC_DEV_MODE === 'true')
+              ? {
+                "businessData.status": { $in: ["approved", "pending"] },
+                "status": "listed"
+              }
+              : {
+                "businessData.status": "approved",
+                "status": "listed"
+              }
+        },
+        {
+          $project: {
+            _id: 1,
+            businessId: {
+              id: "$businessData._id",
+              businessName: "$businessData.businessName",
+              logo: "$businessData.logo",
+              address: "$businessData.address",
+              status: "$businessData.status"
+            },
+            category: 1,
+            subCategory: 1,
+            serviceName: 1,
+            description: 1,
+            address: 1,
+            addOns: 1,
+            // For business dashboard (with businessId), show ALL time slots
+            // For public listings (no businessId), show only available slots
+            timeSlots: businessId ? "$timeSlots" : "$availableTimeSlots",
+            status: 1,
+            createdAt: 1,
+          },
+        },
+        { $sort: { createdAt: -1 } },
+        { $skip: skip },
+        { $limit: limit },
+      );
+
+      const [aggServices, totalResult] = await Promise.all([
+        Service.aggregate(aggregationPipeline),
+        Service.countDocuments(filter),
+      ]);
+
+      services = aggServices;
+      total = totalResult || 0;
     }
 
-    // Continue with rest of pipeline
-    aggregationPipeline.push(
-      {
-        $lookup: {
-          from: "businesses",
-          localField: "businessId",
-          foreignField: "_id",
-          as: "businessData",
-        },
-      },
-      {
-        $unwind: {
-          path: "$businessData",
-          preserveNullAndEmptyArrays: true,
-        },
-      },
-      // ✅ Requirement: Only show services from APPROVED businesses and LISTED services
-      // In development, also show PENDING businesses for easier testing
-      {
-        $match: businessId
-          ? {} // Dashboard shows everything
-          : (process.env.NODE_ENV === 'development' || process.env.NEXT_PUBLIC_DEV_MODE === 'true')
-            ? {
-              "businessData.status": { $in: ["approved", "pending"] },
-              "status": "listed"
-            }
-            : {
-              "businessData.status": "approved",
-              "status": "listed"
-            }
-      },
-      {
-        $project: {
-          _id: 1,
-          businessId: {
-            id: "$businessData._id",
-            businessName: "$businessData.businessName",
-            logo: "$businessData.logo",
-            address: "$businessData.address",
-            status: "$businessData.status"
-          },
-          category: 1,
-          subCategory: 1,
-          serviceName: 1,
-          description: 1,
-          address: 1,
-          addOns: 1,
-          // For business dashboard (with businessId), show ALL time slots
-          // For public listings (no businessId), show only available slots
-          timeSlots: businessId ? "$timeSlots" : "$availableTimeSlots",
-          status: 1,
-          createdAt: 1,
-        },
-      },
-      { $sort: { createdAt: -1 } },
-      { $skip: skip },
-      { $limit: limit },
-    );
-
-    const [services, totalResult] = await Promise.all([
-      Service.aggregate(aggregationPipeline),
-      Service.countDocuments(filter),
-    ]);
-
-    const total = totalResult || 0;
-
+    // Ensure services is initialized to empty array if no query matched (Safety + TS Fix)
+    if (!services) {
+      services = [];
+    }
 
     console.log("[API /api/services GET] Query results - Total:", total, "Returned:", services.length);
     console.log(`[API /api/services GET] Server-filtered available slots [${requestId}]`);

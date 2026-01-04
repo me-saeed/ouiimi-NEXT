@@ -179,7 +179,14 @@ export default async function HomePage() {
 
             {SERVICE_CATEGORIES.map((category) => {
               const categoryServices = servicesData[category] || [];
-              if (categoryServices.length === 0) return null;
+
+              // DOUBLE CHECK: Filter locally as well to ensure getEarliestAvailableTimeSlot returns a valid value.
+              // This acts as a safety layer so we never show cards with "null" dates if server/client time differs slightly.
+              const filteredServices = categoryServices.filter(
+                service => getEarliestAvailableTimeSlot(service) !== null
+              );
+
+              if (filteredServices.length === 0) return null;
 
               return (
                 <ServiceCarousel
@@ -189,7 +196,7 @@ export default async function HomePage() {
                   showMoreHref={`/category/${encodeURIComponent(category)}`}
                   category={category}
                 >
-                  {categoryServices.map((service) => (
+                  {filteredServices.map((service) => (
                     <div key={service.id || service._id} className="flex-shrink-0">
                       <ServiceCard
                         {...formatServiceForCard(service)}

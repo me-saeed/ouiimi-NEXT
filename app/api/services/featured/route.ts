@@ -6,6 +6,8 @@ import { getAllCategories } from "@/lib/constants/categories";
 // Enable revalidation for this route
 export const dynamic = 'force-dynamic';
 
+import { getGlobalBusyMap, isStaffBusy } from "@/lib/utils/availability";
+
 export async function GET(req: NextRequest) {
     const requestId = Math.random().toString(36).substring(7);
     console.time(`[API /api/services/featured GET] Execution time [${requestId}]`);
@@ -49,6 +51,10 @@ export async function GET(req: NextRequest) {
                                 0
                             ]
                         },
+                        // Check top-level isBooked flag (Legacy/Manual block consistency)
+                        {
+                            $ne: ["$$slot.isBooked", true]
+                        },
                         // Future dates logic only (since filterDateObj is null)
                         {
                             $or: [
@@ -75,14 +81,15 @@ export async function GET(req: NextRequest) {
                                                         year: { $year: "$$slot.date" },
                                                         month: { $month: "$$slot.date" },
                                                         day: { $dayOfMonth: "$$slot.date" },
+                                                        // LEGACY LOGIC: Check END TIME (allow in-progress slots)
                                                         hour: {
                                                             $toInt: {
-                                                                $arrayElemAt: [{ $split: ["$$slot.startTime", ":"] }, 0],
+                                                                $arrayElemAt: [{ $split: ["$$slot.endTime", ":"] }, 0],
                                                             },
                                                         },
                                                         minute: {
                                                             $toInt: {
-                                                                $arrayElemAt: [{ $split: ["$$slot.startTime", ":"] }, 1],
+                                                                $arrayElemAt: [{ $split: ["$$slot.endTime", ":"] }, 1],
                                                             },
                                                         },
                                                     },
@@ -141,8 +148,8 @@ export async function GET(req: NextRequest) {
                 {
                     $match: { "availableTimeSlots.0": { $exists: true } }
                 },
-                // Limit to 6
-                { $limit: 6 },
+                // Limit to 20 (BUFFER) to allow for runtime filtering of busy staff
+                { $limit: 20 },
                 // Project needed fields
                 {
                     $project: {
@@ -173,14 +180,71 @@ export async function GET(req: NextRequest) {
 
         const [facetResult] = await Service.aggregate(pipeline);
 
-        // Format results
+        // facetResult is an array with one object containing all keys
+        const rawResults = facetResult || {};
         const servicesData: Record<string, any[]> = {};
 
-        // facetResult is an array with one object containing all keys
-        const results = facetResult || {};
+        // ================================================================================================
+        // RUNTIME GLOBAL AVAILABILITY CHECK (Legacy Logic)
+        // ================================================================================================
 
-        Object.keys(results).forEach(key => {
-            const services = results[key] || [];
+        // 1. Collect ALL staff IDs across all fetched services
+        const allStaffIdsSet = new Set<string>();
+        Object.keys(rawResults).forEach(key => {
+            const services = rawResults[key] || [];
+            services.forEach((s: any) => {
+                s.timeSlots?.forEach((ts: any) => {
+                    ts.staffIds?.forEach((staff: any) => {
+                        const sid = typeof staff === 'string' ? staff : String(staff.staffId || staff.id || staff);
+                        if (sid) allStaffIdsSet.add(sid);
+                    });
+                });
+            });
+        });
+
+        // 2. Fetch busy map for next 2 months
+        const startDate = new Date();
+        const endDate = new Date();
+        endDate.setMonth(endDate.getMonth() + 2);
+        const busyMap = await getGlobalBusyMap(Array.from(allStaffIdsSet), startDate, endDate);
+
+        // 3. Process each category and filter strict availability
+        Object.keys(rawResults).forEach(key => {
+            let services = rawResults[key] || [];
+
+            // Apply strict runtime filtering
+            services = services.map((s: any) => {
+                // Check each slot against busyMap
+                const processedSlots = (s.timeSlots || []).map((ts: any) => {
+                    const updatedStaffIds = ts.staffIds?.map((staff: any) => {
+                        const staffIdStr = typeof staff === 'string' ? staff : String(staff.staffId || staff.id || staff);
+                        const isGloballyBooked = isStaffBusy(busyMap, staffIdStr, ts.date, ts.startTime, ts.endTime);
+
+                        if (typeof staff === 'string' || !staff.staffId) {
+                            return { staffId: staffIdStr, isBooked: isGloballyBooked };
+                        }
+                        return { ...staff, isBooked: staff.isBooked || isGloballyBooked };
+                    }) || [];
+
+                    const isFullyBooked = updatedStaffIds.length > 0 && updatedStaffIds.every((ss: any) => ss.isBooked);
+
+                    return {
+                        ...ts,
+                        staffIds: updatedStaffIds,
+                        isBooked: ts.isBooked || isFullyBooked
+                    };
+                }).filter((ts: any) => !ts.isBooked); // Remove booked slots
+
+                return {
+                    ...s,
+                    timeSlots: processedSlots
+                };
+            }).filter((s: any) => s.timeSlots.length > 0); // Remove services with no slots left
+
+            // 4. Slice to top 6 AFTER accurate filtering
+            services = services.slice(0, 6);
+
+            // 5. Format for response
             servicesData[key] = services.map((s: any) => ({
                 id: s._id?.toString() || s._id,
                 _id: s._id?.toString() || s._id,
