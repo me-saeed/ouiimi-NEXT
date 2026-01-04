@@ -28,11 +28,11 @@ interface Service {
 }
 
 // Server-side data fetching function
-async function fetchCategoryServices(category: string): Promise<{ services: Service[], total: number }> {
+async function fetchFeaturedServices(): Promise<Record<string, Service[]>> {
   try {
     const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
     const response = await fetch(
-      `${baseUrl}/api/services?category=${encodeURIComponent(category)}&status=listed&limit=12`,
+      `${baseUrl}/api/services/featured`,
       {
         next: { revalidate: 5 }, // Cache for 5 seconds
         headers: {
@@ -42,28 +42,15 @@ async function fetchCategoryServices(category: string): Promise<{ services: Serv
     );
 
     if (!response.ok) {
-      console.error(`[Homepage Server] ${category} - API error:`, response.status);
-      return { services: [], total: 0 };
+      console.error(`[Homepage Server] API error:`, response.status);
+      return {};
     }
 
     const data = await response.json();
-    const services = data.services || [];
-    let total = data.pagination?.total || services.length || 0;
-
-    // FIX: If we received fewer services than the limit (12), it means we've reached the end
-    // of the available services (after filtering), regardless of what the initial DB count says.
-    // Override total to match actual services so "See More" doesn't appear incorrectly.
-    if (services.length < 12) {
-      total = services.length;
-    }
-
-    return {
-      services,
-      total,
-    };
+    return data.services || {};
   } catch (error) {
-    console.error(`[Homepage Server] Error fetching ${category}:`, error);
-    return { services: [], total: 0 };
+    console.error(`[Homepage Server] Error fetching featured services:`, error);
+    return {};
   }
 }
 
@@ -81,45 +68,30 @@ function getEarliestAvailableTimeSlot(service: Service) {
     return null;
   }
 
-  const now = new Date();
+  // Pre-filtered by server, but checking implementation
+  const validSlots = service.timeSlots;
 
-  const availableSlots = service.timeSlots
-    .filter((slot) => {
-      if (slot.isBooked) return false;
-
-      const slotDate = typeof slot.date === 'string' ? new Date(slot.date) : new Date(slot.date);
-      const slotDateOnly = new Date(slotDate.getFullYear(), slotDate.getMonth(), slotDate.getDate());
-      const nowDateOnly = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-
-      if (slotDateOnly.getTime() === nowDateOnly.getTime()) {
-        const [endHours, endMinutes] = slot.endTime.split(":").map(Number);
-        const slotEndDateTime = new Date(slotDate);
-        slotEndDateTime.setHours(endHours, endMinutes, 0, 0);
-        return slotEndDateTime > now;
-      }
-
-      return slotDateOnly > nowDateOnly;
-    })
-    .sort((a, b) => {
-      const dateA = typeof a.date === 'string' ? new Date(a.date) : new Date(a.date);
-      const dateB = typeof b.date === 'string' ? new Date(b.date) : new Date(b.date);
-
-      if (dateA.getTime() !== dateB.getTime()) {
-        return dateA.getTime() - dateB.getTime();
-      }
-
-      const [hoursA, minsA] = a.startTime.split(":").map(Number);
-      const [hoursB, minsB] = b.startTime.split(":").map(Number);
-      const timeA = hoursA * 60 + minsA;
-      const timeB = hoursB * 60 + minsB;
-      return timeA - timeB;
-    });
-
-  if (availableSlots.length === 0) {
+  if (validSlots.length === 0) {
     return null;
   }
 
-  const earliestSlot = availableSlots[0];
+  // Sort locally just in case, though server filtering implies some order or raw
+  // We want the absolute earliest
+  const sortedSlots = [...validSlots].sort((a, b) => {
+    const dateA = typeof a.date === 'string' ? new Date(a.date) : new Date(a.date);
+    const dateB = typeof b.date === 'string' ? new Date(b.date) : new Date(b.date);
+
+    const timeA = dateA.getTime();
+    const timeB = dateB.getTime();
+
+    if (timeA !== timeB) return timeA - timeB;
+
+    const [hA, mA] = a.startTime.split(":").map(Number);
+    const [hB, mB] = b.startTime.split(":").map(Number);
+    return (hA * 60 + mA) - (hB * 60 + mB);
+  });
+
+  const earliestSlot = sortedSlots[0];
   const slotDate = typeof earliestSlot.date === 'string' ? new Date(earliestSlot.date) : new Date(earliestSlot.date);
 
   const formattedDate = `${String(slotDate.getDate()).padStart(2, "0")}.${String(slotDate.getMonth() + 1).padStart(2, "0")}.${String(slotDate.getFullYear()).slice(-2)}`;
@@ -138,11 +110,16 @@ function formatServiceForCard(service: Service) {
 
   let duration = "";
   if (earliestSlot && service.timeSlots && service.timeSlots.length > 0) {
+    // Find the slot object corresponding to earliestSlot
+    // Simpler matching since we know it came from the array
     const slot = service.timeSlots.find(s => {
-      const slotDate = typeof s.date === 'string' ? new Date(s.date) : new Date(s.date);
-      const formattedDate = `${String(slotDate.getDate()).padStart(2, "0")}.${String(slotDate.getMonth() + 1).padStart(2, "0")}.${String(slotDate.getFullYear()).slice(-2)}`;
-      return formattedDate === earliestSlot.date;
-    });
+      const d = typeof s.date === 'string' ? new Date(s.date) : new Date(s.date);
+      const fDate = `${String(d.getDate()).padStart(2, "0")}.${String(d.getMonth() + 1).padStart(2, "0")}.${String(d.getFullYear()).slice(-2)}`;
+      // Basic match on date/time/price to find correct duration
+      const fTime = `${formatTime12Hour(s.startTime)} - ${formatTime12Hour(s.endTime)}`;
+      return fDate === earliestSlot.date && fTime === earliestSlot.time;
+    }) || service.timeSlots[0]; // Fallback
+
     if (slot && slot.duration) {
       const hours = Math.floor(slot.duration / 60);
       const mins = slot.duration % 60;
@@ -173,22 +150,8 @@ function formatServiceForCard(service: Service) {
 
 // Main Server Component
 export default async function HomePage() {
-  // Fetch all categories in parallel
-  const categoriesData = await Promise.all(
-    SERVICE_CATEGORIES.map(async (category) => ({
-      category,
-      ...(await fetchCategoryServices(category)),
-    }))
-  );
-
-  // Convert to object for easier access
-  const servicesData: Record<string, Service[]> = {};
-  const serviceCounts: Record<string, number> = {};
-
-  categoriesData.forEach(({ category, services, total }) => {
-    servicesData[category] = services;
-    serviceCounts[category] = total;
-  });
+  // FAST: Single fetch for all categories
+  const servicesData = await fetchFeaturedServices();
 
   return (
     <PageLayout>
@@ -216,34 +179,23 @@ export default async function HomePage() {
 
             {SERVICE_CATEGORIES.map((category) => {
               const categoryServices = servicesData[category] || [];
-              const totalCount = serviceCounts[category] || 0;
-
               if (categoryServices.length === 0) return null;
-
-              // Filter services with available time slots
-              const filteredServices = categoryServices.filter(
-                service => getEarliestAvailableTimeSlot(service) !== null
-              );
-
-              if (filteredServices.length === 0) return null;
 
               return (
                 <ServiceCarousel
                   key={category}
                   title={category}
-                  totalCount={totalCount}
+                  totalCount={6} // Fixed 6+ indicator
                   showMoreHref={`/category/${encodeURIComponent(category)}`}
                   category={category}
                 >
-                  {filteredServices
-                    .slice(0, 6)
-                    .map((service) => (
-                      <div key={service.id || service._id} className="flex-shrink-0">
-                        <ServiceCard
-                          {...formatServiceForCard(service)}
-                        />
-                      </div>
-                    ))}
+                  {categoryServices.map((service) => (
+                    <div key={service.id || service._id} className="flex-shrink-0">
+                      <ServiceCard
+                        {...formatServiceForCard(service)}
+                      />
+                    </div>
+                  ))}
                 </ServiceCarousel>
               );
             })}

@@ -304,6 +304,139 @@ async function getServicesHandler(req: NextRequest) {
       }
     };
 
+    const now = new Date();
+    const filterDateObj = date ? new Date(date) : null;
+
+    // ================================================================================================
+    // SHARED SLOT FILTERING LOGIC via Aggregation
+    // Check if slots are available (future date/time + not booked)
+    // ================================================================================================
+    const availableTimeSlotsStage = {
+      $filter: {
+        input: "$timeSlots",
+        as: "slot",
+        cond: {
+          $and: [
+            // Check if slot has AT LEAST ONE staff who is NOT booked
+            {
+              $gt: [
+                {
+                  $size: {
+                    $filter: {
+                      input: "$$slot.staffIds",
+                      as: "staff",
+                      cond: {
+                        $or: [
+                          // Case 1: New format { staffId, isBooked: false }
+                          { $eq: ["$$staff.isBooked", false] },
+                          // Case 2: Legacy format (just a string ID) -> assume available
+                          { $eq: [{ $type: "$$staff" }, "string"] },
+                          { $eq: [{ $type: "$$staff" }, "objectId"] }
+                        ]
+                      }
+                    }
+                  }
+                },
+                0
+              ]
+            },
+            // Date filtering with TIME check (not just date)
+            filterDateObj
+              ? {
+                // For specific date filter, just check date match
+                $eq: [
+                  {
+                    $dateToString: {
+                      format: "%Y-%m-%d",
+                      date: "$$slot.date",
+                    },
+                  },
+                  {
+                    $dateToString: {
+                      format: "%Y-%m-%d",
+                      date: filterDateObj,
+                    },
+                  },
+                ],
+              }
+              : {
+                // For general listing, filter by date+time to exclude past slots
+                $or: [
+                  // Future dates (after today)
+                  {
+                    $gt: [
+                      {
+                        $dateToString: {
+                          format: "%Y-%m-%d",
+                          date: "$$slot.date",
+                        },
+                      },
+                      {
+                        $dateToString: {
+                          format: "%Y-%m-%d",
+                          date: now,
+                        },
+                      },
+                    ],
+                  },
+                  // Today's date but check time hasn't passed
+                  {
+                    $and: [
+                      // Same date as today
+                      {
+                        $eq: [
+                          {
+                            $dateToString: {
+                              format: "%Y-%m-%d",
+                              date: "$$slot.date",
+                            },
+                          },
+                          {
+                            $dateToString: {
+                              format: "%Y-%m-%d",
+                              date: now,
+                            },
+                          },
+                        ],
+                      },
+                      // Time hasn't passed yet
+                      {
+                        $gt: [
+                          {
+                            $dateFromParts: {
+                              year: { $year: "$$slot.date" },
+                              month: { $month: "$$slot.date" },
+                              day: { $dayOfMonth: "$$slot.date" },
+                              hour: {
+                                $toInt: {
+                                  $arrayElemAt: [
+                                    { $split: ["$$slot.startTime", ":"] },
+                                    0,
+                                  ],
+                                },
+                              },
+                              minute: {
+                                $toInt: {
+                                  $arrayElemAt: [
+                                    { $split: ["$$slot.startTime", ":"] },
+                                    1,
+                                  ],
+                                },
+                              },
+                            },
+                          },
+                          now,
+                        ],
+                      },
+                    ],
+                  },
+                ],
+              },
+          ],
+        },
+      },
+    };
+
     // Geospatial query: Find services within radius (default 15km)
     if (latitude && longitude) {
       const lat = parseFloat(latitude);
@@ -338,6 +471,16 @@ async function getServicesHandler(req: NextRequest) {
               preserveNullAndEmptyArrays: true,
             },
           },
+          // ADD AVAILABLE SLOTS CALCULATION FOR GEOSPATIAL
+          {
+            $addFields: {
+              availableTimeSlots: availableTimeSlotsStage
+            }
+          },
+          // FILTER OUT FULLY BOOKED SERVICES (If public request)
+          ...(businessId ? [] : [{
+            $match: { "availableTimeSlots.0": { $exists: true } }
+          }]),
           {
             $project: {
               _id: 1,
@@ -353,7 +496,8 @@ async function getServicesHandler(req: NextRequest) {
               description: 1,
               address: 1,
               addOns: 1,
-              timeSlots: 1,
+              // Return available slots if public, else all
+              timeSlots: businessId ? "$timeSlots" : "$availableTimeSlots",
               status: 1,
               createdAt: 1,
               distance: 1,
@@ -370,7 +514,8 @@ async function getServicesHandler(req: NextRequest) {
           },
         ]);
 
-        const countResult = await Service.aggregate([
+        // Fix count to also respect the filter
+        const countPipeline: any[] = [
           {
             $geoNear: {
               near: {
@@ -378,15 +523,25 @@ async function getServicesHandler(req: NextRequest) {
                 coordinates: [lng, lat], // [longitude, latitude]
               },
               distanceField: "distance",
-              maxDistance: radius * 1000, // Convert km to meters
+              maxDistance: radius * 1000,
               spherical: true,
               query: filter,
             },
           },
           {
-            $count: "total",
-          },
-        ]);
+            $addFields: {
+              availableTimeSlots: availableTimeSlotsStage
+            }
+          }
+        ];
+
+        if (!businessId) {
+          countPipeline.push({ $match: { "availableTimeSlots.0": { $exists: true } } });
+        }
+
+        countPipeline.push({ $count: "total" });
+
+        const countResult = await Service.aggregate(countPipeline);
 
         const total = countResult.length > 0 ? countResult[0].total : 0;
 
@@ -394,7 +549,8 @@ async function getServicesHandler(req: NextRequest) {
           services: services
             .filter((s: any) => s.businessId)
             .map((s: any) => {
-              const availableSlots = filterTimeSlotsByDate(s.timeSlots || [], date);
+              // Time slots are already filtered by server aggregation
+              const slotsToUse = s.timeSlots || [];
               return {
                 id: s._id?.toString() || s._id,
                 _id: s._id?.toString() || s._id,
@@ -410,7 +566,7 @@ async function getServicesHandler(req: NextRequest) {
                   ? s.address.location
                   : null,
                 addOns: s.addOns || [],
-                timeSlots: availableSlots.map((ts: any) => ({
+                timeSlots: slotsToUse.map((ts: any) => ({
                   date: ts.date,
                   startTime: ts.startTime,
                   endTime: ts.endTime,
@@ -423,9 +579,7 @@ async function getServicesHandler(req: NextRequest) {
                 createdAt: s.createdAt,
                 distance: s.distance ? (s.distance / 1000).toFixed(2) : null,
               };
-            })
-            // Filter out services with no available time slots (fully booked)
-            .filter((s: any) => s.timeSlots.length > 0),
+            }),
           pagination: {
             total,
             page,
@@ -440,152 +594,27 @@ async function getServicesHandler(req: NextRequest) {
     // Non-geospatial query - Use aggregation for server-side filtering
     console.log("[API /api/services GET] Executing database query with filter:", filter);
 
-    const now = new Date();
-    const filterDateObj = date ? new Date(date) : null;
+
 
     // Build aggregation pipeline for server-side slot filtering
     const aggregationPipeline: any[] = [
       { $match: filter },
       {
         $addFields: {
-          availableTimeSlots: {
-            $filter: {
-              input: "$timeSlots",
-              as: "slot",
-              cond: {
-                $and: [
-                  // ✅ RESILIENT FORMAT: handle both objects and legacy strings
-                  // Check if slot has AT LEAST ONE staff who is NOT booked
-                  {
-                    $gt: [
-                      {
-                        $size: {
-                          $filter: {
-                            input: "$$slot.staffIds",
-                            as: "staff",
-                            cond: {
-                              $or: [
-                                // Case 1: New format { staffId, isBooked: false }
-                                { $eq: ["$$staff.isBooked", false] },
-                                // Case 2: Legacy format (just a string ID) -> assume available
-                                { $eq: [{ $type: "$$staff" }, "string"] },
-                                { $eq: [{ $type: "$$staff" }, "objectId"] }
-                              ]
-                            }
-                          }
-                        }
-                      },
-                      0
-                    ]
-                  },
-                  // Date filtering with TIME check (not just date)
-                  filterDateObj
-                    ? {
-                      // For specific date filter, just check date match
-                      $eq: [
-                        {
-                          $dateToString: {
-                            format: "%Y-%m-%d",
-                            date: "$$slot.date",
-                          },
-                        },
-                        {
-                          $dateToString: {
-                            format: "%Y-%m-%d",
-                            date: filterDateObj,
-                          },
-                        },
-                      ],
-                    }
-                    : {
-                      // For general listing, filter by date+time to exclude past slots
-                      $or: [
-                        // Future dates (after today)
-                        {
-                          $gt: [
-                            {
-                              $dateToString: {
-                                format: "%Y-%m-%d",
-                                date: "$$slot.date",
-                              },
-                            },
-                            {
-                              $dateToString: {
-                                format: "%Y-%m-%d",
-                                date: now,
-                              },
-                            },
-                          ],
-                        },
-                        // Today's date but check time hasn't passed
-                        {
-                          $and: [
-                            // Same date as today
-                            {
-                              $eq: [
-                                {
-                                  $dateToString: {
-                                    format: "%Y-%m-%d",
-                                    date: "$$slot.date",
-                                  },
-                                },
-                                {
-                                  $dateToString: {
-                                    format: "%Y-%m-%d",
-                                    date: now,
-                                  },
-                                },
-                              ],
-                            },
-                            // Time hasn't passed yet - construct datetime and compare
-                            {
-                              $gt: [
-                                {
-                                  $dateFromParts: {
-                                    year: { $year: "$$slot.date" },
-                                    month: { $month: "$$slot.date" },
-                                    day: { $dayOfMonth: "$$slot.date" },
-                                    hour: {
-                                      $toInt: {
-                                        $arrayElemAt: [
-                                          { $split: ["$$slot.startTime", ":"] },
-                                          0,
-                                        ],
-                                      },
-                                    },
-                                    minute: {
-                                      $toInt: {
-                                        $arrayElemAt: [
-                                          { $split: ["$$slot.startTime", ":"] },
-                                          1,
-                                        ],
-                                      },
-                                    },
-                                  },
-                                },
-                                now,
-                              ],
-                            },
-                          ],
-                        },
-                      ],
-                    },
-                ],
-              },
-            },
-          },
+          availableTimeSlots: availableTimeSlotsStage
         },
       },
     ];
 
     // NEW: Filter out services with NO available slots (Fully Booked)
     // Only apply for public listings (not business dashboard)
-    // if (!businessId) {
-    //   aggregationPipeline.push({
-    //     $match: { "availableTimeSlots.0": { $exists: true } }
-    //   });
-    // }
+    if (!businessId) {
+      aggregationPipeline.push({
+        $match: { "availableTimeSlots.0": { $exists: true } }
+      });
+    }
 
+    // Continue with rest of pipeline
     aggregationPipeline.push(
       {
         $lookup: {
