@@ -252,7 +252,7 @@ jobs:
               nvm alias default 20 || true
 
               NEW_NODE_VERSION=$(node -v)
-              echo "✅ Node.js updated to: $NEW_NODE_VERSION"
+              echo "✅ this is just Node.js updated to: $NEW_NODE_VERSION"
             else
               echo "✅ Node.js version $NODE_VERSION is compatible"
             fi
