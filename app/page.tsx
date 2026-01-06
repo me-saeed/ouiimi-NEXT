@@ -4,8 +4,11 @@ import { ServiceCard } from "@/components/ui/service-card";
 import { ServiceCarousel } from "@/components/ui/service-carousel";
 import { getAllCategories } from "@/lib/constants/categories";
 
-// Enable ISR - revalidate every 5 seconds (Near Real-time)
-export const revalidate = 5;
+// ISR with 30-second revalidation
+// - First request: serves cached page (fast)
+// - After 30 sec: next request triggers background regeneration
+// - Balance between freshness and server load
+export const revalidate = 30;
 
 // Get all category names for homepage display
 const SERVICE_CATEGORIES = getAllCategories().map(cat => cat.name);

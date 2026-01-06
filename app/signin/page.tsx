@@ -42,9 +42,8 @@ export default function SigninPage() {
         // Role based redirect if no requested path
         if (isAdmin) {
           router.replace('/admin/dashboard');
-        } else if (hasRole('business')) {
-          router.replace('/business/dashboard');
         } else {
+          // All other users (including business) go to homepage
           router.replace('/');
         }
       }
@@ -132,14 +131,17 @@ export default function SigninPage() {
 
         if (userRole === 'admin') {
           redirectUrl = '/admin/dashboard';
-        } else if (userRole === 'business') {
-          redirectUrl = '/business/dashboard';
         }
-        // Regular users stay at "/"
+        // All other users (including business) go to homepage "/"
+        // Business users can manually navigate to /business to access their dashboard
       }
 
       // Refresh AuthContext state BEFORE redirecting
-      await refreshSession();
+      try {
+        await refreshSession();
+      } catch (e) {
+        console.error('[Signin] Session refresh failed:', e);
+      }
 
       // Use hard redirect for admin to ensure middleware picks up the new cookie
       // This is more reliable than client-side router.replace for role changes
