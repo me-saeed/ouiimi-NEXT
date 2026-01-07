@@ -44,7 +44,7 @@ export const SERVICE_CATEGORIES: Record<string, Category> = {
             { name: "Upstyle", slug: "upstyle" },
             { name: "Braids", slug: "braids" },
 
-            // Colouring services
+            // Colouring services - existing
             { name: "Regrowth Colour", slug: "regrowth-colour" },
             { name: "All-Over Colour – Short", slug: "all-over-colour-short" },
             { name: "All-Over Colour – Medium", slug: "all-over-colour-medium" },
@@ -56,6 +56,25 @@ export const SERVICE_CATEGORIES: Record<string, Category> = {
             { name: "Toner / Gloss", slug: "toner-gloss" },
             { name: "Colour Correction", slug: "colour-correction" },
             { name: "Scalp Bleach + Tone", slug: "scalp-bleach-tone" },
+
+            // NEW: Tint & Foils combo services
+            { name: "Tint Re-Growth – Cut & Blow Wave", slug: "tint-regrowth-cut-blow" },
+            { name: "Tint Re-Growth (6 Weeks+) – Cut & Blow Wave", slug: "tint-regrowth-6weeks-cut-blow" },
+            { name: "1/4 Head Foils – Toner – Cut & Blow Wave", slug: "quarter-foils-toner-cut-blow" },
+            { name: "1/2 Head Foils – Toner – Cut & Blow Wave", slug: "half-foils-toner-cut-blow" },
+            { name: "3/4 Head Foils – Toner – Cut & Blow Wave", slug: "threequarter-foils-toner-cut-blow" },
+            { name: "Full Head Foils – Toner – Cut & Blow Wave", slug: "full-foils-toner-cut-blow" },
+            { name: "Full Head Foils (Back to Back) – Toner – Cut & Blow Wave", slug: "full-foils-b2b-toner-cut-blow" },
+            { name: "1/4 Head Foils – Tint – Cut & Blow Wave", slug: "quarter-foils-tint-cut-blow" },
+            { name: "1/2 Head Foils – Tint – Cut & Blow Wave", slug: "half-foils-tint-cut-blow" },
+            { name: "Balayage – Toner – Cut & Blow Wave", slug: "balayage-toner-cut-blow" },
+            { name: "All Over Colour – Cut & Blow Wave", slug: "all-over-colour-cut-blow" },
+
+            // NEW: Foils to roots only
+            { name: "1/4 Head Foils – To Roots", slug: "quarter-foils-roots" },
+            { name: "1/2 Head Foils – To Roots", slug: "half-foils-roots" },
+            { name: "3/4 Head Foils – To Roots", slug: "threequarter-foils-roots" },
+            { name: "Full Head Foils – To Roots", slug: "full-foils-roots" },
 
             // Texture services
             { name: "Keratin Smoothing", slug: "keratin-smoothing" },
@@ -88,6 +107,41 @@ export const SERVICE_CATEGORIES: Record<string, Category> = {
             "Root Shadow/Blend",
             "Gloss Refresh",
             "Colour Lock Treatment",
+            // NEW: Root Tint add-on
+            "Root Tint with Foils",
+        ],
+    },
+
+    MENS: {
+        name: "Men's Haircut Services",
+        slug: "mens-haircut-services",
+        description: "Professional men's haircuts, fades, beard grooming, and styling",
+        subcategories: [
+            // Core cuts
+            { name: "Men's Cut", slug: "mens-cut" },
+            { name: "Men's Cut (Short)", slug: "mens-cut-short" },
+            { name: "Men's Cut (Medium)", slug: "mens-cut-medium" },
+            { name: "Men's Cut (Long)", slug: "mens-cut-long" },
+            { name: "Restyle Cut", slug: "mens-restyle-cut" },
+            { name: "Skin Fade", slug: "skin-fade" },
+            { name: "Taper Fade", slug: "taper-fade" },
+            { name: "Scissor Cut", slug: "scissor-cut" },
+            { name: "Buzz Cut", slug: "buzz-cut" },
+            { name: "Senior Men's Cut", slug: "senior-mens-cut" },
+            { name: "Student / Youth Cut", slug: "student-youth-cut" },
+
+            // Combo services
+            { name: "Men's Cut & Beard Trim", slug: "mens-cut-beard-trim" },
+            { name: "Skin Fade & Beard Shape", slug: "skin-fade-beard-shape" },
+            { name: "Cut, Wash & Style", slug: "cut-wash-style" },
+        ],
+        addOns: [
+            "Beard Trim",
+            "Beard Shape & Line-Up",
+            "Hot Towel Finish",
+            "Neck & Hairline Clean-Up",
+            "Hair Wash",
+            "Styling & Finish",
         ],
     },
 
@@ -109,6 +163,7 @@ export const SERVICE_CATEGORIES: Record<string, Category> = {
         slug: "nails",
         description: "Professional nail care, manicures, pedicures, and nail art",
         subcategories: [
+            // Existing services
             { name: "Manicure – Classic", slug: "manicure-classic" },
             { name: "Manicure – Gel/Shellac", slug: "manicure-gel" },
             { name: "Manicure – Deluxe (spa, exfoliation, massage)", slug: "manicure-deluxe" },
@@ -118,13 +173,36 @@ export const SERVICE_CATEGORIES: Record<string, Category> = {
             { name: "Acrylic Extensions – Full Set", slug: "acrylic-full" },
             { name: "Acrylic Infill / Refill", slug: "acrylic-infill" },
             { name: "SNS / Dip Powder – Full Set", slug: "sns-full" },
+
+            // NEW: Additional nail services
+            { name: "Gel X", slug: "gel-x" },
+            { name: "Acrylic", slug: "acrylic" },
+            { name: "BIAB (Builder Gel in a Bottle)", slug: "biab" },
+            { name: "Gel Manicure", slug: "gel-manicure" },
+            { name: "Dry Pedicure", slug: "dry-pedicure" },
+            { name: "Dry Pedicure & Nails Bundle", slug: "dry-pedicure-nails-bundle" },
+            { name: "Soak Off & Reapply (Gel X)", slug: "soak-off-reapply-gel-x" },
+            { name: "Acrylic Infill", slug: "acrylic-infill-new" },
+            { name: "BIAB Infill", slug: "biab-infill" },
+            { name: "Nail Repair (Per Nail)", slug: "nail-repair-per-nail" },
+            { name: "Charm / Gem Repair (Per Nail)", slug: "charm-gem-repair-per-nail" },
         ],
         addOns: [
+            // Existing add-ons
             "Nail Art",
             "French Tip",
             "Gel Polish Upgrade",
             "Paraffin Wax",
             "Cuticle Treatment",
+
+            // NEW: Nail art tiers and extras
+            "Tier 1 Nail Art",
+            "Tier 2 Nail Art",
+            "Tier 3 Nail Art",
+            "French Tip Full Set",
+            "Soak Off with Service",
+            "Soak Off (My Work)",
+            "After Hours / Weekend Fee",
         ],
     },
 
@@ -133,6 +211,7 @@ export const SERVICE_CATEGORIES: Record<string, Category> = {
         slug: "beauty-brows",
         description: "Eyebrow shaping, lash treatments, waxing, and facial hair removal",
         subcategories: [
+            // Existing services
             { name: "Eyebrow Shape / Wax / Thread", slug: "eyebrow-shape" },
             { name: "Eyebrow Tint", slug: "eyebrow-tint" },
             { name: "Lash Tint", slug: "lash-tint" },
@@ -144,6 +223,41 @@ export const SERVICE_CATEGORIES: Record<string, Category> = {
             { name: "Underarm / Arm Wax", slug: "underarm-arm-wax" },
             { name: "Leg Wax – Half / Full", slug: "leg-wax" },
             { name: "Bikini / Brazilian Wax", slug: "bikini-brazilian" },
+
+            // NEW: Lash services
+            { name: "Perm Point Lash", slug: "perm-point-lash" },
+            { name: "Lush Lash Lift", slug: "lush-lash-lift" },
+            { name: "Just The Tint Will Do", slug: "just-the-tint" },
+            { name: "Intuitive Full Set", slug: "intuitive-full-set" },
+            { name: "Wispy Speedy Full Set", slug: "wispy-speedy-full-set" },
+            { name: "Wispy Deluxe Full Set", slug: "wispy-deluxe-full-set" },
+            { name: "Lash Refill", slug: "lash-refill" },
+            { name: "Lash Removal", slug: "lash-removal" },
+
+            // NEW: Lash promos
+            { name: "Perm Point Lash Promo", slug: "perm-point-lash-promo" },
+            { name: "Lush + Gossamer Promo", slug: "lush-gossamer-promo" },
+            { name: "Lush + Naked Promo", slug: "lush-naked-promo" },
+
+            // NEW: Brow services
+            { name: "Gossamer Brow Lamination", slug: "gossamer-brow-lamination" },
+            { name: "Naked Brow Lamination", slug: "naked-brow-lamination" },
+            { name: "HD Brow Sculpt & Wax (First Visit)", slug: "hd-brow-sculpt-first" },
+            { name: "HD Brow Maintenance", slug: "hd-brow-maintenance" },
+            { name: "Brow Maintenance Wax", slug: "brow-maintenance-wax" },
+            { name: "Just The Dye Will Do", slug: "just-the-dye" },
+
+            // NEW: Individual waxing services
+            { name: "Lip Wax", slug: "lip-wax" },
+            { name: "Chin Wax", slug: "chin-wax" },
+            { name: "Sideburn Wax", slug: "sideburn-wax" },
+            { name: "Nose Wax", slug: "nose-wax" },
+            { name: "Full Face Wax", slug: "full-face-wax" },
+            { name: "Underarm Wax", slug: "underarm-wax" },
+            { name: "Half Arm Wax", slug: "half-arm-wax" },
+            { name: "Full Arm Wax", slug: "full-arm-wax" },
+            { name: "Half Leg Wax", slug: "half-leg-wax" },
+            { name: "Full Leg Wax", slug: "full-leg-wax" },
         ],
         addOns: [
             "Brow Tint",
