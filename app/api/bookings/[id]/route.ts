@@ -18,6 +18,7 @@ import { authenticateRequest } from "@/lib/api-auth";
 import { applyRateLimit } from "@/lib/rate-limit";
 import { APIError, asyncHandler, successResponse } from "@/lib/api-response";
 import EmailService from "@/lib/email-service";
+import { getBusinessSession } from "@/lib/business-session";
 import { z } from "zod";
 import mongoose from "mongoose";
 
@@ -87,8 +88,15 @@ async function updateBookingHandler(
     throw new APIError(404, "Booking not found", "NOT_FOUND");
   }
 
-  // Security: Verify ownership
-  if (String(booking.userId) !== String(session.userId)) {
+  // Check if user is business owner via business session
+  // This allows business owners to update/complete bookings for their business
+  const businessSession = await getBusinessSession();
+  const bookingBusinessId = booking.businessId?._id || booking.businessId;
+  const isBusinessOwner = businessSession?.businessId &&
+    String(bookingBusinessId) === String(businessSession.businessId);
+
+  // Security: Verify ownership (customer OR business owner)
+  if (String(booking.userId) !== String(session.userId) && !isBusinessOwner) {
     throw new APIError(403, "You can only update your own bookings", "FORBIDDEN");
   }
 
