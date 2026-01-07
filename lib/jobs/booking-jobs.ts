@@ -6,6 +6,7 @@
 import { Booking, Service, User, Business } from '@/lib/models';
 import dbConnect from '@/lib/db';
 import EmailService from '@/lib/email-service';
+import { parseLocalDate } from '@/lib/utils/date-utils';
 
 export class BookingJobs {
     /**
@@ -31,8 +32,9 @@ export class BookingJobs {
 
             for (const booking of bookingsToComplete) {
                 try {
-                    // Parse booking end time
-                    const bookingDate = new Date(booking.timeSlot.date);
+                    // Parse booking end time using parseLocalDate for timezone safety
+                    // This prevents UTC midnight interpretation issues
+                    const bookingDate = parseLocalDate(booking.timeSlot.date);
                     const [endHour, endMinute] = booking.timeSlot.endTime.split(':');
                     const bookingEndDateTime = new Date(bookingDate);
                     bookingEndDateTime.setHours(parseInt(endHour, 10), parseInt(endMinute, 10), 0, 0);

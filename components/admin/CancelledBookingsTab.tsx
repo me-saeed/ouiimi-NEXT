@@ -50,7 +50,12 @@ export function CancelledBookingsTab() {
 
             {/* Content */}
             {isLoading ? (
-                <div className="text-center py-12 text-gray-500">Loading cancelled bookings...</div>
+                <div className="flex items-center justify-center py-20">
+                    <div className="flex flex-col items-center gap-4">
+                        <div className="w-12 h-12 border-4 border-[#EECFD1] border-t-transparent rounded-full animate-spin"></div>
+                        <p className="text-gray-500 font-medium">Loading cancelled bookings...</p>
+                    </div>
+                </div>
             ) : bookings.length === 0 ? (
                 <div className="text-center py-12 text-gray-500">
                     No bookings cancelled by {subTab === 'business' ? 'Business Owner' : 'Shopper'} found.

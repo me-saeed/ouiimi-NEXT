@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic';
 
 async function getRefundBookingsHandler(req: NextRequest) {
     // Rate limiting
-    const rateLimitResponse = applyRateLimit(req, 100);
+    const rateLimitResponse = applyRateLimit(req, 200);
     if (rateLimitResponse) return rateLimitResponse;
 
     // Admin authentication

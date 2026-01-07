@@ -317,6 +317,7 @@ export function BookingsTab({ business }: BookingsTabProps) {
         credentials: "include", // Use session cookies
         body: JSON.stringify({
           status: "cancelled",
+          cancelledBy: "business", // ✅ Required for admin dashboard tracking
           cancellationReason: reason || "Cancelled by business",
         }),
       });

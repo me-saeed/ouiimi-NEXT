@@ -432,7 +432,14 @@ function RefundsView({
   isLoading: boolean;
 }) {
   if (isLoading) {
-    return <div className="text-center py-12">Loading refund requests...</div>;
+    return (
+      <div className="flex items-center justify-center py-20">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-12 h-12 border-4 border-[#EECFD1] border-t-transparent rounded-full animate-spin"></div>
+          <p className="text-gray-500 font-medium">Loading refund requests...</p>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -517,7 +524,14 @@ function PendingPaymentsView({
   onReleasePayment: (booking: Booking) => void;
 }) {
   if (isLoading) {
-    return <div className="text-center py-12">Loading pending payments...</div>;
+    return (
+      <div className="flex items-center justify-center py-20">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-12 h-12 border-4 border-[#EECFD1] border-t-transparent rounded-full animate-spin"></div>
+          <p className="text-gray-500 font-medium">Loading pending payments...</p>
+        </div>
+      </div>
+    );
   }
 
   const totalDeposits = bookings.reduce((sum, b) => sum + (b.totalCost * 0.10), 0);
