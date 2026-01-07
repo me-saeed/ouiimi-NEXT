@@ -416,7 +416,7 @@ export function generateBusinessWelcomeEmail(variables: {
   businessName: string;
 }): string {
   const content = `
-    <h1 class="heading">Welcome to Ouiimi Business</h1>
+    <h1 class="heading">Welcome to ouiimi Business</h1>
     
     <p class="body-text">Hi ${escapeHTML(variables.ownerName)},</p>
     

@@ -80,7 +80,7 @@ function CancelledBookingCard({ booking, type }: { booking: Booking; type: "busi
         <div className="bg-white rounded-xl border border-gray-200 p-6 flex flex-col h-full">
             <div className="flex justify-between items-start mb-4">
                 <div>
-                    <h3 className="font-semibold text-lg text-gray-900 line-clamp-1">{service?.serviceName || 'Service'}</h3>
+                    <h3 className="font-semibold text-lg text-gray-900 line-clamp-1">{service?.serviceName || booking.serviceSnapshot?.name || 'Service'}</h3>
                     <p className="text-sm text-gray-600 line-clamp-1">{business?.businessName || 'Business'}</p>
                 </div>
                 <span className="bg-red-50 text-red-700 px-2 py-1 rounded text-xs font-bold whitespace-nowrap">

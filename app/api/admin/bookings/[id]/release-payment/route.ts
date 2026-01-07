@@ -57,13 +57,19 @@ async function releasePaymentHandler(
 
   // Send payment released email to business
   try {
-    if (booking.businessId && booking.serviceId) {
+    // Use serviceSnapshot as fallback if service was deleted
+    const serviceData = booking.serviceId || {
+      serviceName: (booking as any).serviceSnapshot?.name || 'Service',
+      category: (booking as any).serviceSnapshot?.category || ''
+    };
+
+    if (booking.businessId) {
       await EmailService.sendPaymentReleased({
         booking: booking as any,
         business: booking.businessId as any,
-        service: booking.serviceId as any,
+        service: serviceData as any,
         customer: booking.userId as any, // Pass customer
-        category: (booking.serviceId as any).category // Pass category explicitly
+        category: (serviceData as any).category // Pass category explicitly
       });
     }
   } catch (emailError) {

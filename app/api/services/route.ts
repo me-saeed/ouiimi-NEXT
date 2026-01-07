@@ -12,15 +12,6 @@ import { NotFoundError, DatabaseError } from "@/lib/errors/api-error";
 import { logger } from "@/lib/logger";
 import { cache, MemoryCache } from "@/lib/cache";
 import { getGlobalBusyMap, isStaffBusy } from "@/lib/utils/availability";
-import Booking from "@/lib/models/Booking";
-import type {
-  StaffIdEntry,
-  TimeSlotEntry,
-  AddOnEntry,
-  ServiceFilterQuery,
-  ProcessedTimeSlot,
-  ServiceListItem
-} from "@/lib/types/api";
 
 export const dynamic = 'force-dynamic';
 

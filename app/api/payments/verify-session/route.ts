@@ -145,12 +145,18 @@ export async function POST(request: NextRequest) {
                 const business = populatedBooking.businessId as any;
                 const service = populatedBooking.serviceId as any;
 
-                if (user && business && service) {
+                // Use serviceSnapshot as fallback if service was deleted
+                const serviceData = service || {
+                    serviceName: (populatedBooking as any).serviceSnapshot?.name || 'Service',
+                    category: (populatedBooking as any).serviceSnapshot?.category || ''
+                };
+
+                if (user && business) {
                     const emailPayload = {
                         booking: booking as any,
                         customer: user,
                         business: business,
-                        service: service
+                        service: serviceData
                     };
 
                     const EmailService = (await import("@/lib/email-service")).default;

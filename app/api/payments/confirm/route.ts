@@ -159,13 +159,19 @@ async function confirmPaymentHandler(req: NextRequest) {
             .populate('serviceId', 'serviceName')
             .lean();
 
-        if (bookingWithPopulated?.userId && bookingWithPopulated?.businessId && bookingWithPopulated?.serviceId) {
+        if (bookingWithPopulated?.userId && bookingWithPopulated?.businessId) {
+            // Use serviceSnapshot as fallback if service was deleted
+            const serviceData = bookingWithPopulated.serviceId || {
+                serviceName: (bookingWithPopulated as any).serviceSnapshot?.name || 'Service',
+                category: (bookingWithPopulated as any).serviceSnapshot?.category || ''
+            };
+
             // Send emails asynchronously (don't wait for them)
             const emailPayload = {
                 booking: bookingWithPopulated as any,
                 customer: bookingWithPopulated.userId as any,
                 business: bookingWithPopulated.businessId as any,
-                service: bookingWithPopulated.serviceId as any
+                service: serviceData as any
             };
 
             Promise.all([

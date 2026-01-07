@@ -278,7 +278,7 @@ export class EmailService {
             await this.sendEmail({
                 to: business.email,
                 toName: business.businessName,
-                subject: `Welcome to Ouiimi - Business Account Created`,
+                subject: `Welcome to ouiimi - Business Account Created`,
                 variables,
                 templateType: 'business_welcome'
             });
@@ -305,7 +305,7 @@ export class EmailService {
             await this.sendEmail({
                 to: business.email,
                 toName: business.businessName,
-                subject: `🎉 Your Ouiimi Business Account Has Been Approved!`,
+                subject: `🎉 Your ouiimi Business Account Has Been Approved!`,
                 variables,
                 templateType: 'business_approved'
             });
@@ -381,7 +381,7 @@ export class EmailService {
             await this.sendEmail({
                 to: recipient.email,
                 toName: recipient.fname,
-                subject: "Verify Your Email - Ouiimi",
+                subject: "Verify Your Email - ouiimi",
                 variables: {
                     fname: recipient.fname,
                     uniquelink: link
@@ -403,7 +403,7 @@ export class EmailService {
             await this.sendEmail({
                 to: recipient.email,
                 toName: recipient.fname,
-                subject: "Password Reset Request - Ouiimi",
+                subject: "Password Reset Request - ouiimi",
                 variables: {
                     fname: recipient.fname,
                     uniquelink: link
@@ -425,7 +425,7 @@ export class EmailService {
             await this.sendEmail({
                 to: recipient.email,
                 toName: recipient.fname,
-                subject: "Welcome to Ouiimi",
+                subject: "Welcome to ouiimi",
                 variables: {
                     fname: recipient.fname
                 },

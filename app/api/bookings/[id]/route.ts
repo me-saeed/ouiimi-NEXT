@@ -152,13 +152,19 @@ async function updateBookingHandler(
         // Use strictly typed PopulatedBooking (centralized)
         const safeBooking = bookingWithPopulated as unknown as PopulatedBooking;
 
-        if (safeBooking.userId && safeBooking.businessId && safeBooking.serviceId) {
+        // Use serviceSnapshot as fallback if service was deleted
+        const serviceData = safeBooking.serviceId || {
+          serviceName: (safeBooking as any).serviceSnapshot?.name || 'Service',
+          category: (safeBooking as any).serviceSnapshot?.category || ''
+        };
+
+        if (safeBooking.userId && safeBooking.businessId) {
           // Send cancellation emails to BOTH Business and Customer
           const emailPayload = {
             booking: safeBooking as any,
             customer: safeBooking.userId,
             business: safeBooking.businessId,
-            service: safeBooking.serviceId,
+            service: serviceData,
             // Add refund details specifically for shopper cancellation
             refundAmount: validatedData.cancelledBy === 'customer'
               ? ((booking.depositAmount || (booking.totalCost * 0.10)) * 0.50).toFixed(2) // 50% of deposit

@@ -94,6 +94,12 @@ export interface Booking {
     cancellationReason?: string;
     cancelledBy?: "customer" | "business" | "admin";
 
+    // Service snapshot (preserved if service is deleted)
+    serviceSnapshot?: {
+        name: string;
+        category: string;
+    };
+
     // Payment
     paymentIntentId?: string;
 

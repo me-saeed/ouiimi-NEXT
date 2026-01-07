@@ -248,6 +248,11 @@ async function createBookingHandler(req: NextRequest) {
         remainingAmount: Math.round(calculatedTotalCost * (1 - DEPOSIT_PERCENTAGE) * 100) / 100,
         platformFee: PLATFORM_FEE,
         serviceAmount: calculatedTotalCost - PLATFORM_FEE,
+        // Preserve service details in case service is deleted later
+        serviceSnapshot: {
+          name: service.serviceName,
+          category: service.category || '',
+        },
         status: "pre_payment",
         paymentStatus: "pending",
         adminPaymentStatus: "pending",

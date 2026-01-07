@@ -122,13 +122,19 @@ export async function POST(request: NextRequest) {
 
                     const safeBooking = updatedBooking as unknown as PopulatedBooking;
 
+                    // Use serviceSnapshot as fallback if service was deleted
+                    const serviceData = safeBooking.serviceId || {
+                        serviceName: (safeBooking as any).serviceSnapshot?.name || 'Service',
+                        category: (safeBooking as any).serviceSnapshot?.category || ''
+                    };
+
                     // Prepare email data safely using the strict type
-                    if (safeBooking.userId && safeBooking.businessId && safeBooking.serviceId) {
+                    if (safeBooking.userId && safeBooking.businessId) {
                         const emailPayload = {
                             booking: safeBooking as any, // BookingEmailPayload is compatible
                             customer: safeBooking.userId as any,
                             business: safeBooking.businessId as any,
-                            service: safeBooking.serviceId as any
+                            service: serviceData as any
                         };
 
                         const EmailService = (await import("@/lib/email-service")).default;

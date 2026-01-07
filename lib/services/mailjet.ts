@@ -91,7 +91,7 @@ export async function sendHTMLEmail(
         {
           From: {
             Email: process.env.MAILJET_FROM_EMAIL || "information@ouiimi.com",
-            Name: process.env.MAILJET_FROM_NAME || "Ouiimi",
+            Name: process.env.MAILJET_FROM_NAME || "ouiimi",
           },
           To: recipients,
           Subject: subject,
@@ -148,7 +148,7 @@ export async function sendEmail(
         {
           From: {
             Email: process.env.MAILJET_FROM_EMAIL || "information@ouiimi.com",
-            Name: process.env.MAILJET_FROM_NAME || "Ouiimi",
+            Name: process.env.MAILJET_FROM_NAME || "ouiimi",
           },
           To: recipients,
           TemplateID: templateId,
@@ -227,39 +227,39 @@ export async function sendEmail(
 // I will just copy the old file exports below.
 
 export async function sendWelcomeEmail(email: string, fname: string): Promise<boolean> {
-  return sendEmail([email], "Welcome to Ouiimi", { fname, email }, "welcome");
+  return sendEmail([email], "Welcome to ouiimi", { fname, email }, "welcome");
 }
 
 export async function sendBusinessWelcomeEmail(email: string, fname: string, businessName: string): Promise<boolean> {
-  return sendEmail([email], "Welcome to Ouiimi - Business Account Created", { fname, email, businessName }, "business_welcome");
+  return sendEmail([email], "Welcome to ouiimi - Business Account Created", { fname, email, businessName }, "business_welcome");
 }
 
 export async function sendPasswordResetEmail(email: string, fname: string, resetLink: string): Promise<boolean> {
-  return sendEmail([email], "Password Reset Request - Ouiimi", { fname, email, uniquelink: resetLink }, "forgot_password");
+  return sendEmail([email], "Password Reset Request - ouiimi", { fname, email, uniquelink: resetLink }, "forgot_password");
 }
 
 export async function sendBookingConfirmationToShopper(email: string, fname: string, data: any): Promise<boolean> {
-  return sendEmail([email], "Booking Confirmed - Ouiimi", { fname, email, ...data }, "booking_confirmation_shopper");
+  return sendEmail([email], "Booking Confirmed - ouiimi", { fname, email, ...data }, "booking_confirmation_shopper");
 }
 
 export async function sendBookingConfirmationToBusiness(email: string, fname: string, data: any): Promise<boolean> {
-  return sendEmail([email], "New Booking Received - Ouiimi", { fname, email, ...data }, "booking_confirmation_business");
+  return sendEmail([email], "New Booking Received - ouiimi", { fname, email, ...data }, "booking_confirmation_business");
 }
 
 export async function sendAppointmentReminder(email: string, fname: string, data: any): Promise<boolean> {
-  return sendEmail([email], "Appointment Reminder - Ouiimi", { fname, email, ...data }, "appointment_reminder");
+  return sendEmail([email], "Appointment Reminder - ouiimi", { fname, email, ...data }, "appointment_reminder");
 }
 
 export async function sendBookingCompletionEmail(email: string, fname: string, data: any): Promise<boolean> {
-  return sendEmail([email], "Service Completed - Ouiimi", { fname, email, ...data }, "booking_complete");
+  return sendEmail([email], "Service Completed - ouiimi", { fname, email, ...data }, "booking_complete");
 }
 
 export async function sendPaymentReceiptToBusiness(email: string, fname: string, data: any): Promise<boolean> {
-  return sendEmail([email], "Payment Received - Ouiimi", { fname, email, ...data }, "payment_receipt");
+  return sendEmail([email], "Payment Received - ouiimi", { fname, email, ...data }, "payment_receipt");
 }
 
 export async function sendBookingCancellationEmail(email: string, fname: string, data: any): Promise<boolean> {
-  return sendEmail([email], "Booking Cancelled - Ouiimi", { fname, email, ...data }, "booking_cancellation");
+  return sendEmail([email], "Booking Cancelled - ouiimi", { fname, email, ...data }, "booking_cancellation");
 }
 
 export async function sendBookingCancellationToBusiness(email: string, fname: string, data: any): Promise<boolean> {
@@ -267,9 +267,9 @@ export async function sendBookingCancellationToBusiness(email: string, fname: st
 }
 
 export async function sendAccountVerificationEmail(email: string, fname: string, verificationLink: string): Promise<boolean> {
-  return sendEmail([email], "Verify Your Email - Ouiimi", { fname, email, uniquelink: verificationLink }, "account_verification");
+  return sendEmail([email], "Verify Your Email - ouiimi", { fname, email, uniquelink: verificationLink }, "account_verification");
 }
 
 export async function sendBusinessApprovedEmail(email: string, fname: string, businessName: string): Promise<boolean> {
-  return sendEmail([email], "Your Business is Approved - Ouiimi", { fname, email, businessName }, "business_approved");
+  return sendEmail([email], "Your Business is Approved - ouiimi", { fname, email, businessName }, "business_approved");
 }

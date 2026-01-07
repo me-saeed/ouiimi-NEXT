@@ -79,6 +79,10 @@ export interface IBooking extends Document {
   cancelledAt?: Date;                        // When booking was cancelled
   cancelledBy?: "customer" | "business" | "admin"; // Who cancelled it
   cancellationReason?: string;               // Why it was cancelled
+  serviceSnapshot?: {                         // Preserved if service is deleted
+    name: string;
+    category: string;
+  };
   createdAt: Date;
   updatedAt: Date;
 }
@@ -240,6 +244,12 @@ const bookingSchema = new Schema<IBooking>(
     cancellationReason: {
       type: String,
       default: null,
+    },
+
+    // Service snapshot (preserved even if service is deleted)
+    serviceSnapshot: {
+      name: { type: String },
+      category: { type: String },
     },
   },
   {

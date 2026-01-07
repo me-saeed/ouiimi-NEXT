@@ -25,6 +25,7 @@ interface Booking {
     status: string;
     paymentStatus: string;
     adminPaymentStatus: string;
+    serviceSnapshot?: { name: string; category: string };
     createdAt: string;
     updatedAt: string;
 }
@@ -105,7 +106,7 @@ export function PaymentHistoryTab({ bookings, isLoading }: PaymentHistoryTabProp
                                         {/* Service & Business Info */}
                                         <div className="mb-3">
                                             <h4 className="font-semibold text-gray-900">
-                                                {service?.serviceName || 'Service'}
+                                                {service?.serviceName || booking.serviceSnapshot?.name || 'Service'}
                                             </h4>
                                             <div className="flex items-center gap-2 text-sm text-gray-600 mt-1">
                                                 <Building2 className="w-4 h-4" />

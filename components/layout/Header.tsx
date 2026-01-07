@@ -165,7 +165,7 @@ export default function Header({ user: userProp }: HeaderProps) {
                       <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg py-2 z-50 border border-gray-100">
                         <div className="px-4 py-3 border-b border-gray-100">
                           <p className="text-sm font-semibold text-gray-900">
-                            {`${user.fname} ${user.lname}`}
+                            {user.fname}
                           </p>
                         </div>
                         <Link
@@ -274,7 +274,7 @@ export default function Header({ user: userProp }: HeaderProps) {
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-xs sm:text-sm font-semibold text-gray-900 truncate">
-                        {`${user.fname} ${user.lname}`}
+                        {user.fname}
                       </p>
                     </div>
                   </div>

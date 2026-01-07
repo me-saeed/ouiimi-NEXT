@@ -51,12 +51,18 @@ export class BookingJobs {
                         console.log(`✅ Marked booking ${booking._id} as completed`);
 
                         // Send completion emails
-                        if (booking.userId && booking.businessId && booking.serviceId) {
+                        // Use serviceSnapshot as fallback if service was deleted
+                        const serviceData = booking.serviceId || {
+                            serviceName: booking.serviceSnapshot?.name || 'Service',
+                            category: booking.serviceSnapshot?.category || ''
+                        };
+
+                        if (booking.userId && booking.businessId) {
                             const emailPayload = {
                                 booking: booking as any,
                                 customer: booking.userId as any,
                                 business: booking.businessId as any,
-                                service: booking.serviceId as any
+                                service: serviceData as any
                             };
 
                             await EmailService.sendServiceCompletedToCustomer(emailPayload);

@@ -263,7 +263,7 @@ export function BookingsTab({ business }: BookingsTabProps) {
     bookingsToGroup.forEach((booking) => {
       const category = typeof booking.serviceId === 'object' && booking.serviceId?.category
         ? booking.serviceId.category
-        : 'Other';
+        : (booking.serviceSnapshot?.category || 'Other');
 
       if (!groups[category]) {
         groups[category] = [];
@@ -650,7 +650,7 @@ export function BookingsTab({ business }: BookingsTabProps) {
                       <p className="font-medium">
                         {(booking.serviceId && typeof booking.serviceId === 'object')
                           ? booking.serviceId.serviceName
-                          : 'Service'}
+                          : (booking.serviceSnapshot?.name || 'Service')}
                       </p>
                       <p className="text-sm text-muted-foreground">
                         {formatDate(booking.timeSlot.date)} • {formatTime(booking.timeSlot.startTime)} - {formatTime(booking.timeSlot.endTime)}
@@ -721,7 +721,7 @@ export function BookingsTab({ business }: BookingsTabProps) {
           onClose={() => setSelectedBooking(null)}
           title={(selectedBooking?.serviceId && typeof selectedBooking?.serviceId === 'object')
             ? selectedBooking.serviceId.serviceName
-            : 'Booking Details'}
+            : (selectedBooking?.serviceSnapshot?.name || 'Booking Details')}
           maxWidth="max-w-lg"
         >
           {selectedBooking && (
@@ -768,10 +768,14 @@ export function BookingsTab({ business }: BookingsTabProps) {
                   <p>
                     {(selectedBooking.serviceId && typeof selectedBooking.serviceId === 'object')
                       ? selectedBooking.serviceId.serviceName
-                      : selectedBooking.serviceId || 'Service deleted'}
+                      : (selectedBooking.serviceSnapshot?.name || 'Service')}
                   </p>
-                  {(selectedBooking.serviceId && typeof selectedBooking.serviceId === 'object') && (
-                    <p className="text-sm text-muted-foreground">{selectedBooking.serviceId.category}</p>
+                  {((selectedBooking.serviceId && typeof selectedBooking.serviceId === 'object') || selectedBooking.serviceSnapshot?.category) && (
+                    <p className="text-sm text-muted-foreground">
+                      {(selectedBooking.serviceId && typeof selectedBooking.serviceId === 'object')
+                        ? selectedBooking.serviceId.category
+                        : selectedBooking.serviceSnapshot?.category}
+                    </p>
                   )}
                 </div>
                 {(selectedBooking.userId && typeof selectedBooking.userId === 'object') && (

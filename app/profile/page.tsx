@@ -357,10 +357,10 @@ export default function ShopperProfilePage() {
 
     return {
       id: booking.id || booking._id,
-      name: service?.serviceName || 'Service',
+      name: service?.serviceName || booking.serviceSnapshot?.name || 'Service',
       price: booking.totalCost,
       image: businessData?.logo || "/placeholder-logo.png",
-      category: service?.category || '',
+      category: service?.category || booking.serviceSnapshot?.category || '',
       businessName: businessData?.businessName || 'Business',
       location: renderAddress(businessData?.address) || '',
       duration: duration || undefined,
@@ -397,7 +397,7 @@ export default function ShopperProfilePage() {
     bookings.forEach((booking) => {
       const category = typeof booking.serviceId === 'object' && booking.serviceId?.category
         ? booking.serviceId.category
-        : 'Other';
+        : (booking.serviceSnapshot?.category || 'Other');
 
       if (!groups[category]) {
         groups[category] = [];
@@ -433,7 +433,7 @@ export default function ShopperProfilePage() {
               />
 
               <h2 className="text-xl font-medium text-foreground">
-                {user.fname} {user.lname}
+                {user.fname}
               </h2>
             </div>
           </div>
@@ -621,7 +621,7 @@ export default function ShopperProfilePage() {
                     onClose={() => setSelectedBooking(null)}
                     title={typeof selectedBooking?.serviceId === 'object'
                       ? selectedBooking.serviceId.serviceName
-                      : 'Booking Details'}
+                      : (selectedBooking?.serviceSnapshot?.name || 'Booking Details')}
                     maxWidth="max-w-lg"
                   >
                     {selectedBooking && (
@@ -762,7 +762,7 @@ function BookingDetailView({
         </div>
         <div>
           <p className="text-sm font-medium text-muted-foreground">Service</p>
-          <p>{typeof booking.serviceId === 'object' ? booking.serviceId.serviceName : "Service"}</p>
+          <p>{typeof booking.serviceId === 'object' ? booking.serviceId.serviceName : (booking.serviceSnapshot?.name || "Service")}</p>
         </div>
         {staffData && (
           <div>
@@ -1008,7 +1008,7 @@ function FinishedBookingDetailView({
         </div>
         <div>
           <p className="text-sm font-medium text-muted-foreground">Service</p>
-          <p>{typeof booking.serviceId === 'object' ? booking.serviceId.serviceName : "Service"}</p>
+          <p>{typeof booking.serviceId === 'object' ? booking.serviceId.serviceName : (booking.serviceSnapshot?.name || "Service")}</p>
         </div>
         {booking.staffId && (
           <div>
