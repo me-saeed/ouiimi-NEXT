@@ -835,7 +835,8 @@ export function EditServiceForm({ serviceId, onSuccess, onCancel }: EditServiceF
                                                                             <div className="flex -space-x-1.5">
                                                                                 {assignedStaff.map(s => (
                                                                                     <div key={s.id || s._id} className="w-6 h-6 rounded-full border border-white bg-gray-200 overflow-hidden" title={s.name}>
-                                                                                        {s.photo ? <img src={s.photo} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-[9px] font-bold text-gray-500">{s.name[0]}</div>}
+                                                                                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                                                                                        {s.photo ? <img src={s.photo} alt={s.name} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-[9px] font-bold text-gray-500">{s.name[0]}</div>}
                                                                                     </div>
                                                                                 ))}
                                                                             </div>
@@ -976,7 +977,8 @@ export function EditServiceForm({ serviceId, onSuccess, onCancel }: EditServiceF
                                                     >
                                                         <div className={`w-6 h-6 rounded-full overflow-hidden flex items-center justify-center text-[10px] font-bold ${isSelected ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-500'}`}>
                                                             {member.photo ? (
-                                                                <img src={member.photo} alt="" className="w-full h-full object-cover" />
+                                                                // eslint-disable-next-line @next/next/no-img-element
+                                                                <img src={member.photo} alt={member.name} className="w-full h-full object-cover" />
                                                             ) : (
                                                                 member.name[0]
                                                             )}

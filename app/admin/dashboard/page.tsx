@@ -149,7 +149,8 @@ export default function AdminDashboardPage() {
       totalFees: d.revenue?.fees || 0,
       netAmount: d.revenue?.net || 0,
     };
-  }, [statsData, pendingPaymentsData]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [statsData]);
 
   // Handlers
   const handleApproveBusiness = async (businessId: string) => {

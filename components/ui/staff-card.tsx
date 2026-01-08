@@ -26,6 +26,7 @@ export const StaffCard = React.memo(function StaffCard({
                 <div className="w-24 h-24 rounded-full p-1 border-2 border-transparent group-hover:border-[#EECFD1]/30 transition-all duration-300">
                     <div className="w-full h-full rounded-full overflow-hidden bg-gray-50 border border-gray-100 flex items-center justify-center">
                         {photo ? (
+                            // eslint-disable-next-line @next/next/no-img-element
                             <img
                                 src={photo}
                                 alt={name}

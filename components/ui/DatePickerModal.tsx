@@ -28,6 +28,7 @@ export function DatePickerModal({ isOpen, onClose, onSelectDate, minDate }: Date
                 setCurrentMonth(new Date(today.getFullYear(), today.getMonth(), 1));
             }
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isOpen]);
 
     if (!isOpen) return null;

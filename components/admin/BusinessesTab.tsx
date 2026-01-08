@@ -160,6 +160,7 @@ export function BusinessesTab({
                                     <div className="flex items-start gap-4 mb-4">
                                         <div className="relative">
                                             {business.logo ? (
+                                                /* eslint-disable-next-line @next/next/no-img-element */
                                                 <img
                                                     src={business.logo}
                                                     alt={business.businessName}
@@ -256,7 +257,8 @@ export function BusinessesTab({
                         {/* Header Info */}
                         <div className="flex items-center gap-6 pb-6 border-b border-gray-100">
                             {selectedBusiness.logo ? (
-                                <img src={selectedBusiness.logo} alt="" className="w-24 h-24 rounded-2xl object-cover" />
+                                // eslint-disable-next-line @next/next/no-img-element
+                                <img src={selectedBusiness.logo} alt={selectedBusiness.businessName} className="w-24 h-24 rounded-2xl object-cover" />
                             ) : (
                                 <div className="w-24 h-24 rounded-2xl bg-gray-50 flex items-center justify-center">
                                     <Building2 className="w-12 h-12 text-gray-300" />

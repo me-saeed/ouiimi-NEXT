@@ -294,6 +294,7 @@ export function BusinessTabs({ business, services, staff }: BusinessTabsProps) {
                                         >
                                             <div className="w-16 h-16 rounded-full border border-gray-100 overflow-hidden flex-shrink-0 bg-white">
                                                 {member.photo ? (
+                                                    // eslint-disable-next-line @next/next/no-img-element
                                                     <img src={member.photo} alt={member.name} className="w-full h-full object-cover" />
                                                 ) : (
                                                     <div className="w-full h-full bg-gray-50 flex items-center justify-center text-xl font-bold text-[#EECFD1]">
@@ -322,6 +323,7 @@ export function BusinessTabs({ business, services, staff }: BusinessTabsProps) {
                                         <div className="flex items-center gap-4 mb-6">
                                             <div className="w-20 h-20 rounded-full bg-[#EECFD1] flex items-center justify-center flex-shrink-0 overflow-hidden shadow-sm">
                                                 {selectedStaff.photo ? (
+                                                    // eslint-disable-next-line @next/next/no-img-element
                                                     <img src={selectedStaff.photo} alt={selectedStaff.name} className="w-full h-full object-cover" />
                                                 ) : (
                                                     <span className="text-2xl font-bold text-[#3A3A3A]">

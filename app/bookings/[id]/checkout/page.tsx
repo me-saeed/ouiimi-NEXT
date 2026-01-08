@@ -102,7 +102,7 @@ export default function CheckoutPage() {
             // Auth finished loading but user not authenticated - stop loading
             setIsLoading(false);
         }
-    }, [bookingId, authLoading, isAuthenticated]);
+    }, [bookingId, authLoading, isAuthenticated, router]);
 
     const handlePaymentSuccess = () => {
         router.push(`/bookings/${bookingId}/confirm`);

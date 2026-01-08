@@ -159,6 +159,7 @@ export function ServiceDetailModal({ isOpen, onClose, service }: ServiceDetailMo
                                         <div key={idx} className="flex items-center gap-2 px-2 py-1.5 rounded-lg bg-gray-50 border border-gray-100">
                                             <div className="w-6 h-6 rounded-full bg-gray-200 overflow-hidden shrink-0">
                                                 {staff.photo ? (
+                                                    // eslint-disable-next-line @next/next/no-img-element
                                                     <img src={staff.photo} alt={staff.name} className="w-full h-full object-cover" />
                                                 ) : (
                                                     <div className="w-full h-full flex items-center justify-center text-gray-500 font-bold text-[10px]">

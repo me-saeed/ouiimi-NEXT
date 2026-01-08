@@ -910,6 +910,7 @@ function BookingDetailView({
             <div className="flex flex-col items-center text-center space-y-4">
               {/* Staff Avatar */}
               {(staffData as any).photo || (staffData as any).avatar ? (
+                /* eslint-disable-next-line @next/next/no-img-element */
                 <img
                   src={(staffData as any).photo || (staffData as any).avatar}
                   alt={staffData.name}
