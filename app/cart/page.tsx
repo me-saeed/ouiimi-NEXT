@@ -307,7 +307,7 @@ export default function CartPage() {
                       <span>${totals.totalToday.toFixed(2)}</span>
                     </div>
                     <p className="text-xs text-muted-foreground mt-2">
-                      You'll pay 10% plus a $1.99 service fee today to secure your booking. The remaining 90% is paid directly to the small business at your appointment.
+                      You&apos;ll pay 10% plus a $1.99 service fee today to secure your booking. The remaining 90% is paid directly to the small business at your appointment.
                     </p>
                   </div>
                 </div>
