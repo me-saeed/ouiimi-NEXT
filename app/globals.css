@@ -5,6 +5,10 @@
 
 @layer base {
   :root {
+    /* Font Families */
+    --font-serif: var(--font-dm-serif), 'DM Serif Display', Georgia, serif;
+    --font-sans: var(--font-dm-sans), 'DM Sans', system-ui, sans-serif;
+
     /* Brand Colors */
     --primary: 0 0% 10%;
     /* #1a1a1a - Soft Black */
@@ -83,6 +87,7 @@
 
   body {
     @apply bg-background text-foreground antialiased;
+    font-family: var(--font-sans);
     font-feature-settings: "rlig" 1, "calt" 1;
   }
 
@@ -93,6 +98,7 @@
   h5,
   h6 {
     @apply font-bold tracking-tight text-foreground;
+    font-family: var(--font-serif);
   }
 
   h1 {
@@ -253,6 +259,7 @@
     from {
       transform: translateX(100%);
     }
+
     to {
       transform: translateX(0);
     }

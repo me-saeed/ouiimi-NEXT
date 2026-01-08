@@ -1,13 +1,26 @@
 // Build version: 2025-12-18-02:24 - Force CSS rebuild
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { DM_Serif_Display, DM_Sans } from "next/font/google";
 import Script from "next/script";
 import "./globals.css";
 import { Providers } from "@/lib/providers";
 import { Toaster } from "@/components/ui/toaster";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 
-const inter = Inter({ subsets: ["latin"] });
+// DM Serif Display for logo and headings
+const dmSerifDisplay = DM_Serif_Display({
+  weight: "400",
+  subsets: ["latin"],
+  variable: "--font-dm-serif",
+  display: "swap"
+});
+
+// DM Sans for body text
+const dmSans = DM_Sans({
+  subsets: ["latin"],
+  variable: "--font-dm-sans",
+  display: "swap"
+});
 
 export const metadata: Metadata = {
   title: "ouiimi - Simple Booking for Everyday Services",
@@ -45,7 +58,7 @@ export default function RootLayout({
           />
         )}
       </head>
-      <body className={inter.className}>
+      <body className={`${dmSans.variable} ${dmSerifDisplay.variable} font-sans`}>
         <ErrorBoundary>
           <Providers>{children}</Providers>
           <Toaster />

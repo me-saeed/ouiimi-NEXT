@@ -68,7 +68,6 @@ export default function Header({ user: userProp }: HeaderProps) {
     { href: "/about", label: "About" },
     { href: "/profile", label: "Shopper" },
     { href: "/business", label: "Small Business" },
-    { href: "/admin/dashboard", label: "Admin" },
     { href: "/how-it-works", label: "How it works" },
   ];
 
@@ -100,14 +99,14 @@ export default function Header({ user: userProp }: HeaderProps) {
 
             {/* Mobile: Logo (Center) - 10% bigger */}
             <Link href="/" className="md:hidden flex items-center group absolute left-1/2 -translate-x-1/2">
-              <h1 className="text-[24px] font-serif text-white tracking-tight group-hover:text-white/90 transition-colors duration-200" style={{ fontFamily: 'Didot, "Bodoni MT", "Noto Serif Display", "URW Palladio L", P052, Sylfaen, serif' }}>
+              <h1 className="text-[24px] font-serif text-white tracking-tight group-hover:text-white/90 transition-colors duration-200" style={{ fontFamily: 'var(--font-serif)' }}>
                 ouiimi
               </h1>
             </Link>
 
             {/* Desktop: Logo (Left) - increased letter spacing, closer to nav */}
             <Link href="/" className="hidden md:flex items-center group mr-6">
-              <h1 className="text-[26px] font-serif text-white tracking-widest group-hover:text-white/90 transition-colors duration-200" style={{ fontFamily: 'Didot, "Bodoni MT", "Noto Serif Display", "URW Palladio L", P052, Sylfaen, serif' }}>
+              <h1 className="text-[26px] font-serif text-white tracking-widest group-hover:text-white/90 transition-colors duration-200" style={{ fontFamily: 'var(--font-serif)' }}>
                 ouiimi
               </h1>
             </Link>

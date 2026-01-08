@@ -43,8 +43,8 @@ export default function Footer() {
             <h4 className="text-sm font-bold text-[#3A3A3A] mb-4 uppercase tracking-wide">Contact</h4>
             <div className="space-y-2">
               <p className="text-sm text-[#888888]">
-                <a href="mailto:ouiimi@outlook.com" className="hover:text-[#EECFD1] transition-colors">
-                  ouiimi@outlook.com
+                <a href="mailto:information@ouiimi.com" className="hover:text-[#EECFD1] transition-colors">
+                  information@ouiimi.com
                 </a>
               </p>
               <p className="text-sm text-[#888888]">

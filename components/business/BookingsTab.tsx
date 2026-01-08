@@ -652,6 +652,11 @@ export function BookingsTab({ business }: BookingsTabProps) {
                           ? booking.serviceId.serviceName
                           : (booking.serviceSnapshot?.name || 'Service')}
                       </p>
+                      <p className="text-xs text-muted-foreground">
+                        {(booking.serviceId && typeof booking.serviceId === 'object')
+                          ? booking.serviceId.category
+                          : (booking.serviceSnapshot?.category || 'Category')}
+                      </p>
                       <p className="text-sm text-muted-foreground">
                         {formatDate(booking.timeSlot.date)} • {formatTime(booking.timeSlot.startTime)} - {formatTime(booking.timeSlot.endTime)}
                       </p>
@@ -819,19 +824,19 @@ export function BookingsTab({ business }: BookingsTabProps) {
               </div>
 
               <div className="border-t pt-4 space-y-2">
-                <p className="text-sm font-medium">Payments</p>
+                <p className="text-xs text-gray-500 uppercase tracking-wide">Payments</p>
                 <div className="flex justify-between text-sm">
-                  <span className="text-green-600">Paid 10% Deposit:</span>
-                  <span>${selectedBooking.depositAmount.toFixed(2)}</span>
+                  <span className="text-gray-600">Deposit (10%):</span>
+                  <span className="text-green-600">${selectedBooking.depositAmount.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span>90% to Business:</span>
+                  <span className="text-gray-600">Balance to Business (90%):</span>
                   <span>${selectedBooking.remainingAmount.toFixed(2)}</span>
                 </div>
                 {selectedBooking.status === "completed" && (
-                  <div className="flex justify-between text-sm text-green-600">
-                    <span>ouiimi pays 50% of Deposit:</span>
-                    <span>${(selectedBooking.depositAmount * 0.5).toFixed(2)}</span>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">ouiimi pays 50% of Deposit:</span>
+                    <span className="text-green-600">${(selectedBooking.depositAmount * 0.5).toFixed(2)}</span>
                   </div>
                 )}
               </div>

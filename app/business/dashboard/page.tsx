@@ -237,7 +237,7 @@ export default function BusinessDashboardPage() {
                                                 'text-gray-700'
                                             }`}>
                                             {business.status === 'pending' &&
-                                                'Your business account is currently under review by our admin team. You can view your dashboard and manage bookings, but you cannot create new services until your account is approved. You will receive an email once your account is approved.'
+                                                'Your business account is currently under review by our admin team. You can view your dashboard, but you won\'t be able to create new services until your account is approved. In the meantime, you can edit your business profile, upload your logo, add your banking details, and add staff members. You\'ll receive an email as soon as your account has been approved.'
                                             }
                                             {business.status === 'rejected' &&
                                                 `Your business account has been rejected. ${business.adminNotes ? `Reason: ${business.adminNotes}` : 'Please contact support for more information.'}`

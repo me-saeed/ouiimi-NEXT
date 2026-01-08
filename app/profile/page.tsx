@@ -823,13 +823,17 @@ function BookingDetailView({
       </div>
 
       <div className="border-t pt-4 space-y-2">
-        <p className="text-sm font-medium">Payments</p>
-        <div className="flex justify-between text-sm text-green-600">
-          <span>Deposit Paid (Includes fee):</span>
-          <span>${booking.depositAmount.toFixed(2)}</span>
+        <p className="text-xs text-gray-500 uppercase tracking-wide">Payments</p>
+        <div className="flex justify-between text-sm">
+          <span className="text-gray-600">Deposit:</span>
+          <span className="text-green-600">${booking.depositAmount.toFixed(2)}</span>
         </div>
         <div className="flex justify-between text-sm">
-          <span>Balance due at venue:</span>
+          <span className="text-gray-600">ouiimi fee:</span>
+          <span className="text-green-600">${(booking.platformFee || 1.99).toFixed(2)}</span>
+        </div>
+        <div className="flex justify-between text-sm">
+          <span className="text-gray-600">Balance due at venue:</span>
           <span>${booking.remainingAmount.toFixed(2)}</span>
         </div>
       </div>
@@ -1051,13 +1055,17 @@ function FinishedBookingDetailView({
       </div>
 
       <div className="border-t pt-4 space-y-2">
-        <p className="text-sm font-medium">Payments</p>
-        <div className="flex justify-between text-sm text-green-600">
-          <span>Deposit Paid (Includes fee):</span>
-          <span>${booking.depositAmount.toFixed(2)}</span>
+        <p className="text-xs text-gray-500 uppercase tracking-wide">Payments</p>
+        <div className="flex justify-between text-sm">
+          <span className="text-gray-600">Deposit:</span>
+          <span className="text-green-600">${booking.depositAmount.toFixed(2)}</span>
         </div>
         <div className="flex justify-between text-sm">
-          <span>Balance due at venue:</span>
+          <span className="text-gray-600">ouiimi fee:</span>
+          <span className="text-green-600">${(booking.platformFee || 1.99).toFixed(2)}</span>
+        </div>
+        <div className="flex justify-between text-sm">
+          <span className="text-gray-600">Balance due at venue:</span>
           <span>${booking.remainingAmount.toFixed(2)}</span>
         </div>
       </div>

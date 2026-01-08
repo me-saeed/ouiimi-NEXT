@@ -159,16 +159,32 @@ async function updateBookingHandler(
         };
 
         if (safeBooking.userId && safeBooking.businessId) {
+          // Calculate refund based on who cancelled
+          // Shopper cancels: No refund (50% to ouiimi, 50% to business)
+          // Business cancels: Full deposit refund to shopper
+          const depositAmount = booking.depositAmount || (booking.totalCost * 0.10);
+          const isCustomerCancellation = validatedData.cancelledBy === 'customer';
+          const isBusinessCancellation = validatedData.cancelledBy === 'business';
+
+          // Calculate amounts
+          const shopperRefund = isBusinessCancellation ? depositAmount : 0;
+          const businessPayout = isCustomerCancellation ? (depositAmount * 0.50) : 0;
+          const ouiimiPayout = isCustomerCancellation ? (depositAmount * 0.50) : 0;
+
           // Send cancellation emails to BOTH Business and Customer
           const emailPayload = {
             booking: safeBooking as any,
             customer: safeBooking.userId,
             business: safeBooking.businessId,
             service: serviceData,
-            // Add refund details specifically for shopper cancellation
-            refundAmount: validatedData.cancelledBy === 'customer'
-              ? ((booking.depositAmount || (booking.totalCost * 0.10)) * 0.50).toFixed(2) // 50% of deposit
-              : undefined
+            // Refund/payout details
+            refundAmount: shopperRefund > 0 ? shopperRefund.toFixed(2) : undefined,
+            businessPayout: businessPayout > 0 ? businessPayout.toFixed(2) : undefined,
+            cancelledBy: validatedData.cancelledBy,
+            // For email logic
+            isCustomerCancellation,
+            isBusinessCancellation,
+            noRefund: isCustomerCancellation // Shopper gets nothing if they cancelled
           };
 
           Promise.all([

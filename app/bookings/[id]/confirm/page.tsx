@@ -158,15 +158,21 @@ export default function BookingConfirmPage() {
             </div>
 
             <div className="text-left space-y-2 mb-6">
-              <h3 className="font-semibold text-gray-900 mb-3">Payment Summary</h3>
+              <h3 className="text-xs text-gray-500 uppercase tracking-wide mb-3">Payment Summary</h3>
               <div className="flex justify-between text-sm">
-                <span className="text-gray-600">Deposit Paid (includes fee)</span>
+                <span className="text-gray-600">Deposit:</span>
                 <span className="font-semibold text-green-600">
                   ${booking.depositAmount.toFixed(2)}
                 </span>
               </div>
               <div className="flex justify-between text-sm">
-                <span className="text-gray-600">Remaining (Pay at venue)</span>
+                <span className="text-gray-600">ouiimi fee:</span>
+                <span className="font-semibold text-green-600">
+                  ${(booking.platformFee || 1.99).toFixed(2)}
+                </span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-600">Balance (pay at venue):</span>
                 <span className="font-semibold text-gray-900">
                   ${booking.remainingAmount.toFixed(2)}
                 </span>

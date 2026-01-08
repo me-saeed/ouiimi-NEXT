@@ -202,13 +202,28 @@ export class EmailService {
     }
 
     /**
-     * Send cancellation notification to customer
-     */
-    static async sendCancellationToCustomer({ booking, customer, business, service }: BookingEmailPayload) {
+ * Send cancellation notification to customer
+ */
+    static async sendCancellationToCustomer({ booking, customer, business, service, cancelledBy, refundAmount: passedRefundAmount, noRefund }: BookingEmailPayload & { cancelledBy?: string; refundAmount?: string; noRefund?: boolean }) {
         try {
-            const refundAmount = booking.paymentStatus === 'deposit_paid' || booking.paymentStatus === 'fully_paid'
-                ? Number(booking.depositAmount)
-                : 0;
+            // Determine refund based on who cancelled
+            // Business cancels: Customer gets full deposit back
+            // Customer cancels: No refund
+            let refundAmount = 0;
+            let refundMessage = '';
+
+            if (cancelledBy === 'business') {
+                // Business cancelled - full refund to customer
+                refundAmount = Number(booking.depositAmount) || 0;
+                refundMessage = 'Full refund will be processed within 3-5 business days.';
+            } else if (cancelledBy === 'customer') {
+                // Customer cancelled - no refund
+                refundAmount = 0;
+                refundMessage = 'As per our cancellation policy, no refund will be issued for customer-initiated cancellations.';
+            } else {
+                // Legacy behavior
+                refundAmount = passedRefundAmount ? Number(passedRefundAmount) : 0;
+            }
 
             const variables = {
                 customerName: getCustomerName(customer.fname, customer.lname),
@@ -216,8 +231,11 @@ export class EmailService {
                 serviceName: service.serviceName,
                 date: formatBookingDate(booking.timeSlot?.date),
                 time: booking.timeSlot?.startTime || 'TBD',
-                refundAmount: formatAmount(refundAmount),
-                bookingNumber: getBookingNumber(booking.bookingNumber, booking._id)
+                refundAmount: refundAmount > 0 ? formatAmount(refundAmount) : 'No refund',
+                bookingNumber: getBookingNumber(booking.bookingNumber, booking._id),
+                cancelledBy: cancelledBy || 'system',
+                refundMessage,
+                noRefund: cancelledBy === 'customer'
             };
 
             await this.sendEmail({
@@ -228,25 +246,49 @@ export class EmailService {
                 templateType: 'booking_cancellation_shopper'
             });
 
-            console.log(`✅ [CANCELLATION_CUSTOMER] Email sent to ${customer.email}`);
+            console.log(`✅ [CANCELLATION_CUSTOMER] Email sent to ${customer.email} (cancelledBy: ${cancelledBy})`);
         } catch (error) {
             console.error(`❌ [CANCELLATION_CUSTOMER] Failed to send to ${customer.email}:`, error);
             throw error;
         }
     }
-
     /**
      * Send cancellation notification to business
      */
-    static async sendCancellationToBusiness({ booking, customer, business, service }: BookingEmailPayload) {
+    static async sendCancellationToBusiness({ booking, customer, business, service, cancelledBy, businessPayout }: BookingEmailPayload & { cancelledBy?: string; businessPayout?: string }) {
         try {
+            // Determine payout based on who cancelled
+            // Customer cancels: Business gets 50% of deposit
+            // Business cancels: Business gets nothing (full refund to customer)
+            const depositAmount = Number(booking.depositAmount) || 0;
+            let payoutAmount = 0;
+            let payoutMessage = '';
+
+            if (cancelledBy === 'customer') {
+                // Customer cancelled - business gets 50% of deposit
+                payoutAmount = depositAmount * 0.50;
+                payoutMessage = `You will receive 50% of the deposit ($${payoutAmount.toFixed(2)}) as compensation.`;
+            } else if (cancelledBy === 'business') {
+                // Business cancelled - no payout, full refund to customer
+                payoutAmount = 0;
+                payoutMessage = 'As this booking was cancelled by your business, no payment will be made and the customer will receive a full refund.';
+            } else {
+                // Legacy behavior
+                payoutAmount = businessPayout ? Number(businessPayout) : 0;
+            }
+
             const variables = {
                 businessName: business.businessName,
                 customerName: getCustomerName(customer.fname, customer.lname),
                 serviceName: service.serviceName,
                 date: formatBookingDate(booking.timeSlot?.date),
                 startTime: booking.timeSlot?.startTime || 'TBD',
-                bookingNumber: getBookingNumber(booking.bookingNumber, booking._id)
+                bookingNumber: getBookingNumber(booking.bookingNumber, booking._id),
+                cancelledBy: cancelledBy || 'system',
+                payoutAmount: payoutAmount > 0 ? `$${payoutAmount.toFixed(2)}` : 'No payout',
+                payoutMessage,
+                isCancelledByBusiness: cancelledBy === 'business',
+                isCancelledByCustomer: cancelledBy === 'customer'
             };
 
             await this.sendEmail({
@@ -257,7 +299,7 @@ export class EmailService {
                 templateType: 'booking_cancellation_business'
             });
 
-            console.log(`✅ [CANCELLATION_BUSINESS] Email sent to ${business.email}`);
+            console.log(`✅ [CANCELLATION_BUSINESS] Email sent to ${business.email} (cancelledBy: ${cancelledBy})`);
         } catch (error) {
             console.error(`❌ [CANCELLATION_BUSINESS] Failed to send to ${business.email}:`, error);
             throw error;

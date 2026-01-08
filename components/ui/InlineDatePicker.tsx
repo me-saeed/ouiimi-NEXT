@@ -25,13 +25,42 @@ export function InlineDatePicker({
     onGoToCurrentMonth,
     getBookingCountForDate
 }: InlineDatePickerProps) {
-    // Generate all dates for current month
+    // Get today's date in Australian timezone
+    const getAustralianToday = () => {
+        const now = new Date();
+        const australianDate = new Date(now.toLocaleString('en-US', { timeZone: 'Australia/Sydney' }));
+        return australianDate;
+    };
+
+    const australianToday = getAustralianToday();
+    const todayStr = [
+        australianToday.getFullYear(),
+        String(australianToday.getMonth() + 1).padStart(2, '0'),
+        String(australianToday.getDate()).padStart(2, '0')
+    ].join('-');
+
+    // Generate all dates for current month (only today and future)
     const monthDates = useMemo(() => {
         const dates: Array<{ date: Date; dateStr: string; day: number; weekday: string }> = [];
         const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
 
+        // Get today in Australian timezone for comparison
+        const now = new Date();
+        const australianNow = new Date(now.toLocaleString('en-US', { timeZone: 'Australia/Sydney' }));
+        const todayYear = australianNow.getFullYear();
+        const todayMonth = australianNow.getMonth();
+        const todayDay = australianNow.getDate();
+
         for (let day = 1; day <= daysInMonth; day++) {
             const date = new Date(currentYear, currentMonth, day);
+
+            // Skip past dates (before Australian today)
+            if (currentYear < todayYear ||
+                (currentYear === todayYear && currentMonth < todayMonth) ||
+                (currentYear === todayYear && currentMonth === todayMonth && day < todayDay)) {
+                continue;
+            }
+
             const dateStr = [
                 date.getFullYear(),
                 String(date.getMonth() + 1).padStart(2, '0'),
@@ -46,8 +75,6 @@ export function InlineDatePicker({
         }
         return dates;
     }, [currentMonth, currentYear]);
-
-    const todayStr = new Date().toISOString().split('T')[0];
 
     return (
         <div className="space-y-4">
@@ -84,75 +111,80 @@ export function InlineDatePicker({
 
             {/* Swipeable Date Picker - Horizontal Scroll */}
             <div className="relative border-b border-gray-100 pb-4">
-                <div
-                    ref={(el) => {
-                        if (el) {
-                            // Auto-scroll to today or selected date
-                            const today = new Date();
-                            const isCurrentMonth = today.getMonth() === currentMonth && today.getFullYear() === currentYear;
+                {monthDates.length === 0 ? (
+                    <div className="text-center py-4 text-gray-500 text-sm">
+                        No dates available in this month
+                    </div>
+                ) : (
+                    <div
+                        ref={(el) => {
+                            if (el) {
+                                // Scroll to selected date if exists, otherwise scroll to first visible date (today)
+                                const targetDate = selectedDate || todayStr;
+                                const targetIndex = monthDates.findIndex(d => d.dateStr === targetDate);
 
-                            if (isCurrentMonth) {
-                                const day = today.getDate();
-                                const itemWidth = 60;
-                                const scrollPos = (day - 1) * itemWidth - (el.offsetWidth / 2) + (itemWidth / 2);
-                                el.scrollLeft = Math.max(0, scrollPos);
+                                if (targetIndex >= 0) {
+                                    const itemWidth = 60;
+                                    const scrollPos = targetIndex * itemWidth - (el.offsetWidth / 2) + (itemWidth / 2);
+                                    el.scrollLeft = Math.max(0, scrollPos);
+                                }
                             }
-                        }
-                    }}
-                    className="flex items-center gap-2 overflow-x-auto scrollbar-hide px-2"
-                    style={{
-                        scrollbarWidth: 'none',
-                        msOverflowStyle: 'none',
-                        WebkitOverflowScrolling: 'touch'
-                    }}
-                >
-                    {monthDates.map(({ date, dateStr, day, weekday }) => {
-                        const count = getBookingCountForDate ? getBookingCountForDate(dateStr) : 0;
-                        const isSelected = selectedDate === dateStr;
-                        const isToday = dateStr === todayStr;
+                        }}
+                        className="flex items-center gap-2 overflow-x-auto scrollbar-hide px-2"
+                        style={{
+                            scrollbarWidth: 'none',
+                            msOverflowStyle: 'none',
+                            WebkitOverflowScrolling: 'touch'
+                        }}
+                    >
+                        {monthDates.map(({ date, dateStr, day, weekday }) => {
+                            const count = getBookingCountForDate ? getBookingCountForDate(dateStr) : 0;
+                            const isSelected = selectedDate === dateStr;
+                            const isToday = dateStr === todayStr;
 
-                        return (
-                            <button
-                                key={dateStr}
-                                onClick={() => onSelectDate(isSelected ? null : dateStr)}
-                                className={`flex flex-col items-center justify-center min-w-[50px] h-[60px] md:h-[70px] rounded-2xl transition-all duration-200 relative group ${isSelected
-                                    ? "bg-[#3A3A3A] text-white shadow-md transform scale-105"
-                                    : "text-gray-500 hover:bg-gray-50"
-                                    }`}
-                            >
-                                <span className={`text-[10px] font-medium uppercase tracking-wide mb-1 ${isSelected ? 'text-white/80' : ''
-                                    }`}>
-                                    {weekday}
-                                </span>
-                                <span className={`text-base md:text-lg font-bold ${isSelected ? 'text-white' : 'text-[#3A3A3A]'
-                                    }`}>
-                                    {day}
-                                </span>
+                            return (
+                                <button
+                                    key={dateStr}
+                                    onClick={() => onSelectDate(isSelected ? null : dateStr)}
+                                    className={`flex flex-col items-center justify-center min-w-[50px] h-[60px] md:h-[70px] rounded-2xl transition-all duration-200 relative group ${isSelected
+                                        ? "bg-[#3A3A3A] text-white shadow-md transform scale-105"
+                                        : "text-gray-500 hover:bg-gray-50"
+                                        }`}
+                                >
+                                    <span className={`text-[10px] font-medium uppercase tracking-wide mb-1 ${isSelected ? 'text-white/80' : ''
+                                        }`}>
+                                        {weekday}
+                                    </span>
+                                    <span className={`text-base md:text-lg font-bold ${isSelected ? 'text-white' : 'text-[#3A3A3A]'
+                                        }`}>
+                                        {day}
+                                    </span>
 
-                                {/* Dots for bookings */}
-                                <div className="flex gap-0.5 mt-1 h-1">
-                                    {count > 0 && (
-                                        <div className={`w-1 h-1 rounded-full ${isSelected ? 'bg-white' : 'bg-[#EECFD1]'
-                                            }`} />
-                                    )}
-                                    {count > 1 && (
-                                        <div className={`w-1 h-1 rounded-full ${isSelected ? 'bg-white' : 'bg-[#EECFD1]'
-                                            }`} />
-                                    )}
-                                    {count > 2 && (
-                                        <span className={`text-[6px] leading-none ${isSelected ? 'text-white' : 'text-[#EECFD1]'
-                                            }`}>+</span>
-                                    )}
-                                </div>
+                                    {/* Dots for bookings */}
+                                    <div className="flex gap-0.5 mt-1 h-1">
+                                        {count > 0 && (
+                                            <div className={`w-1 h-1 rounded-full ${isSelected ? 'bg-white' : 'bg-[#EECFD1]'
+                                                }`} />
+                                        )}
+                                        {count > 1 && (
+                                            <div className={`w-1 h-1 rounded-full ${isSelected ? 'bg-white' : 'bg-[#EECFD1]'
+                                                }`} />
+                                        )}
+                                        {count > 2 && (
+                                            <span className={`text-[6px] leading-none ${isSelected ? 'text-white' : 'text-[#EECFD1]'
+                                                }`}>+</span>
+                                        )}
+                                    </div>
 
-                                {/* Today Indicator */}
-                                {isToday && !isSelected && (
-                                    <div className="absolute top-1 right-1 w-1.5 h-1.5 bg-[#EECFD1] rounded-full" />
-                                )}
-                            </button>
-                        );
-                    })}
-                </div>
+                                    {/* Today Indicator */}
+                                    {isToday && !isSelected && (
+                                        <div className="absolute top-1 right-1 w-1.5 h-1.5 bg-[#EECFD1] rounded-full" />
+                                    )}
+                                </button>
+                            );
+                        })}
+                    </div>
+                )}
             </div>
 
             {/* Selected Date Info */}
