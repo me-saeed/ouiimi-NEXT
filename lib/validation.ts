@@ -179,6 +179,7 @@ export const serviceUpdateSchema = z.object({
     }),
   }).optional(),
   addOns: z.array(addOnSchema).optional(),
+  timeSlots: z.array(timeSlotSchema).optional(), // Added for upsert flow
   status: z.enum(["listed", "booked", "completed", "cancelled"]).optional(),
 });
 

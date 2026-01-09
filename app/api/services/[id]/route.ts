@@ -188,8 +188,72 @@ async function updateServiceHandler(
   }
   // ======================================================================== 
 
-  // Update service fields
-  Object.assign(service, validatedData);
+  // ========================================================================
+  // TRANSFORM TIMESLOTS (if provided)
+  // Convert staffIds from string[] to {staffId, isBooked}[] format
+  // IMPORTANT: Preserve booking status for existing slots
+  // ========================================================================
+  if (validationAny.timeSlots && Array.isArray(validationAny.timeSlots)) {
+    const mongoose = await import("mongoose");
+
+    // Helper to find existing slot in current service data
+    const findExistingSlot = (date: Date, startTime: string, endTime: string) => {
+      const dateStr = date.toISOString().split('T')[0];
+      return service.timeSlots.find((existingSlot: any) => {
+        const existingDateStr = new Date(existingSlot.date).toISOString().split('T')[0];
+        return existingDateStr === dateStr &&
+          existingSlot.startTime === startTime &&
+          existingSlot.endTime === endTime;
+      });
+    };
+
+    // Helper to find existing staff booking status
+    const getStaffBookingStatus = (existingSlot: any, staffId: string): boolean => {
+      if (!existingSlot || !existingSlot.staffIds) return false;
+      const existingStaff = existingSlot.staffIds.find((s: any) =>
+        String(s.staffId || s) === staffId
+      );
+      return existingStaff?.isBooked || false;
+    };
+
+    // Calculate duration helper
+    const calculateDuration = (startTime: string, endTime: string): number => {
+      const [startHours, startMinutes] = startTime.split(":").map(Number);
+      const [endHours, endMinutes] = endTime.split(":").map(Number);
+      let duration = (endHours * 60 + endMinutes) - (startHours * 60 + startMinutes);
+      if (duration < 0) duration += 24 * 60;
+      return duration;
+    };
+
+    validationAny.timeSlots = validationAny.timeSlots.map((slot: any) => {
+      const slotDate = new Date(slot.date);
+      const existingSlot = findExistingSlot(slotDate, slot.startTime, slot.endTime);
+
+      return {
+        date: slotDate,
+        startTime: slot.startTime,
+        endTime: slot.endTime,
+        price: slot.price,
+        duration: slot.duration || calculateDuration(slot.startTime, slot.endTime),
+        staffIds: (slot.staffIds || []).map((id: any) => {
+          const staffIdStr = String(id);
+          return {
+            staffId: new mongoose.default.Types.ObjectId(staffIdStr),
+            // Preserve booking status if this staff was already booked for this slot
+            isBooked: getStaffBookingStatus(existingSlot, staffIdStr)
+          };
+        }),
+        addOns: slot.addOns || [],
+        // Preserve slot-level isBooked if slot exists
+        isBooked: existingSlot?.isBooked || false,
+        // Preserve bookingId if it exists
+        bookingId: existingSlot?.bookingId || null,
+      };
+    });
+  }
+
+  // Update service fields - use validationAny which has transformed timeSlots
+  Object.assign(service, validationAny);
   await service.save();
 
   return successResponse({

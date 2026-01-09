@@ -58,6 +58,10 @@ export default function CreateServicePage() {
   const [isLoading, setIsLoading] = useState(false);
   const [staff, setStaff] = useState<any[]>([]);
 
+  // Upsert flow: Track if we're updating an existing service
+  const [existingServiceId, setExistingServiceId] = useState<string | null>(null);
+  const [isLoadingExisting, setIsLoadingExisting] = useState(false);
+
   const [duration, setDuration] = useState<number>(30); // Default 30 mins
   // Group time slots by date: { "2025-10-30": [{ startTime, endTime, price, duration, staffIds, addOns }] }
   const [datesWithSlots, setDatesWithSlots] = useState<Record<string, Array<{
@@ -119,6 +123,81 @@ export default function CreateServicePage() {
     setSelectedAddOns([]);
   }, [selectedSubCategory]);
 
+  // ==========================================================================
+  // UPSERT FLOW: Fetch existing service when subCategory changes
+  // ==========================================================================
+  useEffect(() => {
+    const fetchExistingService = async () => {
+      // Reset state first
+      setExistingServiceId(null);
+
+      if (!businessId || !selectedSubCategory) {
+        return;
+      }
+
+      setIsLoadingExisting(true);
+      try {
+        const response = await fetch(
+          `/api/services/by-subcategory?businessId=${businessId}&subCategory=${encodeURIComponent(selectedSubCategory)}`,
+          {
+            credentials: "include",
+          }
+        );
+
+        if (response.ok) {
+          const data = await response.json();
+
+          if (data.exists && data.service) {
+            console.log("[Create Service] Found existing service for subcategory:", data.service.id);
+            setExistingServiceId(data.service.id);
+
+            // Pre-fill form with existing data
+            if (data.service.description) {
+              setValue("description", data.service.description);
+            }
+            if (data.service.address) {
+              setValue("address", data.service.address);
+            }
+
+            // Convert timeSlots to datesWithSlots format
+            const slotsGrouped: Record<string, any[]> = {};
+            (data.service.timeSlots || []).forEach((slot: any) => {
+              const dateStr = new Date(slot.date).toISOString().split('T')[0];
+              if (!slotsGrouped[dateStr]) {
+                slotsGrouped[dateStr] = [];
+              }
+              slotsGrouped[dateStr].push({
+                startTime: slot.startTime,
+                endTime: slot.endTime,
+                price: slot.price,
+                duration: slot.duration || 60,
+                staffIds: slot.staffIds || [],
+                addOns: slot.addOns || [],
+              });
+            });
+            setDatesWithSlots(slotsGrouped);
+
+            toast({
+              title: "Existing service loaded",
+              description: `Adding dates to your existing "${selectedSubCategory}" service.`,
+            });
+          } else {
+            // No existing service - this is a fresh create
+            setExistingServiceId(null);
+            // Clear any previous form data (fresh start)
+            setDatesWithSlots({});
+          }
+        }
+      } catch (error) {
+        console.error("[Create Service] Error fetching existing service:", error);
+      } finally {
+        setIsLoadingExisting(false);
+      }
+    };
+
+    fetchExistingService();
+  }, [businessId, selectedSubCategory, setValue, toast]);
+
   const loadStaff = useCallback(async () => {
     if (!user) return;
 
@@ -146,13 +225,16 @@ export default function CreateServicePage() {
         const businessData = await businessResponse.json();
         if (businessData.businesses && businessData.businesses.length > 0) {
           const foundBusiness = businessData.businesses[0];
-          const businessId = foundBusiness.id || foundBusiness._id;
+          const foundBusinessId = foundBusiness.id || foundBusiness._id;
+
+          // CRITICAL: Store businessId in state for upsert flow
+          setBusinessId(foundBusinessId);
 
           // Save business data to check status
           setBusiness(foundBusiness);
 
           // Load staff
-          const staffResponse = await fetch(`/api/staff?businessId=${businessId}`, {
+          const staffResponse = await fetch(`/api/staff?businessId=${foundBusinessId}`, {
             headers: {
               "Content-Type": "application/json",
             },
@@ -775,11 +857,16 @@ export default function CreateServicePage() {
         })),
       };
 
-      console.log("[Create Service] Sending request to /api/services");
+      console.log("[Create Service] Sending request -", existingServiceId ? "UPDATE" : "CREATE");
       console.time("[Create Service] API Request");
 
-      const response = await fetch("/api/services", {
-        method: "POST",
+      // Upsert logic: PUT if existing, POST if new
+      const isUpdate = !!existingServiceId;
+      const apiUrl = isUpdate ? `/api/services/${existingServiceId}` : "/api/services";
+      const method = isUpdate ? "PUT" : "POST";
+
+      const response = await fetch(apiUrl, {
+        method,
         headers: {
           "Content-Type": "application/json",
         },
@@ -843,10 +930,10 @@ export default function CreateServicePage() {
       toast({
         variant: "success",
         title: "Success!",
-        description: "Service created successfully!",
+        description: isUpdate ? "Service updated successfully!" : "Service created successfully!",
       });
 
-      setSuccess("Service created successfully! Redirecting...");
+      setSuccess(isUpdate ? "Service updated successfully! Redirecting..." : "Service created successfully! Redirecting...");
 
       await new Promise(resolve => setTimeout(resolve, 2000));
       router.push("/business/dashboard?tab=list");
@@ -1473,7 +1560,7 @@ export default function CreateServicePage() {
                         Creating...
                       </div>
                     ) : (
-                      "Create Service"
+                      existingServiceId ? "Update Service" : "Create Service"
                     )}
                   </Button>
                   <Button

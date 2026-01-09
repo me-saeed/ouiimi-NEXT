@@ -172,7 +172,10 @@ export default function EditServicePage() {
               endTime: slot.endTime,
               price,
               duration,
-              staffIds: (slot.staffIds || []).map((id: any) => String(id)),
+              // Handle both old format (string) and new format ({staffId, isBooked})
+              staffIds: (slot.staffIds || []).map((s: any) =>
+                typeof s === 'object' && s.staffId ? String(s.staffId) : String(s)
+              ),
             });
           });
         }
