@@ -4,6 +4,8 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ServiceCard } from "@/components/ui/service-card";
 import { StaffCard } from "@/components/ui/staff-card";
+import { DatePickerModal } from "@/components/ui/DatePickerModal";
+import { Calendar } from "lucide-react";
 
 interface BusinessTabsProps {
     business: any;
@@ -15,6 +17,7 @@ export function BusinessTabs({ business, services, staff }: BusinessTabsProps) {
     const [activeTab, setActiveTab] = useState<"story" | "services" | "staff">("services");
     const [selectedDate, setSelectedDate] = useState<Date | null>(null);
     const [selectedStaff, setSelectedStaff] = useState<any>(null);
+    const [showDatePicker, setShowDatePicker] = useState(false);
 
     const getFilteredServices = () => {
         let filtered = services;
@@ -237,16 +240,33 @@ export function BusinessTabs({ business, services, staff }: BusinessTabsProps) {
                             <h2 className="text-2xl font-semibold">Services</h2>
                             <div className="flex items-center gap-2">
                                 <div className="relative min-w-[140px] w-[140px]">
-                                    <input
-                                        type="date"
-                                        value={selectedDate ? selectedDate.toISOString().split('T')[0] : ''}
-                                        onChange={(e) => setSelectedDate(e.target.value ? new Date(e.target.value) : null)}
-                                        min={new Date().toISOString().split('T')[0]}
-                                        className="w-full px-3 py-2 border rounded-lg text-sm bg-white [appearance:textfield] [&::-webkit-calendar-picker-indicator]:opacity-100 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
-                                        style={{
-                                            WebkitAppearance: 'none',
-                                            colorScheme: 'light',
+                                    {/* Custom Date Picker Button - Works across all devices */}
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowDatePicker(true)}
+                                        className="w-full px-3 py-2 border rounded-lg text-sm bg-white flex items-center justify-between gap-2 hover:border-[#EECFD1] transition-colors"
+                                    >
+                                        <span className={selectedDate ? "text-[#3A3A3A]" : "text-gray-400"}>
+                                            {selectedDate
+                                                ? selectedDate.toLocaleDateString('en-AU', {
+                                                    day: '2-digit',
+                                                    month: 'short',
+                                                    year: '2-digit'
+                                                })
+                                                : "Select Date"}
+                                        </span>
+                                        <Calendar className="w-4 h-4 text-gray-400" />
+                                    </button>
+
+                                    {/* Date Picker Modal */}
+                                    <DatePickerModal
+                                        isOpen={showDatePicker}
+                                        onClose={() => setShowDatePicker(false)}
+                                        onSelectDate={(dateStr) => {
+                                            setSelectedDate(new Date(dateStr));
+                                            setShowDatePicker(false);
                                         }}
+                                        minDate={new Date()}
                                     />
                                 </div>
                                 {selectedDate && (

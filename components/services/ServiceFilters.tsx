@@ -6,8 +6,9 @@ import { useForm, Controller } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { AddressAutocomplete } from "@/components/ui/address-autocomplete";
-import { Search } from "lucide-react";
+import { Search, Calendar } from "lucide-react";
 import { geocodeByAddress, getLatLng } from "react-google-places-autocomplete";
+import { DatePickerModal } from "@/components/ui/DatePickerModal";
 import {
     Select,
     SelectContent,
@@ -41,6 +42,7 @@ export function ServiceFilters({
     const [subCategory, setSubCategory] = useState(initialSubCategory);
     const [selectedDate, setSelectedDate] = useState(initialDate);
     const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+    const [showDatePicker, setShowDatePicker] = useState(false);
 
     const { control, getValues } = useForm({
         defaultValues: {
@@ -136,17 +138,33 @@ export function ServiceFilters({
                     />
                 </div>
                 <div className="relative min-w-[140px] w-[140px] md:w-auto">
-                    <Input
-                        type="date"
-                        value={selectedDate}
-                        onChange={(e) => handleDateChange(e.target.value)}
-                        min={new Date().toISOString().split('T')[0]}
-                        placeholder="Date"
-                        className="h-10 md:h-12 w-full px-3 md:px-4 rounded-xl border-gray-200 bg-white text-sm md:text-base text-[#3A3A3A] font-medium [appearance:textfield] [&::-webkit-calendar-picker-indicator]:opacity-100 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
-                        style={{
-                            WebkitAppearance: 'none',
-                            colorScheme: 'light',
+                    {/* Custom Date Picker Button - Works across all devices */}
+                    <button
+                        type="button"
+                        onClick={() => setShowDatePicker(true)}
+                        className="h-10 md:h-12 w-full px-3 md:px-4 rounded-xl border border-gray-200 bg-white text-sm md:text-base text-[#3A3A3A] font-medium flex items-center justify-between gap-2 hover:border-[#EECFD1] transition-colors"
+                    >
+                        <span className={selectedDate ? "text-[#3A3A3A]" : "text-gray-400"}>
+                            {selectedDate
+                                ? new Date(selectedDate).toLocaleDateString('en-AU', {
+                                    day: '2-digit',
+                                    month: 'short',
+                                    year: '2-digit'
+                                })
+                                : "Date"}
+                        </span>
+                        <Calendar className="w-4 h-4 text-gray-400" />
+                    </button>
+
+                    {/* Date Picker Modal */}
+                    <DatePickerModal
+                        isOpen={showDatePicker}
+                        onClose={() => setShowDatePicker(false)}
+                        onSelectDate={(date) => {
+                            handleDateChange(date);
+                            setShowDatePicker(false);
                         }}
+                        minDate={new Date()}
                     />
                 </div>
             </div>
