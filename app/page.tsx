@@ -76,15 +76,36 @@ function getEarliestAvailableTimeSlot(service: Service) {
     return null;
   }
 
-  // Pre-filtered by server, but checking implementation
-  const validSlots = service.timeSlots;
+  // Current date/time for comparison
+  const now = new Date();
+  const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+
+  // Filter for future/available slots FIRST (safety filter for cached data)
+  const validSlots = service.timeSlots.filter(slot => {
+    if (slot.isBooked) return false;
+
+    const slotDate = typeof slot.date === 'string' ? new Date(slot.date) : new Date(slot.date);
+    const slotDateStr = `${slotDate.getFullYear()}-${String(slotDate.getMonth() + 1).padStart(2, '0')}-${String(slotDate.getDate()).padStart(2, '0')}`;
+
+    // Exclude past dates
+    if (slotDateStr < todayStr) return false;
+
+    // For today's date, check if time hasn't passed
+    if (slotDateStr === todayStr) {
+      const [endH, endM] = slot.endTime.split(':').map(Number);
+      const slotEndTime = new Date(slotDate);
+      slotEndTime.setHours(endH, endM, 0, 0);
+      if (slotEndTime <= now) return false;
+    }
+
+    return true;
+  });
 
   if (validSlots.length === 0) {
     return null;
   }
 
-  // Sort locally just in case, though server filtering implies some order or raw
-  // We want the absolute earliest
+  // Sort to find earliest
   const sortedSlots = [...validSlots].sort((a, b) => {
     const dateA = typeof a.date === 'string' ? new Date(a.date) : new Date(a.date);
     const dateB = typeof b.date === 'string' ? new Date(b.date) : new Date(b.date);

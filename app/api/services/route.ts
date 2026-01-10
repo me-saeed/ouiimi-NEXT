@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/db";
 import Service from "@/lib/models/Service";
 import Business from "@/lib/models/Business";
+import Staff from "@/lib/models/Staff";
 import { serviceCreateSchema } from "@/lib/validation";
 import mongoose from "mongoose";
 import { authenticateRequest } from "@/lib/api-auth";
@@ -695,6 +696,24 @@ async function getServicesHandler(req: NextRequest) {
     });
     const allStaffIds = Array.from(allStaffIdsSet);
 
+    // =========================================================================
+    // STAFF DETAILS LOOKUP: Fetch staff name/photo for ServiceDetailModal
+    // =========================================================================
+    const staffDetailsMap = new Map<string, { name: string; photo: string }>();
+    if (allStaffIds.length > 0) {
+      try {
+        const staffDocs = await Staff.find(
+          { _id: { $in: allStaffIds.map((id: string) => new mongoose.Types.ObjectId(id)) } },
+          { name: 1, photo: 1 }
+        ).lean();
+        staffDocs.forEach((staff: any) => {
+          staffDetailsMap.set(String(staff._id), { name: staff.name, photo: staff.photo || '' });
+        });
+      } catch (err) {
+        console.warn('[API /api/services GET] Failed to fetch staff details:', err);
+      }
+    }
+
     // Fetch global busy map for next 2 months
     const startDate = new Date();
     const endDate = new Date();
@@ -709,17 +728,14 @@ async function getServicesHandler(req: NextRequest) {
             const updatedStaffIds = ts.staffIds?.map((staff: any) => {
               const staffIdStr = typeof staff === 'string' ? staff : String(staff.staffId || staff.id || staff);
               const isGloballyBooked = isStaffBusy(busyMap, staffIdStr, ts.date, ts.startTime, ts.endTime);
-
-              if (typeof staff === 'string' || !staff.staffId) {
-                return {
-                  staffId: staffIdStr,
-                  isBooked: isGloballyBooked
-                };
-              }
+              const staffDetails = staffDetailsMap.get(staffIdStr);
 
               return {
-                ...staff,
-                isBooked: staff.isBooked || isGloballyBooked
+                staffId: staffIdStr,
+                isBooked: (typeof staff === 'object' && staff.isBooked) || isGloballyBooked,
+                // ✅ ROOT FIX: Include staff name and photo for ServiceDetailModal
+                name: staffDetails?.name || 'Staff',
+                photo: staffDetails?.photo || '',
               };
             }) || [];
 
@@ -751,7 +767,10 @@ async function getServicesHandler(req: NextRequest) {
             serviceName: s.serviceName,
             description: s.description,
             duration: earliestSlot?.duration || (s.timeSlots && s.timeSlots.length > 0 ? s.timeSlots[0].duration : 60),
-            address:
+            // ✅ ROOT FIX: Return full address object for ServiceDetailModal (expects .street)
+            // Also keep addressDisplay for backwards compatibility with service cards
+            address: s.address || null,
+            addressDisplay:
               typeof s.address === "object" && s.address?.street
                 ? s.address.street
                 : typeof s.address === "string"

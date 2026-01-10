@@ -155,12 +155,18 @@ export function ServiceDetailModal({ isOpen, onClose, service }: ServiceDetailMo
                             <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider">Assigned Staff</h3>
                             {(() => {
                                 // Extract unique staff from timeSlots.staffIds
-                                const staffMap = new Map<string, any>();
+                                // Staff now comes with name and photo from API
+                                const staffMap = new Map<string, { staffId: string; name: string; photo: string }>();
                                 service.timeSlots?.forEach((slot: any) => {
                                     slot.staffIds?.forEach((s: any) => {
                                         const staffId = typeof s === 'object' && s.staffId ? String(s.staffId) : String(s);
                                         if (!staffMap.has(staffId)) {
-                                            staffMap.set(staffId, s.staffDetails || { name: 'Staff', _id: staffId });
+                                            staffMap.set(staffId, {
+                                                staffId,
+                                                // Use name/photo from staffIds object (populated by API)
+                                                name: s.name || 'Staff',
+                                                photo: s.photo || ''
+                                            });
                                         }
                                     });
                                 });
@@ -181,7 +187,7 @@ export function ServiceDetailModal({ isOpen, onClose, service }: ServiceDetailMo
                                                             </div>
                                                         )}
                                                     </div>
-                                                    <span className="text-xs font-medium text-gray-700">{staff.name || 'Staff'}</span>
+                                                    <span className="text-xs font-medium text-gray-700">{staff.name}</span>
                                                 </div>
                                             ))}
                                         </div>
