@@ -153,27 +153,43 @@ export function ServiceDetailModal({ isOpen, onClose, service }: ServiceDetailMo
                         {/* STAFF */}
                         <div className="space-y-2">
                             <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider">Assigned Staff</h3>
-                            {service.defaultStaffIds && service.defaultStaffIds.length > 0 ? (
-                                <div className="flex flex-wrap gap-2">
-                                    {service.defaultStaffIds.map((staff: any, idx: number) => (
-                                        <div key={idx} className="flex items-center gap-2 px-2 py-1.5 rounded-lg bg-gray-50 border border-gray-100">
-                                            <div className="w-6 h-6 rounded-full bg-gray-200 overflow-hidden shrink-0">
-                                                {staff.photo ? (
-                                                    // eslint-disable-next-line @next/next/no-img-element
-                                                    <img src={staff.photo} alt={staff.name} className="w-full h-full object-cover" />
-                                                ) : (
-                                                    <div className="w-full h-full flex items-center justify-center text-gray-500 font-bold text-[10px]">
-                                                        {staff.name?.[0] || 'S'}
+                            {(() => {
+                                // Extract unique staff from timeSlots.staffIds
+                                const staffMap = new Map<string, any>();
+                                service.timeSlots?.forEach((slot: any) => {
+                                    slot.staffIds?.forEach((s: any) => {
+                                        const staffId = typeof s === 'object' && s.staffId ? String(s.staffId) : String(s);
+                                        if (!staffMap.has(staffId)) {
+                                            staffMap.set(staffId, s.staffDetails || { name: 'Staff', _id: staffId });
+                                        }
+                                    });
+                                });
+                                const staffList = Array.from(staffMap.values());
+
+                                if (staffList.length > 0) {
+                                    return (
+                                        <div className="flex flex-wrap gap-2">
+                                            {staffList.map((staff: any, idx: number) => (
+                                                <div key={idx} className="flex items-center gap-2 px-2 py-1.5 rounded-lg bg-gray-50 border border-gray-100">
+                                                    <div className="w-6 h-6 rounded-full bg-gray-200 overflow-hidden shrink-0">
+                                                        {staff.photo ? (
+                                                            // eslint-disable-next-line @next/next/no-img-element
+                                                            <img src={staff.photo} alt={staff.name} className="w-full h-full object-cover" />
+                                                        ) : (
+                                                            <div className="w-full h-full flex items-center justify-center text-gray-500 font-bold text-[10px]">
+                                                                {staff.name?.[0] || 'S'}
+                                                            </div>
+                                                        )}
                                                     </div>
-                                                )}
-                                            </div>
-                                            <span className="text-xs font-medium text-gray-700">{staff.name}</span>
+                                                    <span className="text-xs font-medium text-gray-700">{staff.name || 'Staff'}</span>
+                                                </div>
+                                            ))}
                                         </div>
-                                    ))}
-                                </div>
-                            ) : (
-                                <p className="text-sm text-gray-400">No staff assigned.</p>
-                            )}
+                                    );
+                                } else {
+                                    return <p className="text-sm text-gray-400">No staff assigned.</p>;
+                                }
+                            })()}
                         </div>
 
                         {/* SCHEDULE */}
@@ -214,6 +230,6 @@ export function ServiceDetailModal({ isOpen, onClose, service }: ServiceDetailMo
                     Close
                 </Button>
             </div>
-        </Modal>
+        </Modal >
     );
 }

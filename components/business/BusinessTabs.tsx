@@ -236,12 +236,19 @@ export function BusinessTabs({ business, services, staff }: BusinessTabsProps) {
                         <div className="flex items-center justify-between">
                             <h2 className="text-2xl font-semibold">Services</h2>
                             <div className="flex items-center gap-2">
-                                <input
-                                    type="date"
-                                    value={selectedDate ? selectedDate.toISOString().split('T')[0] : ''}
-                                    onChange={(e) => setSelectedDate(e.target.value ? new Date(e.target.value) : null)}
-                                    className="px-3 py-2 border rounded-lg text-sm"
-                                />
+                                <div className="relative min-w-[140px] w-[140px]">
+                                    <input
+                                        type="date"
+                                        value={selectedDate ? selectedDate.toISOString().split('T')[0] : ''}
+                                        onChange={(e) => setSelectedDate(e.target.value ? new Date(e.target.value) : null)}
+                                        min={new Date().toISOString().split('T')[0]}
+                                        className="w-full px-3 py-2 border rounded-lg text-sm bg-white [appearance:textfield] [&::-webkit-calendar-picker-indicator]:opacity-100 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+                                        style={{
+                                            WebkitAppearance: 'none',
+                                            colorScheme: 'light',
+                                        }}
+                                    />
+                                </div>
                                 {selectedDate && (
                                     <Button
                                         variant="outline"

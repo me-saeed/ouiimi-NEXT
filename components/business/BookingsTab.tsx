@@ -206,13 +206,22 @@ export function BookingsTab({ business }: BookingsTabProps) {
     setCurrentYear(now.getFullYear());
   }, [activeSubTab]);
 
-  // Generate all dates for current month
+  // Generate all dates for current month (excluding past dates for "Upcoming" view)
   const monthDates = useMemo(() => {
     const dates: Array<{ date: Date; dateStr: string; day: number; weekday: string }> = [];
     const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
 
+    // Get today's date at midnight for comparison
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
     for (let day = 1; day <= daysInMonth; day++) {
       const date = new Date(currentYear, currentMonth, day);
+      date.setHours(0, 0, 0, 0);
+
+      // Skip past dates (only show today and future)
+      if (date < today) continue;
+
       const dateStr = [
         date.getFullYear(),
         String(date.getMonth() + 1).padStart(2, '0'),

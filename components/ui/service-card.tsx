@@ -92,8 +92,8 @@ export const ServiceCard = React.memo(function ServiceCard({
                         </div>
                     )}
 
-                    {/* Row 4: Status (Booked only) */}
-                    {status && (
+                    {/* Row 4: Status (Booked only - but NOT confirmed, that shows inside only) */}
+                    {status && status !== "confirmed" && (
                         <div className="mt-0.5 sm:mt-1 text-center">
                             {status === "completed" && (
                                 <span className="text-green-500 font-medium text-[11px] sm:text-sm">Finished</span>
@@ -103,9 +103,6 @@ export const ServiceCard = React.memo(function ServiceCard({
                             )}
                             {status === "pending" && (
                                 <span className="text-amber-500 font-medium text-[11px] sm:text-sm">Awaiting Payment</span>
-                            )}
-                            {status === "confirmed" && (
-                                <span className="text-blue-500 font-medium text-[11px] sm:text-sm">Confirmed</span>
                             )}
                         </div>
                     )}

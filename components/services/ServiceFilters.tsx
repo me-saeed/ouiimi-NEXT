@@ -135,13 +135,18 @@ export function ServiceFilters({
                         className="h-10 md:h-12 text-sm md:text-base"
                     />
                 </div>
-                <div className="relative">
+                <div className="relative min-w-[140px] w-[140px] md:w-auto">
                     <Input
                         type="date"
                         value={selectedDate}
                         onChange={(e) => handleDateChange(e.target.value)}
                         min={new Date().toISOString().split('T')[0]}
-                        className="h-10 md:h-12 px-3 md:px-4 rounded-xl border-gray-200 bg-white text-sm md:text-base text-[#3A3A3A] font-medium"
+                        placeholder="Date"
+                        className="h-10 md:h-12 w-full px-3 md:px-4 rounded-xl border-gray-200 bg-white text-sm md:text-base text-[#3A3A3A] font-medium [appearance:textfield] [&::-webkit-calendar-picker-indicator]:opacity-100 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+                        style={{
+                            WebkitAppearance: 'none',
+                            colorScheme: 'light',
+                        }}
                     />
                 </div>
             </div>

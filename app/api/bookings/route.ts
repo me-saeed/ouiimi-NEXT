@@ -91,8 +91,9 @@ async function createBookingHandler(req: NextRequest) {
     : null;
   // ==========================================================================
   // AUTO-EXPIRY: Clear stale pending bookings before checking availability
+  // Extended to 2 hours to give users more time to complete checkout
   // ==========================================================================
-  const expiryTime = new Date(Date.now() - 15 * 60 * 1000);
+  const expiryTime = new Date(Date.now() - 2 * 60 * 60 * 1000); // 2 hours
   await Booking.updateMany(
     { status: { $in: ["pre_payment", "pending"] }, createdAt: { $lt: expiryTime } },
     { $set: { status: "cancelled", cancellationReason: "Pre-payment hold expired" } }
