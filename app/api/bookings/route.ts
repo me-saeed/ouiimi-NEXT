@@ -366,9 +366,10 @@ async function getBookingsHandler(req: NextRequest) {
   }
 
   // ==========================================================================
-  // AUTO-EXPIRY: Automatically cancel pending bookings older than 15 mins
+  // AUTO-EXPIRY: Automatically cancel pending bookings older than 2 hours
+  // Extended to 2 hours to give users time to complete checkout
   // ==========================================================================
-  const expiryTime = new Date(Date.now() - 15 * 60 * 1000);
+  const expiryTime = new Date(Date.now() - 2 * 60 * 60 * 1000); // 2 hours
   await Booking.updateMany(
     {
       status: { $in: ["pre_payment", "pending"] },

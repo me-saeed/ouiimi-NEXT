@@ -84,7 +84,8 @@ export function BookingsTab({ business }: BookingsTabProps) {
         statusFilter = "confirmed";
       } else if (activeSubTab === "pending") {
         // Pending: completed bookings waiting for admin payment release
-        statusFilter = "completed";
+        // + confirmed bookings whose date has passed (need to be marked as completed)
+        statusFilter = "confirmed,completed";
       } else if (activeSubTab === "finished") {
         // Finished: cancelled OR payment released (multiple statuses for query)
         statusFilter = "completed,cancelled,refunded";
@@ -157,11 +158,37 @@ export function BookingsTab({ business }: BookingsTabProps) {
             }
           });
         } else if (activeSubTab === "pending") {
-          // PENDING: Completed bookings waiting for admin to release payment
-          // Only show completed bookings where admin hasn't released payment yet
+          // PENDING: Two scenarios:
+          // 1. Completed bookings waiting for admin to release payment
+          // 2. Confirmed bookings whose date has PASSED (need to be marked as completed)
           filteredBookings = filteredBookings.filter((b: Booking) => {
-            return b.status === "completed" &&
-              (b.adminPaymentStatus === "pending" || !b.adminPaymentStatus);
+            // Scenario 1: Completed & awaiting admin payment release
+            if (b.status === "completed" &&
+              (b.adminPaymentStatus === "pending" || !b.adminPaymentStatus)) {
+              return true;
+            }
+
+            // Scenario 2: Confirmed but date has passed - needs business to mark as completed
+            if (b.status === "confirmed") {
+              try {
+                const bookingDate = parseLocalDate(b.timeSlot.date);
+                if (isNaN(bookingDate.getTime())) return false;
+
+                const todayMidnight = new Date();
+                todayMidnight.setHours(0, 0, 0, 0);
+
+                const bookingMidnight = new Date(bookingDate);
+                bookingMidnight.setHours(0, 0, 0, 0);
+
+                // Include if booking date is BEFORE today (past date)
+                return bookingMidnight.getTime() < todayMidnight.getTime();
+              } catch (error) {
+                console.error('Error filtering past confirmed booking:', error);
+                return false;
+              }
+            }
+
+            return false;
           });
         } else if (activeSubTab === "finished") {
           // FINISHED: Cancelled OR Payment Released
