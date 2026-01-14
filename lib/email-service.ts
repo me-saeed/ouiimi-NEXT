@@ -17,7 +17,8 @@ import {
     getBookingNumber,
     formatBusinessAddress,
     isValidEmail,
-    validateEmailConfig
+    validateEmailConfig,
+    generateCalendarLink
 } from "@/lib/email-utils";
 
 interface EmailParams {
@@ -39,6 +40,16 @@ export class EmailService {
      */
     static async sendBookingConfirmation({ booking, customer, business, service }: BookingEmailPayload) {
         try {
+            // Generate calendar link for "Add to Calendar" feature
+            const calendarLink = generateCalendarLink({
+                serviceName: service.serviceName,
+                businessName: business.businessName,
+                date: booking.timeSlot.date,
+                startTime: booking.timeSlot?.startTime || '09:00',
+                endTime: booking.timeSlot?.endTime || '10:00',
+                address: formatBusinessAddress(business.address)
+            });
+
             const variables = {
                 customerName: getCustomerName(customer.fname, customer.lname),
                 bookingNumber: getBookingNumber(booking.bookingNumber, booking._id),
@@ -51,7 +62,8 @@ export class EmailService {
                 depositPaid: formatAmount(booking.depositAmount),
                 remainingAmount: formatAmount(booking.remainingAmount),
                 businessAddress: formatBusinessAddress(business.address),
-                businessPhone: business.phone
+                businessPhone: business.phone,
+                calendarLink: calendarLink
             };
 
             await this.sendEmail({

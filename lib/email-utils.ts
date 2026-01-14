@@ -113,9 +113,6 @@ export function validateEmailConfig(): void {
     }
 }
 
-/**
- * Safely format business address
- */
 export function formatBusinessAddress(address: any): string {
     if (!address) return 'Address not available';
 
@@ -128,4 +125,51 @@ export function formatBusinessAddress(address: any): string {
     }
 
     return 'Address not available';
+}
+
+/**
+ * Generate Google Calendar link for booking
+ * Returns a URL that will open Google Calendar with pre-filled event details
+ */
+export function generateCalendarLink(params: {
+    serviceName: string;
+    businessName: string;
+    date: string | Date;
+    startTime: string;
+    endTime: string;
+    address?: string;
+}): string {
+    try {
+        const { serviceName, businessName, date, startTime, endTime, address } = params;
+
+        // Parse the date and times
+        const dateStr = typeof date === 'string' ? date : date.toISOString().split('T')[0];
+        const [year, month, day] = dateStr.split('-').map(Number);
+
+        // Parse start and end times (format: HH:MM)
+        const [startH, startM] = startTime.split(':').map(Number);
+        const [endH, endM] = endTime.split(':').map(Number);
+
+        // Create ISO format dates for Google Calendar (YYYYMMDDTHHMMSS)
+        const formatGoogleDate = (h: number, m: number) => {
+            const pad = (n: number) => n.toString().padStart(2, '0');
+            return `${year}${pad(month)}${pad(day)}T${pad(h)}${pad(m)}00`;
+        };
+
+        const startDate = formatGoogleDate(startH, startM);
+        const endDate = formatGoogleDate(endH, endM);
+
+        // Build event title and description
+        const title = encodeURIComponent(`${serviceName} at ${businessName}`);
+        const description = encodeURIComponent(`Your appointment for ${serviceName} with ${businessName}.\n\nBooked via ouiimi.com.au`);
+        const location = encodeURIComponent(address || '');
+
+        // Google Calendar URL format
+        const calendarUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${startDate}/${endDate}&details=${description}&location=${location}`;
+
+        return calendarUrl;
+    } catch (error) {
+        console.error('Error generating calendar link:', error);
+        return '';
+    }
 }

@@ -24,12 +24,17 @@ const dmSans = DM_Sans({
 
 export const metadata: Metadata = {
   title: "ouiimi - Simple Booking for Everyday Services",
-  description: "Discover, book, and manage all your everyday services - from haircuts to dog grooming. Simple, fast, and stress-free booking platform.",
+  description: "Book Better with ouiimi — making it easier to discover, book, and manage everyday local services, while supporting solo operators and independent small businesses.",
   keywords: "booking, services, haircuts, beauty, massage, dog grooming, appointments",
   authors: [{ name: "ouiimi" }],
+  icons: {
+    icon: "/favicon.png",
+    shortcut: "/favicon.png",
+    apple: "/favicon.png",
+  },
   openGraph: {
     title: "ouiimi - Simple Booking for Everyday Services",
-    description: "Discover, book, and manage all your everyday services in one place.",
+    description: "Book Better with ouiimi — making it easier to discover, book, and manage everyday local services, while supporting solo operators and independent small businesses.",
     type: "website",
   },
 };

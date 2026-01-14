@@ -318,6 +318,18 @@ export default function CartPage() {
               <div className="lg:col-span-1">
                 <div className="card-polished p-6 space-y-4 sticky top-4">
                   <h2 className="text-xl font-semibold mb-4">Complete Booking</h2>
+
+                  {/* TEMPORARY: Bookings launch message - Remove this block when ready to go live */}
+                  <div className="text-center py-4 px-3 bg-[#EECFD1]/10 rounded-xl border border-[#EECFD1]/30">
+                    <p className="text-sm font-medium text-[#3A3A3A]">
+                      Business onboarding open now.
+                    </p>
+                    <p className="text-sm font-semibold text-[#EECFD1] mt-1">
+                      Bookings go live from 01.02.2026
+                    </p>
+                  </div>
+
+                  {/* COMMENTED OUT: Original Book Now functionality - Uncomment when ready to go live
                   <p className="text-sm text-muted-foreground mb-4">
                     You&apos;ll be redirected to secure payment to complete your booking.
                   </p>
@@ -328,6 +340,7 @@ export default function CartPage() {
                   >
                     {authLoading ? "Initializing..." : isProcessing ? "Processing..." : "Book Now"}
                   </Button>
+                  */}
                 </div>
               </div>
             </div>

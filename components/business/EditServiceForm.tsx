@@ -887,7 +887,7 @@ export function EditServiceForm({ serviceId, onSuccess, onCancel }: EditServiceF
                         <Modal
                             isOpen={showTimeSlotForm}
                             onClose={() => setShowTimeSlotForm(false)}
-                            title={`Add Slot for ${selectedDate ? new Date(selectedDate).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }) : ''}`}
+                            title={`Add Slot${service?.serviceName ? ` - ${service.serviceName}` : ''} for ${selectedDate ? new Date(selectedDate).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }) : ''}`}
                         >
                             <div className="space-y-6">
                                 {timeSlotError && (

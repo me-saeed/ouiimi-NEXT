@@ -1105,7 +1105,6 @@ function ContactView({
           <div className="space-y-1 text-sm">
             <p><span className="font-medium">Name:</span> ouiimi Team</p>
             <p><span className="font-medium">Email:</span> ouiimi@outlook.com</p>
-            <p><span className="font-medium">Number:</span> 0466006171</p>
           </div>
         </div>
 

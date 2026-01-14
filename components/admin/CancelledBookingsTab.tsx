@@ -93,7 +93,9 @@ function CancelledBookingCard({ booking, type }: { booking: Booking; type: "busi
                 <div className="flex items-center text-sm text-gray-600">
                     <CalendarX className="w-4 h-4 mr-2 text-gray-400" />
                     <span>
-                        {new Date(booking.timeSlot.date).toLocaleDateString()} at {booking.timeSlot.startTime}
+                        {booking.timeSlot?.date
+                            ? `${new Date(booking.timeSlot.date).toLocaleDateString()} at ${booking.timeSlot.startTime || 'N/A'}`
+                            : 'Date not available'}
                     </span>
                 </div>
 
@@ -110,8 +112,8 @@ function CancelledBookingCard({ booking, type }: { booking: Booking; type: "busi
                     <User className="w-4 h-4 text-gray-400 mr-2 mt-0.5" />
                     <div>
                         <p className="text-xs text-gray-500 font-bold uppercase mb-0.5">Shopper</p>
-                        <p className="text-sm font-medium text-gray-900">{shopper?.fname} {shopper?.lname}</p>
-                        <p className="text-xs text-gray-500">{shopper?.email}</p>
+                        <p className="text-sm font-medium text-gray-900">{shopper?.fname || 'Unknown'} {shopper?.lname || ''}</p>
+                        <p className="text-xs text-gray-500">{shopper?.email || 'No email'}</p>
                     </div>
                 </div>
 
@@ -119,11 +121,11 @@ function CancelledBookingCard({ booking, type }: { booking: Booking; type: "busi
                 <div className="pt-3 border-t grid grid-cols-2 gap-4 text-sm">
                     <div>
                         <p className="text-xs text-gray-500">Booking Value</p>
-                        <p className="font-semibold text-gray-900">${booking.totalCost.toFixed(2)}</p>
+                        <p className="font-semibold text-gray-900">${(booking.totalCost || 0).toFixed(2)}</p>
                     </div>
                     <div>
                         <p className="text-xs text-gray-500">Deposit Paid</p>
-                        <p className="font-semibold text-gray-900">${(booking.depositAmount || booking.totalCost * 0.1).toFixed(2)}</p>
+                        <p className="font-semibold text-gray-900">${(booking.depositAmount || (booking.totalCost || 0) * 0.1).toFixed(2)}</p>
                     </div>
                 </div>
 

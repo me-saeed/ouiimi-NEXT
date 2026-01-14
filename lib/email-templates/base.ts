@@ -33,9 +33,6 @@ export function getEmailFooter(): string {
       <p style="margin: 4px 0; font-size: 14px; color: white;">
         information@ouiimi.com
       </p>
-      <p style="margin: 4px 0; font-size: 14px; color: white;">
-        0466006171
-      </p>
     </div>
   `;
 }

@@ -82,11 +82,6 @@ export default function PrivacyPage() {
                       information@ouiimi.com
                     </a>
                   </p>
-                  <p>
-                    <a href="tel:0466006171" className="text-color-primary hover:underline">
-                      0466 006 171
-                    </a>
-                  </p>
                 </section>
               </div>
             </div>

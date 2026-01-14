@@ -568,10 +568,10 @@ function PendingPaymentsView({
   );
 }
 
-// Pending Payment Card Component
 function PendingPaymentCard({ booking, onRelease }: { booking: Booking; onRelease: () => void }) {
   const service = typeof booking.serviceId === 'object' ? booking.serviceId : null;
   const business = typeof booking.businessId === 'object' ? booking.businessId : null;
+  const totalCost = booking.totalCost || 0;
 
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-6">
@@ -579,18 +579,20 @@ function PendingPaymentCard({ booking, onRelease }: { booking: Booking; onReleas
         <h3 className="font-semibold text-lg">{service?.serviceName || 'Service'}</h3>
         <p className="text-sm text-gray-600">{business?.businessName || 'Business'}</p>
         <p className="text-xs text-gray-500">
-          {new Date(booking.timeSlot.date).toLocaleDateString()} at {booking.timeSlot.startTime}
+          {booking.timeSlot?.date
+            ? `${new Date(booking.timeSlot.date).toLocaleDateString()} at ${booking.timeSlot.startTime || 'N/A'}`
+            : 'Date not available'}
         </p>
       </div>
 
       <div className="space-y-2 text-sm">
         <div className="flex justify-between">
           <span className="text-gray-600">Total Booking:</span>
-          <span className="font-semibold">${booking.totalCost.toFixed(2)}</span>
+          <span className="font-semibold">${totalCost.toFixed(2)}</span>
         </div>
         <div className="flex justify-between pt-2 border-t">
           <span className="font-semibold">Payout Amount:</span>
-          <span className="font-bold text-lg text-green-600">${(booking.totalCost * 0.10).toFixed(2)}</span>
+          <span className="font-bold text-lg text-green-600">${(totalCost * 0.10).toFixed(2)}</span>
         </div>
         <p className="text-xs text-gray-400 mt-1">Full deposit amount (no fees deducted)</p>
       </div>
