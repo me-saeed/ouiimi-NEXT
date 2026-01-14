@@ -1346,9 +1346,18 @@ export default function CreateServicePage() {
                 <Modal
                   isOpen={showTimeSlotForm}
                   onClose={() => setShowTimeSlotForm(false)}
-                  title={`Add Slot${selectedSubCategory ? ` - ${selectedSubCategory}` : ''} for ${selectedDate ? new Date(selectedDate).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }) : ''}`}
+                  title={`Add Slot for ${selectedDate ? new Date(selectedDate).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }) : ''}`}
                 >
                   <div className="space-y-6">
+                    {/* Service Name Badge */}
+                    {selectedSubCategory && (
+                      <div className="flex items-center justify-center">
+                        <span className="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-[#EECFD1]/20 text-[#3A3A3A] border border-[#EECFD1]/40">
+                          {selectedSubCategory}
+                        </span>
+                      </div>
+                    )}
+
                     {/* Validation Hints */}
                     {timeSlotError && (
                       <div className="text-xs font-medium text-amber-700 bg-amber-50 p-3 rounded-lg border border-amber-200 flex items-center gap-2">

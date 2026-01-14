@@ -887,9 +887,18 @@ export function EditServiceForm({ serviceId, onSuccess, onCancel }: EditServiceF
                         <Modal
                             isOpen={showTimeSlotForm}
                             onClose={() => setShowTimeSlotForm(false)}
-                            title={`Add Slot${service?.serviceName ? ` - ${service.serviceName}` : ''} for ${selectedDate ? new Date(selectedDate).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }) : ''}`}
+                            title={`Add Slot for ${selectedDate ? new Date(selectedDate).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }) : ''}`}
                         >
                             <div className="space-y-6">
+                                {/* Service Name Badge */}
+                                {service?.serviceName && (
+                                    <div className="flex items-center justify-center">
+                                        <span className="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-[#EECFD1]/20 text-[#3A3A3A] border border-[#EECFD1]/40">
+                                            {service.serviceName}
+                                        </span>
+                                    </div>
+                                )}
+
                                 {timeSlotError && (
                                     <div className="text-xs font-medium text-red-600 bg-red-50 p-3 rounded-lg border border-red-100 flex items-center gap-2">
                                         <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
