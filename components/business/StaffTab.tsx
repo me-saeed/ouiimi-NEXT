@@ -151,7 +151,7 @@ export function StaffTab({ business }: StaffTabProps) {
         <div className="space-y-2">
           {staff.map((member) => (
             <div
-              key={member.id}
+              key={member.id || member._id}
               onClick={() => setViewingStaff(member)}
               className="flex items-center gap-4 p-4 bg-white rounded-lg hover:bg-gray-50 transition-all cursor-pointer group relative"
             >
@@ -180,7 +180,7 @@ export function StaffTab({ business }: StaffTabProps) {
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  handleOpenEditModal(member.id);
+                  handleOpenEditModal(member.id || member._id);
                 }}
                 className="p-2 bg-white hover:bg-gray-100 rounded-lg shadow-sm opacity-0 group-hover:opacity-100 transition-opacity"
                 title="Edit Staff"
@@ -258,7 +258,7 @@ export function StaffTab({ business }: StaffTabProps) {
               <Button
                 onClick={() => {
                   setViewingStaff(null);
-                  handleOpenEditModal(viewingStaff.id);
+                  handleOpenEditModal(viewingStaff.id || viewingStaff._id);
                 }}
                 className="flex-1 bg-[#EECFD1] text-white hover:bg-[#e5c4c7]"
               >
@@ -266,7 +266,7 @@ export function StaffTab({ business }: StaffTabProps) {
                 Edit Staff
               </Button>
               <Button
-                onClick={() => handleDelete(viewingStaff.id)}
+                onClick={() => handleDelete(viewingStaff.id || viewingStaff._id)}
                 variant="outline"
                 className="flex-1 border-red-300 text-red-600 hover:bg-red-50"
               >

@@ -551,18 +551,10 @@ export function BookingsTab({ business }: BookingsTabProps) {
             <div
               ref={(el) => {
                 if (el) {
-                  // Auto-scroll to today
-                  const today = new Date();
-                  const isCurrentMonth = today.getMonth() === currentMonth && today.getFullYear() === currentYear;
-
-                  if (isCurrentMonth) {
-                    const day = today.getDate();
-                    // Center today: (DayIndex * ItemWidth) - (ContainerWidth / 2) + (ItemWidth / 2)
-                    // ItemWidth approx 60px
-                    const itemWidth = 60;
-                    const scrollPos = (day - 1) * itemWidth - (el.offsetWidth / 2) + (itemWidth / 2);
-                    el.scrollLeft = Math.max(0, scrollPos);
-                  }
+                  // Auto-scroll to today (which is now the first item in the filtered array)
+                  // Since past dates are filtered out, today is always at index 0
+                  // No need to scroll far - just start at the beginning
+                  el.scrollLeft = 0;
                 }
               }}
               className="flex items-center gap-2 overflow-x-auto scrollbar-hide px-2"
