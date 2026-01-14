@@ -35,6 +35,8 @@ export function StaffForm({ staffId, onSuccess, onCancel }: StaffFormProps) {
     const [imagePreview, setImagePreview] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
+    const [fetchedData, setFetchedData] = useState<FormValues | undefined>(undefined);
+
     const {
         register,
         handleSubmit,
@@ -43,15 +45,28 @@ export function StaffForm({ staffId, onSuccess, onCancel }: StaffFormProps) {
         reset,
     } = useForm<FormValues>({
         resolver: zodResolver(formSchema),
+        values: fetchedData, // Reactively update form when data is fetched
+        defaultValues: {
+            name: "",
+            about: "",
+            qualifications: "",
+        }
     });
 
     // Load staff data if editing
     useEffect(() => {
-        if (!staffId) return;
+        if (!staffId) {
+            setFetchedData(undefined);
+            reset({
+                name: "",
+                about: "",
+                qualifications: "",
+            });
+            return;
+        }
 
         const loadStaff = async () => {
             try {
-                console.log('[StaffForm] Loading staff data for ID:', staffId);
                 const response = await fetch(`/api/staff/${staffId}`, {
                     headers: {
                         "Content-Type": "application/json",
@@ -60,26 +75,27 @@ export function StaffForm({ staffId, onSuccess, onCancel }: StaffFormProps) {
                 });
 
                 if (response.ok) {
-                    const data = await response.json();
-                    console.log('[StaffForm] Received staff data:', data);
-                    if (data.staff) {
-                        // Use reset() instead of setValue() to properly populate the form
-                        reset({
-                            name: data.staff.name || "",
-                            qualifications: data.staff.qualifications || "",
-                            about: data.staff.about || data.staff.bio || "",
+                    const responseData = await response.json();
+
+                    // Handle both wrapped successResponse format { data: { staff: ... } } and direct format { staff: ... }
+                    const staffData = responseData.data?.staff || responseData.staff;
+
+                    if (staffData) {
+                        setFetchedData({
+                            name: staffData.name || "",
+                            qualifications: staffData.qualifications || "",
+                            about: staffData.about || staffData.bio || "",
                         });
-                        if (data.staff.photo) {
-                            setImagePreview(data.staff.photo);
+
+                        if (staffData.photo) {
+                            setImagePreview(staffData.photo);
                         }
-                        console.log('[StaffForm] Form reset with staff data');
                     }
                 } else {
-                    console.error('[StaffForm] Failed to load staff:', response.status);
                     setError("Failed to load staff details");
                 }
             } catch (err) {
-                console.error("[StaffForm] Error loading staff:", err);
+                console.error("Error loading staff:", err);
                 setError("Failed to load staff details");
             } finally {
                 setIsLoadingData(false);

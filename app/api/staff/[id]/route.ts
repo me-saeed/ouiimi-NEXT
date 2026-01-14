@@ -31,7 +31,11 @@ async function getStaffHandler(
     throw new APIError(404, "Staff member not found", "NOT_FOUND");
   }
 
-  return successResponse({ staff });
+  return successResponse({ staff }, 200, {
+    "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+    "Pragma": "no-cache",
+    "Expires": "0",
+  });
 }
 
 // =============================================================================
