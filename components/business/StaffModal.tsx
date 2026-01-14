@@ -42,6 +42,7 @@ export function StaffModal({
             {/* Modal Content */}
             <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto flex flex-col animate-in fade-in zoom-in-95 duration-200 hide-scrollbar">
                 <StaffForm
+                    key={staffId || 'new-staff'}
                     staffId={staffId}
                     onSuccess={onSuccess}
                     onCancel={onClose}

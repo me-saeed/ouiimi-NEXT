@@ -51,6 +51,7 @@ export function StaffForm({ staffId, onSuccess, onCancel }: StaffFormProps) {
 
         const loadStaff = async () => {
             try {
+                console.log('[StaffForm] Loading staff data for ID:', staffId);
                 const response = await fetch(`/api/staff/${staffId}`, {
                     headers: {
                         "Content-Type": "application/json",
@@ -60,19 +61,25 @@ export function StaffForm({ staffId, onSuccess, onCancel }: StaffFormProps) {
 
                 if (response.ok) {
                     const data = await response.json();
+                    console.log('[StaffForm] Received staff data:', data);
                     if (data.staff) {
-                        setValue("name", data.staff.name);
-                        setValue("qualifications", data.staff.qualifications || "");
-                        setValue("about", data.staff.about || data.staff.bio || "");
+                        // Use reset() instead of setValue() to properly populate the form
+                        reset({
+                            name: data.staff.name || "",
+                            qualifications: data.staff.qualifications || "",
+                            about: data.staff.about || data.staff.bio || "",
+                        });
                         if (data.staff.photo) {
                             setImagePreview(data.staff.photo);
                         }
+                        console.log('[StaffForm] Form reset with staff data');
                     }
                 } else {
+                    console.error('[StaffForm] Failed to load staff:', response.status);
                     setError("Failed to load staff details");
                 }
             } catch (err) {
-                console.error("Error loading staff:", err);
+                console.error("[StaffForm] Error loading staff:", err);
                 setError("Failed to load staff details");
             } finally {
                 setIsLoadingData(false);
@@ -80,7 +87,7 @@ export function StaffForm({ staffId, onSuccess, onCancel }: StaffFormProps) {
         };
 
         loadStaff();
-    }, [staffId, setValue]);
+    }, [staffId, reset]);
 
     const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
