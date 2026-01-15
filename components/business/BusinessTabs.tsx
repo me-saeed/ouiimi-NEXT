@@ -308,7 +308,7 @@ export function BusinessTabs({ business, services, staff }: BusinessTabsProps) {
 
                 {activeTab === "staff" && (
                     <div className="max-w-3xl mx-auto">
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                        <div className="space-y-2">
                             {staff.length === 0 ? (
                                 <div className="col-span-full text-center py-12">
                                     <p className="text-muted-foreground">No staff listed yet.</p>
@@ -318,21 +318,23 @@ export function BusinessTabs({ business, services, staff }: BusinessTabsProps) {
                                     <button
                                         key={member.id || member._id}
                                         onClick={() => setSelectedStaff(member)}
-                                        className="flex items-center gap-4 w-full group transition-all p-4 rounded-2xl bg-white border border-gray-100 hover:border-[#EECFD1] hover:shadow-md"
+                                        className="flex items-center gap-4 w-full p-4 bg-white rounded-lg hover:bg-gray-50 transition-all cursor-pointer group relative text-left"
                                     >
-                                        <div className="w-16 h-16 rounded-full border border-gray-100 overflow-hidden flex-shrink-0 bg-white shadow-sm">
+                                        {/* Avatar */}
+                                        <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-[#EECFD1] flex items-center justify-center flex-shrink-0">
                                             {member.photo ? (
                                                 // eslint-disable-next-line @next/next/no-img-element
-                                                <img src={member.photo} alt={member.name} className="w-full h-full object-cover" />
+                                                <img src={member.photo} alt={member.name} className="w-full h-full rounded-full object-cover" />
                                             ) : (
-                                                <div className="w-full h-full bg-gray-50 flex items-center justify-center text-xl font-bold text-[#EECFD1]">
-                                                    {member.name.charAt(0)}
-                                                </div>
+                                                <span className="text-lg font-bold text-[#3A3A3A]">
+                                                    {member.name?.charAt(0)?.toUpperCase() || "S"}
+                                                </span>
                                             )}
                                         </div>
-                                        <div className="text-left">
-                                            <h3 className="text-lg font-medium text-[#3A3A3A] group-hover:text-[#EECFD1] transition-colors">{member.name}</h3>
-                                            <p className="text-sm text-gray-500 line-clamp-1">{member.qualifications || "Staff Member"}</p>
+
+                                        {/* Name - No qualifications list in this view to match dashboard */}
+                                        <div className="flex-1">
+                                            <h3 className="text-sm md:text-base font-semibold text-[#3A3A3A] group-hover:text-black transition-colors">{member.name}</h3>
                                         </div>
                                     </button>
                                 ))
