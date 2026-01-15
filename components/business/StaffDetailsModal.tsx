@@ -7,12 +7,14 @@ interface StaffDetailsModalProps {
     isOpen: boolean;
     onClose: () => void;
     staff: any | null;
+    footer?: React.ReactNode;
 }
 
 export function StaffDetailsModal({
     isOpen,
     onClose,
     staff,
+    footer,
 }: StaffDetailsModalProps) {
 
     // Prevent scrolling when modal is open
@@ -96,6 +98,13 @@ export function StaffDetailsModal({
                 {!staff.bio && !staff.about && !staff.qualifications && (
                     <div className="w-full bg-[#FDFCFD] rounded-2xl border border-gray-100 p-6 text-center">
                         <p className="text-sm text-gray-500">No additional details available.</p>
+                    </div>
+                )}
+
+                {/* Footer Actions (e.g. Edit/Delete for Admin) */}
+                {footer && (
+                    <div className="mt-8 pt-6 border-t border-gray-100">
+                        {footer}
                     </div>
                 )}
             </div>

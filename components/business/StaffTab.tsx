@@ -7,6 +7,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Modal } from "@/components/ui/modal";
 import { User, Edit, Calendar, MapPin, Briefcase, Info } from "lucide-react";
 import { StaffModal } from "./StaffModal";
+import { StaffDetailsModal } from "./StaffDetailsModal";
 
 interface StaffTabProps {
   business: any;
@@ -148,49 +149,47 @@ export function StaffTab({ business }: StaffTabProps) {
           </Button>
         </div>
       ) : (
-        <div className="space-y-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
           {staff.map((member) => (
-            <div
+            <button
               key={member.id || member._id}
               onClick={() => setViewingStaff(member)}
-              className="flex items-center gap-4 p-4 bg-white rounded-lg hover:bg-gray-50 transition-all cursor-pointer group relative"
+              className="flex items-center gap-4 w-full group transition-all p-4 rounded-2xl bg-white border border-gray-100 hover:border-[#EECFD1] hover:shadow-md relative"
             >
-              {/* Avatar */}
-              <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-[#EECFD1] flex items-center justify-center flex-shrink-0">
+              <div className="w-16 h-16 rounded-full border border-gray-100 overflow-hidden flex-shrink-0 bg-white shadow-sm">
                 {member.photo ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
                     src={member.photo}
                     alt={member.name}
-                    className="w-full h-full rounded-full object-cover"
+                    className="w-full h-full object-cover"
                   />
                 ) : (
-                  <span className="text-lg font-bold text-[#3A3A3A]">
-                    {member.name?.charAt(0)?.toUpperCase() || "S"}
-                  </span>
+                  <div className="w-full h-full bg-gray-50 flex items-center justify-center text-xl font-bold text-[#EECFD1]">
+                    {member.name.charAt(0)}
+                  </div>
                 )}
               </div>
-
-              {/* Name */}
-              <div className="flex-1">
-                <h3 className="text-sm md:text-base font-semibold text-[#3A3A3A]">{member.name}</h3>
+              <div className="text-left flex-1">
+                <h3 className="text-lg font-medium text-[#3A3A3A] group-hover:text-[#EECFD1] transition-colors">{member.name}</h3>
+                <p className="text-sm text-gray-500 line-clamp-1">{member.qualifications || "Staff Member"}</p>
               </div>
 
-              {/* Edit Button - Only visible on hover */}
-              <button
+              {/* Quick Edit Icon (absolute position) */}
+              <div
+                className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity p-2 rounded-full hover:bg-gray-100 text-gray-400 hover:text-gray-600"
                 onClick={(e) => {
                   e.stopPropagation();
                   handleOpenEditModal(member.id || member._id);
                 }}
-                className="p-2 bg-white hover:bg-gray-100 rounded-lg shadow-sm opacity-0 group-hover:opacity-100 transition-opacity"
-                title="Edit Staff"
               >
-                <Edit className="w-4 h-4 text-gray-600" />
-              </button>
-            </div>
+                <Edit className="w-4 h-4" />
+              </div>
+            </button>
           ))}
         </div>
-      )}
+      )
+      }
       <StaffModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
@@ -198,63 +197,14 @@ export function StaffTab({ business }: StaffTabProps) {
         onSuccess={handleSuccess}
       />
 
-      {/* Staff Details Modal */}
-      <Modal
+      {/* Staff Details Modal with Admin Actions */}
+      <StaffDetailsModal
         isOpen={!!viewingStaff}
         onClose={() => setViewingStaff(null)}
-        title={viewingStaff?.name || "Staff Details"}
-        maxWidth="max-w-md"
-      >
-        {viewingStaff && (
-          <div className="space-y-5">
-            {/* Profile Header */}
-            <div className="flex items-center gap-4">
-              <div className="w-16 h-16 rounded-full bg-[#EECFD1] flex items-center justify-center flex-shrink-0">
-                {viewingStaff.photo ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={viewingStaff.photo}
-                    alt={viewingStaff.name}
-                    className="w-full h-full rounded-full object-cover"
-                  />
-                ) : (
-                  <span className="text-2xl font-bold text-[#3A3A3A]">
-                    {viewingStaff.name?.charAt(0)?.toUpperCase() || "S"}
-                  </span>
-                )}
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold text-[#3A3A3A]">{viewingStaff.name}</h3>
-                <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${viewingStaff.isActive ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
-                  {viewingStaff.isActive ? 'Active' : 'Inactive'}
-                </span>
-              </div>
-            </div>
-
-            {/* Bio/About */}
-            {(viewingStaff.bio || viewingStaff.about) && (
-              <div className="space-y-1">
-                <div className="flex items-center gap-2 text-sm font-medium text-gray-500">
-                  <Info className="w-4 h-4" />
-                  About
-                </div>
-                <p className="text-sm text-gray-700">{viewingStaff.bio || viewingStaff.about}</p>
-              </div>
-            )}
-
-            {/* Qualifications */}
-            {viewingStaff.qualifications && (
-              <div className="space-y-1">
-                <div className="flex items-center gap-2 text-sm font-medium text-gray-500">
-                  <Briefcase className="w-4 h-4" />
-                  Qualifications
-                </div>
-                <p className="text-sm text-gray-700">{viewingStaff.qualifications}</p>
-              </div>
-            )}
-
-            {/* Action Buttons */}
-            <div className="flex gap-3 pt-4 border-t">
+        staff={viewingStaff}
+        footer={
+          viewingStaff && (
+            <div className="flex gap-3">
               <Button
                 onClick={() => {
                   setViewingStaff(null);
@@ -266,16 +216,19 @@ export function StaffTab({ business }: StaffTabProps) {
                 Edit Staff
               </Button>
               <Button
-                onClick={() => handleDelete(viewingStaff.id || viewingStaff._id)}
+                onClick={() => {
+                  setViewingStaff(null);
+                  handleDelete(viewingStaff.id || viewingStaff._id);
+                }}
                 variant="outline"
                 className="flex-1 border-red-300 text-red-600 hover:bg-red-50"
               >
                 Remove
               </Button>
             </div>
-          </div>
-        )}
-      </Modal>
-    </div>
+          )
+        }
+      />
+    </div >
   );
 }
