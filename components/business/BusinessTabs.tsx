@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { ServiceCard } from "@/components/ui/service-card";
 import { StaffCard } from "@/components/ui/staff-card";
 import { DatePickerModal } from "@/components/ui/DatePickerModal";
+import { StaffDetailsModal } from "./StaffDetailsModal";
 import { Calendar } from "lucide-react";
 
 interface BusinessTabsProps {
@@ -306,106 +307,44 @@ export function BusinessTabs({ business, services, staff }: BusinessTabsProps) {
                 )}
 
                 {activeTab === "staff" && (
-                    <div className="max-w-4xl mx-auto">
-                        <div className="flex flex-col md:flex-row gap-12 items-start">
-                            {/* Staff List Selection */}
-                            <div className="w-full md:w-64 space-y-6">
-                                {staff.length === 0 ? (
+                    <div className="max-w-3xl mx-auto">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                            {staff.length === 0 ? (
+                                <div className="col-span-full text-center py-12">
                                     <p className="text-muted-foreground">No staff listed yet.</p>
-                                ) : (
-                                    staff.map((member) => (
-                                        <button
-                                            key={member.id || member._id}
-                                            onClick={() => setSelectedStaff(member)}
-                                            className={`flex items-center gap-6 w-full group transition-all p-2 rounded-2xl hover:bg-gray-50 ${selectedStaff?.id === (member.id || member._id) ? "bg-gray-50" : ""}`}
-                                        >
-                                            <div className="w-16 h-16 rounded-full border border-gray-100 overflow-hidden flex-shrink-0 bg-white">
-                                                {member.photo ? (
-                                                    // eslint-disable-next-line @next/next/no-img-element
-                                                    <img src={member.photo} alt={member.name} className="w-full h-full object-cover" />
-                                                ) : (
-                                                    <div className="w-full h-full bg-gray-50 flex items-center justify-center text-xl font-bold text-[#EECFD1]">
-                                                        {member.name.charAt(0)}
-                                                    </div>
-                                                )}
-                                            </div>
-                                            <span className="text-xl font-medium text-gray-700 tracking-wide">{member.name}</span>
-                                        </button>
-                                    ))
-                                )}
-                            </div>
-
-                            {/* Staff Detail Popup (Design Card) */}
-                            <div className="flex-1 w-full min-h-[400px] flex items-center justify-center">
-                                {selectedStaff ? (
-                                    <div className="w-full max-w-[450px] bg-white rounded-[40px] border border-gray-200 p-10 shadow-sm relative animate-in fade-in slide-in-from-bottom-4 duration-300">
-                                        <button
-                                            onClick={() => setSelectedStaff(null)}
-                                            className="absolute top-6 right-8 text-gray-400 hover:text-gray-600 text-2xl"
-                                        >
-                                            ×
-                                        </button>
-
-                                        {/* Profile Header */}
-                                        <div className="flex items-center gap-4 mb-6">
-                                            <div className="w-20 h-20 rounded-full bg-[#EECFD1] flex items-center justify-center flex-shrink-0 overflow-hidden shadow-sm">
-                                                {selectedStaff.photo ? (
-                                                    // eslint-disable-next-line @next/next/no-img-element
-                                                    <img src={selectedStaff.photo} alt={selectedStaff.name} className="w-full h-full object-cover" />
-                                                ) : (
-                                                    <span className="text-2xl font-bold text-[#3A3A3A]">
-                                                        {selectedStaff.name?.charAt(0)?.toUpperCase() || "S"}
-                                                    </span>
-                                                )}
-                                            </div>
-                                            <div>
-                                                <h3 className="text-lg font-semibold text-[#3A3A3A]">{selectedStaff.name}</h3>
-                                                <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${selectedStaff.isActive !== false ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
-                                                    {selectedStaff.isActive !== false ? 'Active' : 'Inactive'}
-                                                </span>
-                                            </div>
+                                </div>
+                            ) : (
+                                staff.map((member) => (
+                                    <button
+                                        key={member.id || member._id}
+                                        onClick={() => setSelectedStaff(member)}
+                                        className="flex items-center gap-4 w-full group transition-all p-4 rounded-2xl bg-white border border-gray-100 hover:border-[#EECFD1] hover:shadow-md"
+                                    >
+                                        <div className="w-16 h-16 rounded-full border border-gray-100 overflow-hidden flex-shrink-0 bg-white shadow-sm">
+                                            {member.photo ? (
+                                                // eslint-disable-next-line @next/next/no-img-element
+                                                <img src={member.photo} alt={member.name} className="w-full h-full object-cover" />
+                                            ) : (
+                                                <div className="w-full h-full bg-gray-50 flex items-center justify-center text-xl font-bold text-[#EECFD1]">
+                                                    {member.name.charAt(0)}
+                                                </div>
+                                            )}
                                         </div>
-
-                                        {/* About Section */}
-                                        {(selectedStaff.bio || selectedStaff.about) && (
-                                            <div className="mb-5">
-                                                <div className="flex items-center gap-2 text-sm font-medium text-gray-500 mb-2">
-                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                                    </svg>
-                                                    About
-                                                </div>
-                                                <p className="text-sm text-gray-700 leading-relaxed">{selectedStaff.bio || selectedStaff.about}</p>
-                                            </div>
-                                        )}
-
-                                        {/* Qualifications Section */}
-                                        {selectedStaff.qualifications && (
-                                            <div className="mb-2">
-                                                <div className="flex items-center gap-2 text-sm font-medium text-gray-500 mb-2">
-                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                                                    </svg>
-                                                    Qualifications
-                                                </div>
-                                                <p className="text-sm text-gray-700">{selectedStaff.qualifications}</p>
-                                            </div>
-                                        )}
-
-                                        {/* Fallback if no details */}
-                                        {!selectedStaff.bio && !selectedStaff.about && !selectedStaff.qualifications && (
-                                            <div className="w-full bg-[#FDFCFD] rounded-2xl border border-gray-100 p-6 text-center">
-                                                <p className="text-sm text-gray-500">No additional details available.</p>
-                                            </div>
-                                        )}
-                                    </div>
-                                ) : (
-                                    <div className="text-center text-gray-400 py-12">
-                                        <p className="text-lg">Select a staff member to view details</p>
-                                    </div>
-                                )}
-                            </div>
+                                        <div className="text-left">
+                                            <h3 className="text-lg font-medium text-[#3A3A3A] group-hover:text-[#EECFD1] transition-colors">{member.name}</h3>
+                                            <p className="text-sm text-gray-500 line-clamp-1">{member.qualifications || "Staff Member"}</p>
+                                        </div>
+                                    </button>
+                                ))
+                            )}
                         </div>
+
+                        {/* Staff Details Modal */}
+                        <StaffDetailsModal
+                            isOpen={!!selectedStaff}
+                            onClose={() => setSelectedStaff(null)}
+                            staff={selectedStaff}
+                        />
                     </div>
                 )}
             </div>
