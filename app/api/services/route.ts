@@ -472,14 +472,12 @@ async function getServicesHandler(req: NextRequest) {
               preserveNullAndEmptyArrays: true,
             },
           },
-          // REMOVED: availableTimeSlotsStage (We fetch RAW slots and filter manually to match legacy logic)
-          /* 
+          // RESTORED: availableTimeSlotsStage (Required for filtering fully booked services)
           {
             $addFields: {
               availableTimeSlots: availableTimeSlotsStage
             }
           },
-          */
           // FILTER OUT FULLY BOOKED SERVICES (If public request)
           ...(businessId ? [] : [{
             $match: { "availableTimeSlots.0": { $exists: true } }
@@ -531,18 +529,16 @@ async function getServicesHandler(req: NextRequest) {
               query: filter,
             },
           },
-          /*
           {
             $addFields: {
               availableTimeSlots: availableTimeSlotsStage
             }
           }
-          */
         ];
 
-        // if (!businessId) {
-        //   countPipeline.push({ $match: { "availableTimeSlots.0": { $exists: true } } });
-        // }
+        if (!businessId) {
+          countPipeline.push({ $match: { "availableTimeSlots.0": { $exists: true } } });
+        }
 
         countPipeline.push({ $count: "total" });
 
