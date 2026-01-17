@@ -444,6 +444,30 @@ async function getServicesHandler(req: NextRequest) {
       const lng = parseFloat(longitude);
 
       if (!isNaN(lat) && !isNaN(lng)) {
+        console.log(`[GeoQuery DEBUG] Starting geo query: lat=${lat}, lng=${lng}, radius=${radius}km`);
+        console.log(`[GeoQuery DEBUG] Filter:`, JSON.stringify(filter));
+
+        // First, run a simple geo query to see what we get without the availableTimeSlots filter
+        const rawGeoServices = await Service.aggregate([
+          {
+            $geoNear: {
+              near: {
+                type: "Point",
+                coordinates: [lng, lat],
+              },
+              distanceField: "distance",
+              maxDistance: radius * 1000,
+              spherical: true,
+              query: filter,
+            },
+          },
+          { $limit: 10 }
+        ]);
+        console.log(`[GeoQuery DEBUG] Raw geo results (before slot filtering): ${rawGeoServices.length} services`);
+        rawGeoServices.forEach((s: any) => {
+          console.log(`  - ${s.serviceName} | coords: [${s.address?.location?.coordinates?.join(', ')}] | distance: ${s.distance?.toFixed(0)}m`);
+        });
+
         // Use $geoNear for geospatial queries with distance sorting
         const geoServices = await Service.aggregate([
           {
@@ -514,6 +538,8 @@ async function getServicesHandler(req: NextRequest) {
             $limit: limit,
           },
         ]);
+
+        console.log(`[GeoQuery DEBUG] After slot filtering: ${geoServices.length} services`);
 
         // Fix count to also respect the filter
         const countPipeline: any[] = [
