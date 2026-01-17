@@ -130,6 +130,7 @@ export function ServiceFilters({
                                 setUserLocation({ lat: coordinates.lat, lng: coordinates.lng });
                                 updateURL(category, subCategory, selectedDate, coordinates.lat, coordinates.lng);
                             } else {
+                                // Handle clear action (coordinates is undefined/null)
                                 setUserLocation(null);
                                 updateURL(category, subCategory, selectedDate, undefined, undefined, true);
                             }
