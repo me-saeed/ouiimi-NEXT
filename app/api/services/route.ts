@@ -496,6 +496,19 @@ async function getServicesHandler(req: NextRequest) {
               preserveNullAndEmptyArrays: true,
             },
           },
+          // ✅ BUSINESS STATUS CHECK: Only show services from APPROVED businesses
+          // Must match non-geo query logic for consistency
+          ...(businessId ? [] : [
+            {
+              $match: (process.env.NODE_ENV === 'development' || process.env.NEXT_PUBLIC_DEV_MODE === 'true')
+                ? {
+                  "businessId.status": { $in: ["approved", "pending"] },
+                }
+                : {
+                  "businessId.status": "approved",
+                }
+            }
+          ]),
           // RESTORED: availableTimeSlotsStage (Required for filtering fully booked services)
           {
             $addFields: {
