@@ -523,10 +523,12 @@ async function getServicesHandler(req: NextRequest) {
             $project: {
               _id: 1,
               businessId: {
+                id: "$businessId._id",       // For response filter compatibility
                 _id: "$businessId._id",
                 businessName: "$businessId.businessName",
                 logo: "$businessId.logo",
                 address: "$businessId.address",
+                status: "$businessId.status", // Also include status for consistency
               },
               category: 1,
               subCategory: 1,
@@ -585,6 +587,12 @@ async function getServicesHandler(req: NextRequest) {
 
         const geoTotal = countResult.length > 0 ? countResult[0].total : 0;
 
+        // DEBUG: Log raw geoServices before any post-processing
+        console.log(`[GeoQuery DEBUG] geoServices count: ${geoServices.length}`);
+        geoServices.forEach((s: any, i: number) => {
+          console.log(`  [${i}] ${s.serviceName} | businessId: ${s.businessId?._id || 'NULL'} | timeSlots: ${(s.timeSlots || []).length}`);
+        });
+
         // NOTE: For geo queries, the aggregation pipeline already applied:
         // 1. availableTimeSlotsStage (filtering out past/booked slots)
         // 2. $match for services with available slots
@@ -606,6 +614,9 @@ async function getServicesHandler(req: NextRequest) {
           })
           // Filter out services with no available time slots (if public)
           .filter((s: any) => businessId || s.timeSlots.length > 0);
+
+        // DEBUG: Log filtered results
+        console.log(`[GeoQuery DEBUG] filteredServices count: ${filteredServices.length}`);
 
         // Assign to shared variables
         services = filteredServices;
