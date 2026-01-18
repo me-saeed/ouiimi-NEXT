@@ -30,18 +30,37 @@ interface ServiceFiltersProps {
     initialCategory?: string;
     initialSubCategory?: string;
     initialDate?: string;
+    initialLatitude?: string;
+    initialLongitude?: string;
 }
 
 export function ServiceFilters({
     initialCategory = "Hair Services",
     initialSubCategory = "",
     initialDate = "",
+    initialLatitude,
+    initialLongitude,
 }: ServiceFiltersProps) {
     const router = useRouter();
     const [category, setCategory] = useState(initialCategory);
     const [subCategory, setSubCategory] = useState(initialSubCategory);
     const [selectedDate, setSelectedDate] = useState(initialDate);
-    const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+
+    // Initialize userLocation from URL params if present
+    const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(() => {
+        if (initialLatitude && initialLongitude) {
+            const lat = parseFloat(initialLatitude);
+            const lng = parseFloat(initialLongitude);
+            if (!isNaN(lat) && !isNaN(lng)) {
+                return { lat, lng };
+            }
+        }
+        return null;
+    });
+
+    // Track if we have an active location filter (for reset button)
+    const hasLocationFilter = !!userLocation;
+
     const [showDatePicker, setShowDatePicker] = useState(false);
 
     const { control, getValues } = useForm({
@@ -124,7 +143,7 @@ export function ServiceFilters({
                     <AddressAutocomplete
                         control={control}
                         name="location"
-                        placeholder="Location"
+                        placeholder={hasLocationFilter ? "📍 Location filter active" : "Location"}
                         onSelect={(address, coordinates) => {
                             if (coordinates) {
                                 setUserLocation({ lat: coordinates.lat, lng: coordinates.lng });
@@ -135,8 +154,22 @@ export function ServiceFilters({
                                 updateURL(category, subCategory, selectedDate, undefined, undefined, true);
                             }
                         }}
-                        className="h-10 md:h-12 text-sm md:text-base"
+                        className={`h-10 md:h-12 text-sm md:text-base ${hasLocationFilter ? 'border-[#D4A5A7] bg-[#FDF9F9]' : ''}`}
                     />
+                    {/* Clear location button - shows when location filter is active */}
+                    {hasLocationFilter && (
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setUserLocation(null);
+                                updateURL(category, subCategory, selectedDate, undefined, undefined, true);
+                            }}
+                            className="absolute right-2 top-1/2 -translate-y-1/2 px-2 py-1 text-xs bg-[#D4A5A7] text-white rounded-md hover:bg-[#B88A8C] transition-colors"
+                            aria-label="Clear location filter"
+                        >
+                            Clear
+                        </button>
+                    )}
                 </div>
                 <div className="relative min-w-[140px] w-[140px] md:w-auto">
                     {/* Custom Date Picker Button - Works across all devices */}

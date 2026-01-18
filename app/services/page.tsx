@@ -205,6 +205,8 @@ export default async function ServicesPage({ searchParams }: PageProps) {
             initialCategory={category}
             initialSubCategory={subCategory}
             initialDate={date}
+            initialLatitude={latitude}
+            initialLongitude={longitude}
           />
 
           {/* Services List - Server Rendered */}
