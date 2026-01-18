@@ -572,18 +572,24 @@ async function getServicesHandler(req: NextRequest) {
 
         const geoTotal = countResult.length > 0 ? countResult[0].total : 0;
 
-        // Apply LEGACY date filtration here
+        // NOTE: For geo queries, the aggregation pipeline already applied:
+        // 1. availableTimeSlotsStage (filtering out past/booked slots)
+        // 2. $match for services with available slots
+        // 3. Projection where timeSlots = availableTimeSlots
+        // 
+        // So we should NOT apply filterTimeSlotsByDate again for public queries!
+        // Only apply it for businessId queries (dashboard) where we need date filtering.
+
         const filteredServices = geoServices
           .filter((s: any) => s.businessId)
           .map((s: any) => {
-            // Use the restored legacy function
-            const availableSlots = filterTimeSlotsByDate(s.timeSlots || [], date);
-
-            // Overwrite timeSlots with the filtered list
-            return {
-              ...s,
-              timeSlots: availableSlots
-            };
+            // For business dashboard (businessId provided), apply date filtering
+            // For public queries (no businessId), slots are already filtered by aggregation
+            if (businessId && date) {
+              const filteredSlots = filterTimeSlotsByDate(s.timeSlots || [], date);
+              return { ...s, timeSlots: filteredSlots };
+            }
+            return s;
           })
           // Filter out services with no available time slots (if public)
           .filter((s: any) => businessId || s.timeSlots.length > 0);
