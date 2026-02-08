@@ -1210,25 +1210,10 @@ export default function CreateServicePage() {
 
                 {/* Stacked Layout for Dates & Slots */}
                 <div className="space-y-6 pt-6 border-t border-[#E5E5E5]">
-                  {/* Toolbar */}
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0">
-                    <div className="space-y-1">
-                      <h3 className="text-xs md:text-sm font-bold text-[#3A3A3A] uppercase tracking-wider">Availability</h3>
-                      <p className="text-[10px] md:text-xs text-gray-500">Manage dates and time slots for this service.</p>
-                    </div>
-                    {/* Add Date Button */}
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="h-10 md:h-9 gap-2 text-xs font-semibold rounded-lg border-gray-200"
-                      onClick={() => {
-                        setError(""); // Clear any lingering errors
-                        setShowDatePicker(true);
-                      }}
-                    >
-                      <span className="text-lg leading-none">+</span>
-                      <span>Add Date</span>
-                    </Button>
+                  {/* Header - No button */}
+                  <div className="space-y-1">
+                    <h3 className="text-xs md:text-sm font-bold text-[#3A3A3A] uppercase tracking-wider">Availability</h3>
+                    <p className="text-[10px] md:text-xs text-gray-500">Manage dates and time slots for this service.</p>
                   </div>
 
                   {/* Date Picker Modal */}
@@ -1339,6 +1324,20 @@ export default function CreateServicePage() {
                           </div>
                         ))
                     )}
+
+                    {/* Add Date Button - Moved to Bottom */}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="w-full h-12 gap-2 text-sm font-semibold rounded-xl border-2 border-dashed border-gray-300 hover:border-[#EECFD1] hover:bg-[#FFF5F6] transition-all"
+                      onClick={() => {
+                        setError(""); // Clear any lingering errors
+                        setShowDatePicker(true);
+                      }}
+                    >
+                      <span className="text-xl leading-none">+</span>
+                      <span>Add Date</span>
+                    </Button>
                   </div>
                 </div>
 
