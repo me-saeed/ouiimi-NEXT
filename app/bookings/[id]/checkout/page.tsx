@@ -287,14 +287,7 @@ export default function CheckoutPage() {
                                             readOnly
                                         />
                                     </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">Phone Number</label>
-                                        <Input
-                                            className="w-full h-10 md:h-12 rounded-xl border-gray-300 bg-white text-sm md:text-base focus:border-[#EECFD1] focus:ring-[#EECFD1]"
-                                            value={user?.phone || ""}
-                                            placeholder="Enter your phone number"
-                                        />
-                                    </div>
+
                                 </div>
 
                                 <div className="border-t border-gray-100 pt-6">
