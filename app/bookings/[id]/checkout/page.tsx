@@ -87,7 +87,7 @@ export default function CheckoutPage() {
 
                 const intentData = await intentResponse.json();
                 setClientSecret(intentData.clientSecret);
-                setPaymentAmount(intentData.amount || booking.depositAmount);
+                setPaymentAmount(intentData.amount || (booking.depositAmount + PLATFORM_FEE));
             } catch (err: any) {
                 console.error("Checkout initialization error:", err);
                 setError(err.message || "Failed to initialize checkout. Please try again.");

@@ -131,6 +131,7 @@ export async function POST(request: NextRequest) {
                     return NextResponse.json({
                         clientSecret: existingIntent.client_secret,
                         bookingId: booking._id,
+                        amount: existingIntent.amount / 100,
                     });
                 }
 
