@@ -193,11 +193,18 @@ export function BookingsTab({ business }: BookingsTabProps) {
         } else if (activeSubTab === "finished") {
           // FINISHED: Cancelled OR Payment Released
           // Show: cancelled bookings OR bookings where admin released payment
-          filteredBookings = filteredBookings.filter((b: Booking) =>
-            b.status === "cancelled" ||
-            b.status === "refunded" ||
-            b.adminPaymentStatus === "released"
-          );
+          filteredBookings = filteredBookings.filter((b: Booking) => {
+            // Do not show abandoned carts (auto-cancelled by system)
+            if (b.status === "cancelled" && 
+                (b.cancellationReason === "Payment timeout - booking expired" || 
+                 b.cancellationReason === "Pre-payment hold expired" ||
+                 b.paymentStatus === "pending")) {
+              return false;
+            }
+            return b.status === "cancelled" ||
+                   b.status === "refunded" ||
+                   b.adminPaymentStatus === "released";
+          });
         }
 
         setBookings(filteredBookings);

@@ -190,6 +190,13 @@ export default function ShopperProfilePage() {
           }
           // FINISHED: Cancelled, completed, refunded, or any other status
           else if (booking.status === "cancelled" || booking.status === "completed" || booking.status === "refunded") {
+            // Do not show abandoned carts (auto-cancelled by system) in finished section
+            if (booking.status === "cancelled" && 
+                (booking.cancellationReason === "Payment timeout - booking expired" || 
+                 booking.cancellationReason === "Pre-payment hold expired" ||
+                 booking.paymentStatus === "pending")) {
+              return;
+            }
             finished.push(booking);
           }
           // Skip pre_payment and other statuses (don't show to user)
