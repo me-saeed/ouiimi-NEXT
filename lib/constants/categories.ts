@@ -383,12 +383,33 @@ export const SERVICE_CATEGORIES: Record<string, Category> = {
             { name: "Teen/School Formal Makeup", slug: "teen-formal" },
             { name: "Men's Grooming Makeup", slug: "mens-grooming" },
             { name: "Makeup Lesson / Tutorial", slug: "makeup-lesson" },
+            { name: "Halloween Makeup", slug: "halloween-makeup" },
+            { name: "Drag Makeup", slug: "drag-makeup" },
         ],
         addOns: [
             "Lashes (strip or individual)",
             "Airbrush finish",
             "Touch-up kit",
             "Early morning / travel fee",
+        ],
+    },
+
+    TEETH_WHITENING: {
+        name: "Teeth Whitening",
+        slug: "teeth-whitening",
+        description: "Professional teeth whitening and enhancement treatments",
+        subcategories: [
+            { name: "Express Teeth Whitening", slug: "express-teeth-whitening" },
+            { name: "Full Teeth Whitening Session", slug: "full-teeth-whitening" },
+            { name: "Deluxe Whitening Session (includes extra application)", slug: "deluxe-whitening" },
+            { name: "Teeth Whitening Top-Up", slug: "teeth-whitening-top-up" },
+        ],
+        addOns: [
+            "Extra Whitening Boost",
+            "LED Light Enhancement",
+            "Desensitising Treatment",
+            "Enamel Protection Treatment",
+            "Aftercare Kit (Whitening Pen / Gel)",
         ],
     },
 };
