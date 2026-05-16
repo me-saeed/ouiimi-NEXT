@@ -16,7 +16,7 @@ const userUpdateSchema = z.object({
   pic: z.string().optional(),
 });
 
-import { getSession } from "@/lib/session";
+import { getSession, updateSession } from "@/lib/session";
 
 // ... imports remain the same
 
@@ -76,6 +76,18 @@ async function updateUserHandler(
 
     Object.assign(user, validatedData);
     await user.save();
+    
+    // Sync with session cookie
+    try {
+      await updateSession({
+        fname: user.fname,
+        lname: user.lname,
+        email: user.email,
+        pic: user.pic
+      });
+    } catch (sessionError) {
+      console.warn("Failed to update session cookie, but DB updated:", sessionError);
+    }
 
     return NextResponse.json(
       {

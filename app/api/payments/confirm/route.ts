@@ -28,6 +28,7 @@ import {
 } from "@/lib/api-response";
 import EmailService from "@/lib/email-service";
 import User from "@/lib/models/User";
+import { BookingService } from "@/lib/services/booking-service";
 
 export const dynamic = 'force-dynamic';
 
@@ -120,28 +121,23 @@ async function confirmPaymentHandler(req: NextRequest) {
     // ==========================================================================
     // STEP 6: Atomically reserve slot and update booking status
     // ==========================================================================
-    const { BookingService } = await import("@/lib/services/booking-service");
     try {
         await BookingService.confirmSlotReservation(bookingId);
-        // Note: BookingService already sets status="confirmed" and paymentStatus="deposit_paid"
-        // and saves the booking.
     } catch (error: any) {
-        console.error(`[Payment Confirm] Reservation failed for booking ${bookingId}:`, error);
+        console.error(`[Payment Confirm] Finalization failed for booking ${bookingId}:`, error);
 
-        // CRITICAL FIX: If money was paid but slot taken, we MUST record the payment.
-        // We set status to 'cancelled' (or pending review) but paymentStatus to 'deposit_paid'.
-        // This alerts the admin/system that a refund is needed.
+        // If money was paid but slot lost (rare hold expiry edge case), record it
         booking.status = "cancelled";
         booking.paymentStatus = "deposit_paid";
-        booking.cancellationReason = "System Error: Slot unavailable after payment";
+        booking.cancellationReason = "System Error: Hold lost after payment";
         booking.paymentIntentId = paymentIntentId;
-        booking.businessNotes = `PAYMENT SUCCESSFUL ($${paymentIntent.amount / 100}) but Slot was already taken during checkout. REFUND NEEDED. Error: ${error.message}`;
+        booking.businessNotes = `PAYMENT SUCCESSFUL but Slot was lost due to hold expiry. REFUND NEEDED. Error: ${error.message}`;
         await booking.save();
 
         throw new APIError(
             409,
-            "Payment was successful, but the time slot was taken by another customer seconds ago. A refund will be processed automatically or please contact support.",
-            "SLOT_TAKEN_POST_PAYMENT"
+            error.message || "Payment was successful, but the time slot was taken. A refund will be processed.",
+            "SLOT_LOST_POST_PAYMENT"
         );
     }
 

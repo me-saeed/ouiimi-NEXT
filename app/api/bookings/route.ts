@@ -27,6 +27,7 @@ import {
   APIError
 } from "@/lib/api-response";
 import { z } from "zod";
+import { BookingService } from "@/lib/services/booking-service";
 
 export const dynamic = 'force-dynamic';
 
@@ -90,14 +91,9 @@ async function createBookingHandler(req: NextRequest) {
     ? new mongoose.Types.ObjectId(validatedData.staffId)
     : null;
   // ==========================================================================
-  // AUTO-EXPIRY: Clear stale pending bookings before checking availability
-  // Extended to 2 hours to give users more time to complete checkout
+  // AUTO-EXPIRY: Clear stale pending bookings (Pessimistic Hold)
   // ==========================================================================
-  const expiryTime = new Date(Date.now() - 2 * 60 * 60 * 1000); // 2 hours
-  await Booking.updateMany(
-    { status: { $in: ["pre_payment", "pending"] }, createdAt: { $lt: expiryTime } },
-    { $set: { status: "cancelled", cancellationReason: "Pre-payment hold expired" } }
-  );
+  await BookingService.cleanupExpiredHolds();
 
   // ==========================================================================
   // STEP 5: Check staff availability (if staff selected)
@@ -271,6 +267,10 @@ async function createBookingHandler(req: NextRequest) {
 
       const booking = await Booking.create([bookingData], { session: dbSession });
       result = booking[0];
+
+      // 4. ATOMIC HOLD: Reserve the slot in the Service model immediately
+      // This is the "Root Fix" for the race condition.
+      await BookingService.acquireHold(String(result._id));
     });
 
     await dbSession.endSession();
@@ -366,19 +366,9 @@ async function getBookingsHandler(req: NextRequest) {
   }
 
   // ==========================================================================
-  // AUTO-EXPIRY: Automatically cancel pending bookings older than 2 hours
-  // Extended to 2 hours to give users time to complete checkout
+  // AUTO-EXPIRY: Automatically cancel pending bookings older than 15 minutes
   // ==========================================================================
-  const expiryTime = new Date(Date.now() - 2 * 60 * 60 * 1000); // 2 hours
-  await Booking.updateMany(
-    {
-      status: { $in: ["pre_payment", "pending"] },
-      createdAt: { $lt: expiryTime }
-    },
-    {
-      $set: { status: "cancelled", cancellationReason: "Pre-payment hold expired" }
-    }
-  );
+  await BookingService.cleanupExpiredHolds();
 
   const bookings = await Booking.find(query)
     .populate("userId", "fname lname email contactNo")

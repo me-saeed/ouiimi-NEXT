@@ -138,6 +138,7 @@ async function signupHandler(req: NextRequest) {
     role: 'user',
     fname: user.fname,
     lname: user.lname,
+    pic: user.pic,
   });
 
   // ==========================================================================
@@ -163,6 +164,7 @@ async function signupHandler(req: NextRequest) {
       email: user.email,
       username: user.username,
       role: 'user',
+      pic: user.pic,
     },
   });
 }
