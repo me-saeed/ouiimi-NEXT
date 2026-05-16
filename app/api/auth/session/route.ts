@@ -34,6 +34,7 @@ async function getSessionHandler(req: NextRequest) {
             fname: session.fname,
             lname: session.lname,
             role: session.role,
+            pic: session.pic,
         },
         authenticated: true,
     });

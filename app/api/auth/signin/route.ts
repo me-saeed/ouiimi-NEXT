@@ -132,6 +132,7 @@ async function signinHandler(req: NextRequest) {
     role: userRole,
     fname: user.fname,
     lname: user.lname,
+    pic: user.pic,
   });
 
   // ==========================================================================
@@ -176,6 +177,7 @@ async function signinHandler(req: NextRequest) {
       email: user.email,
       username: user.username,
       role: userRole,
+      pic: user.pic,
     },
   });
 

@@ -13,6 +13,7 @@ export interface SessionData {
     role: string;
     fname?: string;
     lname?: string;
+    pic?: string;
 }
 
 /**

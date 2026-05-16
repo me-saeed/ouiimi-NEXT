@@ -48,6 +48,7 @@ export interface ITimeSlot {
   staffIds: Array<{
     staffId: mongoose.Types.ObjectId;
     isBooked: boolean;                     // true = this staff is booked for this slot
+    bookingId?: mongoose.Types.ObjectId;   // Reference to the booking holding this staff
   }>;
 
   addOns?: IAddOn[];                       // Optional add-ons for this slot
@@ -126,7 +127,8 @@ const timeSlotSchema = new Schema<ITimeSlot>(
     staffIds: {
       type: [{
         staffId: { type: Schema.Types.ObjectId, ref: "Staff", required: true },
-        isBooked: { type: Boolean, default: false }
+        isBooked: { type: Boolean, default: false },
+        bookingId: { type: Schema.Types.ObjectId, ref: "Booking", default: null }
       }],
       default: []
     },
@@ -259,6 +261,9 @@ serviceSchema.index({ status: 1 });
 // 2dsphere index enables geospatial queries like "find services within 15km"
 // This is REQUIRED for $geoNear aggregation to work
 serviceSchema.index({ "address.location": "2dsphere" });
+
+// For finding slots held by a specific booking (inventory management)
+serviceSchema.index({ "timeSlots.staffIds.bookingId": 1 });
 
 // =============================================================================
 // MIDDLEWARE: Pre-save hook to auto-calculate isBooked status
