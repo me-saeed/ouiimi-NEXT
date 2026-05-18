@@ -1,10 +1,12 @@
 import { z } from "zod";
 
+const objectIdSchema = z.string().regex(/^[0-9a-fA-F]{24}$/, "Invalid ID format");
+
 export const bookingCreateSchema = z.object({
-    userId: z.string(),
-    businessId: z.string(),
-    serviceId: z.string(),
-    staffId: z.string().optional(),
+    userId: objectIdSchema,
+    businessId: objectIdSchema,
+    serviceId: objectIdSchema,
+    staffId: objectIdSchema.optional(),
     timeSlot: z.object({
         date: z.string(),
         startTime: z.string(),
@@ -17,3 +19,4 @@ export const bookingCreateSchema = z.object({
     totalCost: z.number().min(0),
     customerNotes: z.string().optional(),
 });
+
