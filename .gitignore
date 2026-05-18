@@ -40,3 +40,5 @@ yarn-error.log*
 next-env.d.ts
 ADMIN_CREDENTIALS.md
 scripts/create-admin.ts
+temp_auto_push.bat
+temp_interactive_push.bat
