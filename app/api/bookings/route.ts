@@ -270,7 +270,7 @@ async function createBookingHandler(req: NextRequest) {
 
       // 4. ATOMIC HOLD: Reserve the slot in the Service model immediately
       // This is the "Root Fix" for the race condition.
-      await BookingService.acquireHold(String(result._id));
+      await BookingService.acquireHold(String(result._id), dbSession);
     });
 
     await dbSession.endSession();

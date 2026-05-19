@@ -13,10 +13,10 @@ export class BookingService {
      * Atomically acquires a hold on a slot during the pre-payment phase.
      * This prevents other users from booking the same slot while the current user is at Stripe checkout.
      */
-    static async acquireHold(bookingId: string) {
+    static async acquireHold(bookingId: string, session?: mongoose.ClientSession) {
         await dbConnect();
 
-        const booking = await Booking.findById(bookingId);
+        const booking = await Booking.findById(bookingId).session(session || null);
         if (!booking) throw new APIError(404, "Booking not found", "NOT_FOUND");
 
         const serviceId = booking.serviceId;
@@ -26,7 +26,7 @@ export class BookingService {
         console.log(`[BookingService] Attempting to acquire hold for booking ${bookingId} on slot ${startTime}...`);
 
         // Find the service to get the exact slot date stored in database (handles any non-zero time/timezone discrepancies)
-        const serviceDoc = await Service.findById(serviceId);
+        const serviceDoc = await Service.findById(serviceId).session(session || null);
         if (!serviceDoc) throw new APIError(404, "Service not found", "SERVICE_NOT_FOUND");
 
         const bookingDateMidnight = new Date(date);
@@ -59,7 +59,7 @@ export class BookingService {
                 
                 // Update booking document with automatically assigned staff member
                 booking.staffId = targetStaffId;
-                await booking.save();
+                await booking.save({ session });
                 console.log(`[BookingService] Automatically assigned staff ${targetStaffId} to booking ${bookingId}`);
             }
         }
@@ -95,7 +95,8 @@ export class BookingService {
                         { "slot.date": exactSlotDate, "slot.startTime": startTime, "slot.endTime": endTime },
                         { "staff.staffId": targetStaffId, "staff.isBooked": false }
                     ],
-                    new: true
+                    new: true,
+                    session
                 }
             );
         } else {
@@ -122,7 +123,8 @@ export class BookingService {
                     arrayFilters: [
                         { "slot.date": exactSlotDate, "slot.startTime": startTime, "slot.endTime": endTime }
                     ],
-                    new: true
+                    new: true,
+                    session
                 }
             );
         }
