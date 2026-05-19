@@ -9,9 +9,10 @@ import Staff from "./Staff";
 import Service from "./Service";
 import Booking from "./Booking";
 import ForgetPass from "./ForgetPass";
+import Counter from "./Counter";
 
 // Export all models
-export { User, Business, Staff, Service, Booking, ForgetPass };
+export { User, Business, Staff, Service, Booking, ForgetPass, Counter };
 
 // Export interfaces
 export type { IUser } from "./User";

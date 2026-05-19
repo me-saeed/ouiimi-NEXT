@@ -12,6 +12,7 @@ import { NextRequest } from "next/server";
 import dbConnect from "@/lib/db";
 // Import from models index to ensure all models are registered
 import { Booking, Service, Business, User, Staff } from "@/lib/models";
+import { BookingService } from "@/lib/services/booking-service";
 // Also import types directly if needed, or rely on Booking model exports
 import { PopulatedBooking } from "@/lib/models/Booking";
 import { authenticateRequest } from "@/lib/api-auth";
@@ -107,30 +108,12 @@ async function updateBookingHandler(
     booking.cancelledBy = validatedData.cancelledBy; // Save who cancelled it
     booking.cancellationReason = validatedData.cancellationReason || "";
 
-    // Free up the time slot
+    // Free up the time slot using BookingService to release hold safely (Issue 4 Fix)
     if (booking.serviceId && booking.timeSlot) {
       try {
-        const service = await Service.findById(booking.serviceId);
-        if (service) {
-          const slot = service.timeSlots.find((ts: any) =>
-            new Date(ts.date).getTime() === new Date(booking.timeSlot.date).getTime() &&
-            ts.startTime === booking.timeSlot.startTime &&
-            ts.endTime === booking.timeSlot.endTime
-          );
-
-          if (slot && booking.staffId) {
-            // Update staff booking status
-            const staffBooking = slot.staffIds?.find((s: any) =>
-              String(s.staffId) === String(booking.staffId)
-            );
-            if (staffBooking) {
-              staffBooking.isBooked = false;
-              await service.save();
-            }
-          }
-        }
+        await BookingService.releaseHold(String(booking._id));
       } catch (error) {
-        console.error("Error freeing slot:", error);
+        console.error("Error freeing slot via BookingService:", error);
       }
     }
 

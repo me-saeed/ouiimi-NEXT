@@ -93,9 +93,11 @@ export async function POST(request: NextRequest) {
 
                     // Use BookingService for atomic slot reservation
                     const { BookingService } = await import("@/lib/services/booking-service");
+                    let justConfirmed = false;
                     try {
-                        await BookingService.confirmSlotReservation(String(booking._id));
-                        console.log(`✅ Booking ${booking._id} confirmed and slot reserved via webhook`);
+                        const result = await BookingService.confirmSlotReservation(String(booking._id));
+                        justConfirmed = result.justConfirmed;
+                        console.log(`✅ Booking ${booking._id} confirmed and slot reserved via webhook. justConfirmed=${justConfirmed}`);
                     } catch (error: any) {
                         console.error(`❌ Webhook reservation failed for booking ${booking._id}:`, error);
                         // Slot was taken during payment process. 
@@ -129,7 +131,7 @@ export async function POST(request: NextRequest) {
                     };
 
                     // Prepare email data safely using the strict type
-                    if (safeBooking.userId && safeBooking.businessId) {
+                    if (justConfirmed && safeBooking.userId && safeBooking.businessId) {
                         const emailPayload = {
                             booking: safeBooking as any, // BookingEmailPayload is compatible
                             customer: safeBooking.userId as any,

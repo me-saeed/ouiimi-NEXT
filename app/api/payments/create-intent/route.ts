@@ -107,13 +107,17 @@ export async function POST(request: NextRequest) {
 
             if (booking.staffId) {
                 const staffAvailability = targetSlot.staffIds?.find((s: any) => String(s.staffId) === String(booking.staffId));
-                // If staff entry missing OR marked booked
-                if (!staffAvailability || staffAvailability.isBooked) {
+                // If staff entry missing OR marked booked by someone else
+                if (!staffAvailability) {
+                    return NextResponse.json({ error: "The selected staff member is no longer available for this time." }, { status: 409 });
+                }
+                
+                if (staffAvailability.isBooked && String(staffAvailability.bookingId) !== String(booking._id)) {
                     return NextResponse.json({ error: "The selected staff member is no longer available for this time." }, { status: 409 });
                 }
             } else {
                 // General slot booking
-                if (targetSlot.isBooked) {
+                if (targetSlot.isBooked && String(targetSlot.bookingId) !== String(booking._id)) {
                     return NextResponse.json({ error: "This time slot has just been booked by another customer." }, { status: 409 });
                 }
             }

@@ -134,6 +134,9 @@ export class BookingService {
             throw new APIError(409, "This time slot was just taken by another customer. Please choose another time.", "SLOT_UNAVAILABLE");
         }
 
+        // ISSUE 3 FIX: Explicitly trigger pre-save hook to recalculate slot-level isBooked
+        await service.save({ session });
+
         console.log(`[BookingService] Hold acquired successfully for booking ${bookingId}`);
         return true;
     }
@@ -186,6 +189,8 @@ export class BookingService {
         }
 
         if (service) {
+            // Trigger pre-save middleware to recalculate isBooked
+            await service.save();
             console.log(`[BookingService] Released hold for booking ${bookingId}`);
         }
         return !!service;
@@ -201,7 +206,9 @@ export class BookingService {
         const booking = await Booking.findById(bookingId);
         if (!booking) throw new APIError(404, "Booking not found", "NOT_FOUND");
 
-        if (booking.status === "confirmed") return booking;
+        if (booking.status === "confirmed") {
+            return { booking, justConfirmed: false };
+        }
 
         // Verify the hold still exists for this booking (either staff-level or slot-level)
         const service = await Service.findOne({
@@ -223,12 +230,21 @@ export class BookingService {
         }
 
         // Update booking status
+        // SANITIZATION LOGIC FOR ISSUE 5:
+        const wasCancelled = booking.status === "cancelled";
+        if (wasCancelled) {
+            console.log(`[BookingService] Resurrecting expired/cancelled hold for booking ${bookingId}`);
+            booking.cancelledAt = undefined;
+            booking.cancelledBy = undefined;
+            booking.cancellationReason = undefined;
+        }
+
         booking.status = "confirmed";
         booking.paymentStatus = "deposit_paid";
         await booking.save();
 
         console.log(`[BookingService] Booking ${bookingId} finalized and confirmed.`);
-        return booking;
+        return { booking, justConfirmed: true };
     }
 
     /**

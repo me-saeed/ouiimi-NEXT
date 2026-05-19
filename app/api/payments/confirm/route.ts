@@ -121,8 +121,10 @@ async function confirmPaymentHandler(req: NextRequest) {
     // ==========================================================================
     // STEP 6: Atomically reserve slot and update booking status
     // ==========================================================================
+    let justConfirmed = false;
     try {
-        await BookingService.confirmSlotReservation(bookingId);
+        const result = await BookingService.confirmSlotReservation(bookingId);
+        justConfirmed = result.justConfirmed;
     } catch (error: any) {
         console.error(`[Payment Confirm] Finalization failed for booking ${bookingId}:`, error);
 
@@ -155,7 +157,7 @@ async function confirmPaymentHandler(req: NextRequest) {
             .populate('serviceId', 'serviceName')
             .lean();
 
-        if (bookingWithPopulated?.userId && bookingWithPopulated?.businessId) {
+        if (justConfirmed && bookingWithPopulated?.userId && bookingWithPopulated?.businessId) {
             // Use serviceSnapshot as fallback if service was deleted
             const serviceData = bookingWithPopulated.serviceId || {
                 serviceName: (bookingWithPopulated as any).serviceSnapshot?.name || 'Service',

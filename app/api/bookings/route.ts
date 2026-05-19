@@ -16,7 +16,7 @@ import { NextRequest } from "next/server";
 import mongoose from "mongoose";
 import dbConnect from "@/lib/db";
 // Import from models index to ensure all models are registered
-import { Booking, Service, Business, User, Staff } from "@/lib/models";
+import { Booking, Service, Business, User, Staff, Counter } from "@/lib/models";
 import { authenticateRequest } from "@/lib/api-auth";
 import { applyRateLimit } from "@/lib/rate-limit";
 import {
@@ -224,8 +224,33 @@ async function createBookingHandler(req: NextRequest) {
 
       // 3. Create Booking
       const bookingId = new mongoose.Types.ObjectId();
-      const lastBooking = await Booking.findOne().sort({ bookingNumber: -1 }).session(dbSession).select('bookingNumber');
-      const bookingNumber = lastBooking?.bookingNumber ? lastBooking.bookingNumber + 1 : 5000;
+      
+      let counter = await Counter.findOneAndUpdate(
+        { _id: "bookingNumber" },
+        { $inc: { seq: 1 } },
+        { new: true, session: dbSession }
+      );
+
+      if (!counter) {
+        const lastBooking = await Booking.findOne().sort({ bookingNumber: -1 }).session(dbSession).select('bookingNumber');
+        const startSeq = lastBooking?.bookingNumber ? lastBooking.bookingNumber : 4999;
+        
+        try {
+          const createdCounters = await Counter.create([{ _id: "bookingNumber", seq: startSeq + 1 }], { session: dbSession });
+          counter = createdCounters[0];
+        } catch (err: any) {
+          if (err.code === 11000) {
+            counter = await Counter.findOneAndUpdate(
+              { _id: "bookingNumber" },
+              { $inc: { seq: 1 } },
+              { new: true, session: dbSession }
+            );
+          } else {
+            throw err;
+          }
+        }
+      }
+      const bookingNumber = counter!.seq;
 
       const { PLATFORM_FEE, DEPOSIT_PERCENTAGE } = await import("@/lib/constants/pricing");
 
