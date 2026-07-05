@@ -368,6 +368,37 @@ export const SERVICE_CATEGORIES: Record<string, Category> = {
         ],
     },
 
+    EYELASH_EXTENSIONS: {
+        name: "Eyelash Extensions",
+        slug: "eyelash-extensions",
+        description: "Professional eyelash extension sets, refills, removal, and lash care",
+        subcategories: [
+            { name: "Classic Full Set", slug: "classic-full-set" },
+            { name: "Hybrid Full Set", slug: "hybrid-full-set" },
+            { name: "Volume Full Set", slug: "volume-full-set" },
+            { name: "Mega Volume Full Set", slug: "mega-volume-full-set" },
+            { name: "Wispy Lashes", slug: "wispy-lashes" },
+            { name: "Wet Look Lashes", slug: "wet-look-lashes" },
+            { name: "Light Volume Set", slug: "light-volume-set" },
+            { name: "Lash Refill (1 Week)", slug: "lash-refill-1-week" },
+            { name: "Lash Refill (2 Weeks)", slug: "lash-refill-2-weeks" },
+            { name: "Lash Refill (3 Weeks)", slug: "lash-refill-3-weeks" },
+            { name: "Lash Refill (4 Weeks)", slug: "lash-refill-4-weeks" },
+            { name: "Lash Removal", slug: "lash-removal" },
+            { name: "Lash Extension Removal & New Set", slug: "lash-removal-new-set" },
+            { name: "Bottom Lash Extensions", slug: "bottom-lash-extensions" },
+            { name: "Lash Bath / Lash Cleanse", slug: "lash-bath-cleanse" },
+        ],
+        addOns: [
+            "Lash Shampoo",
+            "Lash Aftercare Kit",
+            "Lash Colour Extensions",
+            "Glitter or Coloured Lashes",
+            "Extra Fullness Upgrade",
+            "Extra Length Upgrade",
+        ],
+    },
+
     MAKEUP: {
         name: "Makeup Services",
         slug: "makeup-services",
