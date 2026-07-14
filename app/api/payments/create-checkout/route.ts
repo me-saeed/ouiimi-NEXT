@@ -138,7 +138,7 @@ export async function POST(request: NextRequest) {
             line_items: [
                 {
                     price_data: {
-                        currency: "usd",
+                        currency: "aud",
                         product_data: {
                             name: `${serviceId?.serviceName || "Service"} - Deposit`,
                             description: `${DEPOSIT_PERCENTAGE * 100}% deposit for ${businessId?.businessName || "Business"}`,
@@ -149,7 +149,7 @@ export async function POST(request: NextRequest) {
                 },
                 {
                     price_data: {
-                        currency: "usd",
+                        currency: "aud",
                         product_data: {
                             name: "Platform Fee",
                             description: "ouiimi service fee",

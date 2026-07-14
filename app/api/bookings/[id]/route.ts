@@ -123,6 +123,9 @@ async function updateBookingHandler(
       if (validatedData.cancelledBy === 'customer') {
         // Set to a special status or use adminPaymentStatus
         booking.adminPaymentStatus = 'refund_pending';
+      } else {
+        // Business cancelled — remove from pending payout queue entirely
+        booking.adminPaymentStatus = 'cancelled';
       }
 
       const bookingWithPopulated = await Booking.findById(booking._id)

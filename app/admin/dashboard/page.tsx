@@ -580,7 +580,16 @@ function PendingPaymentCard({ booking, onRelease }: { booking: Booking; onReleas
         <p className="text-sm text-gray-600">{business?.businessName || 'Business'}</p>
         <p className="text-xs text-gray-500">
           {booking.timeSlot?.date
-            ? `${new Date(booking.timeSlot.date).toLocaleDateString()} at ${booking.timeSlot.startTime || 'N/A'}`
+            ? (() => {
+                // Parse UTC date without timezone conversion to avoid date shifting
+                // MongoDB stores dates as UTC ISO strings; using local Date() shifts AEST (+10/+11) dates
+                const raw = typeof booking.timeSlot.date === 'string'
+                  ? booking.timeSlot.date
+                  : new Date(booking.timeSlot.date).toISOString();
+                const [year, month, day] = raw.slice(0, 10).split('-').map(Number);
+                const d = new Date(Date.UTC(year, month - 1, day));
+                return `${d.toLocaleDateString('en-AU', { timeZone: 'UTC', day: 'numeric', month: 'numeric', year: 'numeric' })} at ${booking.timeSlot.startTime || 'N/A'}`;
+              })()
             : 'Date not available'}
         </p>
       </div>

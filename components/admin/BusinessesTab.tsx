@@ -312,7 +312,7 @@ export function BusinessesTab({
                                     </div>
                                     <div className="col-span-2">
                                         <p className="text-xs text-blue-500 font-bold uppercase">Account Number</p>
-                                        <p className="text-sm font-medium text-blue-900">••••••••{selectedBusiness.bankDetails.accountNumber.slice(-4)}</p>
+                                        <p className="text-sm font-medium text-blue-900 font-mono tracking-wider">{selectedBusiness.bankDetails.accountNumber}</p>
                                     </div>
                                 </div>
                             ) : (

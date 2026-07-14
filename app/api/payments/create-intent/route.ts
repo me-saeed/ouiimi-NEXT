@@ -166,7 +166,7 @@ export async function POST(request: NextRequest) {
         // Create Stripe Payment Intent
         const paymentIntent = await stripe.paymentIntents.create({
             amount: amountInCents,
-            currency: "usd",
+            currency: "aud",
             payment_method_types: ['card'],
             metadata: {
                 bookingId: String(booking._id),

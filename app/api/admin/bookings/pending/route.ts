@@ -31,7 +31,7 @@ async function getPendingBookingsHandler(req: NextRequest) {
   await dbConnect();
 
   const bookings = await Booking.find({
-    status: { $in: ["confirmed", "completed"] },
+    status: { $in: ["confirmed", "completed"] }, // Explicitly exclude cancelled/refunded
     adminPaymentStatus: "pending"
   })
     .populate("userId", "fname lname email")

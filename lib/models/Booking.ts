@@ -70,7 +70,7 @@ export interface IBooking extends Document {
   remainingAmount: number;                   // Amount due at venue
   status: "pre_payment" | "pending" | "confirmed" | "completed" | "cancelled" | "refunded";
   paymentStatus: "pending" | "deposit_paid" | "fully_paid" | "refunded";
-  adminPaymentStatus?: "pending" | "released" | "refund_pending"; // For admin to release funds
+  adminPaymentStatus?: "pending" | "released" | "refund_pending" | "cancelled"; // For admin to release funds
   platformFee?: number;                      // ouiimi's fee ($1.99)
   serviceAmount?: number;                    // Amount after platform fee
   paymentIntentId?: string;                  // Stripe session/payment intent ID
@@ -195,9 +195,10 @@ const bookingSchema = new Schema<IBooking>(
     // "pending" → funds held by platform
     // "released" → funds released to business
     // "refund_pending" → booking cancelled by shopper, admin needs to refund 50%
+    // "cancelled" → booking cancelled by business, no payout needed
     adminPaymentStatus: {
       type: String,
-      enum: ["pending", "released", "refund_pending"],
+      enum: ["pending", "released", "refund_pending", "cancelled"],
       default: "pending",
     },
 
