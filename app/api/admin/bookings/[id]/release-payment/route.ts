@@ -41,8 +41,17 @@ async function releasePaymentHandler(
   }
 
   // Validate booking is eligible for payment release
-  if (booking.status !== "completed") {
-    throw new APIError(400, "Only completed bookings can have payments released", "INVALID_STATUS");
+  // Deposit is earned at confirmation time — can be released for confirmed OR completed bookings
+  const isEligible =
+    (booking.status === "confirmed" || booking.status === "completed") &&
+    booking.paymentStatus === "deposit_paid";
+
+  if (!isEligible) {
+    throw new APIError(
+      400,
+      "Only confirmed or completed bookings with a paid deposit can have payments released",
+      "INVALID_STATUS"
+    );
   }
 
   if (booking.adminPaymentStatus === "released") {

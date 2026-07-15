@@ -57,7 +57,18 @@ async function getReleasedPaymentsHandler(req: NextRequest) {
             businessId: b.businessId,
             serviceId: b.serviceId,
             userId: b.userId,
+            // Financial fields required by PaymentHistoryTab
+            totalCost: b.totalCost,
+            depositAmount: b.depositAmount,
+            platformFee: b.platformFee,
             serviceAmount: b.serviceAmount,
+            // Booking details required by PaymentHistoryTab
+            timeSlot: b.timeSlot,
+            status: b.status,
+            paymentStatus: b.paymentStatus,
+            adminPaymentStatus: b.adminPaymentStatus,
+            serviceSnapshot: b.serviceSnapshot,
+            createdAt: b.createdAt,
             updatedAt: b.updatedAt,
         })),
         pagination: {

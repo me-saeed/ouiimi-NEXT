@@ -48,11 +48,13 @@ async function getStatsHandler(req: NextRequest) {
         Booking.countDocuments({ status: "pending" }),
         Booking.countDocuments({ status: "confirmed" }),
         Booking.aggregate([
+            // Revenue = what ouiimi actually collected: deposit + platform fee
+            // NOT totalCost, which is the full service price (90% paid at venue, never touches ouiimi)
             { $match: { paymentStatus: { $in: ["deposit_paid", "fully_paid"] } } },
             {
                 $group: {
                     _id: null,
-                    totalRevenue: { $sum: "$totalCost" },
+                    totalRevenue: { $sum: { $add: ["$depositAmount", "$platformFee"] } },  // actual collected
                     totalDeposits: { $sum: "$depositAmount" },
                     totalPlatformFees: { $sum: "$platformFee" },
                     totalServiceAmounts: { $sum: "$serviceAmount" }
@@ -62,8 +64,9 @@ async function getStatsHandler(req: NextRequest) {
         Booking.aggregate([
             {
                 $match: {
-                    status: "completed",
-                    adminPaymentStatus: { $ne: "released" }
+                    // Match pending tab exactly: confirmed OR completed, not yet released
+                    status: { $in: ["confirmed", "completed"] },
+                    adminPaymentStatus: "pending"
                 }
             },
             {

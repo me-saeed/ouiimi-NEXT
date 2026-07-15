@@ -241,6 +241,7 @@ export class BookingService {
 
         booking.status = "confirmed";
         booking.paymentStatus = "deposit_paid";
+        booking.adminPaymentStatus = "pending";
         await booking.save();
 
         console.log(`[BookingService] Booking ${bookingId} finalized and confirmed.`);
@@ -274,6 +275,7 @@ export class BookingService {
                 // 2. Mark booking as cancelled
                 booking.status = "cancelled";
                 booking.cancellationReason = "Pre-payment hold expired";
+                booking.adminPaymentStatus = "cancelled";
                 await booking.save();
             } catch (error) {
                 console.error(`[BookingService] Error cleaning up booking ${booking._id}:`, error);

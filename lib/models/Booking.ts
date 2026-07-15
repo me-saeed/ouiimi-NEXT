@@ -199,7 +199,6 @@ const bookingSchema = new Schema<IBooking>(
     adminPaymentStatus: {
       type: String,
       enum: ["pending", "released", "refund_pending", "cancelled"],
-      default: "pending",
     },
 
     // Platform fee (ouiimi's cut, e.g., $1.99)

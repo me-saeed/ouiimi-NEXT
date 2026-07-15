@@ -80,12 +80,24 @@ export async function POST(request: NextRequest) {
                 console.log("💰 Payment succeeded:", paymentIntent.id);
 
                 // Update booking status
-                const booking = await Booking.findOne({
-                    paymentIntentId: paymentIntent.id,
-                })
-                    .populate("userId", "fname lname email")
-                    .populate("businessId", "businessName email")
-                    .populate("serviceId", "serviceName");
+                // (Fix Bug 8: Check metadata first because Checkout flow stores cs_xxx as paymentIntentId)
+                let booking = null;
+                if (paymentIntent.metadata && paymentIntent.metadata.bookingId) {
+                    booking = await Booking.findById(paymentIntent.metadata.bookingId)
+                        .populate("userId", "fname lname email")
+                        .populate("businessId", "businessName email")
+                        .populate("serviceId", "serviceName");
+                }
+                
+                // Fallback to paymentIntentId for the custom intent flow
+                if (!booking) {
+                    booking = await Booking.findOne({
+                        paymentIntentId: paymentIntent.id,
+                    })
+                        .populate("userId", "fname lname email")
+                        .populate("businessId", "businessName email")
+                        .populate("serviceId", "serviceName");
+                }
 
                 if (booking) {
                     // Use Centralized Type
@@ -156,9 +168,15 @@ export async function POST(request: NextRequest) {
                 console.log("❌ Payment failed:", failedIntent.id);
 
                 // Optionally update booking to mark payment failure
-                const failedBooking = await Booking.findOne({
-                    paymentIntentId: failedIntent.id,
-                });
+                let failedBooking = null;
+                if (failedIntent.metadata && failedIntent.metadata.bookingId) {
+                    failedBooking = await Booking.findById(failedIntent.metadata.bookingId);
+                }
+                if (!failedBooking) {
+                    failedBooking = await Booking.findOne({
+                        paymentIntentId: failedIntent.id,
+                    });
+                }
 
                 if (failedBooking) {
                     // Keep status as pre_payment, customer can retry

@@ -254,31 +254,32 @@ async function createBookingHandler(req: NextRequest) {
 
       const { PLATFORM_FEE, DEPOSIT_PERCENTAGE } = await import("@/lib/constants/pricing");
 
-      const bookingData: any = {
-        _id: bookingId,
-        bookingNumber,
-        userId: new mongoose.Types.ObjectId(validatedData.userId),
-        businessId: new mongoose.Types.ObjectId(validatedData.businessId),
-        serviceId: new mongoose.Types.ObjectId(validatedData.serviceId),
-        timeSlot: {
-          date: bookingDate,
-          startTime: bookingStartTime,
-          endTime: bookingEndTime,
-        },
-        totalCost: calculatedTotalCost,
-        depositAmount: Math.round(calculatedTotalCost * DEPOSIT_PERCENTAGE * 100) / 100,
-        remainingAmount: Math.round(calculatedTotalCost * (1 - DEPOSIT_PERCENTAGE) * 100) / 100,
-        platformFee: PLATFORM_FEE,
-        serviceAmount: calculatedTotalCost - PLATFORM_FEE,
-        // Preserve service details in case service is deleted later
-        serviceSnapshot: {
-          name: service.serviceName,
-          category: service.category || '',
-        },
-        status: "pre_payment",
-        paymentStatus: "pending",
-        adminPaymentStatus: "pending",
-      };
+        const depositAmount = Math.round(calculatedTotalCost * DEPOSIT_PERCENTAGE * 100) / 100;
+
+        const bookingData: any = {
+          _id: bookingId,
+          bookingNumber,
+          userId: new mongoose.Types.ObjectId(validatedData.userId),
+          businessId: new mongoose.Types.ObjectId(validatedData.businessId),
+          serviceId: new mongoose.Types.ObjectId(validatedData.serviceId),
+          timeSlot: {
+            date: bookingDate,
+            startTime: bookingStartTime,
+            endTime: bookingEndTime,
+          },
+          totalCost: calculatedTotalCost,
+          depositAmount: depositAmount,
+          remainingAmount: Math.round(calculatedTotalCost * (1 - DEPOSIT_PERCENTAGE) * 100) / 100,
+          platformFee: PLATFORM_FEE,
+          serviceAmount: depositAmount - PLATFORM_FEE,
+          // Preserve service details in case service is deleted later
+          serviceSnapshot: {
+            name: service.serviceName,
+            category: service.category || '',
+          },
+          status: "pre_payment",
+          paymentStatus: "pending",
+        };
 
       if (validatedData.staffId) {
         bookingData.staffId = new mongoose.Types.ObjectId(validatedData.staffId);

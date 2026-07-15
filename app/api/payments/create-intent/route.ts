@@ -15,6 +15,7 @@ import dbConnect from "@/lib/db";
 import Booking, { IBooking, PopulatedBooking } from "@/lib/models/Booking";
 import Business, { IBusiness } from "@/lib/models/Business";
 import Service, { IService } from "@/lib/models/Service";
+import { authenticateRequest } from "@/lib/api-auth";
 
 // =============================================================================
 // LAZY STRIPE INITIALIZATION
@@ -36,6 +37,7 @@ function getStripe(): Stripe {
 
 export async function POST(request: NextRequest) {
     try {
+        const sessionAuth = await authenticateRequest(request);
         const { bookingId } = await request.json();
 
         if (!bookingId) {
@@ -57,6 +59,13 @@ export async function POST(request: NextRequest) {
             return NextResponse.json(
                 { error: "Booking not found" },
                 { status: 404 }
+            );
+        }
+
+        if (String(booking.userId) !== String(sessionAuth.userId)) {
+            return NextResponse.json(
+                { error: "Not authorized for this booking" },
+                { status: 403 }
             );
         }
 

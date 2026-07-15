@@ -35,8 +35,8 @@ async function approveBusinessHandler(
         throw new APIError(404, "Business not found", "NOT_FOUND");
     }
 
-    if (business.status !== "pending") {
-        throw new APIError(400, "Only pending businesses can be approved", "INVALID_STATUS");
+    if (business.status === "approved") {
+        throw new APIError(400, "Business is already approved", "INVALID_STATUS");
     }
 
     business.status = "approved";

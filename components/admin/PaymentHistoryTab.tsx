@@ -124,8 +124,14 @@ export function PaymentHistoryTab({ bookings, isLoading }: PaymentHistoryTabProp
                                         <div className="flex items-center gap-2 text-sm text-gray-600">
                                             <Calendar className="w-4 h-4" />
                                             <span>
-                                                {new Date(booking.timeSlot.date).toLocaleDateString()} at{' '}
-                                                {booking.timeSlot.startTime}
+                                                {(() => {
+                                                    const raw = typeof booking.timeSlot.date === 'string'
+                                                        ? booking.timeSlot.date
+                                                        : new Date(booking.timeSlot.date).toISOString();
+                                                    const [year, month, day] = raw.slice(0, 10).split('-').map(Number);
+                                                    const d = new Date(Date.UTC(year, month - 1, day));
+                                                    return `${d.toLocaleDateString('en-AU', { timeZone: 'UTC', day: 'numeric', month: 'numeric', year: 'numeric' })} at ${booking.timeSlot.startTime}`;
+                                                })()}
                                             </span>
                                         </div>
 

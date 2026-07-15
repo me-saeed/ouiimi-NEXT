@@ -6,7 +6,7 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Building2, Mail, Phone, MapPin, CheckCircle, XCircle, Eye, Info, Landmark } from "lucide-react";
+import { Building2, Mail, Phone, MapPin, CheckCircle, XCircle, Eye, Info, Landmark, ShieldOff } from "lucide-react";
 import { Modal } from "@/components/ui/modal";
 import { Input } from "@/components/ui/input";
 
@@ -29,6 +29,7 @@ interface Business {
         accountNumber?: string;
         contactNumber?: string;
     };
+    adminNotes?: string;
     category?: string;
     subCategory?: string;
     story?: string;
@@ -40,6 +41,7 @@ interface BusinessesTabProps {
     isLoading: boolean;
     onApprove: (businessId: string) => Promise<void>;
     onReject: (businessId: string, reason: string) => Promise<void>;
+    onSuspend?: (businessId: string, reason: string) => Promise<void>;
 }
 
 export function BusinessesTab({
@@ -47,6 +49,7 @@ export function BusinessesTab({
     isLoading,
     onApprove,
     onReject,
+    onSuspend,
 }: BusinessesTabProps) {
     const [filter, setFilter] = useState<"all" | "pending" | "approved" | "rejected" | "suspended">("all");
     const [searchQuery, setSearchQuery] = useState("");
@@ -56,6 +59,8 @@ export function BusinessesTab({
     const [rejectingBusinessId, setRejectingBusinessId] = useState<string | null>(null);
     const [rejectionReason, setRejectionReason] = useState("");
     const [approvingBusinessId, setApprovingBusinessId] = useState<string | null>(null);
+    const [suspendingBusiness, setSuspendingBusiness] = useState<Business | null>(null);
+    const [suspensionReason, setSuspensionReason] = useState("");
 
     // Filter and search
     const filteredBusinesses = businesses.filter((b) => {
@@ -98,6 +103,13 @@ export function BusinessesTab({
         if (!approvingBusinessId) return;
         await onApprove(approvingBusinessId);
         setApprovingBusinessId(null);
+    };
+
+    const handleConfirmSuspend = async () => {
+        if (!suspendingBusiness || suspensionReason.length < 10) return;
+        if (onSuspend) await onSuspend(suspendingBusiness.id, suspensionReason);
+        setSuspendingBusiness(null);
+        setSuspensionReason("");
     };
 
     if (isLoading) {
@@ -217,26 +229,41 @@ export function BusinessesTab({
                                         Details
                                     </Button>
 
+                                    {/* Approve: shown for pending AND rejected businesses */}
+                                    {(business.status === "pending" || business.status === "rejected") && (
+                                        <Button
+                                            size="sm"
+                                            onClick={() => setApprovingBusinessId(business.id)}
+                                            className="rounded-xl bg-green-500 hover:bg-green-600 text-white border-none shadow-sm"
+                                        >
+                                            <CheckCircle className="w-4 h-4 mr-1.5" />
+                                            {business.status === "rejected" ? "Re-approve" : "Approve"}
+                                        </Button>
+                                    )}
+
+                                    {/* Reject: shown for pending businesses */}
                                     {business.status === "pending" && (
-                                        <>
-                                            <Button
-                                                size="sm"
-                                                onClick={() => setApprovingBusinessId(business.id)}
-                                                className="rounded-xl bg-green-500 hover:bg-green-600 text-white border-none shadow-sm"
-                                            >
-                                                <CheckCircle className="w-4 h-4 mr-1.5" />
-                                                Approve
-                                            </Button>
-                                            <Button
-                                                size="sm"
-                                                variant="destructive"
-                                                className="rounded-xl shadow-sm"
-                                                onClick={() => setRejectingBusinessId(business.id)}
-                                            >
-                                                <XCircle className="w-4 h-4 mr-1.5" />
-                                                Reject
-                                            </Button>
-                                        </>
+                                        <Button
+                                            size="sm"
+                                            variant="destructive"
+                                            className="rounded-xl shadow-sm"
+                                            onClick={() => setRejectingBusinessId(business.id)}
+                                        >
+                                            <XCircle className="w-4 h-4 mr-1.5" />
+                                            Reject
+                                        </Button>
+                                    )}
+
+                                    {/* Suspend: shown for approved businesses */}
+                                    {business.status === "approved" && (
+                                        <Button
+                                            size="sm"
+                                            className="rounded-xl bg-orange-500 hover:bg-orange-600 text-white border-none shadow-sm"
+                                            onClick={() => setSuspendingBusiness(business)}
+                                        >
+                                            <ShieldOff className="w-4 h-4 mr-1.5" />
+                                            Suspend
+                                        </Button>
                                     )}
                                 </div>
                             </div>
@@ -323,6 +350,18 @@ export function BusinessesTab({
                             )}
                         </div>
 
+                        {/* Admin Notes (rejection/suspension reason) */}
+                        {selectedBusiness.adminNotes && (
+                            <div className="space-y-4">
+                                <h5 className="font-bold text-sm uppercase text-gray-400 flex items-center gap-2">
+                                    <Info className="w-4 h-4" /> Admin Notes
+                                </h5>
+                                <div className="bg-red-50 border border-red-100 p-4 rounded-xl">
+                                    <p className="text-sm text-red-800 italic">{selectedBusiness.adminNotes}</p>
+                                </div>
+                            </div>
+                        )}
+
                         {/* Story / About */}
                         <div className="space-y-4">
                             <h5 className="font-bold text-sm uppercase text-gray-400">About the Business</h5>
@@ -334,7 +373,7 @@ export function BusinessesTab({
                         </div>
 
                         {/* Actions in Modal */}
-                        {selectedBusiness.status === "pending" && (
+                        {(selectedBusiness.status === "pending" || selectedBusiness.status === "rejected") && (
                             <div className="pt-6 flex gap-3 border-t border-gray-100">
                                 <Button
                                     className="flex-1 bg-green-500 hover:bg-green-600"
@@ -343,17 +382,32 @@ export function BusinessesTab({
                                         setSelectedBusiness(null);
                                     }}
                                 >
-                                    Approve Registration
+                                    {selectedBusiness.status === "rejected" ? "Re-approve" : "Approve Registration"}
                                 </Button>
+                                {selectedBusiness.status === "pending" && (
+                                    <Button
+                                        variant="destructive"
+                                        className="flex-1"
+                                        onClick={() => {
+                                            setRejectingBusinessId(selectedBusiness.id);
+                                            setSelectedBusiness(null);
+                                        }}
+                                    >
+                                        Reject
+                                    </Button>
+                                )}
+                            </div>
+                        )}
+                        {selectedBusiness.status === "approved" && (
+                            <div className="pt-6 border-t border-gray-100">
                                 <Button
-                                    variant="destructive"
-                                    className="flex-1"
+                                    className="w-full bg-orange-500 hover:bg-orange-600 text-white"
                                     onClick={() => {
-                                        setRejectingBusinessId(selectedBusiness.id);
+                                        setSuspendingBusiness(selectedBusiness);
                                         setSelectedBusiness(null);
                                     }}
                                 >
-                                    Reject
+                                    <ShieldOff className="w-4 h-4 mr-2" /> Suspend Business
                                 </Button>
                             </div>
                         )}
@@ -392,6 +446,41 @@ export function BusinessesTab({
                             onClick={handleConfirmReject}
                         >
                             Reject Business
+                        </Button>
+                    </div>
+                </div>
+            </Modal>
+
+            {/* Suspend Confirmation Modal */}
+            <Modal
+                isOpen={!!suspendingBusiness}
+                onClose={() => setSuspendingBusiness(null)}
+                title="Suspend Business"
+            >
+                <div className="space-y-6">
+                    <p className="text-gray-600 text-sm">
+                        Suspending <strong>{suspendingBusiness?.businessName}</strong> will prevent them from accepting new bookings. Please provide a reason.
+                    </p>
+                    <textarea
+                        className="w-full h-32 p-4 border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm"
+                        placeholder="Suspension reason (minimum 10 characters)..."
+                        value={suspensionReason}
+                        onChange={(e) => setSuspensionReason(e.target.value)}
+                    />
+                    <div className="flex gap-3">
+                        <Button
+                            variant="outline"
+                            className="flex-1 rounded-xl"
+                            onClick={() => setSuspendingBusiness(null)}
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            className="flex-1 rounded-xl bg-orange-500 hover:bg-orange-600 text-white"
+                            disabled={suspensionReason.length < 10}
+                            onClick={handleConfirmSuspend}
+                        >
+                            Confirm Suspension
                         </Button>
                     </div>
                 </div>

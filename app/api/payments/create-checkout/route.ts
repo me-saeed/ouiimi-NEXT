@@ -44,6 +44,7 @@ import dbConnect from "@/lib/db";
 import Booking from "@/lib/models/Booking";
 import Business from "@/lib/models/Business";
 import Service from "@/lib/models/Service";
+import { authenticateRequest } from "@/lib/api-auth";
 
 // =============================================================================
 // LAZY STRIPE INITIALIZATION
@@ -69,6 +70,11 @@ function getStripe(): Stripe {
  */
 export async function POST(request: NextRequest) {
     try {
+        // =====================================================================
+        // STEP 0: Authentication (Fix Bug 9)
+        // =====================================================================
+        const sessionAuth = await authenticateRequest(request);
+
         // =====================================================================
         // STEP 1: Extract booking ID from request
         // =====================================================================
@@ -97,6 +103,13 @@ export async function POST(request: NextRequest) {
             return NextResponse.json(
                 { error: "Booking not found" },
                 { status: 404 }
+            );
+        }
+
+        if (String(booking.userId) !== String(sessionAuth.userId)) {
+            return NextResponse.json(
+                { error: "Not authorized for this booking" },
+                { status: 403 }
             );
         }
 
@@ -176,6 +189,16 @@ export async function POST(request: NextRequest) {
                 userId: String(booking.userId),
                 businessId: String(businessId?._id || booking.businessId),
                 serviceId: String(serviceId?._id || booking.serviceId),
+            },
+            
+            // Pass metadata to the underlying PaymentIntent so the webhook can find the booking (Fix Bug 8)
+            payment_intent_data: {
+                metadata: {
+                    bookingId: String(booking._id),
+                    userId: String(booking.userId),
+                    businessId: String(businessId?._id || booking.businessId),
+                    serviceId: String(serviceId?._id || booking.serviceId),
+                }
             },
         });
 

@@ -49,6 +49,8 @@ import Booking from "@/lib/models/Booking";
 import Business from "@/lib/models/Business";
 import Service from "@/lib/models/Service";
 import User from "@/lib/models/User";
+import { authenticateRequest } from "@/lib/api-auth";
+import { BookingService } from "@/lib/services/booking-service";
 
 // =============================================================================
 // LAZY STRIPE INITIALIZATION
@@ -74,6 +76,11 @@ function getStripe(): Stripe {
  */
 export async function POST(request: NextRequest) {
     try {
+        // =====================================================================
+        // STEP 0: Authentication (Fix Bug 9)
+        // =====================================================================
+        const sessionAuth = await authenticateRequest(request);
+
         // =====================================================================
         // STEP 1: Extract session and booking IDs
         // =====================================================================
@@ -118,14 +125,63 @@ export async function POST(request: NextRequest) {
             );
         }
 
+        if (String(booking.userId) !== String(sessionAuth.userId)) {
+            return NextResponse.json(
+                { error: "Not authorized for this booking" },
+                { status: 403 }
+            );
+        }
+
         // =====================================================================
-        // STEP 5: Update booking status to confirmed
+        // STEP 3.5: Security Checks (Fix Bug 4, Bug 7)
         // =====================================================================
-        // paymentStatus: "pending" → "deposit_paid" (customer paid 10%)
-        // status: "pending" → "confirmed" (booking is now active)
-        booking.paymentStatus = "deposit_paid";
-        booking.status = "confirmed";
-        await booking.save();
+        if (session.metadata?.bookingId !== String(bookingId)) {
+            return NextResponse.json(
+                { error: "Session does not belong to this booking" },
+                { status: 400 }
+            );
+        }
+
+        const { PLATFORM_FEE } = await import("@/lib/constants/pricing");
+        const expectedAmount = Math.round((booking.depositAmount + (booking.platformFee || PLATFORM_FEE)) * 100);
+        if (session.amount_total !== expectedAmount) {
+            return NextResponse.json(
+                { error: "Payment amount mismatch" },
+                { status: 400 }
+            );
+        }
+
+        // =====================================================================
+        // STEP 5: Update booking status to confirmed (Fix Bug 3, Bug 5)
+        // =====================================================================
+        let justConfirmed = false;
+        try {
+            const result = await BookingService.confirmSlotReservation(bookingId);
+            justConfirmed = result.justConfirmed;
+        } catch (error: any) {
+            console.error(`[Verify Session] Finalization failed for booking ${bookingId}:`, error);
+
+            // Record failure
+            booking.status = "cancelled";
+            booking.paymentStatus = "deposit_paid";
+            booking.cancellationReason = "System Error: Hold lost after payment";
+            if (session.payment_intent) {
+                booking.paymentIntentId = session.payment_intent as string;
+            }
+            booking.businessNotes = `PAYMENT SUCCESSFUL but Slot was lost due to hold expiry. REFUND NEEDED. Error: ${error.message}`;
+            await booking.save();
+
+            return NextResponse.json(
+                { error: error.message || "Payment was successful, but the time slot was taken. A refund will be processed." },
+                { status: 409 }
+            );
+        }
+
+        // Save real PaymentIntent ID for refunds (Fix Bug 5)
+        if (session.payment_intent) {
+            booking.paymentIntentId = session.payment_intent as string;
+            await booking.save();
+        }
 
         // =====================================================================
         // STEP 5.5: Send Confirmation Emails (Reliability Fallback)
@@ -151,7 +207,7 @@ export async function POST(request: NextRequest) {
                     category: (populatedBooking as any).serviceSnapshot?.category || ''
                 };
 
-                if (user && business) {
+                if (justConfirmed && user && business) {
                     const emailPayload = {
                         booking: booking as any,
                         customer: user,

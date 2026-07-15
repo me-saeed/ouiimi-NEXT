@@ -94,7 +94,15 @@ function CancelledBookingCard({ booking, type }: { booking: Booking; type: "busi
                     <CalendarX className="w-4 h-4 mr-2 text-gray-400" />
                     <span>
                         {booking.timeSlot?.date
-                            ? `${new Date(booking.timeSlot.date).toLocaleDateString()} at ${booking.timeSlot.startTime || 'N/A'}`
+                            ? (() => {
+                                // Parse UTC date directly to avoid AEST timezone shift
+                                const raw = typeof booking.timeSlot.date === 'string'
+                                    ? booking.timeSlot.date
+                                    : new Date(booking.timeSlot.date).toISOString();
+                                const [year, month, day] = raw.slice(0, 10).split('-').map(Number);
+                                const d = new Date(Date.UTC(year, month - 1, day));
+                                return `${d.toLocaleDateString('en-AU', { timeZone: 'UTC', day: 'numeric', month: 'numeric', year: 'numeric' })} at ${booking.timeSlot.startTime || 'N/A'}`;
+                              })()
                             : 'Date not available'}
                     </span>
                 </div>

@@ -54,15 +54,15 @@ async function updateBusinessHandler(
             );
         }
 
-        // Update business
+        // Update business status
         if (validatedData.status) {
             business.status = validatedData.status;
         }
 
-        // TODO: Add notes field to Business model
-        // if (validatedData.notes) {
-        //   business.adminNotes = validatedData.notes;
-        // }
+        // Save admin notes (e.g. suspension reason) — shown in admin detail modal
+        if (validatedData.notes) {
+            business.adminNotes = validatedData.notes;
+        }
 
         await business.save();
 

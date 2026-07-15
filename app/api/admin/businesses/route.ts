@@ -68,6 +68,7 @@ async function getBusinessesHandler(req: NextRequest) {
                 bsb: b.bankDetails.bsb,
                 accountNumber: b.bankDetails.accountNumber
             } : null,
+            adminNotes: b.adminNotes || null,
             createdAt: b.createdAt,
         })),
         pagination: {

@@ -70,6 +70,7 @@ export default function AdminDashboardPage() {
   const [activeTab, setActiveTab] = useState<TabId>("overview");
   const [releasingBooking, setReleasingBooking] = useState<Booking | null>(null);
   const [isReleasing, setIsReleasing] = useState(false);
+  const [markingRefundId, setMarkingRefundId] = useState<string | null>(null);
 
   // Auth check - replaced localStorage with useAuth
   useEffect(() => {
@@ -221,6 +222,43 @@ export default function AdminDashboardPage() {
     }
   };
 
+  const handleSuspendBusiness = async (businessId: string, reason: string) => {
+    try {
+      const response = await fetch(`/api/admin/businesses/${businessId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "suspended", notes: reason }),
+      });
+      if (response.ok) {
+        toast({ title: "Business Suspended", description: "The business has been suspended." });
+        mutateBusinesses();
+      } else {
+        const data = await response.json();
+        toast({ variant: "destructive", title: "Error", description: data.error || "Failed to suspend business" });
+      }
+    } catch {
+      toast({ variant: "destructive", title: "Error", description: "Failed to suspend business" });
+    }
+  };
+
+  const handleMarkRefunded = async (bookingId: string) => {
+    setMarkingRefundId(bookingId);
+    try {
+      const response = await fetch(`/api/admin/bookings/${bookingId}/mark-refunded`, { method: "POST" });
+      if (response.ok) {
+        toast({ title: "Refund Marked", description: "Booking has been marked as refunded and removed from the queue." });
+        mutateRefunds();
+      } else {
+        const data = await response.json();
+        toast({ variant: "destructive", title: "Error", description: data.error || "Failed to mark refund" });
+      }
+    } catch {
+      toast({ variant: "destructive", title: "Error", description: "An unexpected error occurred" });
+    } finally {
+      setMarkingRefundId(null);
+    }
+  };
+
   const handleReleasePayment = async (booking: Booking) => {
     setReleasingBooking(booking);
   };
@@ -332,6 +370,7 @@ export default function AdminDashboardPage() {
               isLoading={businessesLoading}
               onApprove={handleApproveBusiness}
               onReject={handleRejectBusiness}
+              onSuspend={handleSuspendBusiness}
             />
           )}
 
@@ -348,6 +387,8 @@ export default function AdminDashboardPage() {
             <RefundsView
               bookings={refundsList}
               isLoading={refundsLoading}
+              onMarkRefunded={handleMarkRefunded}
+              markingRefundId={markingRefundId}
             />
           )}
 
@@ -428,9 +469,13 @@ export default function AdminDashboardPage() {
 function RefundsView({
   bookings,
   isLoading,
+  onMarkRefunded,
+  markingRefundId,
 }: {
   bookings: Booking[];
   isLoading: boolean;
+  onMarkRefunded: (bookingId: string) => void;
+  markingRefundId: string | null;
 }) {
   if (isLoading) {
     return (
@@ -448,7 +493,7 @@ function RefundsView({
       <div className="bg-orange-50 rounded-2xl p-6 border border-orange-100 mb-6">
         <h3 className="font-bold text-orange-900 text-lg mb-2">Refunds Due (50% Policy)</h3>
         <p className="text-sm text-orange-800">
-          These bookings were cancelled by the shopper. Per policy, 50% of the deposit should be refunded manually via Stripe/Bank, and the other 50% retained.
+          These bookings were cancelled by the shopper. Per policy, 50% of the deposit should be refunded manually via Stripe/Bank, then click &quot;Mark as Refunded&quot; to remove from this queue.
         </p>
       </div>
 
@@ -460,6 +505,8 @@ function RefundsView({
             <RefundCard
               key={booking.id}
               booking={booking}
+              onMarkRefunded={onMarkRefunded}
+              isMarking={markingRefundId === booking.id}
             />
           ))}
         </div>
@@ -468,11 +515,11 @@ function RefundsView({
   );
 }
 
-function RefundCard({ booking }: { booking: Booking }) {
+function RefundCard({ booking, onMarkRefunded, isMarking }: { booking: Booking; onMarkRefunded: (id: string) => void; isMarking: boolean }) {
   const service = typeof booking.serviceId === 'object' ? booking.serviceId : null;
   const shopper = typeof booking.userId === 'object' ? booking.userId : null;
 
-  // 50% of deposit
+  // Use stored depositAmount; fallback to 10% calculation for legacy records
   const depositPaid = booking.depositAmount || (booking.totalCost * 0.10);
   const refundAmount = depositPaid * 0.50;
 
@@ -487,7 +534,7 @@ function RefundCard({ booking }: { booking: Booking }) {
           <span className="bg-orange-100 text-orange-800 px-2 py-1 rounded text-xs font-bold">Refund Due</span>
         </div>
 
-        <div className="space-y-3 mb-6">
+        <div className="space-y-3 mb-4">
           <div className="p-3 bg-gray-50 rounded-lg">
             <p className="text-xs text-gray-500 uppercase font-bold mb-1">Shopper Details</p>
             <p className="font-medium text-gray-900">{shopper?.fname} {shopper?.lname}</p>
@@ -507,14 +554,23 @@ function RefundCard({ booking }: { booking: Booking }) {
         </div>
       </div>
 
-      <div className="bg-yellow-50 p-3 rounded-lg text-xs text-yellow-800 border border-yellow-200">
-        <strong>Action Required:</strong> Process ${refundAmount.toFixed(2)} refund manually to {shopper?.email}.
+      <div className="space-y-2">
+        <div className="bg-yellow-50 p-3 rounded-lg text-xs text-yellow-800 border border-yellow-200">
+          <strong>Action Required:</strong> Process ${refundAmount.toFixed(2)} refund manually to {shopper?.email}.
+        </div>
+        <button
+          onClick={() => onMarkRefunded(booking.id)}
+          disabled={isMarking}
+          className="w-full bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white rounded-xl h-10 text-sm font-semibold transition-colors"
+        >
+          {isMarking ? "Marking..." : "✓ Mark as Refunded"}
+        </button>
       </div>
     </div>
   );
 }
 
-// Pending Payments View Component  
+// Pending Payments View Component
 function PendingPaymentsView({
   bookings,
   isLoading,
@@ -535,7 +591,12 @@ function PendingPaymentsView({
     );
   }
 
-  const totalDeposits = bookings.reduce((sum, b) => sum + (b.totalCost * 0.10), 0);
+  // Use real stored depositAmount, then subtract platformFee for net payout
+  const totalNetPayout = bookings.reduce((sum, b) => {
+    const deposit = b.depositAmount || (b.totalCost * 0.10);
+    const fee = b.platformFee || 1.99;
+    return sum + Math.max(0, deposit - fee);
+  }, 0);
 
   return (
     <div className="space-y-6">
@@ -543,8 +604,9 @@ function PendingPaymentsView({
       <div className="bg-gradient-to-br from-white to-gray-50 rounded-2xl p-6 border border-gray-200">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
-            <p className="text-sm text-gray-500 mb-1">Total Payouts Pending</p>
-            <p className="text-3xl font-bold text-[#3A3A3A]">${totalDeposits.toFixed(2)}</p>
+            <p className="text-sm text-gray-500 mb-1">Total Net Payouts Pending</p>
+            <p className="text-3xl font-bold text-[#3A3A3A]">${totalNetPayout.toFixed(2)}</p>
+            <p className="text-xs text-gray-400 mt-1">After $1.99 platform fee per booking</p>
             <p className="text-sm text-gray-500 mt-1">{bookings.length} bookings</p>
           </div>
         </div>
@@ -572,6 +634,11 @@ function PendingPaymentCard({ booking, onRelease }: { booking: Booking; onReleas
   const service = typeof booking.serviceId === 'object' ? booking.serviceId : null;
   const business = typeof booking.businessId === 'object' ? booking.businessId : null;
   const totalCost = booking.totalCost || 0;
+  // Use real stored depositAmount; fallback to 10% for legacy
+  const depositAmount = booking.depositAmount || (totalCost * 0.10);
+  const platformFee = booking.platformFee || 1.99;
+  // Net payout = what business actually receives after platform fee
+  const netPayout = Math.max(0, depositAmount - platformFee);
 
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-6">
@@ -581,8 +648,6 @@ function PendingPaymentCard({ booking, onRelease }: { booking: Booking; onReleas
         <p className="text-xs text-gray-500">
           {booking.timeSlot?.date
             ? (() => {
-                // Parse UTC date without timezone conversion to avoid date shifting
-                // MongoDB stores dates as UTC ISO strings; using local Date() shifts AEST (+10/+11) dates
                 const raw = typeof booking.timeSlot.date === 'string'
                   ? booking.timeSlot.date
                   : new Date(booking.timeSlot.date).toISOString();
@@ -592,6 +657,14 @@ function PendingPaymentCard({ booking, onRelease }: { booking: Booking; onReleas
               })()
             : 'Date not available'}
         </p>
+        {/* Show booking status badge */}
+        {booking.status && (
+          <span className={`inline-block mt-1 text-xs px-2 py-0.5 rounded-full font-medium ${
+            booking.status === 'completed' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'
+          }`}>
+            {booking.status === 'completed' ? 'Completed' : 'Upcoming'}
+          </span>
+        )}
       </div>
 
       <div className="space-y-2 text-sm">
@@ -599,11 +672,18 @@ function PendingPaymentCard({ booking, onRelease }: { booking: Booking; onReleas
           <span className="text-gray-600">Total Booking:</span>
           <span className="font-semibold">${totalCost.toFixed(2)}</span>
         </div>
-        <div className="flex justify-between pt-2 border-t">
-          <span className="font-semibold">Payout Amount:</span>
-          <span className="font-bold text-lg text-green-600">${(totalCost * 0.10).toFixed(2)}</span>
+        <div className="flex justify-between">
+          <span className="text-gray-600">Deposit Collected:</span>
+          <span className="font-medium text-blue-600">${depositAmount.toFixed(2)}</span>
         </div>
-        <p className="text-xs text-gray-400 mt-1">Full deposit amount (no fees deducted)</p>
+        <div className="flex justify-between">
+          <span className="text-gray-600">Platform Fee:</span>
+          <span className="font-medium text-gray-500">-${platformFee.toFixed(2)}</span>
+        </div>
+        <div className="flex justify-between pt-2 border-t">
+          <span className="font-semibold">Net Payout to Business:</span>
+          <span className="font-bold text-lg text-green-600">${netPayout.toFixed(2)}</span>
+        </div>
       </div>
 
       <button
