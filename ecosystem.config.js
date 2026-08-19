@@ -1,11 +1,11 @@
 module.exports = {
   apps: [{
     name: 'ouiimi',
-    script: 'npm',
+    script: 'node_modules/.bin/next',
     args: 'start',
     cwd: '/root/ouiimi',
-    instances: 2,
-    exec_mode: 'cluster',
+    instances: 1,
+    exec_mode: 'fork',
     env_file: '/root/ouiimi/.env.production', // Explicitly load .env.production
     env: {
       NODE_ENV: 'production',
