@@ -314,7 +314,12 @@ export default function BusinessDashboardPage() {
                     {activeTab === "bookings" && <BookingsTab business={business} />}
                     {activeTab === "list" && <ListTab business={business} />}
                     {activeTab === "staff" && <StaffTab business={business} />}
-                    {activeTab === "details" && <DetailsTab business={business} />}
+                    {activeTab === "details" && (
+                      <DetailsTab
+                        business={business}
+                        onBusinessUpdated={() => mutate()}
+                      />
+                    )}
                 </div>
             </div>
         </PageLayout>

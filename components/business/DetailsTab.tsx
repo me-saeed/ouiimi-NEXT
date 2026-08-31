@@ -9,13 +9,16 @@ import { renderAddress } from "@/lib/utils";
 
 interface DetailsTabProps {
   business: any;
+  onBusinessUpdated?: () => void;
 }
 
-export function DetailsTab({ business }: DetailsTabProps) {
+export function DetailsTab({ business, onBusinessUpdated }: DetailsTabProps) {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string>("");
   const [success, setSuccess] = useState<string>("");
+  const [isEditing, setIsEditing] = useState(false);
+
   const [bankDetails, setBankDetails] = useState({
     name: "",
     bsb: "",
@@ -23,9 +26,24 @@ export function DetailsTab({ business }: DetailsTabProps) {
     contactNumber: "",
   });
 
+  const [editData, setEditData] = useState({
+    businessName: "",
+    email: "",
+    phone: "",
+    address: "",
+    story: "",
+  });
+
   useEffect(() => {
     if (business?.id || business?._id) {
       loadBankDetails();
+      setEditData({
+        businessName: business.businessName || "",
+        email: business.email || "",
+        phone: business.phone || "",
+        address: typeof business.address === 'string' ? business.address : business.address?.street || "",
+        story: business.story || "",
+      });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [business]);
@@ -40,7 +58,7 @@ export function DetailsTab({ business }: DetailsTabProps) {
         headers: {
           "Content-Type": "application/json",
         },
-        credentials: "include", // Use session cookies
+        credentials: "include",
       });
 
       if (response.ok) {
@@ -74,7 +92,7 @@ export function DetailsTab({ business }: DetailsTabProps) {
         headers: {
           "Content-Type": "application/json",
         },
-        credentials: "include", // Use session cookies
+        credentials: "include",
         body: JSON.stringify(bankDetails),
       });
 
@@ -96,6 +114,66 @@ export function DetailsTab({ business }: DetailsTabProps) {
     }
   };
 
+  const handleSaveBusinessDetails = async () => {
+    if (!business?.id && !business?._id) return;
+
+    setIsLoading(true);
+    setError("");
+    setSuccess("");
+
+    try {
+      const businessId = business.id || business._id;
+
+      const response = await fetch(`/api/business/${businessId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({
+          businessName: editData.businessName,
+          email: editData.email,
+          phone: editData.phone,
+          address: editData.address,
+          story: editData.story,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        setError(result.error || "Failed to update business details");
+        return;
+      }
+
+      setSuccess("Business details updated successfully");
+      setIsEditing(false);
+
+      if (onBusinessUpdated) {
+        onBusinessUpdated();
+      }
+
+      setTimeout(() => setSuccess(""), 3000);
+    } catch (e) {
+      console.error("Error updating business details:", e);
+      setError("Failed to update business details");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditData({
+      businessName: business.businessName || "",
+      email: business.email || "",
+      phone: business.phone || "",
+      address: typeof business.address === 'string' ? business.address : business.address?.street || "",
+      story: business.story || "",
+    });
+    setIsEditing(false);
+    setError("");
+  };
+
   return (
     <div className="max-w-6xl mx-auto space-y-8 px-4">
       {error && (
@@ -115,47 +193,116 @@ export function DetailsTab({ business }: DetailsTabProps) {
           <h2 className="text-xl md:text-2xl font-bold text-[#3A3A3A] mx-auto text-center">Details</h2>
 
           <div className="border border-gray-200 rounded-[24px] p-8 shadow-sm bg-white max-w-lg mx-auto">
-            <h3 className="text-base md:text-lg font-medium text-[#3A3A3A] border-b border-gray-200 pb-2 mb-6 inline-block">Business</h3>
+            <div className="flex items-center justify-between border-b border-gray-200 pb-2 mb-6">
+              <h3 className="text-base md:text-lg font-medium text-[#3A3A3A]">Business</h3>
+              {!isEditing && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsEditing(true)}
+                  className="text-gray-600 hover:text-gray-900 border-gray-300 rounded-lg px-4"
+                >
+                  Edit
+                </Button>
+              )}
+            </div>
 
             <div className="space-y-4">
               <div className="grid grid-cols-[80px_1fr] items-baseline gap-4">
                 <span className="text-sm text-gray-500 text-right">Name:</span>
-                <span className="text-sm text-[#3A3A3A]">{business?.businessName || "-"}</span>
+                {isEditing ? (
+                  <Input
+                    value={editData.businessName}
+                    onChange={(e) => setEditData({ ...editData, businessName: e.target.value })}
+                    className="h-9 rounded-lg text-sm"
+                  />
+                ) : (
+                  <span className="text-sm text-[#3A3A3A]">{business?.businessName || "-"}</span>
+                )}
               </div>
 
               <div className="grid grid-cols-[80px_1fr] items-baseline gap-4">
                 <span className="text-sm text-gray-500 text-right">Email:</span>
-                <span className="text-sm text-[#3A3A3A] break-all">{business?.email || "-"}</span>
+                {isEditing ? (
+                  <Input
+                    value={editData.email}
+                    onChange={(e) => setEditData({ ...editData, email: e.target.value })}
+                    type="email"
+                    className="h-9 rounded-lg text-sm"
+                  />
+                ) : (
+                  <span className="text-sm text-[#3A3A3A] break-all">{business?.email || "-"}</span>
+                )}
               </div>
 
               <div className="grid grid-cols-[80px_1fr] items-baseline gap-4">
                 <span className="text-sm text-gray-500 text-right">Number:</span>
-                <span className="text-sm text-[#3A3A3A]">{business?.phone || "-"}</span>
+                {isEditing ? (
+                  <Input
+                    value={editData.phone}
+                    onChange={(e) => setEditData({ ...editData, phone: e.target.value })}
+                    type="tel"
+                    className="h-9 rounded-lg text-sm"
+                  />
+                ) : (
+                  <span className="text-sm text-[#3A3A3A]">{business?.phone || "-"}</span>
+                )}
               </div>
 
               <div className="grid grid-cols-[80px_1fr] items-baseline gap-4">
                 <span className="text-sm text-gray-500 text-right">Address:</span>
-                <span className="text-sm text-[#3A3A3A]">{renderAddress(business?.address) || "-"}</span>
+                {isEditing ? (
+                  <Input
+                    value={editData.address}
+                    onChange={(e) => setEditData({ ...editData, address: e.target.value })}
+                    className="h-9 rounded-lg text-sm"
+                  />
+                ) : (
+                  <span className="text-sm text-[#3A3A3A]">{renderAddress(business?.address) || "-"}</span>
+                )}
               </div>
 
-              {business?.story && (
-                <div className="grid grid-cols-[80px_1fr] items-baseline gap-4">
-                  <span className="text-sm text-gray-500 text-right">Story:</span>
-                  <span className="text-sm text-[#3A3A3A]">{business.story}</span>
-                </div>
-              )}
+              <div className="grid grid-cols-[80px_1fr] items-start gap-4">
+                <span className="text-sm text-gray-500 text-right">Story:</span>
+                {isEditing ? (
+                  <textarea
+                    value={editData.story}
+                    onChange={(e) => setEditData({ ...editData, story: e.target.value })}
+                    rows={3}
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#EECFD1] focus:border-[#EECFD1] resize-none"
+                  />
+                ) : (
+                  <span className="text-sm text-[#3A3A3A]">{business?.story || "-"}</span>
+                )}
+              </div>
             </div>
 
-            <div className="mt-8 flex justify-end">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => router.push("/business/profile/edit")}
-                className="text-gray-600 hover:text-gray-900 border-gray-300 rounded-lg px-6"
-              >
-                Edit
-              </Button>
-            </div>
+            {isEditing && (
+              <div className="mt-6 flex gap-3">
+                <Button
+                  onClick={handleSaveBusinessDetails}
+                  disabled={isLoading}
+                  className="flex-1 bg-[#3A3A3A] text-white hover:bg-[#2a2a2a] rounded-lg"
+                >
+                  {isLoading ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2 inline-block" />
+                      Saving...
+                    </>
+                  ) : (
+                    "Save Changes"
+                  )}
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={handleCancelEdit}
+                  disabled={isLoading}
+                  className="flex-1 border-gray-300 rounded-lg"
+                >
+                  Cancel
+                </Button>
+              </div>
+            )}
           </div>
         </div>
 
