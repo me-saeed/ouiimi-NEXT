@@ -64,7 +64,7 @@ async function updateBusinessHandler(
 
   // Update allowed fields (excluding sensitive ones like userId, status)
   const allowedFields = [
-    'businessName', 'description', 'address', 'phone',
+    'businessName', 'story', 'address', 'phone',
     'email', 'logo', 'operatingHours', 'website'
   ];
 
