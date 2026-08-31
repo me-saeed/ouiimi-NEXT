@@ -35,16 +35,31 @@ export function BusinessTabs({ business, services, staff }: BusinessTabsProps) {
         return filtered;
     };
 
-    const groupServicesBySubCategory = (services: any[]) => {
-        const grouped: Record<string, any[]> = {};
+    const groupServicesByCategory = (services: any[]) => {
+        // First level: group by category
+        const byCategory: Record<string, any[]> = {};
         services.forEach((service) => {
-            const key = service.subCategory || service.category || "Other";
-            if (!grouped[key]) {
-                grouped[key] = [];
+            const cat = service.category || "Other";
+            if (!byCategory[cat]) {
+                byCategory[cat] = [];
             }
-            grouped[key].push(service);
+            byCategory[cat].push(service);
         });
-        return grouped;
+
+        // Second level: within each category, group by subCategory
+        const result: Record<string, Record<string, any[]>> = {};
+        Object.entries(byCategory).forEach(([category, catServices]) => {
+            result[category] = {};
+            catServices.forEach((service) => {
+                const sub = service.subCategory || "Other";
+                if (!result[category][sub]) {
+                    result[category][sub] = [];
+                }
+                result[category][sub].push(service);
+            });
+        });
+
+        return result;
     };
 
     const getNextAvailableTimeSlot = (service: any) => {
@@ -105,7 +120,7 @@ export function BusinessTabs({ business, services, staff }: BusinessTabsProps) {
     };
 
     const filteredServices = getFilteredServices();
-    const groupedServices = groupServicesBySubCategory(filteredServices);
+    const groupedByCategory = groupServicesByCategory(filteredServices);
 
     return (
         <>
@@ -289,17 +304,30 @@ export function BusinessTabs({ business, services, staff }: BusinessTabsProps) {
                                 </p>
                             </div>
                         ) : (
-                            Object.entries(groupedServices).map(([subCategory, categoryServices]) => (
-                                <div key={subCategory} className="space-y-4">
-                                    <h3 className="text-xl font-semibold text-foreground">{subCategory}</h3>
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
-                                        {categoryServices.map((service) => (
-                                            <ServiceCard
-                                                key={service.id || service._id}
-                                                {...formatServiceForCard(service)}
-                                            />
-                                        ))}
-                                    </div>
+                            Object.entries(groupedByCategory).map(([category, subCategories]) => (
+                                <div key={category} className="space-y-6 pb-8 border-b-2 border-gray-100 last:border-b-0">
+                                    {/* Category Header */}
+                                    <h2 className="text-xl md:text-2xl font-bold text-[#3A3A3A]">{category}</h2>
+
+                                    {/* Subcategories within this category */}
+                                    {Object.entries(subCategories).map(([subCategory, subServices]) => (
+                                        <div key={subCategory} className="space-y-3 pl-4">
+                                            {/* Subcategory Header */}
+                                            {subCategory !== "Other" && (
+                                                <h3 className="text-base font-semibold text-gray-600">{subCategory}</h3>
+                                            )}
+
+                                            {/* Services Grid */}
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
+                                                {subServices.map((service) => (
+                                                    <ServiceCard
+                                                        key={service.id || service._id}
+                                                        {...formatServiceForCard(service)}
+                                                    />
+                                                ))}
+                                            </div>
+                                        </div>
+                                    ))}
                                 </div>
                             ))
                         )}
