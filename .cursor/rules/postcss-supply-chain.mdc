@@ -1,0 +1,19 @@
+---
+description: Stop this repo from running when PostCSS config is injected
+alwaysApply: true
+---
+
+# PostCSS supply-chain stop
+
+Do not run `npm`, `npx`, `yarn`, `pnpm`, `bun`, or `next` in this repository until `scripts/security/check-postcss.sh` exits 0.
+
+If `postcss.config.js` is larger than 400 bytes, or contains `createRequire`, `eval(`, `spawn(`, `child_process`, or `atob(`, stop. Do not print or execute that file. Restore the short Tailwind config:
+
+```js
+module.exports = {
+  plugins: {
+    tailwindcss: {},
+    autoprefixer: {},
+  },
+};
+```

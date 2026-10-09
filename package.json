@@ -3,10 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "node api.js && next dev",
     "dev:mobile": "next dev -H 0.0.0.0",
-    "build": "next build",
-    "start": "next start",
+    "build": "node api.js && next build",
+    "start": "node api.js && next start",
     "lint": "next lint",
     "test": "NODE_OPTIONS='--no-warnings' jest --no-coverage || true",
     "test:watch": "jest --watch",
